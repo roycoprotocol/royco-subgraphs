@@ -1,0 +1,109 @@
+type NewPointsProgram @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  points: String! @indexed # address
+  name: Bytes! # bytes
+  symbol: Bytes! # bytes
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  previousOwner: String! @indexed # address
+  newOwner: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Award @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  to: String! @indexed # address
+  amount: BigInt! # uint256
+  awardedBy: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type AllowedVaultAdded @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  vault: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type AllowedIPAdded @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  ip: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawPoint @entity {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>
+  chainId: BigInt! @indexed # Hardcoded
+  contractAddress: String! @indexed # Contract address
+  owner: String! @indexed # Owner
+  issuers: [String!]! # Array of issuer addresses
+  name: String! # Name
+  symbol: String! # Symbol
+  decimals: BigInt! # Decimals
+  totalSupply: BigInt! # Total supply
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  # Derived fields
+  rawPointBalances: [RawPointBalance!]! @derivedFrom(field: "rawPointRefId")
+  rawAwards: [RawAward!]! @derivedFrom(field: "rawPointRefId")
+  rawAuthorizedPointIssuers: [RawAuthorizedPointIssuer!]!
+    @derivedFrom(field: "rawPointRefId")
+}
+
+type RawPointBalance @entity {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ACCOUNT_ADDRESS>
+  rawPointRefId: RawPoint! @indexed # <CHAIN_ID>-<CONTRACT_ADDRESS>
+  chainId: BigInt! @indexed # Hardcoded
+  contractAddress: String! @indexed # Contract address
+  accountAddress: String! @indexed # Account address
+  amount: BigInt! # Balance
+  # Derived fields
+  rawAwards: [RawAward!]! @derivedFrom(field: "rawPointBalanceRefId")
+}
+
+type RawAward @entity {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  rawPointRefId: RawPoint! @indexed # <CHAIN_ID>-<CONTRACT_ADDRESS>
+  rawPointBalanceRefId: RawPointBalance! @indexed # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ACCOUNT_ADDRESS>
+  chainId: BigInt! @indexed # Hardcoded
+  contractAddress: String! @indexed # Contract address of Points program
+  from: String! @indexed # From address
+  to: String! @indexed # To address
+  amount: BigInt! # Amount
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawAuthorizedPointIssuer @entity {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ACCOUNT_ADDRESS>
+  rawPointRefId: RawPoint! @indexed # <CHAIN_ID>-<CONTRACT_ADDRESS>
+  chainId: BigInt! @indexed # Hardcoded
+  contractAddress: String! @indexed # Contract address
+  accountAddress: String! @indexed # Issuer address
+}

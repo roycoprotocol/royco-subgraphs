@@ -1,0 +1,6 @@
+{
+  "network": "sonic",
+  "chainId": 146,
+  "pointsFactoryAddress": "0xd3b5bed62038d520fe659c01b03e2727377c8b8d",
+  "pointsFactoryStartBlock": 4353630
+}

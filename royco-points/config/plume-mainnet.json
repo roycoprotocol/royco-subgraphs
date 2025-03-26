@@ -1,0 +1,6 @@
+{
+  "network": "plume-mainnet",
+  "chainId": 98866,
+  "pointsFactoryAddress": "0x213774c22ff5a724c0668818333e4cf8aea00f76",
+  "pointsFactoryStartBlock": 7399
+}

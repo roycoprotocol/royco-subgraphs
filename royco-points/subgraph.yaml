@@ -1,0 +1,52 @@
+# prettier-ignore
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: PointsFactory
+    network: hyperevm
+    source:
+      address: "0xc0bd79dea95c1e1c474ce29d489e81dffcf15d49"
+      abi: PointsFactory
+      startBlock: 184131
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - NewPointsProgram
+      abis:
+        - name: PointsFactory
+          file: ./abis/PointsFactory.json
+      eventHandlers:
+        - event: NewPointsProgram(indexed address,indexed string,indexed string)
+          handler: handleNewPointsProgram
+      file: ./src/points-factory.ts
+templates:
+  - name: PointsProgramTemplate
+    kind: ethereum/contract
+    network: hyperevm
+    source:
+      abi: Points
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Award
+        - AllowedVaultAdded
+        - AllowedIPAdded
+      abis:
+        - name: Points
+          file: ./abis/Points.json
+      eventHandlers:
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: Award(indexed address,indexed uint256,indexed address)
+          handler: handleAward
+        - event: AllowedVaultAdded(indexed address)
+          handler: handleAllowedVaultAdded
+        - event: AllowedIPAdded(indexed address)
+          handler: handleAllowedIPAdded
+      file: ./src/points-program.ts

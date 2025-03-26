@@ -1,0 +1,68 @@
+# prettier-ignore
+apiVersion: 3
+name: royco-points-pipeline
+status: ACTIVE
+resource_size: s
+sources:
+  points_raw_point_reference:
+    name: raw_point
+    subgraphs:
+      {{#metadata}}
+      - name: royco-points-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  points_raw_point_balance_reference:
+    name: raw_point_balance
+    subgraphs:
+      {{#metadata}}
+      - name: royco-points-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  points_raw_award_reference:
+    name: raw_award
+    subgraphs:
+      {{#metadata}}
+      - name: royco-points-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  points_raw_authorized_point_issuer_reference:
+    name: raw_authorized_point_issuer
+    subgraphs:
+      {{#metadata}}
+      - name: royco-points-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  points_raw_point_postgres:
+    type: postgres
+    table: raw_point
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_point"
+    from: points_raw_point_reference
+  points_raw_point_balance_postgres:
+    type: postgres
+    table: raw_point_balance
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_point_balance"
+    from: points_raw_point_balance_reference
+  points_raw_award_postgres:
+    type: postgres
+    table: raw_award
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_award"
+    from: points_raw_award_reference
+  points_raw_authorized_point_issuer_postgres:
+    type: postgres
+    table: raw_authorized_point_issuer
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_authorized_point_issuer"
+    from: points_raw_authorized_point_issuer_reference
