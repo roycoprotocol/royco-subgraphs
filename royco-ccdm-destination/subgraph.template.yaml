@@ -1,0 +1,67 @@
+# prettier-ignore
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: DepositExecutor
+    network: {{network}}
+    source:
+      address: "{{address}}"
+      abi: DepositExecutor
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - CCDMBridgeProcessed
+        - CampaignDepositRecipeSet
+        - CampaignInputTokensSet
+        - CampaignOwnerSet
+        - CampaignReceiptTokenSet
+        - CampaignUnlockTimestampSet
+        - CampaignVerificationStatusSet
+        - CampaignVerifierSet
+        - IndividualDepositorWithdrawn
+        - MerkleDepositorWithdrawn
+        - OwnershipTransferStarted
+        - OwnershipTransferred
+        - ValidLzOftRemoved
+        - ValidLzOftSet
+        - WeirollWalletsExecutedDepositRecipe
+      abis:
+        - name: DepositExecutor
+          file: ./abis/DepositExecutor.json
+      eventHandlers:
+        - event: CCDMBridgeProcessed(indexed bytes32,indexed uint256,indexed bytes32,address)
+          handler: handleCCDMBridgeProcessed
+        - event: CampaignDepositRecipeSet(indexed bytes32)
+          handler: handleCampaignDepositRecipeSet
+        - event: CampaignInputTokensSet(indexed bytes32,address[])
+          handler: handleCampaignInputTokensSet
+        - event: CampaignOwnerSet(indexed bytes32,address)
+          handler: handleCampaignOwnerSet
+        - event: CampaignReceiptTokenSet(indexed bytes32,address)
+          handler: handleCampaignReceiptTokenSet
+        - event: CampaignUnlockTimestampSet(indexed bytes32,uint256)
+          handler: handleCampaignUnlockTimestampSet
+        - event: CampaignVerificationStatusSet(indexed bytes32,bool)
+          handler: handleCampaignVerificationStatusSet
+        - event: CampaignVerifierSet(address)
+          handler: handleCampaignVerifierSet
+        - event: IndividualDepositorWithdrawn(indexed address,indexed address)
+          handler: handleIndividualDepositorWithdrawn
+        - event: MerkleDepositorWithdrawn(indexed address,indexed address,bytes32)
+          handler: handleMerkleDepositorWithdrawn
+        - event: OwnershipTransferStarted(indexed address,indexed address)
+          handler: handleOwnershipTransferStarted
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: ValidLzOftRemoved(address)
+          handler: handleValidLzOftRemoved
+        - event: ValidLzOftSet(address)
+          handler: handleValidLzOftSet
+        - event: WeirollWalletsExecutedDepositRecipe(indexed bytes32,address[],uint256[])
+          handler: handleWeirollWalletsExecutedDepositRecipe
+      file: ./src/deposit-executor.ts

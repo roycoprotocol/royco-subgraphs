@@ -1,0 +1,82 @@
+# prettier-ignore
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: DepositLocker
+    network: {{network}}
+    source:
+      address: "{{address}}"
+      abi: DepositLocker
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BaseLzReceiveGasLimitSet
+        - CampaignOwnerSet
+        - DepositExecutorSet
+        - DestinationChainLzEidSet
+        - GreenLightTurnedOff
+        - GreenLightTurnedOn
+        - GreenLighterSet
+        - IndividualDepositMade
+        - IndividualWithdrawalMade
+        - LpTokensBridgedToDestination
+        - LpTokensMerkleBridgedToDestination
+        - LzV2OFTForTokenRemoved
+        - LzV2OFTForTokenSet
+        - MarketHalted
+        - MerkleDepositMade
+        - MerkleWithdrawalMade
+        - OwnershipTransferStarted
+        - OwnershipTransferred
+        - SingleTokensBridgedToDestination
+        - SingleTokensMerkleBridgedToDestination
+      abis:
+        - name: DepositLocker
+          file: ./abis/DepositLocker.json
+      eventHandlers:
+        - event: BaseLzReceiveGasLimitSet(uint128)
+          handler: handleBaseLzReceiveGasLimitSet
+        - event: CampaignOwnerSet(indexed bytes32,address)
+          handler: handleCampaignOwnerSet
+        - event: DepositExecutorSet(address)
+          handler: handleDepositExecutorSet
+        - event: DestinationChainLzEidSet(uint32)
+          handler: handleDestinationChainLzEidSet
+        - event: GreenLightTurnedOff(indexed bytes32)
+          handler: handleGreenLightTurnedOff
+        - event: GreenLightTurnedOn(indexed bytes32,uint256)
+          handler: handleGreenLightTurnedOn
+        - event: GreenLighterSet(address)
+          handler: handleGreenLighterSet
+        - event: IndividualDepositMade(indexed bytes32,indexed address,address,uint256)
+          handler: handleIndividualDepositMade
+        - event: IndividualWithdrawalMade(indexed bytes32,indexed address,address,uint256)
+          handler: handleIndividualWithdrawalMade
+        - event: LpTokensBridgedToDestination(indexed bytes32,indexed uint256,address[],uint256,bytes32,uint64,address,uint256,bytes32,uint64,address,uint256)
+          handler: handleLpTokensBridgedToDestination
+        - event: LpTokensMerkleBridgedToDestination(indexed bytes32,indexed uint256,indexed uint256,bytes32,uint256,bytes32,uint64,address,uint256,bytes32,uint64,address,uint256)
+          handler: handleLpTokensMerkleBridgedToDestination
+        - event: LzV2OFTForTokenRemoved(indexed address)
+          handler: handleLzV2OFTForTokenRemoved
+        - event: LzV2OFTForTokenSet(indexed address,address)
+          handler: handleLzV2OFTForTokenSet
+        - event: MarketHalted(bytes32)
+          handler: handleMarketHalted
+        - event: MerkleDepositMade(indexed uint256,indexed bytes32,indexed address,address,uint256,uint256,bytes32,uint256,bytes32)
+          handler: handleMerkleDepositMade
+        - event: MerkleWithdrawalMade(indexed bytes32,indexed address,address,uint256)
+          handler: handleMerkleWithdrawalMade
+        - event: OwnershipTransferStarted(indexed address,indexed address)
+          handler: handleOwnershipTransferStarted
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: SingleTokensBridgedToDestination(indexed bytes32,indexed uint256,address[],bytes32,uint64,uint256)
+          handler: handleSingleTokensBridgedToDestination
+        - event: SingleTokensMerkleBridgedToDestination(indexed bytes32,indexed uint256,indexed uint256,bytes32,bytes32,uint64,uint256)
+          handler: handleSingleTokensMerkleBridgedToDestination
+      file: ./src/deposit-locker.ts

@@ -1,0 +1,7 @@
+{
+  "network": "berachain-cartio",
+  "chainId": 80000,
+  "address": "0x17621de23ff8ad9addd82077b0c13c3472367382",
+  "startBlock": 4417729,
+  "sourceChainId": 11155111
+}

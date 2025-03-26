@@ -1,0 +1,23 @@
+{
+  "name": "royco-ccdm-source-boyco",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ royco-ccdm-source-boyco",
+    "create-local": "graph create --node http://localhost:8020/ royco-ccdm-source-boyco",
+    "remove-local": "graph remove --node http://localhost:8020/ royco-ccdm-source-boyco",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-ccdm-source-boyco",
+    "test": "graph test",
+    "prepare:sepolia": "mustache config/sepolia.json subgraph.template.yaml > subgraph.yaml && mustache config/sepolia.json config/constants.template.ts > src/constants.ts",
+    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/constants.template.ts > src/constants.ts"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.83.0",
+    "@graphprotocol/graph-ts": "0.32.0"
+  },
+  "devDependencies": {
+    "matchstick-as": "^0.5.0",
+    "mustache-cli": "^2.3.2"
+  }
+}

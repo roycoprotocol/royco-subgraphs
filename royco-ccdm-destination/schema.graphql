@@ -1,0 +1,214 @@
+type CCDMBridgeProcessed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  ccdmNonce: BigInt! # uint256
+  guid: String! # String
+  weirollWallet: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignDepositRecipeSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignInputTokensSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  inputTokens: [String!]! # address[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignOwnerSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignReceiptTokenSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  receiptToken: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignUnlockTimestampSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  unlockTimestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignVerificationStatusSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  verificationStatus: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignVerifierSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  campaignVerifier: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IndividualDepositorWithdrawn @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # address
+  depositor: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MerkleDepositorWithdrawn @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # address
+  depositor: String! # address
+  depositLeaf: String! # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferStarted @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  previousOwner: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  previousOwner: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type ValidLzOftRemoved @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  lzV2OFT: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type ValidLzOftSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  lzV2OFT: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WeirollWalletsExecutedDepositRecipe @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  sourceMarketHash: String! # String
+  weirollWalletsExecuted: [String!]! # address[]
+  receiptTokensReceived: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawMarketRecipeDestination @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>: This id can be used to identify the market of the source chain on destination chain
+  sourceChainId: BigInt! # Hardcoded
+  destinationChainId: BigInt! # Hardcoded
+  marketType: Int! # Hardcoded
+  marketId: String! # Market Hash
+  unlockTimestamp: BigInt # Absolute timestamp when all weiroll wallets will unlock
+  receiptTokenId: String # This is the receipt token id on destination chain: <DESTINATION_CHAIN_ID>-<RECEIPT_TOKEN_ADDRESS>
+  inputTokenIds: [String!] # Addresses of the input tokens
+}
+
+type RawWeirollWalletDestination @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<MARKET_ID>_<CCDM_NONCE> (This id is associated with each weiroll wallet as "rawWeirollWalletDestinationRefId")
+  sourceChainId: BigInt! # Hardcoded
+  destinationChainId: BigInt! # Hardcoded
+  rawMarketRecipeDestinationRefId: String! # <SOURCE_CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  marketId: String! # Market Hash
+  ccdmNonce: BigInt! # CCDM Nonce
+  weirollWallet: String! # Weiroll Wallet Address on Destination Chain
+  processTransactionHash: String! # Process Transaction Hash on Destination Chain
+  receiptTokenAmount: BigInt # Amount of receipt tokens received, will be updated when the weiroll wallet is executed
+  executeTransactionHash: String # Execute Transaction Hash, will be updated when the weiroll wallet is executed
+}
+
+type RawWeirollWalletMapDestination @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>
+  sourceChainId: BigInt! # Hardcoded
+  destinationChainId: BigInt! # Hardcoded
+  weirollWallet: String! # Weiroll Wallet Address on Destination Chain
+  rawWeirollWalletDestinationRefId: String! # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<MARKET_ID>_<CCDM_NONCE>
+}
+
+type RawWeirollWalletWithdrawnDestination @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<MARKET_ID>_<CCDM_NONCE>_<DEPOSIT_LEAF>
+  withdrawTransactionHash: String! # Withdrawal Transaction Hash on Destination Chain
+  isWithdrawn: Boolean! # Tracks whether liquidity token has been withdrawn or not
+}
+
+type RawMarketTokenBalanceRecipe @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: String! # <SOURCE_CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  weirollWallet: String! # Weiroll Wallet Address on Destination Chain
+  chainId: BigInt! # Hardcoded
+  marketType: Int8! # Hardcoded
+  marketId: String! # Market Hash
+  tokenClass: Int8! # 0: Input, 1: Incentive
+  tokenId: String! # <DESTINATION_CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAmount: BigInt! # Token Amount
+}

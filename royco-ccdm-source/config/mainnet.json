@@ -1,0 +1,7 @@
+{
+  "network": "mainnet",
+  "sourceChainId": 1,
+  "destinationChainId": 80094,
+  "address": "0x63e8209caa13bba1838e3946a50d717071a28cfb",
+  "startBlock": 21689368
+}

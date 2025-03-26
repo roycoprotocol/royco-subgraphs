@@ -1,0 +1,283 @@
+type BaseLzReceiveGasLimitSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  baseLzReceiveGasLimit: BigInt! # uint
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CampaignOwnerSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  campaignOwner: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type DepositExecutorSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  depositExecutor: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type DestinationChainLzEidSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  dstChainLzEid: BigInt! @indexed # uint32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type GreenLightTurnedOff @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type GreenLightTurnedOn @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  bridgingAllowedTimestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type GreenLighterSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  greenLighter: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IndividualDepositMade @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  weirollWallet: String! @indexed # address
+  depositor: String! @indexed # address
+  amountDeposited: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IndividualWithdrawalMade @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  weirollWallet: String! @indexed # address
+  depositor: String! @indexed # address
+  amountWithdrawn: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type LpTokensBridgedToDestination @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  ccdmNonce: BigInt! @indexed # uint256
+  depositorsBridged: [String!]! # address[]
+  totalLpTokensBridged: BigInt! # uint256
+  lz_token0_guid: String! @indexed # String
+  lz_token0_nonce: BigInt! @indexed # uint64
+  token0: String! @indexed # address
+  lz_token0_AmountBridged: BigInt! # uint256
+  lz_token1_guid: String! @indexed # String
+  lz_token1_nonce: BigInt! @indexed # uint64
+  token1: String! @indexed # address
+  lz_token1_AmountBridged: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type LpTokensMerkleBridgedToDestination @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  ccdmNonce: BigInt! @indexed # uint256
+  lastCcdmNonceBridged: BigInt! @indexed # uint256
+  merkleRoot: String! @indexed # String
+  totalLpTokensBridged: BigInt! # uint256
+  lz_token0_guid: String! @indexed # String
+  lz_token0_nonce: BigInt! # uint64
+  token0: String! @indexed # address
+  lz_token0_AmountBridged: BigInt! # uint256
+  lz_token1_guid: String! @indexed # String
+  lz_token1_nonce: BigInt! # uint64
+  token1: String! @indexed # address
+  lz_token1_AmountBridged: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type LzV2OFTForTokenRemoved @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  token: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type LzV2OFTForTokenSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  token: String! @indexed # address
+  lzV2OFT: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MarketHalted @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MerkleDepositMade @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  lastCcdmNonceBridged: BigInt! # uint256
+  marketHash: String! @indexed # String
+  weirollWallet: String! @indexed # address
+  depositor: String! @indexed # address
+  amountDeposited: BigInt! # uint256
+  merkleDepositNonce: BigInt! # uint256
+  depositLeaf: String! @indexed # String
+  depositLeafIndex: BigInt! @indexed # uint256
+  updatedMerkleRoot: String! # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MerkleWithdrawalMade @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  weirollWallet: String! @indexed # address
+  depositor: String! @indexed # address
+  amountWithdrawn: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferStarted @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  previousOwner: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  previousOwner: String! @indexed # address
+  newOwner: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type SingleTokensBridgedToDestination @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  ccdmNonce: BigInt! @indexed # uint256
+  depositorsBridged: [String!]! # address[]
+  lz_guid: String! @indexed # String
+  lz_nonce: BigInt! @indexed # uint64
+  totalAmountBridged: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type SingleTokensMerkleBridgedToDestination @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # hardcoded
+  marketHash: String! @indexed # String
+  ccdmNonce: BigInt! @indexed # uint256
+  lastCcdmNonceBridged: BigInt! @indexed # uint256
+  merkleRoot: String! @indexed # String
+  lz_guid: String! @indexed # String
+  lz_nonce: BigInt! @indexed # uint64
+  totalAmountBridged: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawWeirollWalletSource @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>: Same as RawPositionRecipe ID
+  sourceChainId: BigInt! @indexed # Hardcoded
+  destinationChainId: BigInt! @indexed # Hardcoded
+  weirollWallet: String! @indexed # Weiroll Wallet Address
+  marketId: String! @indexed # Market Hash
+  depositLeaf: String! @indexed # Deposit Leaf (used for creating destination weiroll wallet id)
+  merkleDepositNonce: BigInt! @indexed # Merkle Deposit Nonce on Source Chain (required for withdraw function on destination chain)
+  amountDeposited: BigInt! # Amount Deposited on Source Chain (required for withdraw function on destination chain)
+  rawMarketRefId: String! @indexed # <SOURCE_CHAIN_ID>_0_<MARKET_ID>, this is the id of the market recipe on the source chain
+  rawMarketRecipeDestinationRefId: String! @indexed # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<MARKET_ID>
+  rawWeirollWalletDestinationRefId: String @indexed # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<MARKET_ID>_<CCDM_NONCE>
+  rawWeirollWalletWithdrawnDestinationRefId: String @indexed # <SOURCE_CHAIN_ID>_<DESTINATION_CHAIN_ID>_<MARKET_ID>_<CCDM_NONCE>_<DEPOSIT_LEAF>
+  ccdmNonce: BigInt @indexed # CCDM Nonce used for bridging (used for creating destination weiroll wallet id)
+  totalAmountBridged: BigInt # Total Amount Bridged in batch from Source Chain (this consists of multiple weiroll wallets)
+  depositTransactionHash: String! # Deposit Transaction Hash on Source Chain
+  forfeitTransactionHash: String # Withdrawal Transaction Hash on Source Chain
+  bridgeTransactionHash: String # Bridge Transaction Hash on Source Chain
+}
+
+type RawCcdmNonceBridgedMapSource @entity {
+  id: String! # <SOURCE_CHAIN_ID>_<MARKET_ID>
+  sourceChainId: BigInt! @indexed # Hardcoded
+  destinationChainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # Market Hash
+  weirollWallets: [String!]! # Weiroll Wallet Addresses (All these weiroll wallets will be batched and bridged to destination chain in a single transaction)
+}
