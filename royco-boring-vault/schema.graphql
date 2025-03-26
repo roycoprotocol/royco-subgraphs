@@ -1,0 +1,230 @@
+type Approval @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  owner: String! # address
+  spender: String! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type AuthorityUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  user: String! # address
+  newAuthority: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Enter @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  from: String! # address
+  asset: String! # address
+  amount: BigInt! # uint256
+  to: String! # address
+  shares: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type EpochStarted @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  epoch: BigInt! # uint256
+  eligibleShares: BigInt! # uint256
+  startTimestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Exit @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  to: String! # address
+  asset: String! # address
+  amount: BigInt! # uint256
+  from: String! # address
+  shares: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  user: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RewardsDistributed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  token: String! # address
+  startEpoch: BigInt! # uint256
+  endEpoch: BigInt! # uint256
+  amount: BigInt! # uint256
+  rewardId: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Transfer @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  from: String! # address
+  to: String! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type UserDepositedIntoEpoch @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  user: String! # address
+  epoch: BigInt! # uint256
+  shareAmount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type UserRewardsClaimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  user: String! # address
+  token: String! # address
+  rewardId: BigInt! # uint256
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type UserWithdrawnFromEpoch @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  user: String! # address
+  epoch: BigInt! # uint256
+  shareAmount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type BoringEpoch @entity {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  epoch: BigInt! # Epoch
+  startTimestamp: BigInt! # Start timestamp
+  endTimestamp: BigInt! # End timestamp
+  eligibleShares: BigInt! # Eligible shares
+  rewardIds: [BigInt!]! # Reward IDs
+  rewardTokenIds: [String!]! # Reward token IDs
+  rewardRawAmounts: [BigInt!]! # Reward amounts
+  # Derived fields
+  boringAccountUpdates: [BoringAccountUpdate!]!
+    @derivedFrom(field: "boringEpochRefId")
+  boringEpochRewardBalances: [BoringEpochRewardBalance!]!
+    @derivedFrom(field: "boringEpochRefId")
+}
+
+type BoringAccountUpdate @entity {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<EPOCH>
+  boringEpochRefId: BoringEpoch! # Boring epoch reference
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  accountAddress: String! # Account address
+  epoch: BigInt! # Epoch
+  shares: BigInt! # Shares
+  blockNumber: BigInt! # Block number
+  blockTimestamp: BigInt! # Block timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log index
+}
+
+type BoringEpochRewardBalance @entity {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH>_<REWARD_ID>
+  boringEpochRefId: BoringEpoch! # Boring epoch reference
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  epoch: BigInt! # Epoch
+  rewardId: BigInt! # Reward ID
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAddress: String! # Token address
+  rawAmount: BigInt! # Token amount in wei
+  startTimestamp: BigInt! # Start timestamp
+  endTimestamp: BigInt! # End timestamp
+  blockNumber: BigInt! # Block number
+  blockTimestamp: BigInt! # Block timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log index
+}
+
+type BoringReward @entity {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<REWARD_ID>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  rewardId: BigInt! # Reward ID
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAddress: String! # Token address
+  rawAmount: BigInt! # Token amount in wei
+  startEpoch: BigInt! # Start epoch
+  endEpoch: BigInt! # End epoch
+  blockNumber: BigInt! # Block number
+  blockTimestamp: BigInt! # Block timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log index
+  # Derived fields
+  boringRewardClaimed: BoringRewardClaimed!
+    @derivedFrom(field: "boringRewardRefId")
+}
+
+type   @entity {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<REWARD_ID>_<ACCOUNT_ADDRESS>
+  boringRewardRefId: BoringReward! # Boring reward reference
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  rewardId: BigInt! # Reward ID
+  accountAddress: String! # Account address
+  amount: BigInt! # Amount
+  blockNumber: BigInt! # Block number
+  blockTimestamp: BigInt! # Block timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log index
+}

@@ -1,0 +1,57 @@
+# prettier-ignore
+specVersion: 1.2.0
+schema:
+  file: ./schema.graphql
+dataSources:
+{{#sources}}
+  - kind: ethereum
+    name: BoringVault{{id}}
+    network: {{network}}
+    source:
+      address: "{{vaultAddress}}"
+      abi: BoringVault
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Approval
+        - AuthorityUpdated
+        - Enter
+        - EpochStarted
+        - Exit
+        - OwnershipTransferred
+        - RewardsDistributed
+        - Transfer
+        - UserDepositedIntoEpoch
+        - UserRewardsClaimed
+        - UserWithdrawnFromEpoch
+      abis:
+        - name: BoringVault
+          file: ./abis/BoringVault.json
+      eventHandlers:
+        - event: Approval(indexed address,indexed address,uint256)
+          handler: handleApproval
+        - event: AuthorityUpdated(indexed address,indexed address)
+          handler: handleAuthorityUpdated
+        - event: Enter(indexed address,indexed address,uint256,indexed address,uint256)
+          handler: handleEnter
+        - event: EpochStarted(indexed uint256,uint256,uint256)
+          handler: handleEpochStarted
+        - event: Exit(indexed address,indexed address,uint256,indexed address,uint256)
+          handler: handleExit
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: RewardsDistributed(indexed address,indexed uint256,indexed uint256,uint256,uint256)
+          handler: handleRewardsDistributed
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: UserDepositedIntoEpoch(indexed address,indexed uint256,uint256)
+          handler: handleUserDepositedIntoEpoch
+        - event: UserRewardsClaimed(indexed address,indexed address,uint256,uint256)
+          handler: handleUserRewardsClaimed
+        - event: UserWithdrawnFromEpoch(indexed address,indexed uint256,uint256)
+          handler: handleUserWithdrawnFromEpoch
+      file: ./src/boring-vault.ts
+{{/sources}}

@@ -1,0 +1,24 @@
+{
+  "name": "royco-boring-vault",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ royco-boring-vault",
+    "create-local": "graph create --node http://localhost:8020/ royco-boring-vault",
+    "remove-local": "graph remove --node http://localhost:8020/ royco-boring-vault",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-boring-vault",
+    "test": "graph test",
+    "prepare:mainnet": "mustache config/mainnet.json config/subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/constants.template.ts > src/constants.ts",
+    "prepare:arbitrum-one": "mustache config/arbitrum-one.json config/subgraph.template.yaml > subgraph.yaml && mustache config/arbitrum-one.json config/constants.template.ts > src/constants.ts",
+    "prepare:pipeline": "mustache metadata.json config/royco-boring-vault-pipeline.template.yaml > royco-boring-vault-pipeline.yaml"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.96.0",
+    "@graphprotocol/graph-ts": "0.37.0",
+    "mustache-cli": "^2.3.2"
+  },
+  "devDependencies": {
+    "matchstick-as": "^0.6.0"
+  }
+}
