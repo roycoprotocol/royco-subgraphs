@@ -10,7 +10,8 @@
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-ccdm-destination-boyco",
     "test": "graph test",
     "prepare:berachain-cartio": "mustache config/berachain-cartio.json subgraph.template.yaml > subgraph.yaml && mustache config/berachain-cartio.json config/constants.template.ts > src/constants.ts",
-    "prepare:berachain-mainnet": "mustache config/berachain-mainnet.json subgraph.template.yaml > subgraph.yaml && mustache config/berachain-mainnet.json config/constants.template.ts > src/constants.ts"
+    "prepare:berachain-mainnet": "mustache config/berachain-mainnet.json subgraph.template.yaml > subgraph.yaml && mustache config/berachain-mainnet.json config/constants.template.ts > src/constants.ts",
+    "prepare:pipeline": "mustache config/versions.json config/royco-ccdm-pipeline.template.yaml > royco-ccdm-pipeline.yaml"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.83.0",

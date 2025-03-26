@@ -8,7 +8,7 @@ networks=(
 
 # Function to delete pipeline with confirmation
 delete_pipeline() {
-    local pipeline_name="royco-goldsky-pipeline" 
+    local pipeline_name="royco-ccdm-pipeline" 
     
     echo "Attempting to stop ${pipeline_name}..."
     goldsky pipeline stop "${pipeline_name}" --force || true 

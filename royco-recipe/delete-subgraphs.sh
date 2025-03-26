@@ -2,14 +2,14 @@
 
 # Array of networks
 networks=(
-    # "sepolia"
+    "sepolia"
     "mainnet"
-    # "arbitrum-one"
-    # "base"
-    # "plume-mainnet"
-    # "corn-maizenet"
-    # "sonic"
-    # "hyperevm"
+    "arbitrum-one"
+    "base"
+    "plume-mainnet"
+    "corn-maizenet"
+    "sonic"
+    "hyperevm"
 )
 
 # Function to delete pipeline with confirmation
@@ -28,7 +28,7 @@ delete_subgraph() {
     local network=$1
 
     # Note: update version if needed
-    local subgraph_name="royco-recipe-${network}/2.0.27" 
+    local subgraph_name="royco-recipe-${network}/2.0.22" 
     
     echo "Attempting to delete ${subgraph_name}..."
     goldsky subgraph delete "${subgraph_name}" --force || true 

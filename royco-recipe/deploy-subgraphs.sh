@@ -3,13 +3,13 @@
 # Array of networks
 networks=(
     # "sepolia"
-    "mainnet"
+    # "mainnet"
     # "arbitrum-one"
     # "base"
     # "plume-mainnet"
     # "corn-maizenet"
     # "sonic"
-    # "hyperevm"
+    "hyperevm"
 )
 
 # Function to prepare and deploy subgraph

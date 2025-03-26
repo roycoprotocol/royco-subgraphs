@@ -1,15 +1,27 @@
 ## Subgraph Commands
 
-### Delete Subgraphs Bash Script
+### Deploy Subgraphs
+
+```bash
+./deploy-subgraphs.sh
+```
+
+### Delete Subgraphs
 
 ```bash
 ./delete-subgraphs.sh
 ```
 
-### Deploy New Subgraphs Bash Script
+### Deploy Pipeline
 
 ```bash
-./deploy-subgraphs.sh
+./deploy-pipeline.sh
+```
+
+### Delete Pipeline
+
+```bash
+./delete-pipeline.sh
 ```
 
 ### Prepare, codegen, build

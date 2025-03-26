@@ -1,0 +1,73 @@
+# prettier-ignore
+apiVersion: 3
+name: royco-ccdm-pipeline
+status: ACTIVE
+resource_size: s
+sources:
+  ccdm_source_raw_weiroll_wallet_source_reference:
+    name: raw_weiroll_wallet_source
+    subgraphs:
+      - name: royco-ccdm-source-boyco-mainnet
+        version: {{royco_ccdm_source_boyco_mainnet_version}}
+    type: subgraph_entity
+  ccdm_destination_raw_market_recipe_destination_reference:
+    name: raw_market_recipe_destination
+    subgraphs:
+      - name: royco-ccdm-destination-boyco-berachain-mainnet
+        version: {{royco_ccdm_destination_boyco_berachain_mainnet_version}}
+    type: subgraph_entity
+  ccdm_destination_raw_weiroll_wallet_destination_reference:
+    name: raw_weiroll_wallet_destination
+    subgraphs:
+      - name: royco-ccdm-destination-boyco-berachain-mainnet
+        version: {{royco_ccdm_destination_boyco_berachain_mainnet_version}}
+    type: subgraph_entity
+  ccdm_destination_raw_weiroll_wallet_withdrawn_destination_reference:
+    name: raw_weiroll_wallet_withdrawn_destination
+    subgraphs:
+      - name: royco-ccdm-destination-boyco-berachain-mainnet
+        version: {{royco_ccdm_destination_boyco_berachain_mainnet_version}}
+    type: subgraph_entity
+  ccdm_destination_raw_market_token_balance_recipe_reference:
+    name: raw_market_token_balance_recipe
+    subgraphs:
+      - name: royco-ccdm-destination-boyco-berachain-mainnet
+        version: {{royco_ccdm_destination_boyco_berachain_mainnet_version}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  ccdm_source_postgres_raw_weiroll_wallet_source:
+    type: postgres
+    table: raw_weiroll_wallet_source
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_weiroll_wallet_source"
+    from: ccdm_source_raw_weiroll_wallet_source_reference
+  ccdm_destination_postgres_raw_market_recipe_destination:
+    type: postgres
+    table: raw_market_recipe_destination
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_market_recipe_destination"
+    from: ccdm_destination_raw_market_recipe_destination_reference
+  ccdm_destination_postgres_raw_weiroll_wallet_destination:
+    type: postgres
+    table: raw_weiroll_wallet_destination
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_weiroll_wallet_destination"
+    from: ccdm_destination_raw_weiroll_wallet_destination_reference
+  ccdm_destination_postgres_raw_weiroll_wallet_withdrawn_destination:
+    type: postgres
+    table: raw_weiroll_wallet_withdrawn_destination
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_weiroll_wallet_withdrawn_destination"
+    from: ccdm_destination_raw_weiroll_wallet_withdrawn_destination_reference
+  ccdm_destination_postgres_raw_market_token_balance_recipe:
+    type: postgres
+    table: raw_market_token_balance_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_market_token_balance_recipe"
+    from: ccdm_destination_raw_market_token_balance_recipe_reference
