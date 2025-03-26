@@ -1,0 +1,328 @@
+type OwnershipTransferred @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  user: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MarketCreated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  marketID: BigInt! # uint256
+  marketHash: String! # String
+  inputToken: String! # address
+  lockupTime: BigInt! # uint256
+  frontendFee: BigInt! # uint256
+  rewardStyle: Int! # uint8
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IPOfferCreated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  offerID: BigInt! # uint256
+  offerHash: String! # String
+  marketHash: String! # String
+  ip: String! # address
+  quantity: BigInt! # uint256
+  incentivesOffered: [String!]! # address[]
+  incentiveAmounts: [BigInt!]! # uint256[]
+  protocolFeeAmounts: [BigInt!]! # uint256[]
+  frontendFeeAmounts: [BigInt!]! # uint256[]
+  expiry: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IPOfferFilled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  offerHash: String! # String
+  ap: String! # address
+  fillAmount: BigInt! # uint256
+  weirollWallet: String! # address
+  incentiveAmounts: [BigInt!]! # uint256[]
+  protocolFeeAmounts: [BigInt!]! # uint256[]
+  frontendFeeAmounts: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IPOfferCancelled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  offerHash: String! # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferCreated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  offerID: BigInt! # uint256
+  marketHash: String! # String
+  ap: String! # address
+  fundingVault: String! # address
+  quantity: BigInt! # uint256
+  incentiveAddresses: [String!]! # address[]
+  incentiveAmounts: [BigInt!]! # uint256[]
+  expiry: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferFilled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  offerID: BigInt! # uint256
+  ip: String! # address
+  fillAmount: BigInt! # uint256
+  weirollWallet: String! # address
+  incentiveAmounts: [BigInt!]! # uint256[]
+  protocolFeeAmounts: [BigInt!]! # uint256[]
+  frontendFeeAmounts: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferCancelled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  offerID: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WeirollWalletClaimedIncentive @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # address
+  recipient: String! # address
+  incentive: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WeirollWalletExecutedWithdrawal @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WeirollWalletForfeited @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type FeesClaimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  claimant: String! # address
+  incentive: String! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MerkleDepositMade @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  lastCcdmNonceBridged: BigInt! # uint256
+  marketHash: String! # String
+  weirollWallet: String! # address
+  depositor: String! # address
+  amountDeposited: BigInt! # uint256
+  merkleDepositNonce: BigInt! # uint256
+  depositLeaf: String! # String
+  depositLeafIndex: BigInt! # uint256
+  updatedMerkleRoot: String! # String
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawMarketRecipe @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! # Hardcoded
+  marketType: Int! # Hardcoded
+  marketId: String! # Market Hash
+  inputTokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  inputTokenAmount: BigInt! # Input Token Amount
+  lockupTime: BigInt! # Lockup Time
+  frontendFee: BigInt! # Frontend Fee
+  rewardStyle: Int! # 0: Upfront, 1: Arrear, 2: Forfeitable, 3: Streaming
+  depositWeirollCommands: [String!]! # Deposit Weiroll Commands
+  depositWeirollState: [String!]! # Deposit Weiroll State
+  withdrawWeirollCommands: [String!]! # Withdraw Weiroll Commands
+  withdrawWeirollState: [String!]! # Withdraw Weiroll State
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt!
+  # Derived fields
+  rawMarketTokenBalanceRecipes: [RawMarketTokenBalanceRecipe!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawOfferRecipes: [RawOfferRecipe!]! @derivedFrom(field: "rawMarketRefId")
+  rawOfferTokenBalanceRecipes: [RawOfferTokenBalanceRecipe!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawPositionRecipes: [RawPositionRecipe!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawPositionTokenBalanceRecipes: [RawPositionTokenBalanceRecipe!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawVolume: [RawVolume!]! @derivedFrom(field: "rawMarketRefId")
+}
+
+type RawMarketTokenBalanceRecipe @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! # Hardcoded
+  marketType: Int8! # Hardcoded
+  marketId: String! # Market Hash
+  tokenClass: Int8! # 0: Input, 1: Incentive
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAmount: BigInt! # Token Amount
+}
+
+type RawOfferRecipe @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>
+  rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! # Hardcoded
+  marketType: Int8! # Hardcoded
+  offerSide: Int8! # 0: AP, 1: IP
+  offerId: String! # For IP offer, it's actually offer hash, but we are using it as id
+  marketId: String! # Market Hash
+  accountAddress: String! # Wallet Address
+  fundingVault: String! # Funding Vault Address (if EOA, then NULL_ADDRESS, else ERC4626 Vault Address)
+  token0Id: String! # Input Token
+  token0Amount: BigInt! # Input Amount
+  token0AmountRemaining: BigInt! # Input Amount Remaining
+  token1Ids: [String!]! # Incentive Tokens
+  token1Amounts: [BigInt!]! # Incentive Amounts
+  token1AmountsRemaining: [BigInt!]! # Incentive Amounts Remaining
+  expiry: BigInt! # Offer Expiry
+  isCancelled: Boolean! # Initially: false
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  # Derived fields
+  rawOfferTokenBalanceRecipes: [RawOfferTokenBalanceRecipe!]!
+    @derivedFrom(field: "rawOfferRefId")
+  rawPositionRecipes: [RawPositionRecipe!]! @derivedFrom(field: "rawOfferRefId")
+  rawPositionTokenBalanceRecipes: [RawPositionTokenBalanceRecipe!]!
+    @derivedFrom(field: "rawOfferRefId")
+}
+
+type RawOfferTokenBalanceRecipe @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  rawOfferRefId: RawOfferRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>
+  chainId: BigInt! # Hardcoded
+  marketType: Int8! # Hardcoded
+  offerSide: Int8! # 0: AP, 1: IP
+  offerId: String! # For IP offer, it's actually offer hash, but we are using it as id
+  marketId: String! # Market Hash
+  accountAddress: String! # Wallet Address
+  fundingVault: String! # Funding Vault Address (if EOA, then NULL_ADDRESS, else ERC4626 Vault Address)
+  tokenClass: Int8! # 0: Input, 1: Incentive
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAmount: BigInt! # Token Amount
+  tokenAmountRemaining: BigInt! # Token Amount Remaining
+}
+
+type RawPositionRecipe @entity {
+  id: String! # <CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>
+  rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  rawOfferRefId: RawOfferRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # Weiroll Wallet Address
+  accountAddress: String! # Wallet Address
+  marketId: String! # Market Hash
+  rewardStyle: Int! # 0: Upfront, 1: Arrear, 2: Forfeitable, 3: Streaming
+  token0Id: String! # Input Token
+  token0Amount: BigInt! # Input Amount
+  token1Ids: [String!]! # Incentive Tokens
+  token1Amounts: [BigInt!]! # Incentive Amounts
+  isForfeited: Boolean! # Initially: false
+  isWithdrawn: Boolean! # Initially: false
+  isClaimed: [Boolean!]! # Initially: Upfront - true, Arrear & Forfeitable - false
+  unlockTimestamp: BigInt! # Unlock Timestamp
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt!
+  tag: String # Optional Tag
+  # Derived fields
+  rawPositionTokenBalanceRecipes: [RawPositionTokenBalanceRecipe!]!
+    @derivedFrom(field: "rawPositionRefId")
+}
+
+type RawPositionTokenBalanceRecipe @entity {
+  id: String! # <CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  rawOfferRefId: RawOfferRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>
+  rawPositionRefId: RawPositionRecipe! # <CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # Weiroll Wallet Address
+  accountAddress: String! # Wallet Address
+  tokenClass: Int8! # 0: Input, 1: Incentive
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAmount: BigInt! # Token Amount
+  isWithdrawn: Boolean! # Initially: false
+}
+
+type RawVolume @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>_<TOKEN_ID>
+  rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! # Hardcoded
+  marketType: Int8! # Hardcoded
+  marketId: String! # Market Hash
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS>
+  volume: BigInt! # Volume Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+}
+
+type RawPositionRecipeBoyco @entity {
+  id: String! # <CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>
+  rawPositionRefId: RawPositionRecipe! # <CHAIN_ID>_<WEIROLL_WALLET_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  weirollWallet: String! # Weiroll Wallet Address
+  tag: String! # Tag
+  isWithdrawn: Boolean! # Initially: false
+}

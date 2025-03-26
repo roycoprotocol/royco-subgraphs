@@ -1,0 +1,8 @@
+{
+  "network": "hyperevm",
+  "chainId": 999,
+  "wrappedVaultFactoryAddress": "0xda0a91f0fcc2a7c1922165a28038d89babe8ccfa",
+  "wrappedVaultFactoryStartBlock": 206979,
+  "vaultMarketHubAddress": "0x595ee728f3b8f5e937f6a21fe20f929dd8e301fc",
+  "vaultMarketHubStartBlock": 207010
+}

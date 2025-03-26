@@ -1,0 +1,8 @@
+{
+  "network": "mainnet",
+  "chainId": 1,
+  "wrappedVaultFactoryAddress": "0x75e502644284edf34421f9c355d75db79e343bca",
+  "wrappedVaultFactoryStartBlock": 21244948,
+  "vaultMarketHubAddress": "0xa97ecc6bfda40baf2fdd096dd33e88bd8e769280",
+  "vaultMarketHubStartBlock": 21303368
+}

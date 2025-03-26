@@ -1,0 +1,388 @@
+type ProtocolFeeRecipientUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  newRecipient: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type ProtocolFeeUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  newProtocolFee: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type ReferralFeeUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  newReferralFee: BigInt! @indexed # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferCreated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  offerID: BigInt! @indexed # uint256
+  marketID: String! @indexed # address
+  ap: String! @indexed # address
+  fundingVault: String! @indexed # address
+  quantity: BigInt! # uint256
+  incentivesRequested: [String!]! # address[]
+  incentivesRates: [BigInt!]! # uint256[]
+  expiry: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferFilled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  offerID: BigInt! @indexed # uint256
+  fillAmount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferCancelled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  offerID: BigInt! @indexed # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  oldOwner: String! @indexed # address
+  newOwner: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type FrontendFeeUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  frontendFee: BigInt! @indexed # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RewardsTokenAdded @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  reward: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RewardsSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  reward: String! @indexed # address
+  start: BigInt! # uint32
+  end: BigInt! # uint32
+  rate: BigInt! # uint256
+  totalRewards: BigInt! # uint256
+  protocolFee: BigInt! # uint256
+  frontendFee: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Transfer @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  from: String! @indexed # address
+  to: String! @indexed # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Deposit @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  caller: String! @indexed # address
+  owner: String! @indexed # address
+  assets: BigInt! # uint256
+  shares: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WrappedVaultCreated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  underlyingVaultAddress: String! @indexed # address
+  incentivizedVaultAddress: String! @indexed # address
+  owner: String! @indexed # address
+  inputToken: String! @indexed # address
+  frontendFee: BigInt! # uint256
+  name: String! @indexed # string
+  vaultSymbol: String! @indexed # string
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Withdraw @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  caller: String! @indexed # address
+  receiver: String! @indexed # address
+  owner: String! @indexed # address
+  assets: BigInt! # uint256
+  shares: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Claimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  reward: String! @indexed # address
+  user: String! @indexed # address
+  receiver: String! @indexed # address
+  claimed: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RewardsPerTokenUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  reward: String! @indexed # address
+  accumulated: BigInt! @indexed # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Approval @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  owner: String! @indexed # address
+  spender: String! @indexed # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type FeesClaimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  claimant: String! @indexed # address
+  incentiveToken: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type UserRewardsUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  reward: String! @indexed # address
+  user: String! @indexed # address
+  accumulated: BigInt! # uint256
+  checkpoint: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Initialized @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed # Hardcoded
+  marketId: String! @indexed # address
+  version: BigInt! @indexed # uint64
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawMarketVault @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! @indexed # Hardcoded
+  marketType: Int! @indexed # Hardcoded
+  marketId: String! @indexed # Wrapped Vault Address
+  underlyingVaultAddress: String! @indexed # Underlying Vault Address
+  owner: String! @indexed # Wrapped Vault Owner
+  inputTokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>
+  inputTokenAmount: BigInt! # Input Token Amount
+  lockupTime: BigInt! # Lockup Time
+  frontendFee: BigInt! # Frontend Fee
+  rewardStyle: Int! @indexed # 0: Upfront, 1: Arrear, 2: Forfeitable, 3: Streaming
+  vaultSymbol: String! @indexed # Vault Symbol
+  shares: BigInt! # Total Shares Issued by the Wrapped Vault
+  baseIncentiveIds: [String!]! # Base Incentive IDs
+  baseIncentiveAmounts: [BigInt!]! # Base Incentive Amounts
+  baseIncentiveRates: [BigInt!]! # Base Incentive Rates
+  baseStartTimestamps: [BigInt!]! # Base Start Timestamps
+  baseEndTimestamps: [BigInt!]! # Base End Timestamps
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  # Derived fields
+  rawMarketTokenBalanceVaults: [RawMarketTokenBalanceVault!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawOfferVaults: [RawOfferVault!]! @derivedFrom(field: "rawMarketRefId")
+  rawOfferTokenBalanceVaults: [RawOfferTokenBalanceVault!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawPositionVaults: [RawPositionVault!]! @derivedFrom(field: "rawMarketRefId")
+  rawPositionTokenBalanceVaults: [RawPositionTokenBalanceVault!]!
+    @derivedFrom(field: "rawMarketRefId")
+  rawVolume: RawVolume! @derivedFrom(field: "rawMarketRefId")
+}
+
+type RawMarketTokenBalanceVault @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: RawMarketVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! @indexed # Hardcoded
+  marketType: Int8! @indexed # Hardcoded
+  marketId: String! @indexed # Wrapped Vault Address
+  tokenClass: Int8! @indexed # 0: Input, 1: Incentive
+  tokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>, when Input token, it's input token id
+  tokenAmount: BigInt! # When Input token, it's the snapshot of input token amount owned by the wrapped vault in underlying vault, when Incentive token, it's the incentive amount
+  tokenRate: BigInt # optional, only relevant for Incentive token
+  startTimestamp: BigInt # optional, only relevant for Incentive token
+  endTimestamp: BigInt # optional, only relevant for Incentive token
+}
+
+type RawOfferVault @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>
+  rawMarketRefId: RawMarketVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! @indexed # Hardcoded
+  marketType: Int8! @indexed # Hardcoded
+  offerSide: Int8! @indexed # 0: AP, 1: IP
+  offerId: String! @indexed # For IP offer, it's actually offer hash, but we are using it as id
+  marketId: String! @indexed # Wrapped Vault Address
+  accountAddress: String! @indexed # AP Offer Creator
+  fundingVault: String! @indexed # Funding Vault Address
+  token0Id: String! @indexed # Input Token
+  token0Amount: BigInt! @indexed # Input Amount
+  token0AmountRemaining: BigInt! @indexed # Input Amount Remaining
+  token1Ids: [String!]! # Incentive Tokens
+  token1Amounts: [BigInt!]! # Incentive Amounts
+  token1AmountsRemaining: [BigInt!]! # Incentive Amounts Remaining
+  expiry: BigInt! @indexed # Offer Expiry
+  isCancelled: Boolean! @indexed # Initially: false
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+  # Derived fields
+  rawOfferTokenBalanceVaults: [RawOfferTokenBalanceVault!]!
+    @derivedFrom(field: "rawOfferRefId")
+}
+
+type RawOfferTokenBalanceVault @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: RawMarketVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  rawOfferRefId: RawOfferVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<OFFER_SIDE>_<OFFER_ID>
+  chainId: BigInt! @indexed # Hardcoded
+  marketType: Int8! @indexed # Hardcoded
+  offerSide: Int8! @indexed # 0: AP, 1: IP
+  offerId: String! @indexed # AP Offer ID
+  marketId: String! @indexed # Wrapped Vault Address
+  accountAddress: String! @indexed # AP Offer Creator
+  fundingVault: String! @indexed # Funding Vault Address
+  tokenClass: Int8! @indexed # 0: Input, 1: Incentive
+  tokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAmount: BigInt! @indexed # When Input token, it's amount -- when incentive token, it's rate of incentive token
+  tokenAmountRemaining: BigInt! @indexed # When Input token, it's amount remaining -- when incentive token, it's rate of incentive token
+}
+
+type RawPositionVault @entity {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>
+  rawMarketRefId: RawMarketVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! @indexed # Hardcoded
+  accountAddress: String! @indexed # Wallet Address
+  marketId: String! @indexed # Wrapped Vault Address
+  shares: BigInt! # This represents wrapped vault shares
+  token0Id: String! @indexed # Input Token
+  token0Amount: BigInt! # Input Token Amount
+  token1Ids: [String!]! # Incentive Tokens, this represents claimed incentive token ids
+  token1Amounts: [BigInt!]! # Incentive Amounts, this represents claimed incentive token amounts
+  # Derived fields
+  rawPositionTokenBalanceVaults: [RawPositionTokenBalanceVault!]!
+    @derivedFrom(field: "rawPositionRefId")
+}
+
+type RawPositionTokenBalanceVault @entity {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<TOKEN_CLASS>_<TOKEN_ID>
+  rawMarketRefId: RawMarketVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  rawPositionRefId: RawPositionVault! @indexed # <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>
+  chainId: BigInt! @indexed # Hardcoded
+  accountAddress: String! @indexed # Wallet Address
+  marketId: String! @indexed # Wrapped Vault Address
+  tokenClass: Int8! @indexed # 0: Input, 1: Incentive, 2: Shares
+  tokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>
+  tokenAmount: BigInt! # Token Amount
+  isWithdrawn: Boolean! @indexed # Initially: false
+}
+
+type RawVolume @entity {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>_<TOKEN_ID>
+  rawMarketRefId: RawMarketVault! @indexed # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
+  chainId: BigInt! @indexed # Hardcoded
+  marketType: Int8! @indexed # Hardcoded
+  marketId: String! @indexed # Market Hash
+  tokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>
+  volume: BigInt! # Volume Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+}

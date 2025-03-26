@@ -1,0 +1,77 @@
+# prettier-ignore
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: RecipeMarketHub
+    network: {{network}}
+    source:
+      address: "{{address}}"
+      abi: RecipeMarketHub
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - APOfferCancelled
+        - APOfferCreated
+        - APOfferFilled
+        - FeesClaimed
+        - IPOfferCancelled
+        - IPOfferCreated
+        - IPOfferFilled
+        - MarketCreated
+        - OwnershipTransferred
+        - WeirollWalletClaimedIncentive
+        - WeirollWalletExecutedWithdrawal
+        - WeirollWalletForfeited
+      abis:
+        - name: RecipeMarketHub
+          file: ./abis/RecipeMarketHub.json
+      eventHandlers:
+        - event: APOfferCancelled(indexed uint256)
+          handler: handleAPOfferCancelled
+        - event: APOfferCreated(indexed uint256,indexed bytes32,indexed address,address,uint256,address[],uint256[],uint256)
+          handler: handleAPOfferCreated
+        - event: APOfferFilled(indexed uint256,indexed address,uint256,address,uint256[],uint256[],uint256[])
+          handler: handleAPOfferFilled
+        - event: FeesClaimed(indexed address,indexed address,uint256)
+          handler: handleFeesClaimed
+        - event: IPOfferCancelled(indexed bytes32)
+          handler: handleIPOfferCancelled
+        - event: IPOfferCreated(uint256,indexed bytes32,indexed bytes32,indexed address,uint256,address[],uint256[],uint256[],uint256[],uint256)
+          handler: handleIPOfferCreated
+        - event: IPOfferFilled(indexed bytes32,indexed address,uint256,address,uint256[],uint256[],uint256[])
+          handler: handleIPOfferFilled
+        - event: MarketCreated(indexed uint256,indexed bytes32,indexed address,uint256,uint256,uint8)
+          handler: handleMarketCreated
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: WeirollWalletClaimedIncentive(indexed address,address,address)
+          handler: handleWeirollWalletClaimedIncentive
+        - event: WeirollWalletExecutedWithdrawal(indexed address)
+          handler: handleWeirollWalletExecutedWithdrawal
+        - event: WeirollWalletForfeited(indexed address)
+          handler: handleWeirollWalletForfeited
+      file: ./src/recipe-market-hub.ts
+templates:
+  - name: WeirollWalletTemplate
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: WeirollWallet
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - WeirollWalletExecutedManually
+      abis:
+        - name: WeirollWallet
+          file: ./abis/WeirollWallet.json
+      eventHandlers:
+        - event: WeirollWalletExecutedManually()
+          handler: handleWeirollWalletExecutedManually
+      file: ./src/weiroll-wallet.ts

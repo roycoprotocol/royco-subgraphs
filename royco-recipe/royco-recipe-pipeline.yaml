@@ -1,0 +1,197 @@
+# prettier-ignore
+apiVersion: 3
+name: royco-recipe-pipeline
+status: ACTIVE
+resource_size: s
+sources:
+  raw_market_recipe_reference:
+    name: raw_market_recipe
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+  raw_market_token_balance_recipe_reference:
+    name: raw_market_token_balance_recipe
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+  raw_offer_recipe_reference:
+    name: raw_offer_recipe
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+  raw_offer_token_balance_recipe_reference:
+    name: raw_offer_token_balance_recipe
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+  raw_position_recipe_reference:
+    name: raw_position_recipe
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+  raw_position_token_balance_recipe_reference:
+    name: raw_position_token_balance_recipe
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+  raw_volume_reference:
+    name: raw_volume
+    subgraphs:
+      - name: royco-recipe-sepolia
+        version: 2.0.22
+      - name: royco-recipe-mainnet
+        version: 2.0.22
+      - name: royco-recipe-arbitrum-one
+        version: 2.0.22
+      - name: royco-recipe-base
+        version: 2.0.22
+      - name: royco-recipe-corn-maizenet
+        version: 2.0.22
+      - name: royco-recipe-plume-mainnet
+        version: 2.0.22
+      - name: royco-recipe-sonic
+        version: 2.0.22
+      - name: royco-recipe-hyperevm
+        version: 2.0.22
+    type: subgraph_entity
+transforms: {}
+sinks:
+  raw_market_recipe_postgres:
+    type: postgres
+    table: raw_market_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_market_recipe"
+    from: raw_market_recipe_reference
+  raw_market_token_balance_recipe_postgres:
+    type: postgres
+    table: raw_market_token_balance_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_market_token_balance_recipe"
+    from: raw_market_token_balance_recipe_reference
+  raw_offer_recipe_postgres:
+    type: postgres
+    table: raw_offer_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_offer_recipe"
+    from: raw_offer_recipe_reference
+  raw_offer_token_balance_recipe_postgres:
+    type: postgres
+    table: raw_offer_token_balance_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_offer_token_balance_recipe"
+    from: raw_offer_token_balance_recipe_reference
+  raw_position_recipe_postgres:
+    type: postgres
+    table: raw_position_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_position_recipe"
+    from: raw_position_recipe_reference
+  raw_position_token_balance_recipe_postgres:
+    type: postgres
+    table: raw_position_token_balance_recipe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_position_token_balance_recipe"
+    from: raw_position_token_balance_recipe_reference
+  raw_volume_postgres:
+    type: postgres
+    table: raw_volume
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_volume"
+    from: raw_volume_reference

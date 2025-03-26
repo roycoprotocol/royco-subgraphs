@@ -1,0 +1,114 @@
+# prettier-ignore
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: WrappedVaultFactory
+    network: plume-mainnet
+    source:
+      address: "0x9ec20b1999b92c4235214f4b2922cf9e6a349b31"
+      abi: WrappedVaultFactory
+      startBlock: 7400
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ProtocolFeeUpdated
+        - ReferralFeeUpdated
+        - WrappedVaultCreated
+      abis:
+        - name: WrappedVaultFactory
+          file: ./abis/WrappedVaultFactory.json
+      eventHandlers:
+        - event: WrappedVaultCreated(indexed address,indexed
+            address,address,address,uint256,string,string)
+          handler: handleWrappedVaultCreated
+        - event: ProtocolFeeUpdated(uint256)
+          handler: handleProtocolFeeUpdated
+        - event: ReferralFeeUpdated(uint256)
+          handler: handleReferralFeeUpdated
+      file: ./src/wrapped-vault-factory.ts
+  - kind: ethereum
+    name: VaultMarketHub
+    network: plume-mainnet
+    source:
+      address: "0x520bd73d143a1a9395728aa34b81695ff7e2d6aa"
+      abi: VaultMarketHub
+      startBlock: 7400
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - APOfferCancelled
+        - APOfferCreated
+        - APOfferFilled
+      abis:
+        - name: VaultMarketHub
+          file: ./abis/VaultMarketHub.json
+      eventHandlers:
+        - event: APOfferCancelled(indexed uint256)
+          handler: handleAPOfferCancelled
+        - event: APOfferCreated(indexed uint256,indexed address,indexed
+            address,address,uint256,address[],uint256[],uint256)
+          handler: handleAPOfferCreated
+        - event: APOfferFilled(indexed uint256,uint256)
+          handler: handleAPOfferFilled
+      file: ./src/vault-market-hub.ts
+templates:
+  - kind: ethereum/contract
+    name: WrappedVault
+    network: plume-mainnet
+    source:
+      abi: WrappedVault
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - OwnershipTransferred
+        - FrontendFeeUpdated
+        - RewardsTokenAdded
+        - RewardsSet
+        - Transfer
+        - Deposit
+        - Withdraw
+        - Claimed
+        - RewardsPerTokenUpdated
+        - Approval
+        - FeesClaimed
+        - UserRewardsUpdated
+        - Initialized
+      abis:
+        - name: WrappedVault
+          file: ./abis/WrappedVault.json
+      eventHandlers:
+        - event: Approval(indexed address,indexed address,uint256)
+          handler: handleApproval
+        - event: Claimed(address,address,address,uint256)
+          handler: handleClaimed
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: FeesClaimed(address,address)
+          handler: handleFeesClaimed
+        - event: FrontendFeeUpdated(uint256)
+          handler: handleFrontendFeeUpdated
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: RewardsPerTokenUpdated(address,uint256)
+          handler: handleRewardsPerTokenUpdated
+        - event: RewardsSet(address,uint32,uint32,uint256,uint256,uint256,uint256)
+          handler: handleRewardsSet
+        - event: RewardsTokenAdded(address)
+          handler: handleRewardsTokenAdded
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: UserRewardsUpdated(address,address,uint256,uint256)
+          handler: handleUserRewardsUpdated
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+      file: ./src/wrapped-vault.ts

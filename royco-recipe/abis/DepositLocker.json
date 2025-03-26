@@ -1,0 +1,1154 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_owner", "type": "address" },
+      { "internalType": "uint32", "name": "_dstChainLzEid", "type": "uint32" },
+      {
+        "internalType": "address",
+        "name": "_depositExecutor",
+        "type": "address"
+      },
+      {
+        "internalType": "uint128",
+        "name": "_baseLzReceiveGasLimit",
+        "type": "uint128"
+      },
+      { "internalType": "address", "name": "_greenLighter", "type": "address" },
+      {
+        "internalType": "contract RecipeMarketHubBase",
+        "name": "_recipeMarketHub",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IUniswapV2Router01",
+        "name": "_uniswap_v2_router",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IOFT[]",
+        "name": "_lzV2OFTs",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  { "inputs": [], "name": "ArrayLengthMismatch", "type": "error" },
+  { "inputs": [], "name": "CannotBridgeLpTokens", "type": "error" },
+  { "inputs": [], "name": "DepositAmountIsTooPrecise", "type": "error" },
+  { "inputs": [], "name": "DepositExecutorNotSet", "type": "error" },
+  { "inputs": [], "name": "DepositorsPerBridgeLimitExceeded", "type": "error" },
+  { "inputs": [], "name": "DestinationChainEidNotSet", "type": "error" },
+  { "inputs": [], "name": "FailedToBridgeAllDeposits", "type": "error" },
+  { "inputs": [], "name": "GreenLightNotGiven", "type": "error" },
+  { "inputs": [], "name": "InsufficientValueForBridgeFee", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "uint16", "name": "optionType", "type": "uint16" }
+    ],
+    "name": "InvalidOptionType",
+    "type": "error"
+  },
+  { "inputs": [], "name": "MarketIsHalted", "type": "error" },
+  { "inputs": [], "name": "MerkleWithdrawalsNotEnabled", "type": "error" },
+  { "inputs": [], "name": "MustBridgeAtLeastOneDepositor", "type": "error" },
+  { "inputs": [], "name": "NothingToWithdraw", "type": "error" },
+  { "inputs": [], "name": "OnlyCampaignOwner", "type": "error" },
+  { "inputs": [], "name": "OnlyGreenLighter", "type": "error" },
+  { "inputs": [], "name": "OnlyWeirollWallet", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "owner", "type": "address" }
+    ],
+    "name": "OwnableInvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
+  },
+  { "inputs": [], "name": "RageQuitPeriodInProgress", "type": "error" },
+  { "inputs": [], "name": "ReentrancyGuardReentrantCall", "type": "error" },
+  { "inputs": [], "name": "RefundFailed", "type": "error" },
+  { "inputs": [], "name": "RoycoMarketNotInitialized", "type": "error" },
+  { "inputs": [], "name": "TotalDepositAmountExceedsLimit", "type": "error" },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "baseLzReceiveGasLimit",
+        "type": "uint128"
+      }
+    ],
+    "name": "BaseLzReceiveGasLimitSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "campaignOwner",
+        "type": "address"
+      }
+    ],
+    "name": "CampaignOwnerSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "depositExecutor",
+        "type": "address"
+      }
+    ],
+    "name": "DepositExecutorSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "dstChainLzEid",
+        "type": "uint32"
+      }
+    ],
+    "name": "DestinationChainLzEidSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "GreenLightTurnedOff",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "bridgingAllowedTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "GreenLightTurnedOn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "greenLighter",
+        "type": "address"
+      }
+    ],
+    "name": "GreenLighterSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "weirollWallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "depositor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountDeposited",
+        "type": "uint256"
+      }
+    ],
+    "name": "IndividualDepositMade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "weirollWallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "depositor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountWithdrawn",
+        "type": "uint256"
+      }
+    ],
+    "name": "IndividualWithdrawalMade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "ccdmNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "depositorsBridged",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalLpTokensBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "lz_token0_guid",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "lz_token0_nonce",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract ERC20",
+        "name": "token0",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lz_token0_AmountBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "lz_token1_guid",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "lz_token1_nonce",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract ERC20",
+        "name": "token1",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lz_token1_AmountBridged",
+        "type": "uint256"
+      }
+    ],
+    "name": "LpTokensBridgedToDestination",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "ccdmNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "lastCcdmNonceBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalLpTokensBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "lz_token0_guid",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "lz_token0_nonce",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract ERC20",
+        "name": "token0",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lz_token0_AmountBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "lz_token1_guid",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "lz_token1_nonce",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract ERC20",
+        "name": "token1",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lz_token1_AmountBridged",
+        "type": "uint256"
+      }
+    ],
+    "name": "LpTokensMerkleBridgedToDestination",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "LzV2OFTForTokenRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "lzV2OFT",
+        "type": "address"
+      }
+    ],
+    "name": "LzV2OFTForTokenSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "MarketHalted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "lastCcdmNonceBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "weirollWallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "depositor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountDeposited",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "merkleDepositNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "depositLeaf",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "depositLeafIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "updatedMerkleRoot",
+        "type": "bytes32"
+      }
+    ],
+    "name": "MerkleDepositMade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "weirollWallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "depositor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountWithdrawn",
+        "type": "uint256"
+      }
+    ],
+    "name": "MerkleWithdrawalMade",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "ccdmNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "depositorsBridged",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "lz_guid",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "lz_nonce",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalAmountBridged",
+        "type": "uint256"
+      }
+    ],
+    "name": "SingleTokensBridgedToDestination",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "marketHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "ccdmNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "lastCcdmNonceBridged",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "lz_guid",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "lz_nonce",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalAmountBridged",
+        "type": "uint256"
+      }
+    ],
+    "name": "SingleTokensMerkleBridgedToDestination",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_INDIVIDUAL_DEPOSITORS_PER_BRIDGE",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MERKLE_TREE_DEPTH",
+    "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "NULL_LEAF",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "RAGE_QUIT_PERIOD_DURATION",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "RECIPE_MARKET_HUB",
+    "outputs": [
+      {
+        "internalType": "contract RecipeMarketHubBase",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "UNISWAP_V2_ROUTER",
+    "outputs": [
+      {
+        "internalType": "contract IUniswapV2Router01",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WEIROLL_WALLET_PROXY_CODE_HASH",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WRAPPED_NATIVE_ASSET_TOKEN",
+    "outputs": [
+      { "internalType": "contract IWETH", "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "acceptOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "baseLzReceiveGasLimit",
+    "outputs": [{ "internalType": "uint128", "name": "", "type": "uint128" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" },
+      {
+        "internalType": "uint96",
+        "name": "_minAmountOfToken0ToBridge",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "_minAmountOfToken1ToBridge",
+        "type": "uint96"
+      },
+      {
+        "internalType": "address[]",
+        "name": "_depositors",
+        "type": "address[]"
+      }
+    ],
+    "name": "bridgeLpTokens",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" },
+      {
+        "internalType": "address[]",
+        "name": "_depositors",
+        "type": "address[]"
+      }
+    ],
+    "name": "bridgeSingleTokens",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ccdmNonce",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "depositExecutor",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "depositorToWeirollWalletToWeirollWalletDepositInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountDeposited",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "ccdmNonceOnDeposit",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dstChainLzEid",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "greenLighter",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" }
+    ],
+    "name": "haltMarket",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "name": "marketHashToBridgingAllowedTimestamp",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "name": "marketHashToCampaignOwner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "", "type": "bytes32" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "marketHashToDepositorToIndividualDepositorInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalAmountDeposited",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastCcdmNonceBridged",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "name": "marketHashToHalted",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "name": "marketHashToMerkleDepositsInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "_nextLeafIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32[]",
+            "name": "_sides",
+            "type": "bytes32[]"
+          },
+          { "internalType": "bytes32[]", "name": "_zeros", "type": "bytes32[]" }
+        ],
+        "internalType": "struct MerkleTree.Bytes32PushTree",
+        "name": "merkleTree",
+        "type": "tuple"
+      },
+      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
+      {
+        "internalType": "uint256",
+        "name": "totalAmountDeposited",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastCcdmNonceBridged",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" },
+      {
+        "internalType": "uint96",
+        "name": "_minAmountOfToken0ToBridge",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "_minAmountOfToken1ToBridge",
+        "type": "uint96"
+      }
+    ],
+    "name": "merkleBridgeLpTokens",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" }
+    ],
+    "name": "merkleBridgeSingleTokens",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "merkleDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "merkleDepositNonce",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "merkleWithdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pendingOwner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ERC20",
+        "name": "_underlyingToken",
+        "type": "address"
+      }
+    ],
+    "name": "removeLzOFT",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint128",
+        "name": "_baseLzReceiveGasLimit",
+        "type": "uint128"
+      }
+    ],
+    "name": "setBaseLzReceiveGasLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32[]",
+        "name": "_marketHashes",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "_campaignOwners",
+        "type": "address[]"
+      }
+    ],
+    "name": "setCampaignOwners",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_depositExecutor",
+        "type": "address"
+      }
+    ],
+    "name": "setDepositExecutor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "_dstChainLzEid", "type": "uint32" }
+    ],
+    "name": "setDestinationChainEid",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_greenLighter", "type": "address" }
+    ],
+    "name": "setGreenLighter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IOFT[]",
+        "name": "_lzV2OFTs",
+        "type": "address[]"
+      }
+    ],
+    "name": "setLzOFTs",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" },
+      { "internalType": "address", "name": "_campaignOwner", "type": "address" }
+    ],
+    "name": "setNewCampaignOwner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "contract ERC20", "name": "", "type": "address" }
+    ],
+    "name": "tokenToLzV2OFT",
+    "outputs": [
+      { "internalType": "contract IOFT", "name": "", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "newOwner", "type": "address" }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" }
+    ],
+    "name": "turnGreenLightOff",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_marketHash", "type": "bytes32" }
+    ],
+    "name": "turnGreenLightOn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  { "stateMutability": "payable", "type": "receive" }
+]

@@ -1,0 +1,8 @@
+{
+  "network": "arbitrum-one",
+  "chainId": 42161,
+  "wrappedVaultFactoryAddress": "0x75e502644284edf34421f9c355d75db79e343bca",
+  "wrappedVaultFactoryStartBlock": 277208990,
+  "vaultMarketHubAddress": "0xa97ecc6bfda40baf2fdd096dd33e88bd8e769280",
+  "vaultMarketHubStartBlock": 280018448
+}

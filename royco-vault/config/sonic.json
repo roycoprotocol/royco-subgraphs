@@ -1,0 +1,8 @@
+{
+  "network": "sonic",
+  "chainId": 146,
+  "wrappedVaultFactoryAddress": "0x7212d98a88d44f714fd29dd980cb846be8e7491a",
+  "wrappedVaultFactoryStartBlock": 4353631,
+  "vaultMarketHubAddress": "0x1e3fcccbafdbdf3cb17b7470c8a6cc64eb5f94a2",
+  "vaultMarketHubStartBlock": 4353631
+}

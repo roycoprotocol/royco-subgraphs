@@ -1,0 +1,8 @@
+{
+  "network": "plume-mainnet",
+  "chainId": 98866,
+  "wrappedVaultFactoryAddress": "0x9ec20b1999b92c4235214f4b2922cf9e6a349b31",
+  "wrappedVaultFactoryStartBlock": 7400,
+  "vaultMarketHubAddress": "0x520bd73d143a1a9395728aa34b81695ff7e2d6aa",
+  "vaultMarketHubStartBlock": 7400
+}

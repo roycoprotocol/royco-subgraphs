@@ -1,0 +1,8 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "wrappedVaultFactoryAddress": "0x75e502644284edf34421f9c355d75db79e343bca",
+  "wrappedVaultFactoryStartBlock": 7132280,
+  "vaultMarketHubAddress": "0xa97ecc6bfda40baf2fdd096dd33e88bd8e769280",
+  "vaultMarketHubStartBlock": 7224973
+}
