@@ -8,141 +8,141 @@ sources:
     name: raw_market_recipe
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
   raw_market_token_balance_recipe_reference:
     name: raw_market_token_balance_recipe
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
   raw_offer_recipe_reference:
     name: raw_offer_recipe
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
   raw_offer_token_balance_recipe_reference:
     name: raw_offer_token_balance_recipe
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
   raw_position_recipe_reference:
     name: raw_position_recipe
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
   raw_position_token_balance_recipe_reference:
     name: raw_position_token_balance_recipe
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
   raw_volume_reference:
     name: raw_volume
     subgraphs:
       - name: royco-recipe-sepolia
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-arbitrum-one
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-base
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-corn-maizenet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-plume-mainnet
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-sonic
-        version: 2.0.22
+        version: 2.0.28
       - name: royco-recipe-hyperevm
-        version: 2.0.22
+        version: 2.0.28
     type: subgraph_entity
 transforms: {}
 sinks:
