@@ -215,7 +215,7 @@ type BoringReward @entity {
     @derivedFrom(field: "boringRewardRefId")
 }
 
-type   @entity {
+type BoringRewardClaimed @entity {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<REWARD_ID>_<ACCOUNT_ADDRESS>
   boringRewardRefId: BoringReward! # Boring reward reference
   chainId: BigInt! # Chain ID
