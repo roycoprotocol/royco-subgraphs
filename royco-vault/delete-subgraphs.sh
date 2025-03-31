@@ -2,13 +2,13 @@
 
 # Array of networks
 networks=(
-    # "sepolia"
-    # "mainnet"
-    # "arbitrum-one"
-    # "base"
-    # "plume-mainnet"
-    # "corn-maizenet"
-    # "sonic"
+    "sepolia"
+    "mainnet"
+    "arbitrum-one"
+    "base"
+    "plume-mainnet"
+    "corn-maizenet"
+    "sonic"
     "hyperevm"
 )
 
@@ -28,7 +28,7 @@ delete_subgraph() {
     local network=$1
 
     # Note: update version if needed
-    local subgraph_name="royco-vault-${network}/1.0.32" 
+    local subgraph_name="royco-vault-${network}/2.0.12" 
     
     echo "Attempting to delete ${subgraph_name}..."
     goldsky subgraph delete "${subgraph_name}" --force || true 

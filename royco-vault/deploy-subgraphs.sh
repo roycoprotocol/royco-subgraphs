@@ -2,20 +2,20 @@
 
 # Array of networks
 networks=(
-    # "sepolia"
-    # "mainnet"
-    # "arbitrum-one"
-    # "base"
+    "sepolia"
+    "mainnet"
+    "arbitrum-one"
+    "base"
     "plume-mainnet"
-    # "corn-maizenet"
-    # "sonic"
-    # "hyperevm"
+    "corn-maizenet"
+    "sonic"
+    "hyperevm"
 )
 
 # Function to prepare and deploy subgraph
 prepare_and_deploy() {
     local network=$1
-    local subgraph_name="royco-vault-${network}/2.0.15" # Note: update version if needed
+    local subgraph_name="royco-vault-${network}/2.0.16" # Note: update version if needed
     
     echo "Preparing and deploying ${subgraph_name}..."
     yarn prepare:${network} && graph codegen && graph build

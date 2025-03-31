@@ -4,12 +4,12 @@
 networks=(
     # "sepolia"
     # "mainnet"
-    # "arbitrum-one"
+    "arbitrum-one"
     # "base"
     # "plume-mainnet"
     # "corn-maizenet"
     # "sonic"
-    "hyperevm"
+    # "hyperevm"
 )
 
 # Function to prepare and deploy subgraph

@@ -108,10 +108,10 @@ export function createOrUpdateRawMarketTokenBalance(
       );
 
       rawMarketTokenBalance.rawMarketRefId = rawMarketRefId;
+      rawMarketTokenBalance.weirollWallet = weirollWallet;
       rawMarketTokenBalance.chainId = SOURCE_CHAIN_ID;
       rawMarketTokenBalance.marketType = MARKET_TYPE;
       rawMarketTokenBalance.marketId = rawMarket.marketId;
-      rawMarketTokenBalance.weirollWallet = weirollWallet;
       rawMarketTokenBalance.tokenClass = tokenClass;
       rawMarketTokenBalance.tokenId = tokenId;
       rawMarketTokenBalance.tokenAmount = tokenAmount;

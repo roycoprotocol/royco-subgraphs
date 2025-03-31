@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: WrappedVaultFactory
-    network: plume-mainnet
+    network: hyperevm
     source:
-      address: "0x9ec20b1999b92c4235214f4b2922cf9e6a349b31"
+      address: "0xda0a91f0fcc2a7c1922165a28038d89babe8ccfa"
       abi: WrappedVaultFactory
-      startBlock: 7400
+      startBlock: 206979
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -32,11 +32,11 @@ dataSources:
       file: ./src/wrapped-vault-factory.ts
   - kind: ethereum
     name: VaultMarketHub
-    network: plume-mainnet
+    network: hyperevm
     source:
-      address: "0x520bd73d143a1a9395728aa34b81695ff7e2d6aa"
+      address: "0x595ee728f3b8f5e937f6a21fe20f929dd8e301fc"
       abi: VaultMarketHub
-      startBlock: 7400
+      startBlock: 207010
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -60,7 +60,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: WrappedVault
-    network: plume-mainnet
+    network: hyperevm
     source:
       abi: WrappedVault
     mapping:
