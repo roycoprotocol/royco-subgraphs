@@ -71,14 +71,18 @@ export const generateBoringEpochRewardBalanceId = (
 
 export const generateBoringRewardClaimedId = (
   vaultAddress: Address,
-  rewardId: BigInt,
-  accountAddress: Address
+  accountAddress: Address,
+  rewardId: BigInt
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
     .concat(vaultAddress.toHexString())
     .concat("_")
-    .concat(rewardId.toString())
+    .concat(accountAddress.toHexString())
     .concat("_")
-    .concat(accountAddress.toHexString());
+    .concat(rewardId.toString());
+};
+
+export const generateBoringVaultId = (vaultAddress: Address): string => {
+  return CHAIN_ID.toString().concat("_").concat(vaultAddress.toHexString());
 };

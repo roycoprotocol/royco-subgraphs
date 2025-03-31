@@ -5,7 +5,11 @@ import {
 } from "../generated/BoringVault/BoringVault";
 import { BoringAccountUpdate } from "../generated/schema";
 import { CHAIN_ID } from "./constants";
-import { generateBoringAccountUpdateId, generateBoringEpochId } from "./utils";
+import {
+  generateBoringAccountUpdateId,
+  generateBoringEpochId,
+  generateBoringVaultId,
+} from "./utils";
 
 // export function createBoringAccountUpdate(
 //   event: UserDepositedIntoEpochEvent | UserWithdrawnFromEpochEvent,
@@ -73,6 +77,7 @@ export function createBoringAccountUpdateDeposit(
   if (!boringAccountUpdate) {
     boringAccountUpdate = new BoringAccountUpdate(boringAccountUpdateId);
 
+    boringAccountUpdate.boringVaultRefId = generateBoringVaultId(event.address);
     boringAccountUpdate.boringEpochRefId = boringEpochId;
     boringAccountUpdate.chainId = CHAIN_ID;
     boringAccountUpdate.vaultAddress = event.address.toHexString();
@@ -111,6 +116,7 @@ export function createBoringAccountUpdateWithdraw(
   if (!boringAccountUpdate) {
     boringAccountUpdate = new BoringAccountUpdate(boringAccountUpdateId);
 
+    boringAccountUpdate.boringVaultRefId = generateBoringVaultId(event.address);
     boringAccountUpdate.boringEpochRefId = boringEpochId;
     boringAccountUpdate.chainId = CHAIN_ID;
     boringAccountUpdate.vaultAddress = event.address.toHexString();

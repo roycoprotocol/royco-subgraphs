@@ -1,8 +1,12 @@
 {
   "metadata": [
     {
-      "network": "arbitrum-one",
-      "version": "1.0.0"
+      "network": "sonic",
+      "version": "1.0.1"
+    },
+    {
+      "network": "mainnet",
+      "version": "1.0.3"
     }
   ]
 }

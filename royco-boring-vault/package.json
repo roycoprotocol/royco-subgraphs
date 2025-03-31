@@ -11,6 +11,7 @@
     "test": "graph test",
     "prepare:mainnet": "mustache config/mainnet.json config/subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/constants.template.ts > src/constants.ts",
     "prepare:arbitrum-one": "mustache config/arbitrum-one.json config/subgraph.template.yaml > subgraph.yaml && mustache config/arbitrum-one.json config/constants.template.ts > src/constants.ts",
+    "prepare:sonic": "mustache config/sonic.json config/subgraph.template.yaml > subgraph.yaml && mustache config/sonic.json config/constants.template.ts > src/constants.ts",
     "prepare:pipeline": "mustache metadata.json config/royco-boring-vault-pipeline.template.yaml > royco-boring-vault-pipeline.yaml"
   },
   "dependencies": {

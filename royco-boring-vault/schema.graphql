@@ -148,6 +148,7 @@ type UserWithdrawnFromEpoch @entity(immutable: true) {
 
 type BoringEpoch @entity {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH>
+  boringVaultRefId: String! # Boring vault reference
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault address
   epoch: BigInt! # Epoch
@@ -166,6 +167,7 @@ type BoringEpoch @entity {
 
 type BoringAccountUpdate @entity {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<EPOCH>
+  boringVaultRefId: String! # Boring vault reference
   boringEpochRefId: BoringEpoch! # Boring epoch reference
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault address
@@ -180,6 +182,7 @@ type BoringAccountUpdate @entity {
 
 type BoringEpochRewardBalance @entity {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH>_<REWARD_ID>
+  boringVaultRefId: String! # Boring vault reference
   boringEpochRefId: BoringEpoch! # Boring epoch reference
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault address
@@ -198,6 +201,7 @@ type BoringEpochRewardBalance @entity {
 
 type BoringReward @entity {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<REWARD_ID>
+  boringVaultRefId: String! # Boring vault reference
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault address
   rewardId: BigInt! # Reward ID
@@ -216,12 +220,13 @@ type BoringReward @entity {
 }
 
 type BoringRewardClaimed @entity {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<REWARD_ID>_<ACCOUNT_ADDRESS>
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<REWARD_ID>
+  boringVaultRefId: String! # Boring vault reference
   boringRewardRefId: BoringReward! # Boring reward reference
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault address
-  rewardId: BigInt! # Reward ID
   accountAddress: String! # Account address
+  rewardId: BigInt! # Reward ID
   amount: BigInt! # Amount
   blockNumber: BigInt! # Block number
   blockTimestamp: BigInt! # Block timestamp

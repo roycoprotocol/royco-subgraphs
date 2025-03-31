@@ -19,6 +19,7 @@ import {
   generateBoringEpochRewardBalanceId,
   generateTokenId,
   generateBoringRewardClaimedId,
+  generateBoringVaultId,
 } from "./utils";
 
 export function createBoringEpoch(
@@ -35,6 +36,7 @@ export function createBoringEpoch(
   if (!boringEpoch) {
     boringEpoch = new BoringEpoch(boringEpochId);
 
+    boringEpoch.boringVaultRefId = generateBoringVaultId(vaultAddress);
     boringEpoch.chainId = CHAIN_ID;
     boringEpoch.vaultAddress = vaultAddress.toHexString();
     boringEpoch.epoch = event.params.epoch;
@@ -198,6 +200,9 @@ export function updateBoringEpochRewards(event: RewardsDistributedEvent): void {
           boringEpochRewardBalanceId
         );
 
+        boringEpochRewardBalance.boringVaultRefId = generateBoringVaultId(
+          event.address
+        );
         boringEpochRewardBalance.boringEpochRefId = boringEpochId;
         boringEpochRewardBalance.chainId = CHAIN_ID;
         boringEpochRewardBalance.vaultAddress = event.address.toHexString();
@@ -230,6 +235,7 @@ export function updateBoringEpochRewards(event: RewardsDistributedEvent): void {
   if (!boringReward) {
     boringReward = new BoringReward(boringRewardId);
 
+    boringReward.boringVaultRefId = generateBoringVaultId(event.address);
     boringReward.chainId = CHAIN_ID;
     boringReward.vaultAddress = event.address.toHexString();
     boringReward.rewardId = event.params.rewardId;
@@ -250,8 +256,8 @@ export function updateBoringEpochRewards(event: RewardsDistributedEvent): void {
 export function claimBoringReward(event: UserRewardsClaimedEvent): void {
   let boringRewardClaimedId = generateBoringRewardClaimedId(
     event.address, // Vault address
-    event.params.rewardId, // Reward ID
-    event.params.user // Account address
+    event.params.user, // Account address
+    event.params.rewardId // Reward ID
   );
 
   let boringRewardClaimed = BoringRewardClaimed.load(boringRewardClaimedId);
@@ -264,11 +270,12 @@ export function claimBoringReward(event: UserRewardsClaimedEvent): void {
   if (!boringRewardClaimed) {
     boringRewardClaimed = new BoringRewardClaimed(boringRewardClaimedId);
 
+    boringRewardClaimed.boringVaultRefId = generateBoringVaultId(event.address);
     boringRewardClaimed.boringRewardRefId = boringRewardId;
     boringRewardClaimed.chainId = CHAIN_ID;
     boringRewardClaimed.vaultAddress = event.address.toHexString();
-    boringRewardClaimed.rewardId = event.params.rewardId;
     boringRewardClaimed.accountAddress = event.params.user.toHexString();
+    boringRewardClaimed.rewardId = event.params.rewardId;
     boringRewardClaimed.amount = event.params.amount;
     boringRewardClaimed.blockNumber = event.block.number;
     boringRewardClaimed.blockTimestamp = event.block.timestamp;

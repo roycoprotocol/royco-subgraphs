@@ -7,32 +7,42 @@ sources:
   boring_epoch_reference:
     name: boring_epoch
     subgraphs:
-      - name: royco-boring-vault-arbitrum-one
-        version: 1.0.0
+      - name: royco-boring-vault-sonic
+        version: 1.0.1
+      - name: royco-boring-vault-mainnet
+        version: 1.0.3
     type: subgraph_entity
   boring_account_update_reference:
     name: boring_account_update
     subgraphs:
-      - name: royco-boring-vault-arbitrum-one
-        version: 1.0.0
+      - name: royco-boring-vault-sonic
+        version: 1.0.1
+      - name: royco-boring-vault-mainnet
+        version: 1.0.3
     type: subgraph_entity
   boring_epoch_reward_balance_reference:
     name: boring_epoch_reward_balance
     subgraphs:
-      - name: royco-boring-vault-arbitrum-one
-        version: 1.0.0
+      - name: royco-boring-vault-sonic
+        version: 1.0.1
+      - name: royco-boring-vault-mainnet
+        version: 1.0.3
     type: subgraph_entity
   boring_reward_reference:
     name: boring_reward
     subgraphs:
-      - name: royco-boring-vault-arbitrum-one
-        version: 1.0.0
+      - name: royco-boring-vault-sonic
+        version: 1.0.1
+      - name: royco-boring-vault-mainnet
+        version: 1.0.3
     type: subgraph_entity
   boring_reward_claimed_reference:
     name: boring_reward_claimed
     subgraphs:
-      - name: royco-boring-vault-arbitrum-one
-        version: 1.0.0
+      - name: royco-boring-vault-sonic
+        version: 1.0.1
+      - name: royco-boring-vault-mainnet
+        version: 1.0.3
     type: subgraph_entity
 transforms: {}
 sinks:

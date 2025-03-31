@@ -2,9 +2,9 @@
 
 # Array of networks
 networks=(
-    # "mainnet"
-    "arbitrum-one"
-    # "sonic"
+    "mainnet"
+    # "arbitrum-one"
+    "sonic"
 )
 
 # Function to get current version

@@ -2,9 +2,9 @@
 
 # Array of networks
 networks=(
-    # "mainnet"
+    "mainnet"
     "arbitrum-one"
-    # "sonic"
+    "sonic"
 )
 
 # Function to delete pipeline with confirmation
