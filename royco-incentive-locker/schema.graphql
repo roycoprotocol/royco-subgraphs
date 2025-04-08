@@ -1,0 +1,179 @@
+type Award @entity(immutable: true) {
+  id: Bytes!
+  pointsId: Bytes! # address
+  recipient: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type CoIPsAdded @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  coIPs: [Bytes!]! # address[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type CoIPsRemoved @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  coIPs: [Bytes!]! # address[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DefaultProtocolFeeClaimantSet @entity(immutable: true) {
+  id: Bytes!
+  newDefaultProtocolFeeClaimant: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DefaultProtocolFeeSet @entity(immutable: true) {
+  id: Bytes!
+  newDefaultProtocolFee: BigInt! # uint64
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type FeesClaimed @entity(immutable: true) {
+  id: Bytes!
+  claimant: Bytes! # address
+  incentive: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type IncentiveCampaignCreated @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  ip: Bytes! # address
+  actionVerifier: Bytes! # address
+  actionParams: Bytes! # bytes
+  defaultProtocolFee: BigInt! # uint64
+  incentivesOffered: [Bytes!]! # address[]
+  incentiveAmountsOffered: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type IncentivesAdded @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  ip: Bytes! # address
+  incentivesOffered: [Bytes!]! # address[]
+  incentiveAmountsOffered: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type IncentivesClaimed @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  ap: Bytes! # address
+  incentiveAmountsPaid: [BigInt!]! # uint256[]
+  protocolFeesPaid: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type IncentivesRemoved @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  ip: Bytes! # address
+  incentivesRemoved: [Bytes!]! # address[]
+  incentiveAmountsRemoved: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferStarted @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PointsProgramCreated @entity(immutable: true) {
+  id: Bytes!
+  pointsId: Bytes! # address
+  owner: Bytes! # address
+  name: String! # string
+  symbol: String! # string
+  decimals: Int! # uint8
+  whitelistedIPs: [Bytes!]! # address[]
+  spendCaps: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PointsProgramOwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  pointsId: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PointsSpent @entity(immutable: true) {
+  id: Bytes!
+  pointsId: Bytes! # address
+  ip: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProtocolFeeClaimantForCampaignSet @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  newProtocolFeeClaimant: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProtocolFeeForCampaignSet @entity(immutable: true) {
+  id: Bytes!
+  incentiveCampaignId: Bytes! # bytes32
+  newProtocolFee: BigInt! # uint64
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SpendCapsUpdated @entity(immutable: true) {
+  id: Bytes!
+  pointsId: Bytes! # address
+  ips: [Bytes!]! # address[]
+  spendCaps: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
