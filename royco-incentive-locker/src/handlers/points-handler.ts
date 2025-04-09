@@ -31,7 +31,7 @@ export function createRawPointsProgram(entity: PointsProgramCreated): void {
 
     // Populate the main program fields
     program.chainId = CHAIN_ID;
-    program.pointsId = entity.pointsId;
+    program.pointsAddress = entity.pointsId;
     program.owner = entity.owner;
     program.name = entity.name;
     program.symbol = entity.symbol;
@@ -42,19 +42,49 @@ export function createRawPointsProgram(entity: PointsProgramCreated): void {
     program.blockTimestamp = entity.blockTimestamp;
     program.transactionHash = entity.transactionHash;
 
-    // Save the points program event.params
+    // Loop through each IP and capacity pair.
+    for (let i = 0; i < entity.whitelistedIPs.length; i++) {
+        let ipAddress = entity.whitelistedIPs[i];
+        let capacity = entity.spendCaps[i];
+        let ipId = generateRawWhitelistedIpId(entity.pointsId, ipAddress);
+
+        let whitelistedIpIndex = program.whitelistedIPs.indexOf(ipAddress);
+        if (whitelistedIpIndex == -1) {
+            // Create new IP entity
+            let newWhitelistedIPs = program.whitelistedIPs;
+            newWhitelistedIPs.push(ipAddress);
+            let newSpendCaps = program.spendCaps;
+            newSpendCaps.push(capacity);
+            // Write new array
+            program.whitelistedIPs = newWhitelistedIPs;
+            program.spendCaps = newSpendCaps;
+        } else {
+            // Update the spend caps array
+            let newSpendCaps = program.spendCaps;
+            newSpendCaps[whitelistedIpIndex] = capacity;
+            program.spendCaps = newSpendCaps;
+        }
+
+        let whitelistedIp = new RawWhitelistedIP(ipId);
+        // Link this whitelisted IP to its parent points program.
+        whitelistedIp.chainId = CHAIN_ID;
+        whitelistedIp.pointsAddress = entity.pointsId;
+        whitelistedIp.rawPointsProgramRefId = rawPointsProgramId;
+        whitelistedIp.accountAddress = ipAddress;
+        whitelistedIp.blockNumber = entity.blockNumber;
+        whitelistedIp.blockTimestamp = entity.blockTimestamp;
+        whitelistedIp.transactionHash = entity.transactionHash;
+        whitelistedIp.spendCap = capacity;
+        whitelistedIp.save();
+    }
+
     program.save();
 }
 
-export function createOrUpdateRawWhitelistedIps(
-    pointsId: string,
-    ipAddresses: string[],
-    capacities: BigInt[],
-    blockNumber: BigInt,
-    blockTimestamp: BigInt,
-    transactionHash: string,
+export function handleUpdatedSpendCaps(
+    entity: SpendCapsUpdated
 ): void {
-    let rawPointsProgramId = generateRawPointsProgramId(pointsId);
+    let rawPointsProgramId = generateRawPointsProgramId(entity.pointsId);
     let program = RawPointsProgram.load(rawPointsProgramId);
     if (program == null) {
         // Can log an error since program should exist
@@ -62,18 +92,26 @@ export function createOrUpdateRawWhitelistedIps(
     }
 
     // Loop through each IP and capacity pair.
-    for (let i = 0; i < ipAddresses.length; i++) {
-        let ipAddress = ipAddresses[i];
-        let capacity = capacities[i];
-        let ipId = generateRawWhitelistedIpId(pointsId, ipAddress);
+    for (let i = 0; i < entity.ips.length; i++) {
+        let ipAddress = entity.ips[i];
+        let capacity = entity.spendCaps[i];
+        let ipId = generateRawWhitelistedIpId(entity.pointsId, ipAddress);
 
         let whitelistedIpIndex = program.whitelistedIPs.indexOf(ipAddress);
         if (whitelistedIpIndex == -1) {
-            // IP Doesn't exist
-            program.whitelistedIPs.push(ipAddress);
-            program.spendCaps.push(capacity);
+            // Create new IP entity
+            let newWhitelistedIPs = program.whitelistedIPs;
+            newWhitelistedIPs.push(ipAddress);
+            let newSpendCaps = program.spendCaps;
+            newSpendCaps.push(capacity);
+            // Write new array
+            program.whitelistedIPs = newWhitelistedIPs;
+            program.spendCaps = newSpendCaps;
         } else {
-            program.spendCaps[whitelistedIpIndex] = capacity;
+            // Update the spend caps array
+            let newSpendCaps = program.spendCaps;
+            newSpendCaps[whitelistedIpIndex] = capacity;
+            program.spendCaps = newSpendCaps;
         }
 
         // Try to load an existing whitelisted IP record.
@@ -84,12 +122,12 @@ export function createOrUpdateRawWhitelistedIps(
             whitelistedIp = new RawWhitelistedIP(ipId);
             // Link this whitelisted IP to its parent points program.
             whitelistedIp.chainId = CHAIN_ID;
-            whitelistedIp.pointsId = pointsId;
+            whitelistedIp.pointsAddress = entity.pointsId;
             whitelistedIp.rawPointsProgramRefId = rawPointsProgramId;
             whitelistedIp.accountAddress = ipAddress;
-            whitelistedIp.blockNumber = blockNumber;
-            whitelistedIp.blockTimestamp = blockTimestamp;
-            whitelistedIp.transactionHash = transactionHash;
+            whitelistedIp.blockNumber = entity.blockNumber;
+            whitelistedIp.blockTimestamp = entity.blockTimestamp;
+            whitelistedIp.transactionHash = entity.transactionHash;
         }
 
         // Update (or set for a new record) the spend cap.
@@ -127,7 +165,10 @@ export function handleSpendPoints(pointsId: string, ipAddress: string, pointsSpe
         return;
     }
     let newCapacity = program.spendCaps[whitelistedIpIndex].minus(pointsSpent);
-    program.spendCaps[whitelistedIpIndex] = newCapacity;
+    // Update the spend caps array
+    let newSpendCaps = program.spendCaps;
+    newSpendCaps[whitelistedIpIndex] = newCapacity;
+    program.spendCaps = newSpendCaps;
 
     program.save();
 
@@ -158,7 +199,7 @@ export function handleAwardPoints(entity: Award) {
         // If first award for this AP, create a balance entity for them
         pointsProgramBalance = new RawPointsProgramBalance(pointsProgramBalanceId);
         pointsProgramBalance.chainId = CHAIN_ID;
-        pointsProgramBalance.pointsId = entity.pointsId;
+        pointsProgramBalance.pointsAddress = entity.pointsId;
         pointsProgramBalance.rawPointsProgramRefId = entity.rawPointsProgramRefId;
         pointsProgramBalance.accountAddress = entity.recipient;
         pointsProgramBalance.balance = entity.amount;

@@ -39,7 +39,7 @@ import {
   SpendCapsUpdated
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { createRawPointsProgram, createOrUpdateRawWhitelistedIps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
+import { createRawPointsProgram, handleUpdatedSpendCaps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
 import { generateId, generateRawPointsProgramId } from "./utils/id-generator"
 
 
@@ -270,8 +270,6 @@ export function handlePointsProgramCreated(
 
   // Create the points program
   createRawPointsProgram(entity);
-  // Update the whitelisted IPs for this event
-  createOrUpdateRawWhitelistedIps(entity.pointsId, entity.whitelistedIPs, entity.spendCaps, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
 }
 
 export function handlePointsProgramOwnershipTransferred(
@@ -360,5 +358,5 @@ export function handleSpendCapsUpdated(event: SpendCapsUpdatedEvent): void {
   entity.save()
 
   // Update the whitelisted IPs for this event
-  createOrUpdateRawWhitelistedIps(entity.pointsId, entity.ips, entity.spendCaps, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
+  handleUpdatedSpendCaps(entity);
 }

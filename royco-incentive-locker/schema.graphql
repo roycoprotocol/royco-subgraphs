@@ -202,7 +202,7 @@ type SpendCapsUpdated @entity(immutable: true) {
 type RawPointsProgram @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<POINTS_PROGRAM_ID>
   chainId: BigInt! # Hardcoded
-  pointsId: String! # Address identifying the points program
+  pointsAddress: String! # Address identifying the points program
   owner: String! # Points program owner address
   name: String! # string - Points program name 
   symbol: String! # string - Points program symbol
@@ -225,7 +225,7 @@ type RawPointsProgram @entity(immutable: false) {
 type RawWhitelistedIP @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<POINTS_PROGRAM_ID>_<IP_ADDRESS>
   chainId: BigInt! # Hardcoded
-  pointsId: String! # Address identifying the points program
+  pointsAddress: String! # Address identifying the points program
   rawPointsProgramRefId: RawPointsProgram!
   accountAddress: String! # address - Address of the IP
   spendCap: BigInt! # uint256 - The IP's spend capacity
@@ -237,7 +237,7 @@ type RawWhitelistedIP @entity(immutable: false) {
 type RawPointsProgramBalance @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<POINTS_PROGRAM_ID>_<AP_ADDRESS>
   chainId: BigInt! # Hardcoded
-  pointsId: String! # Address identifying the points program
+  pointsAddress: String! # Address identifying the points program
   rawPointsProgramRefId: RawPointsProgram!
   accountAddress: String! # address - Address of the AP
   balance: BigInt! # uint256 - The AP's points balance
