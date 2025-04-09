@@ -22,3 +22,11 @@ export const generateRawWhitelistedIpId = (pointsProgramId: string, ipAddress: s
         .concat("_")
         .concat(ipAddress);
 };
+
+export const generateRawPointsProgramBalanceId = (pointsProgramId: string, apAddress: string): string => {
+    return CHAIN_ID.toString()
+        .concat("_")
+        .concat(pointsProgramId)
+        .concat("_")
+        .concat(apAddress);
+};

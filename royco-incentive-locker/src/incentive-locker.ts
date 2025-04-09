@@ -39,8 +39,8 @@ import {
   SpendCapsUpdated
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { createRawPointsProgram } from "./handlers/points-handler"
-import { generateId } from "./utils/id-generator"
+import { createRawPointsProgram, createOrUpdateRawWhitelistedIps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
+import { generateId, generateRawPointsProgramId } from "./utils/id-generator"
 
 
 export function handleAward(event: AwardEvent): void {
@@ -48,6 +48,7 @@ export function handleAward(event: AwardEvent): void {
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.pointsId = event.params.pointsId.toHexString()
+  entity.rawPointsProgramRefId = generateRawPointsProgramId(entity.pointsId)
   entity.recipient = event.params.recipient.toHexString()
   entity.amount = event.params.amount
 
@@ -56,6 +57,8 @@ export function handleAward(event: AwardEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleAwardPoints(entity);
 }
 
 export function handleCoIPsAdded(event: CoIPsAddedEvent): void {
@@ -267,6 +270,8 @@ export function handlePointsProgramCreated(
 
   // Create the points program
   createRawPointsProgram(entity);
+  // Update the whitelisted IPs for this event
+  createOrUpdateRawWhitelistedIps(entity.pointsId, entity.whitelistedIPs, entity.spendCaps, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
 }
 
 export function handlePointsProgramOwnershipTransferred(
@@ -276,6 +281,7 @@ export function handlePointsProgramOwnershipTransferred(
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.pointsId = event.params.pointsId.toHexString()
+  entity.rawPointsProgramRefId = generateRawPointsProgramId(entity.pointsId);
   entity.newOwner = event.params.newOwner.toHexString()
 
   entity.blockNumber = event.block.number
@@ -283,6 +289,8 @@ export function handlePointsProgramOwnershipTransferred(
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handlePointsProgramOwnershipTransfer(entity.pointsId, entity.newOwner);
 }
 
 export function handlePointsSpent(event: PointsSpentEvent): void {
@@ -290,6 +298,7 @@ export function handlePointsSpent(event: PointsSpentEvent): void {
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.pointsId = event.params.pointsId.toHexString()
+  entity.rawPointsProgramRefId = generateRawPointsProgramId(entity.pointsId)
   entity.ip = event.params.ip.toHexString()
   entity.amount = event.params.amount
 
@@ -298,6 +307,8 @@ export function handlePointsSpent(event: PointsSpentEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleSpendPoints(entity.pointsId, entity.ip, entity.amount);
 }
 
 export function handleProtocolFeeClaimantForCampaignSet(
@@ -347,4 +358,7 @@ export function handleSpendCapsUpdated(event: SpendCapsUpdatedEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  // Update the whitelisted IPs for this event
+  createOrUpdateRawWhitelistedIps(entity.pointsId, entity.ips, entity.spendCaps, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
 }

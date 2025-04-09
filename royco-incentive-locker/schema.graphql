@@ -1,11 +1,13 @@
 type Award @entity(immutable: true) {
   id: String!
   pointsId: String! # address
+  rawPointsProgramRefId: RawPointsProgram! # RawPointsProgram primary key
   recipient: String! # address
   amount: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type CoIPsAdded @entity(immutable: true) {
@@ -15,6 +17,7 @@ type CoIPsAdded @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type CoIPsRemoved @entity(immutable: true) {
@@ -24,6 +27,7 @@ type CoIPsRemoved @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type DefaultProtocolFeeClaimantSet @entity(immutable: true) {
@@ -32,6 +36,7 @@ type DefaultProtocolFeeClaimantSet @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type DefaultProtocolFeeSet @entity(immutable: true) {
@@ -40,6 +45,7 @@ type DefaultProtocolFeeSet @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type FeesClaimed @entity(immutable: true) {
@@ -50,6 +56,7 @@ type FeesClaimed @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type IncentiveCampaignCreated @entity(immutable: true) {
@@ -64,6 +71,7 @@ type IncentiveCampaignCreated @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type IncentivesAdded @entity(immutable: true) {
@@ -75,6 +83,7 @@ type IncentivesAdded @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type IncentivesClaimed @entity(immutable: true) {
@@ -86,6 +95,7 @@ type IncentivesClaimed @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type IncentivesRemoved @entity(immutable: true) {
@@ -97,6 +107,7 @@ type IncentivesRemoved @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type OwnershipTransferStarted @entity(immutable: true) {
@@ -106,6 +117,7 @@ type OwnershipTransferStarted @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type OwnershipTransferred @entity(immutable: true) {
@@ -115,6 +127,7 @@ type OwnershipTransferred @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type PointsProgramCreated @entity(immutable: true) {
@@ -129,25 +142,30 @@ type PointsProgramCreated @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type PointsProgramOwnershipTransferred @entity(immutable: true) {
   id: String!
   pointsId: String! # address
+  rawPointsProgramRefId: RawPointsProgram! # RawPointsProgram primary key
   newOwner: String! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type PointsSpent @entity(immutable: true) {
   id: String!
   pointsId: String! # address
   ip: String! # address
+  rawPointsProgramRefId: RawPointsProgram! # RawPointsProgram primary key
   amount: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type ProtocolFeeClaimantForCampaignSet @entity(immutable: true) {
@@ -157,6 +175,7 @@ type ProtocolFeeClaimantForCampaignSet @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type ProtocolFeeForCampaignSet @entity(immutable: true) {
@@ -166,6 +185,7 @@ type ProtocolFeeForCampaignSet @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type SpendCapsUpdated @entity(immutable: true) {
@@ -176,6 +196,7 @@ type SpendCapsUpdated @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type RawPointsProgram @entity(immutable: false) {
@@ -186,17 +207,41 @@ type RawPointsProgram @entity(immutable: false) {
   name: String! # string - Points program name 
   symbol: String! # string - Points program symbol
   decimals: Int! # uint8 - Points program decimals
-  whitelistedIPs: [RawWhitelistedIP!]! @derivedFrom(field: "rawPointsProgram")
+  totalSupply: BigInt! # Total points awarded for this points program
+  whitelistedIPs: [String!]! # address[]
+  spendCaps: [BigInt!]! # uint256[]
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  # Derived Fields
+  whitelistedIPsRefIds: [RawWhitelistedIP!]! @derivedFrom(field: "rawPointsProgramRefId")
+  pointsSpentRefIds: [PointsSpent!]! @derivedFrom(field: "rawPointsProgramRefId")
+  ownershipTransferredRefIds: [PointsProgramOwnershipTransferred!]! @derivedFrom(field: "rawPointsProgramRefId")
+  awardRefIds: [Award!]! @derivedFrom(field: "rawPointsProgramRefId")
+  pointsProgramBalanceRefIds: [RawPointsProgramBalance!]! @derivedFrom(field: "rawPointsProgramRefId")
 }
 
 
 type RawWhitelistedIP @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<POINTS_PROGRAM_ID>_<IP_ADDRESS>
-  rawPointsProgram: RawPointsProgram!
   chainId: BigInt! # Hardcoded
-  ip: String! # address - Address of the IP
-  spendCap: BigInt! # uint256 - IP's current spend capacity 
+  pointsId: String! # Address identifying the points program
+  rawPointsProgramRefId: RawPointsProgram!
+  accountAddress: String! # address - Address of the IP
+  spendCap: BigInt! # uint256 - The IP's spend capacity
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type RawPointsProgramBalance @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<POINTS_PROGRAM_ID>_<AP_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  pointsId: String! # Address identifying the points program
+  rawPointsProgramRefId: RawPointsProgram!
+  accountAddress: String! # address - Address of the AP
+  balance: BigInt! # uint256 - The AP's points balance
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
 }
