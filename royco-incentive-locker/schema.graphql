@@ -81,6 +81,7 @@ type IncentivesAdded @entity(immutable: true) {
   incentivesOffered: [String!]! # address[]
   incentiveAmountsOffered: [BigInt!]! # uint256[]
   rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  rawCoIpRefId: RawCoIp!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -245,6 +246,7 @@ type RawCoIp @entity(immutable: false) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  incentivesAddedRefIds: [IncentivesAdded!]! @derivedFrom(field: "rawCoIpRefId") # All incentives added by this CoIP
 }
 
 type RawPointsProgram @entity(immutable: false) {

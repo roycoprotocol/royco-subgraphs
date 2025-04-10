@@ -36,12 +36,13 @@ import {
   PointsSpent,
   ProtocolFeeClaimantForCampaignSet,
   ProtocolFeeForCampaignSet,
+  RawCoIp,
   SpendCapsUpdated
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
 import { createRawPointsProgram, handleUpdatedSpendCaps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
 import { handleIncentiveCampaignCreation, handleAddingIncentives, handleRemovingIncentives, handleClaim, handleAddOrRemoveCoIP } from "./handlers/incentive-campaign-handler"
-import { generateId, generateIncentiveId, generateRawIncentiveCampaignId } from "./utils/id-generator"
+import { generateId, generateIncentiveId, generateRawCoIpId, generateRawIncentiveCampaignId } from "./utils/id-generator"
 
 
 export function handleAward(event: AwardEvent): void {
@@ -180,6 +181,12 @@ export function handleIncentivesAdded(event: IncentivesAddedEvent): void {
   );
   entity.incentiveAmountsOffered = event.params.incentiveAmountsOffered
   entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
+
+  let coIpId = generateRawCoIpId(entity.incentiveCampaignId, entity.ip);
+  let coIP = RawCoIp.load(coIpId);
+  if (coIP != null) {
+    entity.rawCoIpRefId = coIpId;
+  }
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
