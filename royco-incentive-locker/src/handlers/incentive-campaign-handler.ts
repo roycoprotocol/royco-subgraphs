@@ -32,7 +32,7 @@ import {
     RawIncentiveCampaignBalance
 } from "../../generated/schema"
 import { generateRawIncentiveCampaignId, generateIncentiveId, generateRawIncentiveCampaignBalanceId } from "../utils/id-generator"
-import { CHAIN_ID } from "../utils/constants"
+import { BIG_INT_ZERO, CHAIN_ID } from "../utils/constants"
 
 
 export function handleIncentiveCampaignCreation(entity: IncentiveCampaignCreated): void {
@@ -85,6 +85,37 @@ export function handleAddingIncentives(entity: IncentivesAdded): void {
 }
 
 export function handleRemovingIncentives(entity: IncentivesRemoved): void {
+    let campaign = RawIncentiveCampaign.load(generateRawIncentiveCampaignId(entity.incentiveCampaignId));
+    if (campaign == null) {
+        // Possibly log an error
+        return;
+    }
+
+    let resultingIncentivesOffered = campaign.incentivesOfferedIds;
+    let resultingAmountsOffered = campaign.incentiveAmountsOffered;
+    let resultingAmountsRemaining = campaign.incentiveAmountsRemaining;
+
+    // Reduce the incentives remaining based on the claimed amounts
+    // Modify the user balances for this campaign
+    entity.incentivesRemoved.forEach((incentive, removalIndex) => {
+        let incentiveId = generateIncentiveId(incentive);
+        let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
+        resultingAmountsOffered[incentiveIndex] = resultingAmountsOffered[incentiveIndex].minus(entity.incentiveAmountsRemoved[removalIndex]);
+        // If amount offered becomes zero, it's like the incentive was never offered
+        if (resultingAmountsOffered[incentiveIndex] == BIG_INT_ZERO) {
+            resultingIncentivesOffered.splice(incentiveIndex, 1);
+            resultingAmountsOffered.splice(incentiveIndex, 1);
+            resultingAmountsRemaining.splice(incentiveIndex, 1);
+            return;
+        }
+        resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].minus(entity.incentiveAmountsRemoved[removalIndex]);
+    })
+
+    campaign.incentivesOfferedIds = resultingIncentivesOffered;
+    campaign.incentiveAmountsOffered = resultingAmountsOffered;
+    campaign.incentiveAmountsRemaining = resultingAmountsRemaining;
+
+    campaign.save();
 }
 
 export function handleClaim(entity: IncentivesClaimed): void {
