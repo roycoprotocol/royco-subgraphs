@@ -40,7 +40,7 @@ import {
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
 import { createRawPointsProgram, handleUpdatedSpendCaps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
-import { handleIncentiveCampaignCreation, handleClaim } from "./handlers/incentive-campaign-handler"
+import { handleIncentiveCampaignCreation, handleAddingIncentives, handleRemovingIncentives, handleClaim } from "./handlers/incentive-campaign-handler"
 import { generateId, generateIncentiveId, generateRawIncentiveCampaignId } from "./utils/id-generator"
 
 
@@ -182,6 +182,8 @@ export function handleIncentivesAdded(event: IncentivesAddedEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleAddingIncentives(entity);
 }
 
 export function handleIncentivesClaimed(event: IncentivesClaimedEvent): void {
@@ -223,6 +225,8 @@ export function handleIncentivesRemoved(event: IncentivesRemovedEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleRemovingIncentives(entity);
 }
 
 export function handleOwnershipTransferStarted(

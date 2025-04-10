@@ -51,6 +51,42 @@ export function handleIncentiveCampaignCreation(entity: IncentiveCampaignCreated
     campaign.save();
 }
 
+export function handleAddingIncentives(entity: IncentivesAdded): void {
+    let campaign = RawIncentiveCampaign.load(generateRawIncentiveCampaignId(entity.incentiveCampaignId));
+    if (campaign == null) {
+        // Possibly log an error
+        return;
+    }
+
+    let resultingIncentivesOffered = campaign.incentivesOfferedIds;
+    let resultingAmountsOffered = campaign.incentiveAmountsOffered;
+    let resultingAmountsRemaining = campaign.incentiveAmountsRemaining;
+
+    // Reduce the incentives remaining based on the claimed amounts
+    // Modify the user balances for this campaign
+    entity.incentivesOffered.forEach((incentive, additionIndex) => {
+        let incentiveId = generateIncentiveId(incentive);
+        let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
+        if (incentiveIndex == null) {
+            resultingIncentivesOffered.push(incentiveId);
+            resultingAmountsOffered.push(entity.incentiveAmountsOffered[additionIndex])
+            resultingAmountsRemaining.push(entity.incentiveAmountsOffered[additionIndex])
+        } else {
+            resultingAmountsOffered[incentiveIndex] = resultingAmountsOffered[incentiveIndex].plus(entity.incentiveAmountsOffered[additionIndex])
+            resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].plus(entity.incentiveAmountsOffered[additionIndex])
+        }
+    })
+
+    campaign.incentivesOfferedIds = resultingIncentivesOffered;
+    campaign.incentiveAmountsOffered = resultingAmountsOffered;
+    campaign.incentiveAmountsRemaining = resultingAmountsRemaining;
+
+    campaign.save();
+}
+
+export function handleRemovingIncentives(entity: IncentivesRemoved): void {
+}
+
 export function handleClaim(entity: IncentivesClaimed): void {
     let campaign = RawIncentiveCampaign.load(generateRawIncentiveCampaignId(entity.incentiveCampaignId));
     if (campaign == null) {
@@ -79,17 +115,17 @@ export function handleClaim(entity: IncentivesClaimed): void {
 
     // Reduce the incentives remaining based on the claimed amounts
     // Modify the user balances for this campaign
-    entity.incentivesClaimed.forEach((incentive,) => {
+    entity.incentivesClaimed.forEach((incentive, claimedIndex) => {
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = campaign.incentivesOfferedIds.indexOf(incentiveId);
-        resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].minus(entity.incentiveAmountsPaid[incentiveIndex]);
+        resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].minus(entity.incentiveAmountsPaid[claimedIndex]);
 
         let balanceIndex = resultingIncentives.indexOf(incentiveId);
         if (balanceIndex == -1) {
             resultingIncentives.push(incentiveId);
-            resultingBalances.push(entity.incentiveAmountsPaid[incentiveIndex]);
+            resultingBalances.push(entity.incentiveAmountsPaid[claimedIndex]);
         } else {
-            resultingBalances[balanceIndex] = resultingBalances[balanceIndex].plus(entity.incentiveAmountsPaid[incentiveIndex]);
+            resultingBalances[balanceIndex] = resultingBalances[balanceIndex].plus(entity.incentiveAmountsPaid[claimedIndex]);
         }
     })
 
