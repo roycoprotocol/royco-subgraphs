@@ -215,7 +215,7 @@ type RawIncentiveCampaign @entity(immutable: false) {
   incentiveAmountsOffered: [BigInt!]! # Corresponding list of incentive amounts offered
   incentiveAmountsRemaining: [BigInt!]! # Corresponding list of incentive amounts remaining
   # Derived Fields
-  incentiveCampaignRefIds: [RawIncentiveCampaignBalance!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  incentiveCampaignBalancesRefIds: [RawIncentiveCampaignBalance!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   coIpRefIds: [RawCoIp!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesAddedRefIds: [IncentivesAdded!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesRemovedRefIds: [IncentivesRemoved!]! @derivedFrom(field: "rawIncentiveCampaignRefId")

@@ -61,7 +61,6 @@ export function handleClaim(entity: IncentivesClaimed): void {
     // Update the balances entity for this AP
     let balancesId = generateRawIncentiveCampaignBalanceId(entity.incentiveCampaignId, entity.ap);
     let balances = RawIncentiveCampaignBalance.load(balancesId)
-    let balancesExisted = balances ? true : false;
     if (balances == null) {
         balances = new RawIncentiveCampaignBalance(balancesId);
         balances.chainId = CHAIN_ID;
@@ -79,6 +78,7 @@ export function handleClaim(entity: IncentivesClaimed): void {
     let resultingBalances = balances.incentiveBalances;
 
     // Reduce the incentives remaining based on the claimed amounts
+    // Modify the user balances for this campaign
     entity.incentivesClaimed.forEach((incentive,) => {
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = campaign.incentivesOfferedIds.indexOf(incentiveId);
