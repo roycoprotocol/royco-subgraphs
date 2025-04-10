@@ -81,7 +81,7 @@ type IncentivesAdded @entity(immutable: true) {
   incentivesOffered: [String!]! # address[]
   incentiveAmountsOffered: [BigInt!]! # uint256[]
   rawIncentiveCampaignRefId: RawIncentiveCampaign!
-  rawCoIpRefId: RawCoIp!
+  rawCoIpRefId: RawCoIp
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
