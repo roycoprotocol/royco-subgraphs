@@ -40,7 +40,7 @@ import {
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
 import { createRawPointsProgram, handleUpdatedSpendCaps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
-import { handleIncentiveCampaignCreation, handleAddingIncentives, handleRemovingIncentives, handleClaim } from "./handlers/incentive-campaign-handler"
+import { handleIncentiveCampaignCreation, handleAddingIncentives, handleRemovingIncentives, handleClaim, handleAddOrRemoveCoIP } from "./handlers/incentive-campaign-handler"
 import { generateId, generateIncentiveId, generateRawIncentiveCampaignId } from "./utils/id-generator"
 
 
@@ -76,6 +76,8 @@ export function handleCoIPsAdded(event: CoIPsAddedEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleAddOrRemoveCoIP(entity.incentiveCampaignId, entity.coIPs, true, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
 }
 
 export function handleCoIPsRemoved(event: CoIPsRemovedEvent): void {
@@ -92,6 +94,8 @@ export function handleCoIPsRemoved(event: CoIPsRemovedEvent): void {
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleAddOrRemoveCoIP(entity.incentiveCampaignId, entity.coIPs, false, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
 }
 
 export function handleDefaultProtocolFeeClaimantSet(

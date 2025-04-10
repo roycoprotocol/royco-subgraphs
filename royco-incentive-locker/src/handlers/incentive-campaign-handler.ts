@@ -29,10 +29,12 @@ import {
     ProtocolFeeForCampaignSet,
     RawIncentiveCampaign,
     RawPointsProgram,
-    RawIncentiveCampaignBalance
+    RawIncentiveCampaignBalance,
+    RawCoIp
 } from "../../generated/schema"
-import { generateRawIncentiveCampaignId, generateIncentiveId, generateRawIncentiveCampaignBalanceId } from "../utils/id-generator"
+import { generateRawIncentiveCampaignId, generateIncentiveId, generateRawIncentiveCampaignBalanceId, generateRawCoIpId } from "../utils/id-generator"
 import { BIG_INT_ZERO, CHAIN_ID } from "../utils/constants"
+import { BigInt } from "@graphprotocol/graph-ts";
 
 
 export function handleIncentiveCampaignCreation(entity: IncentiveCampaignCreated): void {
@@ -167,4 +169,25 @@ export function handleClaim(entity: IncentivesClaimed): void {
 
     balances.save();
     campaign.save();
+}
+
+export function handleAddOrRemoveCoIP(incentiveCampaignId: string, coIpAddresses: string[], addCoIp: boolean, blockNumber: BigInt, blockTimestamp: BigInt, transactionHash: string): void {
+    coIpAddresses.forEach((coIpAddress, index) => {
+        let coIpId = generateRawCoIpId(incentiveCampaignId, coIpAddress);
+        let coIP = RawCoIp.load(coIpId);
+        if (coIP == null) {
+            coIP = new RawCoIp(coIpId);
+            coIP.chainId = CHAIN_ID;
+            coIP.incentiveCampaignId = incentiveCampaignId;
+            coIP.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(incentiveCampaignId);
+            coIP.accountAddress = coIpAddress;
+            coIP.blockNumber = blockNumber;
+            coIP.blockTimestamp = blockTimestamp;
+            coIP.transactionHash = transactionHash;
+        }
+
+        coIP.isCoIP = addCoIp;
+
+        coIP.save();
+    })
 }

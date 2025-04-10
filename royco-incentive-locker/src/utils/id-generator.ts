@@ -43,3 +43,11 @@ export const generateRawIncentiveCampaignBalanceId = (incentiveCampaignId: strin
         .concat("_")
         .concat(apAddress);
 };
+
+export const generateRawCoIpId = (incentiveCampaignId: string, coIpAddress: string): string => {
+    return CHAIN_ID.toString()
+        .concat("_")
+        .concat(incentiveCampaignId)
+        .concat("_")
+        .concat(coIpAddress);
+};
