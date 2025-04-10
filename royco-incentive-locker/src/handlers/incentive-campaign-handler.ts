@@ -68,8 +68,8 @@ export function handleAddingIncentives(entity: IncentivesAdded): void {
     let resultingAmountsOffered = campaign.incentiveAmountsOffered;
     let resultingAmountsRemaining = campaign.incentiveAmountsRemaining;
 
-    // Reduce the incentives remaining based on the claimed amounts
-    // Modify the user balances for this campaign
+    // Add incentives to amounts
+    // Handle new incentive additions too
     entity.incentivesOffered.forEach((incentive, additionIndex) => {
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
@@ -101,13 +101,12 @@ export function handleRemovingIncentives(entity: IncentivesRemoved): void {
     let resultingAmountsOffered = campaign.incentiveAmountsOffered;
     let resultingAmountsRemaining = campaign.incentiveAmountsRemaining;
 
-    // Reduce the incentives remaining based on the claimed amounts
-    // Modify the user balances for this campaign
+    // Reduce the incentives remaining and offered based on the claimed amounts
     entity.incentivesRemoved.forEach((incentive, removalIndex) => {
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
         resultingAmountsOffered[incentiveIndex] = resultingAmountsOffered[incentiveIndex].minus(entity.incentiveAmountsRemoved[removalIndex]);
-        // If amount offered becomes zero, it's like the incentive was never offered
+        // If amount offered becomes zero, treat it like the incentive was never offered
         if (resultingAmountsOffered[incentiveIndex] == BIG_INT_ZERO) {
             resultingIncentivesOffered.splice(incentiveIndex, 1);
             resultingAmountsOffered.splice(incentiveIndex, 1);
