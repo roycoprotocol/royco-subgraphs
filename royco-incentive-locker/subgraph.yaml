@@ -54,7 +54,7 @@ dataSources:
           handler: handleIncentiveCampaignCreated
         - event: IncentivesAdded(indexed bytes32,indexed address,address[],uint256[])
           handler: handleIncentivesAdded
-        - event: IncentivesClaimed(indexed bytes32,indexed address,uint256[],uint256[])
+        - event: IncentivesClaimed(indexed bytes32,indexed address,address[],uint256[],uint256[])
           handler: handleIncentivesClaimed
         - event: IncentivesRemoved(indexed bytes32,indexed address,address[],uint256[])
           handler: handleIncentivesRemoved

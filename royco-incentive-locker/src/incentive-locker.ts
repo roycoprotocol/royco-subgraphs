@@ -40,7 +40,8 @@ import {
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
 import { createRawPointsProgram, handleUpdatedSpendCaps, handlePointsProgramOwnershipTransfer, handleSpendPoints, handleAwardPoints } from "./handlers/points-handler"
-import { generateId, generateRawPointsProgramId } from "./utils/id-generator"
+import { handleIncentiveCampaignCreation, handleClaim } from "./handlers/incentive-campaign-handler"
+import { generateId, generateIncentiveId, generateRawIncentiveCampaignId } from "./utils/id-generator"
 
 
 export function handleAward(event: AwardEvent): void {
@@ -48,7 +49,7 @@ export function handleAward(event: AwardEvent): void {
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.pointsId = event.params.pointsId.toHexString()
-  entity.rawPointsProgramRefId = generateRawPointsProgramId(entity.pointsId)
+  entity.rawPointsProgramRefId = generateIncentiveId(entity.pointsId)
   entity.recipient = event.params.recipient.toHexString()
   entity.amount = event.params.amount
 
@@ -160,6 +161,8 @@ export function handleIncentiveCampaignCreated(
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleIncentiveCampaignCreation(entity);
 }
 
 export function handleIncentivesAdded(event: IncentivesAddedEvent): void {
@@ -172,6 +175,7 @@ export function handleIncentivesAdded(event: IncentivesAddedEvent): void {
     (incentive) => incentive.toHexString()
   );
   entity.incentiveAmountsOffered = event.params.incentiveAmountsOffered
+  entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -186,14 +190,20 @@ export function handleIncentivesClaimed(event: IncentivesClaimedEvent): void {
   )
   entity.incentiveCampaignId = event.params.incentiveCampaignId.toHexString()
   entity.ap = event.params.ap.toHexString()
+  entity.incentivesClaimed = event.params.incentivesClaimed.map<string>(
+    (incentive) => incentive.toHexString()
+  );
   entity.incentiveAmountsPaid = event.params.incentiveAmountsPaid
   entity.protocolFeesPaid = event.params.protocolFeesPaid
+  entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
 
   entity.save()
+
+  handleClaim(entity);
 }
 
 export function handleIncentivesRemoved(event: IncentivesRemovedEvent): void {
@@ -206,6 +216,7 @@ export function handleIncentivesRemoved(event: IncentivesRemovedEvent): void {
     (incentive) => incentive.toHexString()
   );
   entity.incentiveAmountsRemoved = event.params.incentiveAmountsRemoved
+  entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -279,7 +290,7 @@ export function handlePointsProgramOwnershipTransferred(
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.pointsId = event.params.pointsId.toHexString()
-  entity.rawPointsProgramRefId = generateRawPointsProgramId(entity.pointsId);
+  entity.rawPointsProgramRefId = generateIncentiveId(entity.pointsId);
   entity.newOwner = event.params.newOwner.toHexString()
 
   entity.blockNumber = event.block.number
@@ -296,7 +307,7 @@ export function handlePointsSpent(event: PointsSpentEvent): void {
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.pointsId = event.params.pointsId.toHexString()
-  entity.rawPointsProgramRefId = generateRawPointsProgramId(entity.pointsId)
+  entity.rawPointsProgramRefId = generateIncentiveId(entity.pointsId)
   entity.ip = event.params.ip.toHexString()
   entity.amount = event.params.amount
 

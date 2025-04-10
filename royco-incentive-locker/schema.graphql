@@ -80,6 +80,7 @@ type IncentivesAdded @entity(immutable: true) {
   ip: String! # address
   incentivesOffered: [String!]! # address[]
   incentiveAmountsOffered: [BigInt!]! # uint256[]
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -90,8 +91,10 @@ type IncentivesClaimed @entity(immutable: true) {
   id: String!
   incentiveCampaignId: String! # bytes32
   ap: String! # address
+  incentivesClaimed: [String!]! # address[]
   incentiveAmountsPaid: [BigInt!]! # uint256[]
   protocolFeesPaid: [BigInt!]! # uint256[]
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -104,6 +107,7 @@ type IncentivesRemoved @entity(immutable: true) {
   ip: String! # address
   incentivesRemoved: [String!]! # address[]
   incentiveAmountsRemoved: [BigInt!]! # uint256[]
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -197,6 +201,50 @@ type SpendCapsUpdated @entity(immutable: true) {
   blockTimestamp: BigInt!
   transactionHash: String!
   logIndex: BigInt!
+}
+
+
+type RawIncentiveCampaign @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  actionVerifier: String! # Address of the action verifier
+  actionParams: String! # Bytes representing the actionParams for this campaign
+  owner: String! # The address of the IP of this campaign
+  incentivesOfferedIds: [String!]! # List of incentive IDs offered
+  incentiveAmountsOffered: [BigInt!]! # Corresponding list of incentive amounts offered
+  incentiveAmountsRemaining: [BigInt!]! # Corresponding list of incentive amounts remaining
+  # Derived Fields
+  incentiveCampaignRefIds: [RawIncentiveCampaignBalance!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  coIpRefIds: [RawCoIp!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  incentivesAddedRefIds: [IncentivesAdded!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  incentivesRemovedRefIds: [IncentivesRemoved!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  incentivesClaimedRefIds: [IncentivesClaimed!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+}
+
+type RawIncentiveCampaignBalance @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<AP_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Address identifying the points program
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  accountAddress: String! # address - Address of the AP
+  incentiveIds: [String!]! # address[] - The incentives claimed for this campaign by the AP
+  incentiveBalances: [BigInt!]! # uint256[] - The amounts claimed for this campaign by the AP
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type RawCoIp @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<COIP_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  accountAddress: String! # Address of the CoIP
+  isCoIP: Boolean! # Flag indicating whether this CoIP can add incentives to this campaign
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
 }
 
 type RawPointsProgram @entity(immutable: false) {

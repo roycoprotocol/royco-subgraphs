@@ -9,11 +9,10 @@ export function generateId(transactionHash: Bytes, logIndex: BigInt): string {
         .concat(logIndex.toString());
 }
 
-export const generateRawPointsProgramId = (pointsProgramId: string): string => {
-    return CHAIN_ID.toString()
-        .concat("_")
-        .concat(pointsProgramId);
+export const generateIncentiveId = (incentiveAddress: string): string => {
+    return CHAIN_ID.toString().concat("-").concat(incentiveAddress);
 };
+
 
 export const generateRawWhitelistedIpId = (pointsProgramId: string, ipAddress: string): string => {
     return CHAIN_ID.toString()
@@ -27,6 +26,20 @@ export const generateRawPointsProgramBalanceId = (pointsProgramId: string, apAdd
     return CHAIN_ID.toString()
         .concat("_")
         .concat(pointsProgramId)
+        .concat("_")
+        .concat(apAddress);
+};
+
+export const generateRawIncentiveCampaignId = (incentiveCampaignId: string): string => {
+    return CHAIN_ID.toString()
+        .concat("_")
+        .concat(incentiveCampaignId);
+};
+
+export const generateRawIncentiveCampaignBalanceId = (incentiveCampaignId: string, apAddress: string): string => {
+    return CHAIN_ID.toString()
+        .concat("_")
+        .concat(incentiveCampaignId)
         .concat("_")
         .concat(apAddress);
 };

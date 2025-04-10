@@ -1,7 +1,11 @@
 [
   {
     "inputs": [
-      { "internalType": "address", "name": "_owner", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      },
       {
         "internalType": "address",
         "name": "_defaultProtocolFeeClaimant",
@@ -16,27 +20,68 @@
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
-  { "inputs": [], "name": "ArrayLengthMismatch", "type": "error" },
-  { "inputs": [], "name": "CannotOfferZeroIncentives", "type": "error" },
-  { "inputs": [], "name": "OnlyIP", "type": "error" },
-  { "inputs": [], "name": "OnlyPointsProgramOwner", "type": "error" },
+  {
+    "inputs": [],
+    "name": "ArrayLengthMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CannotOfferZeroIncentives",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CannotProcessDuplicateIncentives",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyIP",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyPointsProgramOwner",
+    "type": "error"
+  },
   {
     "inputs": [
-      { "internalType": "address", "name": "owner", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
     ],
     "name": "OwnableInvalidOwner",
     "type": "error"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "account", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
     ],
     "name": "OwnableUnauthorizedAccount",
     "type": "error"
   },
-  { "inputs": [], "name": "ReentrancyGuardReentrantCall", "type": "error" },
-  { "inputs": [], "name": "SpendCapExceeded", "type": "error" },
-  { "inputs": [], "name": "TokenDoesNotExist", "type": "error" },
+  {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SpendCapExceeded",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TokenDoesNotExist",
+    "type": "error"
+  },
   {
     "anonymous": false,
     "inputs": [
@@ -245,6 +290,12 @@
         "internalType": "address",
         "name": "ap",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "incentivesClaimed",
+        "type": "address[]"
       },
       {
         "indexed": false,
@@ -501,7 +552,11 @@
         "name": "_incentiveCampaignId",
         "type": "bytes32"
       },
-      { "internalType": "address[]", "name": "_coIPs", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "_coIPs",
+        "type": "address[]"
+      }
     ],
     "name": "addCoIPs",
     "outputs": [],
@@ -525,7 +580,11 @@
         "name": "_incentiveAmountsOffered",
         "type": "uint256[]"
       },
-      { "internalType": "bytes", "name": "_additionParams", "type": "bytes" }
+      {
+        "internalType": "bytes",
+        "name": "_additionParams",
+        "type": "bytes"
+      }
     ],
     "name": "addIncentives",
     "outputs": [],
@@ -539,7 +598,11 @@
         "name": "_incentiveToken",
         "type": "address"
       },
-      { "internalType": "address", "name": "_to", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      }
     ],
     "name": "claimFees",
     "outputs": [],
@@ -553,8 +616,16 @@
         "name": "_incentiveCampaignId",
         "type": "bytes32"
       },
-      { "internalType": "address", "name": "_ap", "type": "address" },
-      { "internalType": "bytes", "name": "_claimParams", "type": "bytes" }
+      {
+        "internalType": "address",
+        "name": "_ap",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_claimParams",
+        "type": "bytes"
+      }
     ],
     "name": "claimIncentives",
     "outputs": [],
@@ -563,13 +634,21 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "_ap", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "_ap",
+        "type": "address"
+      },
       {
         "internalType": "bytes32[]",
         "name": "_incentiveCampaignIds",
         "type": "bytes32[]"
       },
-      { "internalType": "bytes[]", "name": "_claimParams", "type": "bytes[]" }
+      {
+        "internalType": "bytes[]",
+        "name": "_claimParams",
+        "type": "bytes[]"
+      }
     ],
     "name": "claimIncentives",
     "outputs": [],
@@ -583,7 +662,11 @@
         "name": "_actionVerifier",
         "type": "address"
       },
-      { "internalType": "bytes", "name": "_actionParams", "type": "bytes" },
+      {
+        "internalType": "bytes",
+        "name": "_actionParams",
+        "type": "bytes"
+      },
       {
         "internalType": "address[]",
         "name": "_incentivesOffered",
@@ -608,19 +691,39 @@
   },
   {
     "inputs": [
-      { "internalType": "string", "name": "_name", "type": "string" },
-      { "internalType": "string", "name": "_symbol", "type": "string" },
-      { "internalType": "uint8", "name": "_decimals", "type": "uint8" },
+      {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_decimals",
+        "type": "uint8"
+      },
       {
         "internalType": "address[]",
         "name": "_whitelistedIPs",
         "type": "address[]"
       },
-      { "internalType": "uint256[]", "name": "_spendCaps", "type": "uint256[]" }
+      {
+        "internalType": "uint256[]",
+        "name": "_spendCaps",
+        "type": "uint256[]"
+      }
     ],
     "name": "createPointsProgram",
     "outputs": [
-      { "internalType": "address", "name": "pointsId", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pointsId",
+        "type": "address"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -628,25 +731,49 @@
   {
     "inputs": [],
     "name": "defaultProtocolFee",
-    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "defaultProtocolFeeClaimant",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "claimant", "type": "address" },
-      { "internalType": "address", "name": "token", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "claimant",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
     ],
     "name": "feeClaimantToTokenToAmount",
     "outputs": [
-      { "internalType": "uint256", "name": "amountOwed", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "amountOwed",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -658,12 +785,24 @@
         "name": "_incentiveCampaignId",
         "type": "bytes32"
       },
-      { "internalType": "address", "name": "_incentive", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_incentive",
+        "type": "address"
+      }
     ],
     "name": "getIncentiveAmountOfferedAndRemaining",
     "outputs": [
-      { "internalType": "bool", "name": "exists", "type": "bool" },
-      { "internalType": "address", "name": "ip", "type": "address" },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      },
       {
         "internalType": "uint256",
         "name": "incentiveAmountOffered",
@@ -693,8 +832,16 @@
     ],
     "name": "getIncentiveAmountsOfferedAndRemaining",
     "outputs": [
-      { "internalType": "bool", "name": "exists", "type": "bool" },
-      { "internalType": "address", "name": "ip", "type": "address" },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      },
       {
         "internalType": "uint256[]",
         "name": "incentiveAmountsOffered",
@@ -719,8 +866,16 @@
     ],
     "name": "getIncentiveCampaignIncentiveInfo",
     "outputs": [
-      { "internalType": "bool", "name": "exists", "type": "bool" },
-      { "internalType": "address", "name": "ip", "type": "address" },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      },
       {
         "internalType": "address[]",
         "name": "incentivesOffered",
@@ -750,9 +905,21 @@
     ],
     "name": "getIncentiveCampaignState",
     "outputs": [
-      { "internalType": "bool", "name": "exists", "type": "bool" },
-      { "internalType": "address", "name": "ip", "type": "address" },
-      { "internalType": "uint64", "name": "protocolFee", "type": "uint64" },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      },
+      {
+        "internalType": "uint64",
+        "name": "protocolFee",
+        "type": "uint64"
+      },
       {
         "internalType": "address",
         "name": "protocolFeeClaimant",
@@ -763,7 +930,11 @@
         "name": "actionVerifier",
         "type": "address"
       },
-      { "internalType": "bytes", "name": "actionParams", "type": "bytes" },
+      {
+        "internalType": "bytes",
+        "name": "actionParams",
+        "type": "bytes"
+      },
       {
         "internalType": "address[]",
         "name": "incentivesOffered",
@@ -793,40 +964,84 @@
     ],
     "name": "getIncentiveCampaignVerifierAndParams",
     "outputs": [
-      { "internalType": "bool", "name": "exists", "type": "bool" },
-      { "internalType": "address", "name": "ip", "type": "address" },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      },
       {
         "internalType": "address",
         "name": "actionVerifier",
         "type": "address"
       },
-      { "internalType": "bytes", "name": "actionParams", "type": "bytes" }
+      {
+        "internalType": "bytes",
+        "name": "actionParams",
+        "type": "bytes"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "_pointsId", "type": "address" },
-      { "internalType": "address", "name": "_ip", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_pointsId",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_ip",
+        "type": "address"
+      }
     ],
     "name": "getIpSpendCap",
     "outputs": [
-      { "internalType": "uint256", "name": "spendCap", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "spendCap",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "_pointsId", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_pointsId",
+        "type": "address"
+      }
     ],
     "name": "getPointsProgramMetadata",
     "outputs": [
-      { "internalType": "address", "name": "owner", "type": "address" },
-      { "internalType": "string", "name": "name", "type": "string" },
-      { "internalType": "string", "name": "symbol", "type": "string" },
-      { "internalType": "uint8", "name": "decimals", "type": "uint8" }
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -841,29 +1056,55 @@
     ],
     "name": "incentiveCampaignExists",
     "outputs": [
-      { "internalType": "bool", "name": "exists", "type": "bool" },
-      { "internalType": "address", "name": "ip", "type": "address" }
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{ "internalType": "bytes32", "name": "id", "type": "bytes32" }],
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "id",
+        "type": "bytes32"
+      }
+    ],
     "name": "incentiveCampaignIdToICS",
     "outputs": [
-      { "internalType": "address", "name": "ip", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "ip",
+        "type": "address"
+      },
       {
         "internalType": "address",
         "name": "protocolFeeClaimant",
         "type": "address"
       },
-      { "internalType": "uint64", "name": "protocolFee", "type": "uint64" },
+      {
+        "internalType": "uint64",
+        "name": "protocolFee",
+        "type": "uint64"
+      },
       {
         "internalType": "address",
         "name": "actionVerifier",
         "type": "address"
       },
-      { "internalType": "bytes", "name": "actionParams", "type": "bytes" }
+      {
+        "internalType": "bytes",
+        "name": "actionParams",
+        "type": "bytes"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -875,21 +1116,39 @@
         "name": "_incentiveCampaignId",
         "type": "bytes32"
       },
-      { "internalType": "address", "name": "_coIP", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_coIP",
+        "type": "address"
+      }
     ],
     "name": "isCoIP",
     "outputs": [
-      { "internalType": "bool", "name": "whitelisted", "type": "bool" }
+      {
+        "internalType": "bool",
+        "name": "whitelisted",
+        "type": "bool"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "_pointsId", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_pointsId",
+        "type": "address"
+      }
     ],
     "name": "isPointsProgram",
-    "outputs": [{ "internalType": "bool", "name": "exists", "type": "bool" }],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
@@ -905,8 +1164,16 @@
         "name": "_incentivesToRemove",
         "type": "address[]"
       },
-      { "internalType": "bytes", "name": "_removalParams", "type": "bytes" },
-      { "internalType": "address", "name": "_recipient", "type": "address" }
+      {
+        "internalType": "bytes",
+        "name": "_removalParams",
+        "type": "bytes"
+      },
+      {
+        "internalType": "address",
+        "name": "_recipient",
+        "type": "address"
+      }
     ],
     "name": "maxRemoveIncentives",
     "outputs": [],
@@ -916,41 +1183,85 @@
   {
     "inputs": [],
     "name": "numIncentiveCampaignIds",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "numPointsPrograms",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "owner",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
     "name": "pendingOwner",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pointsId", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pointsId",
+        "type": "address"
+      }
     ],
     "name": "pointsIdToProgram",
     "outputs": [
-      { "internalType": "address", "name": "owner", "type": "address" },
-      { "internalType": "string", "name": "name", "type": "string" },
-      { "internalType": "string", "name": "symbol", "type": "string" },
-      { "internalType": "uint8", "name": "decimals", "type": "uint8" }
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -962,7 +1273,11 @@
         "name": "_incentiveCampaignId",
         "type": "bytes32"
       },
-      { "internalType": "address[]", "name": "_coIPs", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "_coIPs",
+        "type": "address[]"
+      }
     ],
     "name": "removeCoIPs",
     "outputs": [],
@@ -986,8 +1301,16 @@
         "name": "_incentiveAmountsToRemove",
         "type": "uint256[]"
       },
-      { "internalType": "bytes", "name": "_removalParams", "type": "bytes" },
-      { "internalType": "address", "name": "_recipient", "type": "address" }
+      {
+        "internalType": "bytes",
+        "name": "_removalParams",
+        "type": "bytes"
+      },
+      {
+        "internalType": "address",
+        "name": "_recipient",
+        "type": "address"
+      }
     ],
     "name": "removeIncentives",
     "outputs": [],
@@ -1052,7 +1375,11 @@
         "name": "_incentiveCampaignId",
         "type": "bytes32"
       },
-      { "internalType": "uint64", "name": "_protocolFee", "type": "uint64" }
+      {
+        "internalType": "uint64",
+        "name": "_protocolFee",
+        "type": "uint64"
+      }
     ],
     "name": "setProtocolFeeForCampaign",
     "outputs": [],
@@ -1061,7 +1388,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "newOwner", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
     "name": "transferOwnership",
     "outputs": [],
@@ -1070,8 +1401,16 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "_pointsId", "type": "address" },
-      { "internalType": "address", "name": "_newOwner", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "_pointsId",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_newOwner",
+        "type": "address"
+      }
     ],
     "name": "transferPointsProgramOwnership",
     "outputs": [],
@@ -1080,9 +1419,21 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "_pointsId", "type": "address" },
-      { "internalType": "address[]", "name": "_ips", "type": "address[]" },
-      { "internalType": "uint256[]", "name": "_spendCaps", "type": "uint256[]" }
+      {
+        "internalType": "address",
+        "name": "_pointsId",
+        "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "_ips",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "_spendCaps",
+        "type": "uint256[]"
+      }
     ],
     "name": "updateSpendCaps",
     "outputs": [],

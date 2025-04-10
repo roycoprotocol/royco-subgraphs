@@ -17,7 +17,7 @@ import {
     SpendCapsUpdated as SpendCapsUpdatedEvent
 } from "../../generated/IncentiveLocker/IncentiveLocker"
 import {
-    generateRawPointsProgramId,
+    generateIncentiveId,
     generateRawWhitelistedIpId,
     generateRawPointsProgramBalanceId
 } from "../utils/id-generator"
@@ -26,7 +26,7 @@ import { CHAIN_ID, BIG_INT_ZERO } from "../utils/constants"
 
 export function createRawPointsProgram(entity: PointsProgramCreated): void {
     // Create a new RawPointsProgram event.params using the generated unique ID
-    let rawPointsProgramId = generateRawPointsProgramId(entity.pointsId);
+    let rawPointsProgramId = generateIncentiveId(entity.pointsId);
     let program = new RawPointsProgram(rawPointsProgramId);
 
     // Populate the main program fields
@@ -84,7 +84,7 @@ export function createRawPointsProgram(entity: PointsProgramCreated): void {
 export function handleUpdatedSpendCaps(
     entity: SpendCapsUpdated
 ): void {
-    let rawPointsProgramId = generateRawPointsProgramId(entity.pointsId);
+    let rawPointsProgramId = generateIncentiveId(entity.pointsId);
     let program = RawPointsProgram.load(rawPointsProgramId);
     if (program == null) {
         // Can log an error since program should exist
@@ -139,7 +139,7 @@ export function handleUpdatedSpendCaps(
 }
 
 export function handlePointsProgramOwnershipTransfer(pointsId: string, newOwner: string) {
-    let rawPointsProgramId = generateRawPointsProgramId(pointsId);
+    let rawPointsProgramId = generateIncentiveId(pointsId);
     let program = RawPointsProgram.load(rawPointsProgramId);
     if (program == null) {
         // Can log an error since program should exist
@@ -152,7 +152,7 @@ export function handlePointsProgramOwnershipTransfer(pointsId: string, newOwner:
 }
 
 export function handleSpendPoints(pointsId: string, ipAddress: string, pointsSpent: BigInt) {
-    let rawPointsProgramId = generateRawPointsProgramId(pointsId);
+    let rawPointsProgramId = generateIncentiveId(pointsId);
     let program = RawPointsProgram.load(rawPointsProgramId);
     if (program == null) {
         // Can log an error since program should exist
