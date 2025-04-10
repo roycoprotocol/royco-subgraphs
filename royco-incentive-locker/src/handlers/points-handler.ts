@@ -41,6 +41,7 @@ export function createRawPointsProgram(entity: PointsProgramCreated): void {
     program.blockNumber = entity.blockNumber;
     program.blockTimestamp = entity.blockTimestamp;
     program.transactionHash = entity.transactionHash;
+    program.logIndex = entity.logIndex;
 
     // Loop through each IP and capacity pair.
     for (let i = 0; i < entity.whitelistedIPs.length; i++) {
@@ -71,10 +72,11 @@ export function createRawPointsProgram(entity: PointsProgramCreated): void {
         whitelistedIp.pointsAddress = entity.pointsId;
         whitelistedIp.rawPointsProgramRefId = rawPointsProgramId;
         whitelistedIp.accountAddress = ipAddress;
+        whitelistedIp.spendCap = capacity;
         whitelistedIp.blockNumber = entity.blockNumber;
         whitelistedIp.blockTimestamp = entity.blockTimestamp;
         whitelistedIp.transactionHash = entity.transactionHash;
-        whitelistedIp.spendCap = capacity;
+        whitelistedIp.logIndex = entity.logIndex;
         whitelistedIp.save();
     }
 
@@ -206,6 +208,7 @@ export function handleAwardPoints(entity: Award) {
         pointsProgramBalance.blockNumber = entity.blockNumber;
         pointsProgramBalance.blockTimestamp = entity.blockTimestamp;
         pointsProgramBalance.transactionHash = entity.transactionHash;
+        pointsProgramBalance.logIndex = entity.logIndex;
     } else {
         pointsProgramBalance.balance = pointsProgramBalance.balance.plus(entity.amount);
     }

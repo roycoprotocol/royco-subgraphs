@@ -215,6 +215,10 @@ type RawIncentiveCampaign @entity(immutable: false) {
   incentivesOfferedIds: [String!]! # List of incentive IDs offered
   incentiveAmountsOffered: [BigInt!]! # Corresponding list of incentive amounts offered
   incentiveAmountsRemaining: [BigInt!]! # Corresponding list of incentive amounts remaining
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
   # Derived Fields
   incentiveCampaignBalancesRefIds: [RawIncentiveCampaignBalance!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   coIpRefIds: [RawCoIp!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
@@ -234,6 +238,7 @@ type RawIncentiveCampaignBalance @entity(immutable: false) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type RawCoIp @entity(immutable: false) {
@@ -246,6 +251,7 @@ type RawCoIp @entity(immutable: false) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
   incentivesAddedRefIds: [IncentivesAdded!]! @derivedFrom(field: "rawCoIpRefId") # All incentives added by this CoIP
 }
 
@@ -263,6 +269,7 @@ type RawPointsProgram @entity(immutable: false) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
   # Derived Fields
   whitelistedIPsRefIds: [RawWhitelistedIP!]! @derivedFrom(field: "rawPointsProgramRefId")
   pointsSpentRefIds: [PointsSpent!]! @derivedFrom(field: "rawPointsProgramRefId")
@@ -282,6 +289,7 @@ type RawWhitelistedIP @entity(immutable: false) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }
 
 type RawPointsProgramBalance @entity(immutable: false) {
@@ -294,4 +302,5 @@ type RawPointsProgramBalance @entity(immutable: false) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
+  logIndex: BigInt!
 }

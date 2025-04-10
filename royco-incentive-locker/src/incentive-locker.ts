@@ -78,7 +78,7 @@ export function handleCoIPsAdded(event: CoIPsAddedEvent): void {
 
   entity.save()
 
-  handleAddOrRemoveCoIP(entity.incentiveCampaignId, entity.coIPs, true, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
+  handleAddOrRemoveCoIP(entity.incentiveCampaignId, entity.coIPs, true, entity.blockNumber, entity.blockTimestamp, entity.transactionHash, entity.logIndex);
 }
 
 export function handleCoIPsRemoved(event: CoIPsRemovedEvent): void {
@@ -96,7 +96,7 @@ export function handleCoIPsRemoved(event: CoIPsRemovedEvent): void {
 
   entity.save()
 
-  handleAddOrRemoveCoIP(entity.incentiveCampaignId, entity.coIPs, false, entity.blockNumber, entity.blockTimestamp, entity.transactionHash);
+  handleAddOrRemoveCoIP(entity.incentiveCampaignId, entity.coIPs, false, entity.blockNumber, entity.blockTimestamp, entity.transactionHash, entity.logIndex);
 }
 
 export function handleDefaultProtocolFeeClaimantSet(

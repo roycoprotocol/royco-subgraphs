@@ -49,6 +49,10 @@ export function handleIncentiveCampaignCreation(entity: IncentiveCampaignCreated
     );
     campaign.incentiveAmountsOffered = entity.incentiveAmountsOffered;
     campaign.incentiveAmountsRemaining = entity.incentiveAmountsOffered;
+    campaign.blockNumber = entity.blockTimestamp;
+    campaign.blockTimestamp = entity.blockTimestamp;
+    campaign.transactionHash = entity.transactionHash;
+    campaign.logIndex = entity.logIndex;
 
     campaign.save();
 }
@@ -139,6 +143,7 @@ export function handleClaim(entity: IncentivesClaimed): void {
         balances.blockNumber = entity.blockNumber;
         balances.blockTimestamp = entity.blockTimestamp;
         balances.transactionHash = entity.transactionHash;
+        balances.logIndex = entity.logIndex;
     }
 
     let resultingAmountsRemaining = campaign.incentiveAmountsRemaining;
@@ -171,7 +176,7 @@ export function handleClaim(entity: IncentivesClaimed): void {
     campaign.save();
 }
 
-export function handleAddOrRemoveCoIP(incentiveCampaignId: string, coIpAddresses: string[], addCoIp: boolean, blockNumber: BigInt, blockTimestamp: BigInt, transactionHash: string): void {
+export function handleAddOrRemoveCoIP(incentiveCampaignId: string, coIpAddresses: string[], addCoIp: boolean, blockNumber: BigInt, blockTimestamp: BigInt, transactionHash: string, logIndex: BigInt): void {
     coIpAddresses.forEach((coIpAddress, index) => {
         let coIpId = generateRawCoIpId(incentiveCampaignId, coIpAddress);
         let coIP = RawCoIp.load(coIpId);
@@ -184,6 +189,7 @@ export function handleAddOrRemoveCoIP(incentiveCampaignId: string, coIpAddresses
             coIP.blockNumber = blockNumber;
             coIP.blockTimestamp = blockTimestamp;
             coIP.transactionHash = transactionHash;
+            coIP.logIndex = logIndex;
         }
 
         coIP.isCoIP = addCoIp;
