@@ -23,8 +23,8 @@ import {
   UmaMerkleChefAVOwnershipTransferred
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { handleRateUpdates } from "./handlers/uma-merkle-chef-av-handler"
-import { generateId, generateRawIncentiveCampaignId } from "./utils/id-generator"
+import { handleRateUpdates, handleMerkleRootAssertion } from "./handlers/uma-merkle-chef-av-handler"
+import { generateId, generateRawEmissionRatesId, generateRawUmaMerkleRootAssertionId } from "./utils/id-generator"
 
 
 export function handleAssertersBlacklisted(
@@ -102,7 +102,7 @@ export function handleEmissionRatesUpdated(
     (incentive) => incentive.toHexString()
   );
   entity.updatedRates = event.params.updatedRates
-  entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
+  entity.rawEmissionRatesRefId = generateRawEmissionRatesId(entity.incentiveCampaignId);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -129,6 +129,8 @@ export function handleMerkleRootAsserted(event: MerkleRootAssertedEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save()
+
+  handleMerkleRootAssertion(entity);
 }
 
 export function handleMerkleRootAssertionDisputed(
@@ -139,6 +141,7 @@ export function handleMerkleRootAssertionDisputed(
   )
   entity.assertionId = event.params.assertionId.toHexString()
   entity.merkleRoot = event.params.merkleRoot.toHexString()
+  entity.rawMerkleRootAssertionRefId = generateRawUmaMerkleRootAssertionId(entity.assertionId)
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -156,6 +159,7 @@ export function handleMerkleRootAssertionResolved(
   )
   entity.assertionId = event.params.assertionId.toHexString()
   entity.merkleRoot = event.params.merkleRoot.toHexString()
+  entity.rawMerkleRootAssertionRefId = generateRawUmaMerkleRootAssertionId(entity.assertionId)
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp

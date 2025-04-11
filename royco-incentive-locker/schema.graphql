@@ -245,7 +245,7 @@ type EmissionRatesUpdated @entity(immutable: true) {
   incentiveCampaignId: String! # bytes32
   incentives: [String!]! # address[]
   updatedRates: [BigInt!]! # uint256[]
-  rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  rawEmissionRatesRefId: RawEmissionRates!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -268,6 +268,7 @@ type MerkleRootAssertionDisputed @entity(immutable: true) {
   id: String!
   assertionId: String! # bytes32
   merkleRoot: String! # bytes32
+  rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -278,6 +279,7 @@ type MerkleRootAssertionResolved @entity(immutable: true) {
   id: String!
   assertionId: String! # bytes32
   merkleRoot: String! # bytes32
+  rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -325,7 +327,7 @@ type RawIncentiveCampaign @entity(immutable: false) {
   incentivesRemovedRefIds: [IncentivesRemoved!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesClaimedRefIds: [IncentivesClaimed!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   umcAvRatesRefId: RawEmissionRates! @derivedFrom(field: "rawIncentiveCampaignRefId")
-  umcAvRatesUpdatesRefId: [EmissionRatesUpdated!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  umcAvMerkleRootStateRefId: RawUmaMerkleRootState! @derivedFrom(field: "rawIncentiveCampaignRefId")
 }
 
 type RawIncentiveCampaignBalance @entity(immutable: false) {
@@ -413,6 +415,37 @@ type RawEmissionRates @entity(immutable: false) {
   rawIncentiveCampaignRefId: RawIncentiveCampaign!
   incentiveIds: [String!]! # address[] - The incentives for this campaign that had their rates updatedRates
   emissionRates: [BigInt!]! # uint256[] - The updated rates scaled up by WAD
+  umcAvRateUpdatesRefIds: [EmissionRatesUpdated!]! @derivedFrom(field: "rawEmissionRatesRefId")
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawUmaMerkleRootAssertion @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<ASSERTION_ID>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  rawMerkleRootStateRefId: RawUmaMerkleRootState!
+  assertionId: String!
+  accountAddress: String!
+  merkleRoot: String!
+  state: Int! # 0 = Asserted, 1 = Resolved, 2 = Disputed
+  merkleRootDisputedRefId: MerkleRootAssertionDisputed! @derivedFrom(field: "rawMerkleRootAssertionRefId")
+  merkleRootResolvedRefId: MerkleRootAssertionResolved! @derivedFrom(field: "rawMerkleRootAssertionRefId")
+  blockNumber: BigInt! 
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawUmaMerkleRootState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_UMA_MERKLE_ROOT_STATE
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  merkleRoot: String!
+  rawUmaMerkleRootAssertionRefIds: [RawUmaMerkleRootAssertion!]! @derivedFrom(field: "rawMerkleRootStateRefId")
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!

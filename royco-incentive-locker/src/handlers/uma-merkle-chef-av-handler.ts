@@ -21,14 +21,16 @@ import {
     MerkleRootAssertionResolved,
     UmaMerkleChefAVOwnershipTransferStarted,
     UmaMerkleChefAVOwnershipTransferred,
-    RawEmissionRates
+    RawEmissionRates,
+    RawUmaMerkleRootState,
+    RawUmaMerkleRootAssertion
 } from "../../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { generateIncentiveId, generateRawEmissionRatesId, generateRawIncentiveCampaignId } from "../utils/id-generator"
-import { CHAIN_ID } from "../utils/constants";
+import { generateIncentiveId, generateRawEmissionRatesId, generateRawIncentiveCampaignId, generateRawUmaMerkleRootAssertionId, generateRawUmaMerkleRootStateId } from "../utils/id-generator"
+import { CHAIN_ID, UMA_MERKLE_ORACLE_STATES } from "../utils/constants";
 
 export function handleRateUpdates(entity: EmissionRatesUpdated): void {
-    let ratesId = generateRawEmissionRatesId(entity.incentiveCampaignId, entity.logIndex);
+    let ratesId = generateRawEmissionRatesId(entity.incentiveCampaignId);
     let rates = RawEmissionRates.load(ratesId);
 
     if (rates == null) {
@@ -62,5 +64,39 @@ export function handleRateUpdates(entity: EmissionRatesUpdated): void {
     }
 
     rates.save();
+}
 
+export function handleMerkleRootAssertion(entity: MerkleRootAsserted): void {
+    let merkleRootStateId = generateRawUmaMerkleRootStateId(entity.incentiveCampaignId);
+
+    let merkleRootAssertion = new RawUmaMerkleRootAssertion(generateRawUmaMerkleRootAssertionId(entity.assertionId));
+    merkleRootAssertion.chainId = CHAIN_ID;
+    merkleRootAssertion.incentiveCampaignId = entity.incentiveCampaignId;
+    merkleRootAssertion.rawMerkleRootStateRefId = merkleRootStateId;
+    merkleRootAssertion.assertionId = entity.assertionId;
+    merkleRootAssertion.accountAddress = entity.asserter;
+    merkleRootAssertion.merkleRoot = entity.merkleRoot;
+    merkleRootAssertion.state = UMA_MERKLE_ORACLE_STATES.ASSERTED;
+    merkleRootAssertion.blockNumber = entity.blockNumber;
+    merkleRootAssertion.blockTimestamp = entity.blockTimestamp;
+    merkleRootAssertion.transactionHash = entity.transactionHash;
+    merkleRootAssertion.logIndex = entity.logIndex;
+
+    merkleRootAssertion.save();
+
+    let merkleRootState = RawUmaMerkleRootState.load(merkleRootStateId);
+    if (merkleRootState == null) {
+        merkleRootState = new RawUmaMerkleRootState(merkleRootStateId);
+        merkleRootState.chainId = CHAIN_ID;
+        merkleRootState.incentiveCampaignId = entity.incentiveCampaignId;
+        merkleRootState.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
+        // First root hasn't resolved yet, so set to bytes32(0)
+        merkleRootState.merkleRoot = (new Bytes(32)).toHexString();
+        merkleRootState.blockNumber = entity.blockNumber;
+        merkleRootState.blockTimestamp = entity.blockTimestamp;
+        merkleRootState.transactionHash = entity.transactionHash;
+        merkleRootState.logIndex = entity.logIndex;
+    }
+
+    merkleRootState.save()
 }
