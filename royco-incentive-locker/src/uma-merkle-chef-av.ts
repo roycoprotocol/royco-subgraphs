@@ -20,10 +20,11 @@ import {
   MerkleRootAssertionDisputed,
   MerkleRootAssertionResolved,
   UmaMerkleChefAVOwnershipTransferStarted,
-  UmaMerkleChefAVOwnershipTransferred,
+  UmaMerkleChefAVOwnershipTransferred
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { generateId } from "./utils/id-generator"
+import { handleRateUpdates } from "./handlers/uma-merkle-chef-av-handler"
+import { generateId, generateRawIncentiveCampaignId } from "./utils/id-generator"
 
 
 export function handleAssertersBlacklisted(
@@ -101,12 +102,16 @@ export function handleEmissionRatesUpdated(
     (incentive) => incentive.toHexString()
   );
   entity.updatedRates = event.params.updatedRates
+  entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
+
+  handleRateUpdates(entity);
 }
 
 export function handleMerkleRootAsserted(event: MerkleRootAssertedEvent): void {
@@ -121,6 +126,7 @@ export function handleMerkleRootAsserted(event: MerkleRootAssertedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -137,6 +143,7 @@ export function handleMerkleRootAssertionDisputed(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -153,6 +160,7 @@ export function handleMerkleRootAssertionResolved(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -169,6 +177,7 @@ export function handleOwnershipTransferStarted(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -185,6 +194,7 @@ export function handleOwnershipTransferred(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }

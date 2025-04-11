@@ -51,3 +51,11 @@ export const generateRawCoIpId = (incentiveCampaignId: string, coIpAddress: stri
         .concat("_")
         .concat(coIpAddress);
 };
+
+export const generateRawEmissionRatesId = (incentiveCampaignId: string, logIndex: BigInt): string => {
+    return CHAIN_ID.toString()
+        .concat("_")
+        .concat(incentiveCampaignId)
+        .concat("_")
+        .concat("UMCAV_RATES");
+};
