@@ -73,7 +73,7 @@ export function handleAddingIncentives(entity: IncentivesAdded): void {
     entity.incentivesOffered.forEach((incentive, additionIndex) => {
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
-        if (incentiveIndex == null) {
+        if (incentiveIndex == -1) {
             resultingIncentivesOffered.push(incentiveId);
             resultingAmountsOffered.push(entity.incentiveAmountsOffered[additionIndex])
             resultingAmountsRemaining.push(entity.incentiveAmountsOffered[additionIndex])
