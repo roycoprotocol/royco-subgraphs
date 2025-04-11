@@ -192,7 +192,7 @@ export function handleAwardPoints(entity: Award) {
     }
 
     // Add awarded points to the total supply
-    program.totalSupply.plus(entity.amount);
+    program.totalSupply = program.totalSupply.plus(entity.amount);
     program.save();
 
     let pointsProgramBalanceId = generateRawPointsProgramBalanceId(entity.pointsId, entity.recipient);
