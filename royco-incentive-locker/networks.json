@@ -3,6 +3,9 @@
     "IncentiveLocker": {
       "address": "0x2bB6F292536CF874274CEca4f1663254636E15CE",
       "startBlock": 8093100
+    },
+    "UmaMerkleChefAV": {
+      "address": "0x0e6db09B98369aFfb3049580936B1c86127EBB52"
     }
   }
 }

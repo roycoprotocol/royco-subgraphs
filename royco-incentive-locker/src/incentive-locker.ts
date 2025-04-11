@@ -29,8 +29,8 @@ import {
   IncentivesAdded,
   IncentivesClaimed,
   IncentivesRemoved,
-  OwnershipTransferStarted,
-  OwnershipTransferred,
+  IncentiveLockerOwnershipTransferStarted,
+  IncentiveLockerOwnershipTransferred,
   PointsProgramCreated,
   PointsProgramOwnershipTransferred,
   PointsSpent,
@@ -243,7 +243,7 @@ export function handleIncentivesRemoved(event: IncentivesRemovedEvent): void {
 export function handleOwnershipTransferStarted(
   event: OwnershipTransferStartedEvent
 ): void {
-  let entity = new OwnershipTransferStarted(
+  let entity = new IncentiveLockerOwnershipTransferStarted(
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.previousOwner = event.params.previousOwner.toHexString()
@@ -259,7 +259,7 @@ export function handleOwnershipTransferStarted(
 export function handleOwnershipTransferred(
   event: OwnershipTransferredEvent
 ): void {
-  let entity = new OwnershipTransferred(
+  let entity = new IncentiveLockerOwnershipTransferred(
     generateId(event.transaction.hash, event.logIndex)
   )
   entity.previousOwner = event.params.previousOwner.toHexString()

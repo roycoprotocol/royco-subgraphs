@@ -115,7 +115,7 @@ type IncentivesRemoved @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type OwnershipTransferStarted @entity(immutable: true) {
+type IncentiveLockerOwnershipTransferStarted @entity(immutable: true) {
   id: String!
   previousOwner: String! # address
   newOwner: String! # address
@@ -125,7 +125,7 @@ type OwnershipTransferStarted @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type OwnershipTransferred @entity(immutable: true) {
+type IncentiveLockerOwnershipTransferred @entity(immutable: true) {
   id: String!
   previousOwner: String! # address
   newOwner: String! # address
@@ -204,13 +204,101 @@ type SpendCapsUpdated @entity(immutable: true) {
   logIndex: BigInt!
 }
 
+type AssertersBlacklisted @entity(immutable: true) {
+  id: String!
+  blacklistedAsserters: [String!]! # address[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type AssertersWhitelisted @entity(immutable: true) {
+  id: String!
+  whitelistedAsserters: [String!]! # address[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type AssertionLivenessUpdated @entity(immutable: true) {
+  id: String!
+  newAssertionLiveness: BigInt! # uint64
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type BondCurrencyUpdated @entity(immutable: true) {
+  id: String!
+  newBondCurrency: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type EmissionRatesUpdated @entity(immutable: true) {
+  id: String!
+  incentiveCampaignId: String! # bytes32
+  incentives: [String!]! # address[]
+  updatedRates: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type MerkleRootAsserted @entity(immutable: true) {
+  id: String!
+  assertionId: String! # bytes32
+  incentiveCampaignId: String! # bytes32
+  asserter: String! # address
+  merkleRoot: String! # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type MerkleRootAssertionDisputed @entity(immutable: true) {
+  id: String!
+  assertionId: String! # bytes32
+  merkleRoot: String! # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type MerkleRootAssertionResolved @entity(immutable: true) {
+  id: String!
+  assertionId: String! # bytes32
+  merkleRoot: String! # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type UmaMerkleChefAVOwnershipTransferStarted @entity(immutable: true) {
+  id: String!
+  previousOwner: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
+
+type UmaMerkleChefAVOwnershipTransferred @entity(immutable: true) {
+  id: String!
+  previousOwner: String! # address
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+}
 
 type RawIncentiveCampaign @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
   chainId: BigInt! # Hardcoded
   incentiveCampaignId: String! # Unique Campaign ID
   actionVerifier: String! # Address of the action verifier
-  actionParams: String! # Bytes representing the actionParams for this campaign
+  actionParams: String! # String representing the actionParams for this campaign
   owner: String! # The address of the IP of this campaign
   incentivesOfferedIds: [String!]! # List of incentive IDs offered
   incentiveAmountsOffered: [BigInt!]! # Corresponding list of incentive amounts offered
