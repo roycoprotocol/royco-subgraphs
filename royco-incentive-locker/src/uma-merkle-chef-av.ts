@@ -23,7 +23,7 @@ import {
   UmaMerkleChefAVOwnershipTransferred
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { handleRateUpdates, handleMerkleRootAssertion } from "./handlers/uma-merkle-chef-av-handler"
+import { handleRateUpdates, handleMerkleRootAssertion, handleMerkleRootDisputed, handleMerkleRootResolved } from "./handlers/uma-merkle-chef-av-handler"
 import { generateId, generateRawEmissionRatesId, generateRawUmaMerkleRootAssertionId } from "./utils/id-generator"
 
 
@@ -149,6 +149,8 @@ export function handleMerkleRootAssertionDisputed(
   entity.logIndex = event.logIndex;
 
   entity.save()
+
+  handleMerkleRootDisputed(entity);
 }
 
 export function handleMerkleRootAssertionResolved(
@@ -167,6 +169,8 @@ export function handleMerkleRootAssertionResolved(
   entity.logIndex = event.logIndex;
 
   entity.save()
+
+  handleMerkleRootResolved(entity);
 }
 
 export function handleOwnershipTransferStarted(

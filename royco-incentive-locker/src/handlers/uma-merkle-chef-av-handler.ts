@@ -100,3 +100,32 @@ export function handleMerkleRootAssertion(entity: MerkleRootAsserted): void {
 
     merkleRootState.save()
 }
+
+export function handleMerkleRootDisputed(entity: MerkleRootAssertionDisputed): void {
+    let merkleRootAssertion = RawUmaMerkleRootAssertion.load(generateRawUmaMerkleRootAssertionId(entity.assertionId));
+    if (merkleRootAssertion == null) {
+        // Log error because merkle root assertion should exist
+        return;
+    }
+    merkleRootAssertion.state = UMA_MERKLE_ORACLE_STATES.DISPUTED;
+    merkleRootAssertion.save()
+}
+
+export function handleMerkleRootResolved(entity: MerkleRootAssertionResolved): void {
+    let merkleRootAssertion = RawUmaMerkleRootAssertion.load(generateRawUmaMerkleRootAssertionId(entity.assertionId));
+    if (merkleRootAssertion == null) {
+        // Log error because merkle root assertion should exist
+        return;
+    }
+    merkleRootAssertion.state = UMA_MERKLE_ORACLE_STATES.RESOLVED;
+    merkleRootAssertion.save()
+
+    let merkleRootState = RawUmaMerkleRootState.load(generateRawIncentiveCampaignId(merkleRootAssertion.incentiveCampaignId));
+    if (merkleRootState == null) {
+        // Log error because merkle root state should exist
+        return;
+    }
+    // Set the most recent merkle root as the current state
+    merkleRootState.merkleRoot = entity.merkleRoot;
+    merkleRootState.save()
+}
