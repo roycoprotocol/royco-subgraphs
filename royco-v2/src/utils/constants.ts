@@ -11,6 +11,9 @@ export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export const BIG_INT_ZERO = new BigInt(0);
 
+// Multipliers are denominated in BPS, so 100 = 1x multiplier
+export const DEFAULT_MULTIPLIER = new BigInt(100);
+
 export enum UMA_MERKLE_ORACLE_STATES {
     ASSERTED,
     RESOLVED,

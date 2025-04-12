@@ -8,8 +8,9 @@ import {
   APOfferFilled,
   OptedInToIncentiveCampaign,
 } from "../generated/schema"
-import { generateId } from "./utils/id-generator"
+import { generateId, generateRawUserMultiplierStateId } from "./utils/id-generator"
 import { BIG_INT_ZERO, CHAIN_ID } from "./utils/constants"
+import { handleOptIn, handleFillApOffer } from "./handlers/multiplier-handler"
 
 export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
   let entity = new APOfferCreated(
@@ -20,6 +21,7 @@ export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
   entity.ap = event.params.ap.toHexString()
   entity.multiplier = event.params.multiplier
   entity.size = event.params.size
+  entity.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -38,14 +40,16 @@ export function handleAPOfferFilled(event: APOfferFilledEvent): void {
   entity.ap = event.params.ap.toHexString()
   entity.multiplier = event.params.multiplier
   entity.size = event.params.size
+  entity.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
   entity.logIndex = event.logIndex
 
-
   entity.save()
+
+  handleFillApOffer(entity);
 }
 
 export function handleOptedInToIncentiveCampaign(
@@ -56,6 +60,7 @@ export function handleOptedInToIncentiveCampaign(
   )
   entity.incentiveCampaignId = event.params.incentiveCampaignId.toHexString()
   entity.ap = event.params.ap.toHexString()
+  entity.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
@@ -64,4 +69,6 @@ export function handleOptedInToIncentiveCampaign(
 
 
   entity.save()
+
+  handleOptIn(entity);
 }

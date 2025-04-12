@@ -313,6 +313,7 @@ type APOfferCreated @entity(immutable: true) {
   ap: String! # address
   multiplier: BigInt! # uint96
   size: BigInt! # uint256
+  rawUserMultiplierStateRefId: RawUserMultiplierState!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -326,6 +327,7 @@ type APOfferFilled @entity(immutable: true) {
   ap: String! # address
   multiplier: BigInt! # uint96
   size: BigInt! # uint256
+  rawUserMultiplierStateRefId: RawUserMultiplierState!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -336,6 +338,7 @@ type OptedInToIncentiveCampaign @entity(immutable: true) {
   id: String!
   incentiveCampaignId: String! # bytes32
   ap: String! # address
+  rawUserMultiplierStateRefId: RawUserMultiplierState!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -367,6 +370,7 @@ type RawIncentiveCampaign @entity(immutable: false) {
   incentivesClaimedRefIds: [IncentivesClaimed!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   umcAvRatesRefId: RawIncentiveEmissionRates! @derivedFrom(field: "rawIncentiveCampaignRefId")
   umcAvMerkleRootStateRefId: RawUmaMerkleRootState! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  userMultiplierRefIds: [RawUserMultiplierState!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
 }
 
 type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
@@ -379,6 +383,23 @@ type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
   incentiveEmissionRates: [BigInt!]! # Corresponding list of incentive emission rates, initially set to 0 for all
   merkleRoot: String # Can be null, so removed "!" -- this will store the last "resolved" merkle root
   
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawUserMultiplierState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<AP_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  accountAddress: String!
+  multiplier: BigInt!
+  size: BigInt!
+  optInRefId: OptedInToIncentiveCampaign!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+  createdAPOfferRefIds: [APOfferCreated!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+  filledAPOfferRefIds: [APOfferFilled!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
