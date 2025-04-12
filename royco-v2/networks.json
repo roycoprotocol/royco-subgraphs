@@ -6,6 +6,9 @@
     },
     "UmaMerkleChefAV": {
       "address": "0x0e6db09B98369aFfb3049580936B1c86127EBB52"
+    },
+    "MultiplierMarketHub": {
+      "address": "0xe3b296d1BA3Cf0ad06C3B74Cd4b0891293AFe5B0"
     }
   }
 }
