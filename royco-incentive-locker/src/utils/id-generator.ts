@@ -1,5 +1,5 @@
 import { BigInt, Bytes, Int8 } from "@graphprotocol/graph-ts";
-import { CHAIN_ID } from "../utils/constants";
+import { CHAIN_ID, INCENTIVE_CAMPAIGN_TAGS } from "../utils/constants";
 
 export function generateId(transactionHash: Bytes, logIndex: BigInt): string {
     return CHAIN_ID.toString()
@@ -36,7 +36,7 @@ export const generateRawIncentiveCampaignId = (incentiveCampaignId: string): str
         .concat(incentiveCampaignId);
 };
 
-export const generateRawIncentiveCampaignBalanceId = (incentiveCampaignId: string, apAddress: string): string => {
+export const generateRawIncentiveClaimBalanceId = (incentiveCampaignId: string, apAddress: string): string => {
     return CHAIN_ID.toString()
         .concat("_")
         .concat(incentiveCampaignId)
@@ -52,7 +52,7 @@ export const generateRawCoIpId = (incentiveCampaignId: string, coIpAddress: stri
         .concat(coIpAddress);
 };
 
-export const generateRawEmissionRatesId = (incentiveCampaignId: string): string => {
+export const generateRawIncentiveEmissionRatesId = (incentiveCampaignId: string): string => {
     return CHAIN_ID.toString()
         .concat("_")
         .concat(incentiveCampaignId)
@@ -73,3 +73,6 @@ export const generateRawUmaMerkleRootStateId = (incentiveCampaignId: string): st
         .concat("_")
         .concat("UMA_MERKLE_ROOT_STATE");
 };
+
+export const generateIncentiveCampaignTag = (actionVerifierAddress: string): string =>
+    INCENTIVE_CAMPAIGN_TAGS[CHAIN_ID.toString()][actionVerifierAddress];

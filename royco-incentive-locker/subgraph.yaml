@@ -91,7 +91,7 @@ dataSources:
         - AssertersWhitelisted
         - AssertionLivenessUpdated
         - BondCurrencyUpdated
-        - EmissionRatesUpdated
+        - IncentiveEmissionRatesUpdated
         - MerkleRootAsserted
         - MerkleRootAssertionDisputed
         - MerkleRootAssertionResolved
@@ -109,8 +109,8 @@ dataSources:
           handler: handleAssertionLivenessUpdated
         - event: BondCurrencyUpdated(indexed address)
           handler: handleBondCurrencyUpdated
-        - event: EmissionRatesUpdated(indexed bytes32,address[],uint256[])
-          handler: handleEmissionRatesUpdated
+        - event: IncentiveEmissionRatesUpdated(indexed bytes32,address[],uint256[])
+          handler: handleIncentiveEmissionRatesUpdated
         - event: MerkleRootAsserted(indexed bytes32,indexed bytes32,indexed address,bytes32)
           handler: handleMerkleRootAsserted
         - event: MerkleRootAssertionDisputed(indexed bytes32,bytes32)

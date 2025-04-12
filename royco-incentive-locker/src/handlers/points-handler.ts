@@ -2,20 +2,11 @@ import { BigInt, Address } from "@graphprotocol/graph-ts";
 import {
     Award,
     PointsProgramCreated,
-    PointsProgramOwnershipTransferred,
-    PointsSpent,
     SpendCapsUpdated,
     RawPointsProgram,
     RawWhitelistedIP,
     RawPointsProgramBalance
 } from "../../generated/schema"
-import {
-    Award as AwardEvent,
-    PointsProgramCreated as PointsProgramCreatedEvent,
-    PointsProgramOwnershipTransferred as PointsProgramOwnershipTransferredEvent,
-    PointsSpent as PointsSpentEvent,
-    SpendCapsUpdated as SpendCapsUpdatedEvent
-} from "../../generated/IncentiveLocker/IncentiveLocker"
 import {
     generateIncentiveId,
     generateRawWhitelistedIpId,

@@ -1,67 +1,71 @@
 import {
-    AssertersBlacklisted as AssertersBlacklistedEvent,
-    AssertersWhitelisted as AssertersWhitelistedEvent,
-    AssertionLivenessUpdated as AssertionLivenessUpdatedEvent,
-    BondCurrencyUpdated as BondCurrencyUpdatedEvent,
-    EmissionRatesUpdated as EmissionRatesUpdatedEvent,
-    MerkleRootAsserted as MerkleRootAssertedEvent,
-    MerkleRootAssertionDisputed as MerkleRootAssertionDisputedEvent,
-    MerkleRootAssertionResolved as MerkleRootAssertionResolvedEvent,
-    OwnershipTransferStarted as OwnershipTransferStartedEvent,
-    OwnershipTransferred as OwnershipTransferredEvent,
-} from "../../generated/UmaMerkleChefAV/UmaMerkleChefAV"
-import {
-    AssertersBlacklisted,
-    AssertersWhitelisted,
-    AssertionLivenessUpdated,
-    BondCurrencyUpdated,
-    EmissionRatesUpdated,
+    IncentiveEmissionRatesUpdated,
     MerkleRootAsserted,
     MerkleRootAssertionDisputed,
     MerkleRootAssertionResolved,
-    UmaMerkleChefAVOwnershipTransferStarted,
-    UmaMerkleChefAVOwnershipTransferred,
-    RawEmissionRates,
+    RawIncentiveEmissionRates,
     RawUmaMerkleRootState,
-    RawUmaMerkleRootAssertion
+    RawUmaMerkleRootAssertion,
+    RawIncentiveCampaignUmaMerkleChef
 } from "../../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
-import { generateIncentiveId, generateRawEmissionRatesId, generateRawIncentiveCampaignId, generateRawUmaMerkleRootAssertionId, generateRawUmaMerkleRootStateId } from "../utils/id-generator"
+import { generateIncentiveCampaignTag, generateIncentiveId, generateRawIncentiveEmissionRatesId, generateRawIncentiveCampaignId, generateRawUmaMerkleRootAssertionId, generateRawUmaMerkleRootStateId } from "../utils/id-generator"
 import { CHAIN_ID, UMA_MERKLE_ORACLE_STATES } from "../utils/constants";
 
-export function handleRateUpdates(entity: EmissionRatesUpdated): void {
-    let ratesId = generateRawEmissionRatesId(entity.incentiveCampaignId);
-    let rates = RawEmissionRates.load(ratesId);
+export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
+    let ratesId = generateRawIncentiveEmissionRatesId(entity.incentiveCampaignId);
+    let merkleCampaignId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
+    let rates = RawIncentiveEmissionRates.load(ratesId);
+    let merkleCampaign = RawIncentiveCampaignUmaMerkleChef.load(merkleCampaignId);
+
+    if (merkleCampaign == null) {
+        merkleCampaign = new RawIncentiveCampaignUmaMerkleChef(merkleCampaignId);
+        merkleCampaign.incentiveCampaignId = entity.incentiveCampaignId;
+        merkleCampaign.incentiveIds = entity.incentives.map(incenitve => generateIncentiveId(incenitve));
+        merkleCampaign.incentiveEmissionRates = entity.updatedRates;
+        merkleCampaign.merkleRoot = (new Bytes(32)).toHexString();
+        merkleCampaign.blockNumber = entity.blockNumber;
+        merkleCampaign.blockTimestamp = entity.blockTimestamp;
+        merkleCampaign.transactionHash = entity.transactionHash;
+        merkleCampaign.logIndex = entity.logIndex;
+        merkleCampaign.save();
+    }
 
     if (rates == null) {
-        rates = new RawEmissionRates(ratesId);
+        rates = new RawIncentiveEmissionRates(ratesId);
         rates.chainId = CHAIN_ID;
         rates.incentiveCampaignId = entity.incentiveCampaignId;
-        rates.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
-        rates.incentiveIds = entity.incentives.map(incenitve => generateIncentiveId(incenitve));
-        rates.emissionRates = entity.updatedRates;
+        rates.rawIncentiveCampaignRefId = merkleCampaignId;
+        rates.incentiveIds = entity.incentives.map(incentive => generateIncentiveId(incentive));
+        rates.incentiveEmissionRates = entity.updatedRates;
         rates.blockNumber = entity.blockNumber;
         rates.blockTimestamp = entity.blockTimestamp;
         rates.transactionHash = entity.transactionHash;
         rates.logIndex = entity.logIndex;
-    } else {
-        let updatedIncentiveIds = rates.incentiveIds;
-        let updatedRates = rates.emissionRates;
-
-        entity.incentives.forEach((incentive, updateIndex) => {
-            let incentiveId = generateIncentiveId(incentive);
-            let existingIncentiveIndex = updatedIncentiveIds.indexOf(incentiveId);
-            if (existingIncentiveIndex == -1) {
-                updatedIncentiveIds.push(incentiveId);
-                updatedRates.push(entity.updatedRates[updateIndex]);
-            } else {
-                updatedRates[existingIncentiveIndex] = entity.updatedRates[updateIndex];
-            }
-        })
-
-        rates.incentiveIds = updatedIncentiveIds;
-        rates.emissionRates = updatedRates;
+        // rates and merkleCampaign will either both be null or not
+        rates.save();
+        return;
     }
+
+    let updatedIncentiveIds = rates.incentiveIds;
+    let updatedRates = rates.incentiveEmissionRates;
+
+    entity.incentives.forEach((incentive, updateIndex) => {
+        let incentiveId = generateIncentiveId(incentive);
+        let existingIncentiveIndex = updatedIncentiveIds.indexOf(incentiveId);
+        if (existingIncentiveIndex == -1) {
+            updatedIncentiveIds.push(incentiveId);
+            updatedRates.push(entity.updatedRates[updateIndex]);
+        } else {
+            updatedRates[existingIncentiveIndex] = entity.updatedRates[updateIndex];
+        }
+    })
+
+    merkleCampaign.incentiveIds = updatedIncentiveIds;
+    merkleCampaign.incentiveEmissionRates = updatedRates;
+    rates.incentiveIds = updatedIncentiveIds;
+    rates.incentiveEmissionRates = updatedRates;
+
 
     rates.save();
 }
@@ -120,7 +124,9 @@ export function handleMerkleRootResolved(entity: MerkleRootAssertionResolved): v
     merkleRootAssertion.state = UMA_MERKLE_ORACLE_STATES.RESOLVED;
     merkleRootAssertion.save()
 
-    let merkleRootState = RawUmaMerkleRootState.load(generateRawIncentiveCampaignId(merkleRootAssertion.incentiveCampaignId));
+    let incentiveCampaignId = generateRawIncentiveCampaignId(merkleRootAssertion.incentiveCampaignId);
+
+    let merkleRootState = RawUmaMerkleRootState.load(incentiveCampaignId);
     if (merkleRootState == null) {
         // Log error because merkle root state should exist
         return;
@@ -128,4 +134,13 @@ export function handleMerkleRootResolved(entity: MerkleRootAssertionResolved): v
     // Set the most recent merkle root as the current state
     merkleRootState.merkleRoot = entity.merkleRoot;
     merkleRootState.save()
+
+    let merkleCampaign = RawIncentiveCampaignUmaMerkleChef.load(incentiveCampaignId);
+    if (merkleCampaign == null) {
+        // Log error because merkle root state should exist
+        return;
+    }
+    // Set the most recent merkle root as the current state
+    merkleCampaign.merkleRoot = entity.merkleRoot;
+    merkleCampaign.save()
 }

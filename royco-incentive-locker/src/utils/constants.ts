@@ -16,3 +16,8 @@ export enum UMA_MERKLE_ORACLE_STATES {
     RESOLVED,
     DISPUTED
 }
+
+// Define a type for the mapping: chain id -> (action verifier address -> campaign tag)
+export const INCENTIVE_CAMPAIGN_TAGS: any = {
+    "11155111": { "0x0e6db09B98369aFfb3049580936B1c86127EBB52": "UMA_MERKLE_CHEF" }
+};

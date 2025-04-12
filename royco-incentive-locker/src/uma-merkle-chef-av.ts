@@ -3,7 +3,7 @@ import {
   AssertersWhitelisted as AssertersWhitelistedEvent,
   AssertionLivenessUpdated as AssertionLivenessUpdatedEvent,
   BondCurrencyUpdated as BondCurrencyUpdatedEvent,
-  EmissionRatesUpdated as EmissionRatesUpdatedEvent,
+  IncentiveEmissionRatesUpdated as IncentiveEmissionRatesUpdatedEvent,
   MerkleRootAsserted as MerkleRootAssertedEvent,
   MerkleRootAssertionDisputed as MerkleRootAssertionDisputedEvent,
   MerkleRootAssertionResolved as MerkleRootAssertionResolvedEvent,
@@ -15,7 +15,7 @@ import {
   AssertersWhitelisted,
   AssertionLivenessUpdated,
   BondCurrencyUpdated,
-  EmissionRatesUpdated,
+  IncentiveEmissionRatesUpdated,
   MerkleRootAsserted,
   MerkleRootAssertionDisputed,
   MerkleRootAssertionResolved,
@@ -24,7 +24,7 @@ import {
 } from "../generated/schema"
 import { Bytes } from "@graphprotocol/graph-ts"
 import { handleRateUpdates, handleMerkleRootAssertion, handleMerkleRootDisputed, handleMerkleRootResolved } from "./handlers/uma-merkle-chef-av-handler"
-import { generateId, generateRawEmissionRatesId, generateRawUmaMerkleRootAssertionId } from "./utils/id-generator"
+import { generateId, generateRawIncentiveEmissionRatesId, generateRawUmaMerkleRootAssertionId } from "./utils/id-generator"
 
 
 export function handleAssertersBlacklisted(
@@ -91,10 +91,10 @@ export function handleBondCurrencyUpdated(
   entity.save()
 }
 
-export function handleEmissionRatesUpdated(
-  event: EmissionRatesUpdatedEvent,
+export function handleIncentiveEmissionRatesUpdated(
+  event: IncentiveEmissionRatesUpdatedEvent,
 ): void {
-  let entity = new EmissionRatesUpdated(
+  let entity = new IncentiveEmissionRatesUpdated(
     generateId(event.transaction.hash, event.logIndex),
   )
   entity.incentiveCampaignId = event.params.incentiveCampaignId.toHexString()
@@ -102,7 +102,7 @@ export function handleEmissionRatesUpdated(
     (incentive) => incentive.toHexString()
   );
   entity.updatedRates = event.params.updatedRates
-  entity.rawEmissionRatesRefId = generateRawEmissionRatesId(entity.incentiveCampaignId);
+  entity.rawIncentiveEmissionRatesRefId = generateRawIncentiveEmissionRatesId(entity.incentiveCampaignId);
 
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp

@@ -5,7 +5,7 @@ import {
   AssertersWhitelisted,
   AssertionLivenessUpdated,
   BondCurrencyUpdated,
-  EmissionRatesUpdated,
+  IncentiveEmissionRatesUpdated,
   MerkleRootAsserted,
   MerkleRootAssertionDisputed,
   MerkleRootAssertionResolved,
@@ -84,36 +84,36 @@ export function createBondCurrencyUpdatedEvent(
   return bondCurrencyUpdatedEvent
 }
 
-export function createEmissionRatesUpdatedEvent(
+export function createIncentiveEmissionRatesUpdatedEvent(
   incentiveCampaignId: Bytes,
   incentives: Array<Address>,
   updatedRates: Array<BigInt>
-): EmissionRatesUpdated {
-  let emissionRatesUpdatedEvent =
-    changetype<EmissionRatesUpdated>(newMockEvent())
+): IncentiveEmissionRatesUpdated {
+  let incentiveEmissionRatesUpdatedEvent =
+    changetype<IncentiveEmissionRatesUpdated>(newMockEvent())
 
-  emissionRatesUpdatedEvent.parameters = new Array()
+  incentiveEmissionRatesUpdatedEvent.parameters = new Array()
 
-  emissionRatesUpdatedEvent.parameters.push(
+  incentiveEmissionRatesUpdatedEvent.parameters.push(
     new ethereum.EventParam(
       "incentiveCampaignId",
       ethereum.Value.fromFixedBytes(incentiveCampaignId)
     )
   )
-  emissionRatesUpdatedEvent.parameters.push(
+  incentiveEmissionRatesUpdatedEvent.parameters.push(
     new ethereum.EventParam(
       "incentives",
       ethereum.Value.fromAddressArray(incentives)
     )
   )
-  emissionRatesUpdatedEvent.parameters.push(
+  incentiveEmissionRatesUpdatedEvent.parameters.push(
     new ethereum.EventParam(
       "updatedRates",
       ethereum.Value.fromUnsignedBigIntArray(updatedRates)
     )
   )
 
-  return emissionRatesUpdatedEvent
+  return incentiveEmissionRatesUpdatedEvent
 }
 
 export function createMerkleRootAssertedEvent(
