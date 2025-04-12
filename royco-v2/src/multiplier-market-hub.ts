@@ -10,7 +10,7 @@ import {
 } from "../generated/schema"
 import { generateId, generateRawUserMultiplierStateId } from "./utils/id-generator"
 import { BIG_INT_ZERO, CHAIN_ID } from "./utils/constants"
-import { handleOptIn, handleFillApOffer } from "./handlers/multiplier-handler"
+import { handleOptIn, handleFillApOffer, handleOptInOnCreation } from "./handlers/multiplier-handler"
 
 export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
   let entity = new APOfferCreated(
@@ -29,6 +29,8 @@ export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
   entity.logIndex = event.logIndex
 
   entity.save()
+
+  handleOptInOnCreation(entity);
 }
 
 export function handleAPOfferFilled(event: APOfferFilledEvent): void {
