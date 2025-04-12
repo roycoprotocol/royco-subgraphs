@@ -122,3 +122,29 @@ dataSources:
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
       file: ./src/uma-merkle-chef-av.ts
+  - kind: ethereum
+    name: MultiplierMarketHub
+    network: sepolia
+    source:
+      address: "0xe3b296d1BA3Cf0ad06C3B74Cd4b0891293AFe5B0"
+      abi: MultiplierMarketHub
+      startBlock: 8099802
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - APOfferCreated
+        - APOfferFilled
+        - OptedInToIncentiveCampaign
+      abis:
+        - name: MultiplierMarketHub
+          file: ./abis/MultiplierMarketHub.json
+      eventHandlers:
+        - event: APOfferCreated(indexed bytes32,indexed bytes32,indexed address,uint96,uint256)
+          handler: handleAPOfferCreated
+        - event: APOfferFilled(indexed bytes32,indexed bytes32,indexed address,uint96,uint256)
+          handler: handleAPOfferFilled
+        - event: OptedInToIncentiveCampaign(indexed bytes32,indexed address)
+          handler: handleOptedInToIncentiveCampaign
+      file: ./src/multiplier-market-hub.ts

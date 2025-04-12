@@ -306,6 +306,43 @@ type UmaMerkleChefAVOwnershipTransferred @entity(immutable: true) {
   logIndex: BigInt!
 }
 
+type APOfferCreated @entity(immutable: true) {
+  id: String!
+  incentiveCampaignId: String! # bytes32
+  apOfferHash: String! # bytes32
+  ap: String! # address
+  multiplier: BigInt! # uint96
+  size: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type APOfferFilled @entity(immutable: true) {
+  id: String!
+  apOfferHash: String! # bytes32
+  incentiveCampaignId: String! # bytes32
+  ap: String! # address
+  multiplier: BigInt! # uint96
+  size: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OptedInToIncentiveCampaign @entity(immutable: true) {
+  id: String!
+  incentiveCampaignId: String! # bytes32
+  ap: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+
 type RawIncentiveCampaign @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
   chainId: BigInt! # Hardcoded
