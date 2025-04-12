@@ -8,18 +8,21 @@ import { generateId, generateRawIncentiveCampaignId, generateRawUserMultiplierSt
 import { BIG_INT_ZERO, DEFAULT_MULTIPLIER, CHAIN_ID } from "../utils/constants"
 
 export function handleOptIn(entity: OptedInToIncentiveCampaign): void {
-    let userMultiplierState = new RawUserMultiplierState(generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap));
-    userMultiplierState.chainId = CHAIN_ID;
-    userMultiplierState.incentiveCampaignId = entity.incentiveCampaignId;
-    userMultiplierState.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
-    userMultiplierState.accountAddress = entity.ap;
-    userMultiplierState.multiplier = DEFAULT_MULTIPLIER;
-    userMultiplierState.size = BIG_INT_ZERO;
-    userMultiplierState.blockNumber = entity.blockNumber;
-    userMultiplierState.blockTimestamp = entity.blockTimestamp;
-    userMultiplierState.transactionHash = entity.transactionHash;
-    userMultiplierState.logIndex = entity.logIndex;
-    userMultiplierState.save();
+    let userMultiplierState = RawUserMultiplierState.load(generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap));
+    if (userMultiplierState == null) {
+        userMultiplierState = new RawUserMultiplierState(generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap));
+        userMultiplierState.chainId = CHAIN_ID;
+        userMultiplierState.incentiveCampaignId = entity.incentiveCampaignId;
+        userMultiplierState.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(entity.incentiveCampaignId);
+        userMultiplierState.accountAddress = entity.ap;
+        userMultiplierState.multiplier = DEFAULT_MULTIPLIER;
+        userMultiplierState.size = BIG_INT_ZERO;
+        userMultiplierState.blockNumber = entity.blockNumber;
+        userMultiplierState.blockTimestamp = entity.blockTimestamp;
+        userMultiplierState.transactionHash = entity.transactionHash;
+        userMultiplierState.logIndex = entity.logIndex;
+        userMultiplierState.save();
+    }
 }
 
 export function handleFillApOffer(entity: APOfferFilled): void {
