@@ -74,5 +74,13 @@ export const generateRawUmaMerkleRootStateId = (incentiveCampaignId: string): st
         .concat("UMA_MERKLE_ROOT_STATE");
 };
 
+export const generateRawUserMultiplierStateId = (incentiveCampaignId: string, apAddess: string): string => {
+    return CHAIN_ID.toString()
+        .concat("_")
+        .concat(incentiveCampaignId)
+        .concat("_")
+        .concat(apAddess);
+};
+
 export const generateIncentiveCampaignTag = (actionVerifierAddress: string): string =>
     INCENTIVE_CAMPAIGN_TAGS[CHAIN_ID.toString()][actionVerifierAddress];
