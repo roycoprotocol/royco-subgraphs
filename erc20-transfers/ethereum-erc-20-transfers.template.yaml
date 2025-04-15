@@ -5,14 +5,10 @@ sources:
     dataset_name: ethereum.erc20_transfers
     type: dataset
     version: 1.2.0
+    filter: address IN ({{addresses}})
 
-# note: filter in source was not working, so we're using a transform to filter the data
-transforms:
-  valid_transfers:
-    sql: |
-      SELECT * FROM ethereum.erc20_transfers
-      WHERE address IN ({{addresses}})
-    primary_key: id
+
+transforms: {}
 sinks:
   postgres_ethereum_erc20_transfers:
     type: postgres
@@ -20,4 +16,4 @@ sinks:
     schema: public
     secret_name: NEON_ROYCO
     description: 'Postgres sink for: ethereum.erc20_transfers'
-    from: valid_transfers
+    from: ethereum.erc20_transfers
