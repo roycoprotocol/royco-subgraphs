@@ -55,7 +55,14 @@ export function handleRawPosition(event: TransferEvent): void {
 
     if (fromAddress == NULL_ADDRESS) {
       // Update the token0 balance
-      updateToken0Balance(event.address, toAddress);
+      updateToken0Balance(
+        event.address, // Market ID
+        toAddress, // Account Address
+        event.block.number, // Block Number
+        event.block.timestamp, // Block Timestamp
+        event.transaction.hash, // Transaction Hash
+        event.logIndex // Log Index
+      );
 
       // This is a deposit into the wrapped vault
       createOrUpdateRawPositionVault(
@@ -64,7 +71,11 @@ export function handleRawPosition(event: TransferEvent): void {
         2, // Shares
         generateTokenId(Bytes.fromHexString(rawMarket.marketId)), // Wrapped Vault Token ID
         event.params.amount, // Shares
-        0 // Add
+        0, // Add
+        event.block.number, // Block Number
+        event.block.timestamp, // Block Timestamp
+        event.transaction.hash, // Transaction Hash
+        event.logIndex // Log Index
       );
 
       createOrUpdateRawPositionTokenBalanceVault(
@@ -89,7 +100,14 @@ export function handleRawPosition(event: TransferEvent): void {
       );
     } else if (toAddress == NULL_ADDRESS) {
       // Update the token0 balance
-      updateToken0Balance(event.address, fromAddress);
+      updateToken0Balance(
+        event.address, // Market ID
+        fromAddress, // Account Address
+        event.block.number, // Block Number
+        event.block.timestamp, // Block Timestamp
+        event.transaction.hash, // Transaction Hash
+        event.logIndex // Log Index
+      );
 
       // This is a withdraw from the wrapped vault
       createOrUpdateRawPositionVault(
@@ -98,7 +116,11 @@ export function handleRawPosition(event: TransferEvent): void {
         2, // Shares
         generateTokenId(Bytes.fromHexString(rawMarket.marketId)), // Wrapped Vault Token ID
         event.params.amount, // Shares
-        1 // Subtract
+        1, // Subtract
+        event.block.number, // Block Number
+        event.block.timestamp, // Block Timestamp
+        event.transaction.hash, // Transaction Hash
+        event.logIndex // Log Index
       );
 
       createOrUpdateRawPositionTokenBalanceVault(
@@ -126,8 +148,22 @@ export function handleRawPosition(event: TransferEvent): void {
 
       if (fromAddress != toAddress) {
         // Update the token0 balance
-        updateToken0Balance(event.address, fromAddress);
-        updateToken0Balance(event.address, toAddress);
+        updateToken0Balance(
+          event.address, // Market ID
+          fromAddress, // Account Address
+          event.block.number, // Block Number
+          event.block.timestamp, // Block Timestamp
+          event.transaction.hash, // Transaction Hash
+          event.logIndex // Log Index
+        );
+        updateToken0Balance(
+          event.address, // Market ID
+          toAddress, // Account Address
+          event.block.number, // Block Number
+          event.block.timestamp, // Block Timestamp
+          event.transaction.hash, // Transaction Hash
+          event.logIndex // Log Index
+        );
 
         createOrUpdateRawPositionVault(
           generateRawMarketId(event.address.toHexString()), // Market ID
@@ -135,7 +171,11 @@ export function handleRawPosition(event: TransferEvent): void {
           2, // Shares
           generateTokenId(Bytes.fromHexString(rawMarket.marketId)), // Wrapped Vault Address
           event.params.amount, // Shares
-          1 // Subtract
+          1, // Subtract
+          event.block.number, // Block Number
+          event.block.timestamp, // Block Timestamp
+          event.transaction.hash, // Transaction Hash
+          event.logIndex // Log Index
         );
 
         createOrUpdateRawPositionTokenBalanceVault(
@@ -153,7 +193,11 @@ export function handleRawPosition(event: TransferEvent): void {
           2, // Shares
           generateTokenId(Bytes.fromHexString(rawMarket.marketId)), // Wrapped Vault Address
           event.params.amount, // Shares
-          0 // Add
+          0, // Add
+          event.block.number, // Block Number
+          event.block.timestamp, // Block Timestamp
+          event.transaction.hash, // Transaction Hash
+          event.logIndex // Log Index
         );
 
         createOrUpdateRawPositionTokenBalanceVault(
