@@ -75,6 +75,7 @@ export function handleCoIPsAdded(event: CoIPsAddedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -93,6 +94,7 @@ export function handleCoIPsRemoved(event: CoIPsRemovedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -111,6 +113,7 @@ export function handleDefaultProtocolFeeClaimantSet(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -126,6 +129,7 @@ export function handleDefaultProtocolFeeSet(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -141,6 +145,7 @@ export function handleFeesClaimed(event: FeesClaimedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -164,6 +169,7 @@ export function handleIncentiveCampaignCreated(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -191,6 +197,7 @@ export function handleIncentivesAdded(event: IncentivesAddedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -213,6 +220,7 @@ export function handleIncentivesClaimed(event: IncentivesClaimedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -234,6 +242,7 @@ export function handleIncentivesRemoved(event: IncentivesRemovedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -252,6 +261,7 @@ export function handleOwnershipTransferStarted(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -268,6 +278,7 @@ export function handleOwnershipTransferred(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -291,6 +302,7 @@ export function handlePointsProgramCreated(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -311,6 +323,7 @@ export function handlePointsProgramOwnershipTransferred(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -329,6 +342,7 @@ export function handlePointsSpent(event: PointsSpentEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 
@@ -347,6 +361,7 @@ export function handleProtocolFeeClaimantForCampaignSet(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -363,6 +378,7 @@ export function handleProtocolFeeForCampaignSet(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -380,6 +396,7 @@ export function handleSpendCapsUpdated(event: SpendCapsUpdatedEvent): void {
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 

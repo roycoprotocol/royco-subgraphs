@@ -40,6 +40,7 @@ export function handleAssertersBlacklisted(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -57,6 +58,7 @@ export function handleAssertersWhitelisted(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
@@ -72,6 +74,7 @@ export function handleAssertionLivenessUpdated(
   entity.blockNumber = event.block.number
   entity.blockTimestamp = event.block.timestamp
   entity.transactionHash = event.transaction.hash.toHexString()
+  entity.logIndex = event.logIndex;
 
   entity.save()
 }
