@@ -1,5 +1,6 @@
 type Award @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   pointsId: String! # address
   rawPointsProgramRefId: RawPointsProgram! # RawPointsProgram primary key
   recipient: String! # address
@@ -12,6 +13,7 @@ type Award @entity(immutable: true) {
 
 type CoIPsAdded @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   coIPs: [String!]! # address[]
   blockNumber: BigInt!
@@ -22,6 +24,7 @@ type CoIPsAdded @entity(immutable: true) {
 
 type CoIPsRemoved @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   coIPs: [String!]! # address[]
   blockNumber: BigInt!
@@ -32,6 +35,7 @@ type CoIPsRemoved @entity(immutable: true) {
 
 type DefaultProtocolFeeClaimantSet @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   newDefaultProtocolFeeClaimant: String! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -41,6 +45,7 @@ type DefaultProtocolFeeClaimantSet @entity(immutable: true) {
 
 type DefaultProtocolFeeSet @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   newDefaultProtocolFee: BigInt! # uint64
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -50,6 +55,7 @@ type DefaultProtocolFeeSet @entity(immutable: true) {
 
 type FeesClaimed @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   claimant: String! # address
   incentive: String! # address
   amount: BigInt! # uint256
@@ -61,6 +67,7 @@ type FeesClaimed @entity(immutable: true) {
 
 type IncentiveCampaignCreated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   ip: String! # address
   actionVerifier: String! # address
@@ -76,6 +83,7 @@ type IncentiveCampaignCreated @entity(immutable: true) {
 
 type IncentivesAdded @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   ip: String! # address
   incentivesOffered: [String!]! # address[]
@@ -90,6 +98,7 @@ type IncentivesAdded @entity(immutable: true) {
 
 type IncentivesClaimed @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   ap: String! # address
   incentivesClaimed: [String!]! # address[]
@@ -104,6 +113,7 @@ type IncentivesClaimed @entity(immutable: true) {
 
 type IncentivesRemoved @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   ip: String! # address
   incentivesRemoved: [String!]! # address[]
@@ -117,6 +127,7 @@ type IncentivesRemoved @entity(immutable: true) {
 
 type IncentiveLockerOwnershipTransferStarted @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   previousOwner: String! # address
   newOwner: String! # address
   blockNumber: BigInt!
@@ -127,6 +138,7 @@ type IncentiveLockerOwnershipTransferStarted @entity(immutable: true) {
 
 type IncentiveLockerOwnershipTransferred @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   previousOwner: String! # address
   newOwner: String! # address
   blockNumber: BigInt!
@@ -137,6 +149,7 @@ type IncentiveLockerOwnershipTransferred @entity(immutable: true) {
 
 type PointsProgramCreated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   pointsId: String! # address
   owner: String! # address
   name: String! # string
@@ -152,6 +165,7 @@ type PointsProgramCreated @entity(immutable: true) {
 
 type PointsProgramOwnershipTransferred @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   pointsId: String! # address
   rawPointsProgramRefId: RawPointsProgram! # RawPointsProgram primary key
   newOwner: String! # address
@@ -163,6 +177,7 @@ type PointsProgramOwnershipTransferred @entity(immutable: true) {
 
 type PointsSpent @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   pointsId: String! # address
   ip: String! # address
   rawPointsProgramRefId: RawPointsProgram! # RawPointsProgram primary key
@@ -175,6 +190,7 @@ type PointsSpent @entity(immutable: true) {
 
 type ProtocolFeeClaimantForCampaignSet @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   newProtocolFeeClaimant: String! # address
   blockNumber: BigInt!
@@ -185,6 +201,7 @@ type ProtocolFeeClaimantForCampaignSet @entity(immutable: true) {
 
 type ProtocolFeeForCampaignSet @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   newProtocolFee: BigInt! # uint64
   blockNumber: BigInt!
@@ -195,6 +212,7 @@ type ProtocolFeeForCampaignSet @entity(immutable: true) {
 
 type SpendCapsUpdated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   pointsId: String! # address
   ips: [String!]! # address[]
   spendCaps: [BigInt!]! # uint256[]
@@ -206,6 +224,7 @@ type SpendCapsUpdated @entity(immutable: true) {
 
 type AssertersBlacklisted @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   blacklistedAsserters: [String!]! # address[]
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -215,6 +234,7 @@ type AssertersBlacklisted @entity(immutable: true) {
 
 type AssertersWhitelisted @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   whitelistedAsserters: [String!]! # address[]
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -224,6 +244,7 @@ type AssertersWhitelisted @entity(immutable: true) {
 
 type AssertionLivenessUpdated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   newAssertionLiveness: BigInt! # uint64
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -233,6 +254,7 @@ type AssertionLivenessUpdated @entity(immutable: true) {
 
 type BondCurrencyUpdated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   newBondCurrency: String! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -242,6 +264,7 @@ type BondCurrencyUpdated @entity(immutable: true) {
 
 type IncentiveEmissionRatesUpdated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   incentives: [String!]! # address[]
   updatedRates: [BigInt!]! # uint256[]
@@ -254,6 +277,7 @@ type IncentiveEmissionRatesUpdated @entity(immutable: true) {
 
 type MerkleRootAsserted @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   assertionId: String! # bytes32
   incentiveCampaignId: String! # bytes32
   asserter: String! # address
@@ -266,6 +290,7 @@ type MerkleRootAsserted @entity(immutable: true) {
 
 type MerkleRootAssertionDisputed @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   assertionId: String! # bytes32
   merkleRoot: String! # bytes32
   rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
@@ -277,6 +302,7 @@ type MerkleRootAssertionDisputed @entity(immutable: true) {
 
 type MerkleRootAssertionResolved @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   assertionId: String! # bytes32
   merkleRoot: String! # bytes32
   rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
@@ -288,6 +314,7 @@ type MerkleRootAssertionResolved @entity(immutable: true) {
 
 type UmaMerkleChefAVOwnershipTransferStarted @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   previousOwner: String! # address
   newOwner: String! # address
   blockNumber: BigInt!
@@ -298,6 +325,7 @@ type UmaMerkleChefAVOwnershipTransferStarted @entity(immutable: true) {
 
 type UmaMerkleChefAVOwnershipTransferred @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   previousOwner: String! # address
   newOwner: String! # address
   blockNumber: BigInt!
@@ -308,6 +336,7 @@ type UmaMerkleChefAVOwnershipTransferred @entity(immutable: true) {
 
 type APOfferCreated @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   apOfferHash: String! # bytes32
   ap: String! # address
@@ -322,6 +351,7 @@ type APOfferCreated @entity(immutable: true) {
 
 type APOfferFilled @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   apOfferHash: String! # bytes32
   incentiveCampaignId: String! # bytes32
   ap: String! # address
@@ -336,6 +366,7 @@ type APOfferFilled @entity(immutable: true) {
 
 type OptedInToIncentiveCampaign @entity(immutable: true) {
   id: String!
+  chainId: BigInt!
   incentiveCampaignId: String! # bytes32
   ap: String! # address
   rawUserMultiplierStateRefId: RawUserMultiplierState!
