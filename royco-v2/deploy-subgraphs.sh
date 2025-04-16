@@ -60,7 +60,7 @@ prepare_and_deploy() {
     increment_version "$network" "$version"
 
     version=$(get_version "$network") 
-    local subgraph_name="royco-v2-${network}/${version}"
+    local subgraph_name="royco-metaverse-${network}/${version}"
     
     echo "Preparing and deploying ${subgraph_name}..."
     yarn prepare:${network} && graph codegen && graph build

@@ -2,7 +2,7 @@
 
 # Function to delete pipeline
 delete_pipeline() {
-    local pipeline_name="royco-v2-pipeline" 
+    local pipeline_name="royco-metaverse-pipeline" 
     
     echo "Attempting to stop $pipeline_name..."
     goldsky pipeline stop "$pipeline_name" --force || true 
@@ -13,7 +13,7 @@ delete_pipeline() {
 
 # Function to prepare and deploy subgraph
 prepare_and_deploy() {
-        local pipeline_name="royco-v2-pipeline"
+        local pipeline_name="royco-metaverse-pipeline"
     
     echo "Preparing ${pipeline_name}..."
     npm run prepare:pipeline
