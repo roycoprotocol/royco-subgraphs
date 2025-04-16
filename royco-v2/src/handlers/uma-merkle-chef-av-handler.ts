@@ -21,7 +21,7 @@ export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
     if (merkleCampaign == null) {
         merkleCampaign = new RawIncentiveCampaignUmaMerkleChef(merkleCampaignId);
         merkleCampaign.incentiveCampaignId = entity.incentiveCampaignId;
-        merkleCampaign.incentiveIds = entity.incentives.map(incenitve => generateIncentiveId(incenitve));
+        merkleCampaign.incentiveIds = entity.incentives.map<string>(incenitve => generateIncentiveId(incenitve));
         merkleCampaign.incentiveEmissionRates = entity.updatedRates;
         merkleCampaign.merkleRoot = (new Bytes(32)).toHexString();
         merkleCampaign.blockNumber = entity.blockNumber;
@@ -36,7 +36,7 @@ export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
         rates.chainId = CHAIN_ID;
         rates.incentiveCampaignId = entity.incentiveCampaignId;
         rates.rawIncentiveCampaignRefId = merkleCampaignId;
-        rates.incentiveIds = entity.incentives.map(incentive => generateIncentiveId(incentive));
+        rates.incentiveIds = entity.incentives.map<string>(incentive => generateIncentiveId(incentive));
         rates.incentiveEmissionRates = entity.updatedRates;
         rates.blockNumber = entity.blockNumber;
         rates.blockTimestamp = entity.blockTimestamp;
@@ -50,7 +50,8 @@ export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
     let updatedIncentiveIds = rates.incentiveIds;
     let updatedRates = rates.incentiveEmissionRates;
 
-    entity.incentives.forEach((incentive, updateIndex) => {
+    for (let updateIndex = 0; updateIndex < entity.incentives.length; updateIndex++) {
+        let incentive = entity.incentives[updateIndex];
         let incentiveId = generateIncentiveId(incentive);
         let existingIncentiveIndex = updatedIncentiveIds.indexOf(incentiveId);
         if (existingIncentiveIndex == -1) {
@@ -59,7 +60,7 @@ export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
         } else {
             updatedRates[existingIncentiveIndex] = entity.updatedRates[updateIndex];
         }
-    })
+    }
 
     merkleCampaign.incentiveIds = updatedIncentiveIds;
     merkleCampaign.incentiveEmissionRates = updatedRates;

@@ -1,18 +1,21 @@
 {
-  "name": "royco-v2-sepolia101",
+  "name": "royco-v2",
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ royco-v2-sepolia101",
-    "create-local": "graph create --node http://localhost:8020/ royco-v2-sepolia101",
-    "remove-local": "graph remove --node http://localhost:8020/ royco-v2-sepolia101",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-v2-sepolia101",
-    "test": "graph test"
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ royco-recipe",
+    "create-local": "graph create --node http://localhost:8020/ royco-recipe",
+    "remove-local": "graph remove --node http://localhost:8020/ royco-recipe",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-recipe",
+    "test": "graph test",
+    "prepare:sepolia": "mustache config/sepolia.json config/subgraph.template.yaml > subgraph.yaml && mustache config/sepolia.json config/constants.template.ts > src/utils/constants.ts",
+    "prepare:pipeline": "mustache metadata.json config/royco-metaverse-pipeline.template.yaml > royco-metaverse-pipeline.yaml"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.97.0",
-    "@graphprotocol/graph-ts": "0.37.0"
+    "@graphprotocol/graph-ts": "0.37.0",
+    "mustache": "^4.2.0"
   },
   "devDependencies": {
     "matchstick-as": "0.6.0"
