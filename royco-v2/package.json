@@ -9,7 +9,8 @@
     "remove-local": "graph remove --node http://localhost:8020/ royco-recipe",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-recipe",
     "test": "graph test",
-    "prepare:sepolia": "mustache config/sepolia.json config/subgraph.template.yaml > subgraph.yaml && mustache config/sepolia.json config/constants.template.ts > src/utils/constants.ts"
+    "prepare:sepolia": "mustache config/sepolia.json config/subgraph.template.yaml > subgraph.yaml && mustache config/sepolia.json config/constants.template.ts > src/utils/constants.ts",
+    "prepare:pipeline": "mustache metadata.json config/royco-metaverse-pipeline.template.yaml > royco-metaverse-pipeline.yaml"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.97.0",
