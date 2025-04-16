@@ -9,8 +9,8 @@ import {
   OptedInToIncentiveCampaign,
 } from "../generated/schema"
 import { generateId, generateRawUserMultiplierStateId } from "./utils/id-generator"
-import { BIG_INT_ZERO, CHAIN_ID } from "./utils/constants"
-import { handleOptIn, handleFillApOffer, handleOptInOnCreation } from "./handlers/multiplier-handler"
+import { BIG_INT_ZERO, DEFAULT_MULTIPLIER } from "./utils/constants"
+import { handleMultiplierUpdate, handleAPOfferCreation } from "./handlers/multiplier-handler"
 
 export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
   let entity = new APOfferCreated(
@@ -30,7 +30,7 @@ export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
 
   entity.save()
 
-  handleOptInOnCreation(entity);
+  handleAPOfferCreation(entity);
 }
 
 export function handleAPOfferFilled(event: APOfferFilledEvent): void {
@@ -51,7 +51,7 @@ export function handleAPOfferFilled(event: APOfferFilledEvent): void {
 
   entity.save()
 
-  handleFillApOffer(entity);
+  handleMultiplierUpdate(entity.incentiveCampaignId, entity.ap, entity.multiplier, entity.size, entity.blockNumber, entity.blockTimestamp, entity.transactionHash, entity.logIndex);
 }
 
 export function handleOptedInToIncentiveCampaign(
@@ -72,5 +72,5 @@ export function handleOptedInToIncentiveCampaign(
 
   entity.save()
 
-  handleOptIn(entity);
+  handleMultiplierUpdate(entity.incentiveCampaignId, entity.ap, DEFAULT_MULTIPLIER, BIG_INT_ZERO, entity.blockNumber, entity.blockTimestamp, entity.transactionHash, entity.logIndex);
 }
