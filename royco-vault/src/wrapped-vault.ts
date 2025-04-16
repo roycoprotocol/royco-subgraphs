@@ -210,7 +210,14 @@ export function handleClaimed(event: ClaimedEvent): void {
     0 // Add
   );
 
-  updateToken0Balance(event.address, event.params.user.toHexString());
+  updateToken0Balance(
+    event.address, // Market ID
+    event.params.user.toHexString(), // Account Address
+    event.block.number, // Block Number
+    event.block.timestamp, // Block Timestamp
+    event.transaction.hash, // Transaction Hash
+    event.logIndex // Log Index
+  );
 
   createOrUpdateRawPositionVault(
     generateRawMarketId(event.address.toHexString()), // Market ID
@@ -218,7 +225,11 @@ export function handleClaimed(event: ClaimedEvent): void {
     1, // Incentive Token
     generateTokenId(event.params.reward), // Incentive Token ID
     event.params.claimed, // Incentive Token Amount
-    0 // Add
+    0, // Add
+    event.block.number, // Block Number
+    event.block.timestamp, // Block Timestamp
+    event.transaction.hash, // Transaction Hash
+    event.logIndex // Log Index
   );
 
   createOrUpdateRawPositionTokenBalanceVault(

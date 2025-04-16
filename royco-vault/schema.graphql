@@ -355,6 +355,10 @@ type RawPositionVault @entity {
   token0Amount: BigInt! # Input Token Amount
   token1Ids: [String!]! # Incentive Tokens, this represents claimed incentive token ids
   token1Amounts: [BigInt!]! # Incentive Amounts, this represents claimed incentive token amounts
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
   # Derived fields
   rawPositionTokenBalanceVaults: [RawPositionTokenBalanceVault!]!
     @derivedFrom(field: "rawPositionRefId")
