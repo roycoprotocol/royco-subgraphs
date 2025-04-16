@@ -61,7 +61,7 @@ export function handleAPOfferCreation(entity: APOfferCreated): void {
     apOffer.save();
 }
 
-export function handleAPOfferFill(incentiveCampaignId: string, apOfferHash: string) {
+export function handleAPOfferFill(incentiveCampaignId: string, apOfferHash: string): void {
     let apOffer = RawMultiplerAPOffer.load(generateRawOfferId(incentiveCampaignId, apOfferHash, OFFER_TYPE.AP_OFFER));
     if (apOffer == null) {
         // Log error if ap offer is null since it has to exist to be filled
