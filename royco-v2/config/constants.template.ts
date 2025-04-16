@@ -9,7 +9,7 @@ export const CHAIN_ID = BigInt.fromU64({{chainId}}); // Will be replaced during 
 
 export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export const BIG_INT_ZERO = new BigInt(0);
+export const BIG_INT_ZERO = BigInt.zero();
 
 export enum OFFER_TYPE {
     AP_OFFER,
