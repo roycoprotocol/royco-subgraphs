@@ -10,7 +10,7 @@ import { generateRawOfferId, generateRawIncentiveCampaignId, generateRawUserMult
 import { CHAIN_ID, OFFER_TYPE } from "../utils/constants"
 import { BigInt } from "@graphprotocol/graph-ts";
 
-export function handleMultiplierUpdate(incentiveCampaignId: string, apAddress: string, multiplier: BigInt, size: BigInt, blockNumber: BigInt, blockTimestamp: BigInt, transactionHash: string, logIndex: BigInt): void {
+export function handleMultiplierUpdate(incentiveCampaignId: string, apAddress: string, multiplier: BigInt, offerSize: BigInt, blockNumber: BigInt, blockTimestamp: BigInt, transactionHash: string, logIndex: BigInt): void {
     let userMultiplierStateId = generateRawUserMultiplierStateId(incentiveCampaignId, apAddress);
     let rawIncentiveCampaignId = generateRawIncentiveCampaignId(incentiveCampaignId);
 
@@ -20,7 +20,7 @@ export function handleMultiplierUpdate(incentiveCampaignId: string, apAddress: s
     historicalMultiplierState.rawUserMultiplierStateRefId = userMultiplierStateId;
     historicalMultiplierState.accountAddress = apAddress;
     historicalMultiplierState.multiplier = multiplier;
-    historicalMultiplierState.size = size;
+    historicalMultiplierState.offerSize = offerSize;
     historicalMultiplierState.blockNumber = blockNumber;
     historicalMultiplierState.blockTimestamp = blockTimestamp;
     historicalMultiplierState.transactionHash = transactionHash;
@@ -41,7 +41,7 @@ export function handleMultiplierUpdate(incentiveCampaignId: string, apAddress: s
     }
 
     userMultiplierState.multiplier = multiplier;
-    userMultiplierState.size = size;
+    userMultiplierState.offerSize = offerSize;
     userMultiplierState.save();
 }
 
@@ -52,7 +52,7 @@ export function handleAPOfferCreation(entity: APOfferCreated): void {
     apOffer.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
     apOffer.accountAddress = entity.ap;
     apOffer.multiplier = entity.multiplier;
-    apOffer.size = entity.size;
+    apOffer.offerSize = entity.offerSize;
     apOffer.filled = false;
     apOffer.blockNumber = entity.blockNumber;
     apOffer.blockTimestamp = entity.blockTimestamp;

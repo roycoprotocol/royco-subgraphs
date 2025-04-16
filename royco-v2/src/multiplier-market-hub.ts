@@ -20,7 +20,7 @@ export function handleAPOfferCreated(event: APOfferCreatedEvent): void {
   entity.apOfferHash = event.params.apOfferHash.toHexString()
   entity.ap = event.params.ap.toHexString()
   entity.multiplier = event.params.multiplier
-  entity.size = event.params.size
+  entity.offerSize = event.params.size
   entity.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
 
   entity.blockNumber = event.block.number
@@ -41,7 +41,7 @@ export function handleAPOfferFilled(event: APOfferFilledEvent): void {
   entity.incentiveCampaignId = event.params.incentiveCampaignId.toHexString()
   entity.ap = event.params.ap.toHexString()
   entity.multiplier = event.params.multiplier
-  entity.size = event.params.size
+  entity.offerSize = event.params.size
   entity.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
 
   entity.blockNumber = event.block.number
@@ -51,7 +51,7 @@ export function handleAPOfferFilled(event: APOfferFilledEvent): void {
 
   entity.save()
 
-  handleMultiplierUpdate(entity.incentiveCampaignId, entity.ap, entity.multiplier, entity.size, entity.blockNumber, entity.blockTimestamp, entity.transactionHash, entity.logIndex);
+  handleMultiplierUpdate(entity.incentiveCampaignId, entity.ap, entity.multiplier, entity.offerSize, entity.blockNumber, entity.blockTimestamp, entity.transactionHash, entity.logIndex);
 }
 
 export function handleOptedInToIncentiveCampaign(
