@@ -11,6 +11,11 @@ export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export const BIG_INT_ZERO = new BigInt(0);
 
+export enum OFFER_TYPE {
+    AP_OFFER,
+    IP_OFFER
+}
+
 // Multipliers are denominated in BPS, so 100 = 1x multiplier
 export const DEFAULT_MULTIPLIER = new BigInt(100);
 

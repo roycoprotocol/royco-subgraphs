@@ -389,6 +389,37 @@ type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
   logIndex: BigInt!
 }
 
+type RawMultiplerAPOffer @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<CAMPAIGN_ID>_<OFFER_TYPE>_<OFFER_HASH>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  rawUserMultiplierStateRefId: RawUserMultiplierState!
+  offerType: Int!
+  offerHash: String!
+  accountAddress: String!
+  multiplier: BigInt!
+  size: BigInt!
+  filled: Boolean!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawHistoricalMultiplierState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<AP_ADDRESS>_<LOG_INDEX>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  rawUserMultiplierStateRefId: RawUserMultiplierState!
+  accountAddress: String!
+  multiplier: BigInt!
+  size: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
 type RawUserMultiplierState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<AP_ADDRESS>
   chainId: BigInt! # Hardcoded
@@ -397,6 +428,8 @@ type RawUserMultiplierState @entity(immutable: false) {
   accountAddress: String!
   multiplier: BigInt!
   size: BigInt!
+  historicalMultiplierStateRefIds: [RawHistoricalMultiplierState!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
+  apOfferRefIds: [RawMultiplerAPOffer!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
   optInRefId: OptedInToIncentiveCampaign!  @derivedFrom(field: "rawUserMultiplierStateRefId")
   createdAPOfferRefIds: [APOfferCreated!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
   filledAPOfferRefIds: [APOfferFilled!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
