@@ -52,10 +52,14 @@
 ```json
 ...
   "sources": [
-    ...
-    {
-      "vaultAddress": "<VAULT_ADDRESS>",
-      "startBlock": "<START_BLOCK>"
+    ...,
+     {
+      "incentiveLockerAddress": "0x123",
+      "incentiveLockerStartBlock": n,
+      "umaMerkleChefAVAddress": "0x123",
+      "umaMerkleChefAVStartBlock": n,
+      "multiplierMarketHubAddress": "0x123",
+      "multiplierMarketHubStartBlock": n
     }
   ]
 ...
