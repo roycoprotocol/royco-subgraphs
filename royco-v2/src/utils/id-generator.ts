@@ -1,5 +1,5 @@
 import { BigInt, Bytes, Int8 } from "@graphprotocol/graph-ts";
-import { CHAIN_ID, INCENTIVE_CAMPAIGN_TAGS, OFFER_TYPE } from "./constants";
+import { CHAIN_ID, OFFER_TYPE } from "./constants";
 
 export function generateId(transactionHash: Bytes, logIndex: BigInt): string {
     return CHAIN_ID.toString()
@@ -100,5 +100,7 @@ export const generateRawOfferId = (incentiveCampaignId: string, offerHash: strin
         .concat(offerType.toString());
 };
 
-export const generateIncentiveCampaignTag = (actionVerifierAddress: string): string =>
-    INCENTIVE_CAMPAIGN_TAGS[CHAIN_ID.toString()][actionVerifierAddress];
+export function generateIncentiveCampaignTag(actionVerifierAddress: string): string {
+    if (actionVerifierAddress == "0x0e6db09B98369aFfb3049580936B1c86127EBB52") return "UMA_MERKLE_CHEF";
+    else return "";
+}
