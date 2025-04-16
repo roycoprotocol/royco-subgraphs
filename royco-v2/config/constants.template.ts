@@ -1,11 +1,8 @@
 // prettier-ignore
 import { BigInt } from "@graphprotocol/graph-ts";
 
-export const ACTION_VERIFIER_TYPES = {
-    "UMA_MERKLE_CHEF": 0
-};
 
-export const CHAIN_ID = BigInt.fromU64({{chainId}}); // Will be replaced during deployment
+export const CHAIN_ID = BigInt.fromU64({{ chainId }}); // Will be replaced during deployment
 
 export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -24,9 +21,3 @@ export enum UMA_MERKLE_ORACLE_STATES {
     RESOLVED,
     DISPUTED
 }
-
-// Define a type for the mapping: chain id -> (action verifier address -> campaign tag)
-//todo: need to think about how to template this
-export const INCENTIVE_CAMPAIGN_TAGS: any = {
-    "11155111": { "0x0e6db09B98369aFfb3049580936B1c86127EBB52": "UMA_MERKLE_CHEF" }
-};

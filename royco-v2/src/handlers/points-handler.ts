@@ -131,7 +131,7 @@ export function handleUpdatedSpendCaps(
     program.save();
 }
 
-export function handlePointsProgramOwnershipTransfer(pointsId: string, newOwner: string) {
+export function handlePointsProgramOwnershipTransfer(pointsId: string, newOwner: string): void {
     let rawPointsProgramId = generateIncentiveId(pointsId);
     let program = RawPointsProgram.load(rawPointsProgramId);
     if (program == null) {
@@ -144,7 +144,7 @@ export function handlePointsProgramOwnershipTransfer(pointsId: string, newOwner:
     program.save();
 }
 
-export function handleSpendPoints(pointsId: string, ipAddress: string, pointsSpent: BigInt) {
+export function handleSpendPoints(pointsId: string, ipAddress: string, pointsSpent: BigInt): void {
     let rawPointsProgramId = generateIncentiveId(pointsId);
     let program = RawPointsProgram.load(rawPointsProgramId);
     if (program == null) {
@@ -175,7 +175,7 @@ export function handleSpendPoints(pointsId: string, ipAddress: string, pointsSpe
     whitelistedIp.save();
 }
 
-export function handleAwardPoints(entity: Award) {
+export function handleAwardPoints(entity: Award): void {
     let program = RawPointsProgram.load(entity.rawPointsProgramRefId);
     if (program == null) {
         // Can log an error since program should exist
