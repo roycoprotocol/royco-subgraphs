@@ -8,7 +8,7 @@ sources:
     name: royco_metaverse
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.2
+        version: 0.0.1
     type: subgraph_entity
 transforms: {}
 sinks:
