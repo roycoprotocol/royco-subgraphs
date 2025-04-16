@@ -1,0 +1,19 @@
+name: ethereum-erc-20-transfers
+apiVersion: 3
+sources:
+  ethereum.erc20_transfers:
+    dataset_name: ethereum.erc20_transfers
+    type: dataset
+    version: 1.2.0
+    filter: address IN ('0x74d1fafa4e0163b2f1035f1b052137f3f9bad5cc', '0x514910771af9ca656af840dff83e8264ecf986ca')
+
+
+transforms: {}
+sinks:
+  postgres_ethereum_erc20_transfers:
+    type: postgres
+    table: ethereum_erc20_transfers
+    schema: public
+    secret_name: NEON_ROYCO
+    description: 'Postgres sink for: ethereum.erc20_transfers'
+    from: ethereum.erc20_transfers

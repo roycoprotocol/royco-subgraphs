@@ -1,0 +1,198 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_incentiveLocker",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  { "inputs": [], "name": "AlreadyOptedIn", "type": "error" },
+  { "inputs": [], "name": "IncentiveCampaignExpired", "type": "error" },
+  { "inputs": [], "name": "MaxMultiplierExceeded", "type": "error" },
+  { "inputs": [], "name": "NonexistantIncentiveCampaign", "type": "error" },
+  { "inputs": [], "name": "OnlyIP", "type": "error" },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "incentiveCampaignId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "apOfferHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "ap",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint96",
+        "name": "multiplier",
+        "type": "uint96"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "size",
+        "type": "uint256"
+      }
+    ],
+    "name": "APOfferCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "apOfferHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "incentiveCampaignId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "ap",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint96",
+        "name": "multiplier",
+        "type": "uint96"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "size",
+        "type": "uint256"
+      }
+    ],
+    "name": "APOfferFilled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "incentiveCampaignId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "ap",
+        "type": "address"
+      }
+    ],
+    "name": "OptedInToIncentiveCampaign",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_MULTIPLIER",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_incentiveCampaignId",
+        "type": "bytes32"
+      },
+      { "internalType": "uint96", "name": "_multiplier", "type": "uint96" },
+      { "internalType": "uint256", "name": "_size", "type": "uint256" }
+    ],
+    "name": "createAPOffer",
+    "outputs": [
+      { "internalType": "bytes32", "name": "apOfferHash", "type": "bytes32" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_apOfferHash", "type": "bytes32" }
+    ],
+    "name": "fillAPOffer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "id", "type": "bytes32" },
+      { "internalType": "address", "name": "ap", "type": "address" }
+    ],
+    "name": "incentiveCampaignIdToApToOptedIn",
+    "outputs": [{ "internalType": "bool", "name": "optedIn", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "incentiveLocker",
+    "outputs": [
+      {
+        "internalType": "contract IncentiveLocker",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "offerHash", "type": "bytes32" }
+    ],
+    "name": "offerHashToAPOffer",
+    "outputs": [
+      { "internalType": "address", "name": "ap", "type": "address" },
+      { "internalType": "uint96", "name": "multiplier", "type": "uint96" },
+      { "internalType": "uint256", "name": "size", "type": "uint256" },
+      {
+        "internalType": "bytes32",
+        "name": "incentiveCampaignId",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_incentiveCampaignId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "optIn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
