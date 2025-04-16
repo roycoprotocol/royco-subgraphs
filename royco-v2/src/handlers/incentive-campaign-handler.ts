@@ -47,7 +47,8 @@ export function handleAddingIncentives(entity: IncentivesAdded): void {
 
     // Add incentives to amounts
     // Handle new incentive additions too
-    entity.incentivesOffered.forEach((incentive, additionIndex) => {
+    for (let additionIndex = 0; additionIndex < entity.incentivesOffered.length; additionIndex++) {
+        let incentive = entity.incentivesOffered[additionIndex];
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
         if (incentiveIndex == -1) {
@@ -58,7 +59,7 @@ export function handleAddingIncentives(entity: IncentivesAdded): void {
             resultingAmountsOffered[incentiveIndex] = resultingAmountsOffered[incentiveIndex].plus(entity.incentiveAmountsOffered[additionIndex])
             resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].plus(entity.incentiveAmountsOffered[additionIndex])
         }
-    })
+    }
 
     campaign.incentivesOfferedIds = resultingIncentivesOffered;
     campaign.incentiveAmountsOffered = resultingAmountsOffered;
@@ -79,12 +80,13 @@ export function handleRemovingIncentives(entity: IncentivesRemoved): void {
     let resultingAmountsRemaining = campaign.incentiveAmountsRemaining;
 
     // Reduce the incentives remaining and offered based on the claimed amounts
-    entity.incentivesRemoved.forEach((incentive, removalIndex) => {
+    for (let removalIndex = 0; removalIndex < entity.incentivesRemoved.length; removalIndex++) {
+        let incentive = entity.incentivesRemoved[removalIndex];
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = resultingIncentivesOffered.indexOf(incentiveId);
         resultingAmountsOffered[incentiveIndex] = resultingAmountsOffered[incentiveIndex].minus(entity.incentiveAmountsRemoved[removalIndex]);
         resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].minus(entity.incentiveAmountsRemoved[removalIndex]);
-    })
+    }
 
     campaign.incentivesOfferedIds = resultingIncentivesOffered;
     campaign.incentiveAmountsOffered = resultingAmountsOffered;
@@ -122,7 +124,8 @@ export function handleClaim(entity: IncentivesClaimed): void {
 
     // Reduce the incentives remaining based on the claimed amounts
     // Modify the user balances for this campaign
-    entity.incentivesClaimed.forEach((incentive, claimedIndex) => {
+    for (let claimedIndex = 0; claimedIndex < entity.incentivesClaimed.length; claimedIndex++) {
+        let incentive = entity.incentivesClaimed[claimedIndex];
         let incentiveId = generateIncentiveId(incentive);
         let incentiveIndex = campaign.incentivesOfferedIds.indexOf(incentiveId);
         resultingAmountsRemaining[incentiveIndex] = resultingAmountsRemaining[incentiveIndex].minus(entity.incentiveAmountsPaid[claimedIndex]);
@@ -134,7 +137,7 @@ export function handleClaim(entity: IncentivesClaimed): void {
         } else {
             resultingBalances[balanceIndex] = resultingBalances[balanceIndex].plus(entity.incentiveAmountsPaid[claimedIndex]);
         }
-    })
+    }
 
     campaign.incentiveAmountsRemaining = resultingAmountsRemaining;
 
@@ -153,7 +156,8 @@ export function handleAddOrRemoveCoIP(incentiveCampaignId: string, coIpAddresses
     }
     let newCoIPs = campaign.coIPs;
 
-    coIpAddresses.forEach((coIpAddress, index) => {
+    for (let i = 0; i < coIpAddresses.length; i++) {
+        let coIpAddress = coIpAddresses[i];
         let coIpId = generateRawCoIpId(incentiveCampaignId, coIpAddress);
         let coIP = RawCoIp.load(coIpId);
         if (coIP == null) {
@@ -179,7 +183,7 @@ export function handleAddOrRemoveCoIP(incentiveCampaignId: string, coIpAddresses
         } else if (!addCoIp && coIPIndex != -1) {
             newCoIPs = newCoIPs.splice(coIPIndex, 1);
         }
-    })
+    }
 
     campaign.coIPs = newCoIPs;
     campaign.save();
