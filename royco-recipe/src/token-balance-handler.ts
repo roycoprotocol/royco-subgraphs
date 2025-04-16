@@ -223,9 +223,11 @@ export function withdrawRawPositionTokenBalance(
   );
 
   if (rawPositionTokenBalance) {
+    let marketId = rawPositionTokenBalance.rawMarketRefId.split("_")[2];
+
     // @note: no de-duplication required, because only one token
     createOrUpdateRawMarketTokenBalance(
-      rawPositionTokenBalance.rawMarketRefId, // Market ID
+      marketId, // Market ID
       rawPositionTokenBalance.tokenClass, // Token class
       rawPositionTokenBalance.tokenId, // Token ID
       rawPositionTokenBalance.tokenAmount, // Token amount

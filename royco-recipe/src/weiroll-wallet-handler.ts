@@ -181,10 +181,10 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
       }
     }
 
-    rawPosition.token1Ids = [];
-    rawPosition.token1Amounts = [];
+    // rawPosition.token1Ids = [];
+    // rawPosition.token1Amounts = [];
     rawPosition.isForfeited = true;
-    rawPosition.isClaimed = [];
+    // rawPosition.isClaimed = [];
     rawPosition.unlockTimestamp = event.block.timestamp;
 
     rawPosition.save();

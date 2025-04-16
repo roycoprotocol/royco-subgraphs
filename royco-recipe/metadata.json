@@ -2,35 +2,35 @@
   "metadata": [
     {
       "network": "sepolia",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "mainnet",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "arbitrum-one",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "base",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "corn-maizenet",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "plume-mainnet",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "sonic",
-      "version": "2.0.28"
+      "version": "2.0.29"
     },
     {
       "network": "hyperevm",
-      "version": "2.0.28"
+      "version": "2.0.29"
     }
   ]
 }

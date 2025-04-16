@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: RecipeMarketHub
-    network: arbitrum-one
+    network: hyperevm
     source:
-      address: "0x783251f103555068c1e9d755f69458f39ed937c0"
+      address: "0x6af057b1c423d108ab710d6f4e3e46f3536787fd"
       abi: RecipeMarketHub
-      startBlock: 280018459
+      startBlock: 650861
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -59,7 +59,7 @@ dataSources:
 templates:
   - name: WeirollWalletTemplate
     kind: ethereum/contract
-    network: arbitrum-one
+    network: hyperevm
     source:
       abi: WeirollWallet
     mapping:

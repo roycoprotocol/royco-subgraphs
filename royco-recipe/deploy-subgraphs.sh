@@ -4,12 +4,12 @@
 networks=(
     # "sepolia"
     # "mainnet"
-    "arbitrum-one"
-    # "base"
-    # "plume-mainnet"
-    # "corn-maizenet"
-    # "sonic"
-    # "hyperevm"
+    # "arbitrum-one"
+    "base"
+    "plume-mainnet"
+    "corn-maizenet"
+    "sonic"
+    "hyperevm"
 )
 
 # Function to prepare and deploy subgraph
@@ -17,7 +17,7 @@ prepare_and_deploy() {
     local network=$1
 
     # Note: update version if needed
-    local subgraph_name="royco-recipe-${network}/2.0.28" 
+    local subgraph_name="royco-recipe-${network}/2.0.29" 
     
     echo "Preparing and deploying ${subgraph_name}..."
     yarn prepare:${network} && graph codegen && graph build
