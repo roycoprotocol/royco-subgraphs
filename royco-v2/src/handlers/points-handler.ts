@@ -29,6 +29,8 @@ export function createRawPointsProgram(entity: PointsProgramCreated): void {
     program.decimals = entity.decimals;
     // Total awarded/supply initializes at 0
     program.totalSupply = BIG_INT_ZERO;
+    program.whitelistedIPs = entity.whitelistedIPs;
+    program.spendCaps = entity.spendCaps;
     program.blockNumber = entity.blockNumber;
     program.blockTimestamp = entity.blockTimestamp;
     program.transactionHash = entity.transactionHash;

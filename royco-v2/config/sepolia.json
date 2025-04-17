@@ -3,8 +3,8 @@
   "chainId": "11155111",
   "sources": [
     {
-      "incentiveLockerAddress": "0xECb5b2d665e9Ed516AAbc000aCb331b89Dc73c33",
-      "incentiveLockerStartBlock": 8079153,
+      "incentiveLockerAddress": "0x2bB6F292536CF874274CEca4f1663254636E15CE",
+      "incentiveLockerStartBlock": 8093100,
       "umaMerkleChefAVAddress": "0x0e6db09B98369aFfb3049580936B1c86127EBB52",
       "umaMerkleChefAVStartBlock": 8093107,
       "multiplierMarketHubAddress": "0xe3b296d1BA3Cf0ad06C3B74Cd4b0891293AFe5B0",

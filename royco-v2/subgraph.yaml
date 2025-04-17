@@ -6,9 +6,9 @@ dataSources:
     name: IncentiveLocker
     network: sepolia
     source:
-      address: "0xECb5b2d665e9Ed516AAbc000aCb331b89Dc73c33"
+      address: "0x2bB6F292536CF874274CEca4f1663254636E15CE"
       abi: IncentiveLocker
-      startBlock: 8079153
+      startBlock: 8093100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
