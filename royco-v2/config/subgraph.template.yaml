@@ -32,12 +32,6 @@ dataSources:
         - ProtocolFeeClaimantForCampaignSet
         - ProtocolFeeForCampaignSet
         - SpendCapsUpdated
-        - RawIncentiveCampaign
-        - RawIncentiveClaimBalance
-        - RawCoIp
-        - RawPointsProgram
-        - RawWhitelistedIP
-        - RawPointsProgramBalance
       abis:
         - name: IncentiveLocker
           file: ./abis/IncentiveLocker.json
@@ -103,10 +97,6 @@ dataSources:
         - MerkleRootAssertionResolved
         - UmaMerkleChefAVOwnershipTransferStarted
         - UmaMerkleChefAVOwnershipTransferred
-        - RawIncentiveCampaignUmaMerkleChef
-        - RawIncentiveEmissionRates
-        - RawUmaMerkleRootAssertion
-        - RawUmaMerkleRootState
       abis:
         - name: UmaMerkleChefAV
           file: ./abis/UmaMerkleChefAV.json
@@ -147,9 +137,6 @@ dataSources:
         - APOfferCreated
         - APOfferFilled
         - OptedInToIncentiveCampaign
-        - RawMultiplerAPOffer
-        - RawHistoricalMultiplierState
-        - RawUserMultiplierState
       abis:
         - name: MultiplierMarketHub
           file: ./abis/MultiplierMarketHub.json
