@@ -52,6 +52,7 @@ export function handleAPOfferCreation(entity: APOfferCreated): void {
     apOffer.rawUserMultiplierStateRefId = generateRawUserMultiplierStateId(entity.incentiveCampaignId, entity.ap);
     apOffer.accountAddress = entity.ap;
     apOffer.offerType = OFFER_TYPE.AP_OFFER;
+    apOffer.offerHash = entity.apOfferHash;
     apOffer.multiplier = entity.multiplier;
     apOffer.offerSize = entity.offerSize;
     apOffer.filled = false;
