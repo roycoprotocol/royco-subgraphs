@@ -14,7 +14,7 @@ export enum OFFER_TYPE {
 }
 
 // Multipliers are denominated in BPS, so 100 = 1x multiplier
-export const DEFAULT_MULTIPLIER = new BigInt(100);
+export const DEFAULT_MULTIPLIER = BigInt.fromI32(100);
 
 export enum UMA_MERKLE_ORACLE_STATES {
     ASSERTED,
