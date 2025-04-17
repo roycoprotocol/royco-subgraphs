@@ -101,6 +101,6 @@ export const generateRawOfferId = (incentiveCampaignId: string, offerHash: strin
 };
 
 export function generateIncentiveCampaignTag(actionVerifierAddress: string): string {
-    if (actionVerifierAddress == "0x0e6db09B98369aFfb3049580936B1c86127EBB52") return "UMA_MERKLE_CHEF";
+    if (actionVerifierAddress.toLowerCase() == "0x0e6db09b98369affb3049580936b1c86127ebb52") return "UMA_MERKLE_CHEF";
     else return "";
 }
