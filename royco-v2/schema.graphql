@@ -420,7 +420,7 @@ type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
   logIndex: BigInt!
 }
 
-type RawMultiplerAPOffer @entity(immutable: false) {
+type RawMultiplierAPOffer @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<CAMPAIGN_ID>_<OFFER_TYPE>_<OFFER_HASH>
   chainId: BigInt! # Hardcoded
   incentiveCampaignId: String! # Unique Campaign ID
@@ -460,7 +460,7 @@ type RawUserMultiplierState @entity(immutable: false) {
   multiplier: BigInt!
   offerSize: BigInt!
   historicalMultiplierStateRefIds: [RawHistoricalMultiplierState!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
-  apOfferRefIds: [RawMultiplerAPOffer!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
+  apOfferRefIds: [RawMultiplierAPOffer!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
   optInRefId: OptedInToIncentiveCampaign!  @derivedFrom(field: "rawUserMultiplierStateRefId")
   createdAPOfferRefIds: [APOfferCreated!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
   filledAPOfferRefIds: [APOfferFilled!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
