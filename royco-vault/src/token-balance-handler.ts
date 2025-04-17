@@ -289,7 +289,11 @@ export function createOrUpdateRawPositionVault(
   tokenClass: Int8,
   tokenId: string,
   tokenAmount: BigInt,
-  type: Int8 // 0: Add, 1: Subtract, 2: Set
+  type: Int8, // 0: Add, 1: Subtract, 2: Set
+  blockNumber: BigInt,
+  blockTimestamp: BigInt,
+  transactionHash: Bytes,
+  logIndex: BigInt
 ): void {
   let rawMarket = RawMarketVault.load(rawMarketRefId);
 
@@ -313,6 +317,10 @@ export function createOrUpdateRawPositionVault(
       rawPosition.token0Amount = BigInt.zero();
       rawPosition.token1Ids = [];
       rawPosition.token1Amounts = [];
+      rawPosition.blockNumber = blockNumber;
+      rawPosition.blockTimestamp = blockTimestamp;
+      rawPosition.transactionHash = transactionHash.toHexString();
+      rawPosition.logIndex = logIndex;
     }
 
     if (tokenClass == 0) {
@@ -452,7 +460,11 @@ export function createOrUpdateRawPositionTokenBalanceVault(
 
 export function updateToken0Balance(
   wrappedVaultAddress: Address,
-  accountAddress: string
+  accountAddress: string,
+  blockNumber: BigInt,
+  blockTimestamp: BigInt,
+  transactionHash: Bytes,
+  logIndex: BigInt
 ): void {
   let rawMarketRefId = generateRawMarketId(wrappedVaultAddress.toHexString());
   let rawMarket = RawMarketVault.load(rawMarketRefId);
@@ -477,7 +489,11 @@ export function updateToken0Balance(
       0, // Input Token
       rawMarket.inputTokenId, // Input Token ID
       token0Amount, // Input Token Amount
-      2 // Set
+      2, // Set
+      blockNumber, // Block Number
+      blockTimestamp, // Block Timestamp
+      transactionHash, // Transaction Hash
+      logIndex // Log Index
     );
 
     createOrUpdateRawPositionTokenBalanceVault(
