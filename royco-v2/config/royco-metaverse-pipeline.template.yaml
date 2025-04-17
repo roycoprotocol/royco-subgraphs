@@ -20,7 +20,7 @@ sources:
       {{/metadata}}
     type: subgraph_entity
   raw_multiplier_ap_offer_reference:
-    name: raw_multipler_ap_offer
+    name: raw_multiplier_ap_offer
     subgraphs:
       {{#metadata}}
       - name: royco-metaverse-{{network}}
