@@ -3,7 +3,7 @@ import {
   AssertersWhitelisted as AssertersWhitelistedEvent,
   AssertionLivenessUpdated as AssertionLivenessUpdatedEvent,
   BondCurrencyUpdated as BondCurrencyUpdatedEvent,
-  IncentiveEmissionRatesUpdated as IncentiveEmissionRatesUpdatedEvent,
+  EmissionRatesUpdated as IncentiveEmissionRatesUpdatedEvent,
   MerkleRootAsserted as MerkleRootAssertedEvent,
   MerkleRootAssertionDisputed as MerkleRootAssertionDisputedEvent,
   MerkleRootAssertionResolved as MerkleRootAssertionResolvedEvent,

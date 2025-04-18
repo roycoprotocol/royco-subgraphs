@@ -181,7 +181,7 @@
         "type": "uint256[]"
       }
     ],
-    "name": "IncentiveEmissionRatesUpdated",
+    "name": "EmissionRatesUpdated",
     "type": "event"
   },
   {
