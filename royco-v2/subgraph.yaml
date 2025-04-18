@@ -109,7 +109,7 @@ dataSources:
           handler: handleAssertionLivenessUpdated
         - event: BondCurrencyUpdated(indexed address)
           handler: handleBondCurrencyUpdated
-        - event: IncentiveEmissionRatesUpdated(indexed bytes32,address[],uint256[])
+        - event: EmissionRatesUpdated(indexed bytes32,address[],uint256[])
           handler: handleIncentiveEmissionRatesUpdated
         - event: MerkleRootAsserted(indexed bytes32,indexed bytes32,indexed address,bytes32)
           handler: handleMerkleRootAsserted
