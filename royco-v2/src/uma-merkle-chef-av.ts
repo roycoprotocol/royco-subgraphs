@@ -120,9 +120,6 @@ export function handleIncentiveEmissionRatesUpdated(
     incentive.toHexString()
   );
   entity.updatedRates = event.params.updatedRates;
-  entity.rawIncentiveEmissionRatesRefId = generateRawIncentiveEmissionRatesId(
-    entity.incentiveCampaignId
-  );
 
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
