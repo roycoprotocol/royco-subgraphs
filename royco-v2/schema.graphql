@@ -268,7 +268,6 @@ type IncentiveEmissionRatesUpdated @entity(immutable: true) {
   incentiveCampaignId: String! # bytes32
   incentives: [String!]! # address[]
   updatedRates: [BigInt!]! # uint256[]
-  rawIncentiveEmissionRatesRefId: RawIncentiveEmissionRates!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -399,7 +398,7 @@ type RawIncentiveCampaign @entity(immutable: false) {
   incentivesAddedRefIds: [IncentivesAdded!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesRemovedRefIds: [IncentivesRemoved!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesClaimedRefIds: [IncentivesClaimed!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
-  umcAvRatesRefId: RawIncentiveEmissionRates! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  umcAvEmissionRateUpdateRefIds: [RawIncentiveEmissionRateUpdate!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   umcAvMerkleRootStateRefId: RawUmaMerkleRootState! @derivedFrom(field: "rawIncentiveCampaignRefId")
   userMultiplierRefIds: [RawUserMultiplierState!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
 }
@@ -413,7 +412,7 @@ type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
   incentiveIds: [String!]! # address[] - The incentives claimed for this campaign by the AP
   incentiveEmissionRates: [BigInt!]! # Corresponding list of incentive emission rates, initially set to 0 for all
   merkleRoot: String # Can be null, so removed "!" -- this will store the last "resolved" merkle root
-  
+
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -548,14 +547,13 @@ type RawPointsProgramBalance @entity(immutable: false) {
   logIndex: BigInt!
 }
 
-type RawIncentiveEmissionRates @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_UMCAV_RATES
+type RawIncentiveEmissionRateUpdate @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<logIndex>
   chainId: BigInt! # Hardcoded
   incentiveCampaignId: String! # Unique Campaign ID
   rawIncentiveCampaignRefId: RawIncentiveCampaign!
-  incentiveIds: [String!]! # address[] - The incentives for this campaign that had their rates updatedRates
+  incentives: [String!]! # address[] - The incentives for this campaign that had their rates updatedRates
   incentiveEmissionRates: [BigInt!]! # uint256[] - The updated rates scaled up by WAD
-  umcAvRateUpdatesRefIds: [IncentiveEmissionRatesUpdated!]! @derivedFrom(field: "rawIncentiveEmissionRatesRefId")
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!

@@ -52,12 +52,12 @@ export const generateRawCoIpId = (incentiveCampaignId: string, coIpAddress: stri
         .concat(coIpAddress);
 };
 
-export const generateRawIncentiveEmissionRatesId = (incentiveCampaignId: string): string => {
+export const generateRawIncentiveEmissionRatesId = (incentiveCampaignId: string, logIndex: BigInt): string => {
     return CHAIN_ID.toString()
         .concat("_")
         .concat(incentiveCampaignId)
         .concat("_")
-        .concat("UMCAV_RATES");
+        .concat(logIndex.toString());
 };
 
 export const generateRawUmaMerkleRootAssertionId = (assertionId: string): string => {
