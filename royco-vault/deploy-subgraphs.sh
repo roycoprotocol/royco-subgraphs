@@ -15,7 +15,7 @@ networks=(
 # Function to prepare and deploy subgraph
 prepare_and_deploy() {
     local network=$1
-    local subgraph_name="royco-vault-${network}/2.0.17" # Note: update version if needed
+    local subgraph_name="royco-vault-${network}/2.0.18" # Note: update version if needed
     
     echo "Preparing and deploying ${subgraph_name}..."
     yarn prepare:${network} && graph codegen && graph build
