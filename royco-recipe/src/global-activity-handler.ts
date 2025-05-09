@@ -2,39 +2,61 @@ import { CHAIN_ID } from "./constants";
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { generateRawGlobalActivityId } from "./utils";
 import { RawGlobalActivity } from "../generated/schema";
+
 export function createRawGlobalActivity(
-  rawMarketRefId: string,
+  category: string,
+  subCategory: string,
+  sourceRefId: string,
+  contractAddress: string,
+  accountAddress: string,
   tokenIndex: BigInt,
   tokenId: string,
   tokenAmount: BigInt,
-  sourceRefId: string,
-  category: string,
   blockNumber: BigInt,
   blockTimestamp: BigInt,
   transactionHash: Bytes,
-  logIndex: BigInt,
-  accountAddress: string
+  logIndex: BigInt
 ): void {
-  let rawGlobalActivity = new RawGlobalActivity(
-    generateRawGlobalActivityId(rawMarketRefId, category, blockTimestamp)
+  let rawGlobalActivityRefId = generateRawGlobalActivityId(
+    transactionHash, // transactionHash
+    logIndex, // logIndex
+    category, // category
+    subCategory, // subCategory
+    tokenIndex // tokenIndex
+  );
+
+  let rawGlobalActivity = RawGlobalActivity.load(rawGlobalActivityRefId);
+
+  // If the raw global activity already exists, return
+  if (rawGlobalActivity) {
+    return;
+  }
+
+  rawGlobalActivity = new RawGlobalActivity(
+    generateRawGlobalActivityId(
+      transactionHash, // transactionHash
+      logIndex, // logIndex
+      category, // category
+      subCategory, // subCategory
+      tokenIndex // tokenIndex
+    )
   );
 
   const tokenAddress = tokenId.split("-")[1];
 
   rawGlobalActivity.chainId = CHAIN_ID;
-  rawGlobalActivity.contractAddress = rawMarketRefId.toLowerCase();
-  rawGlobalActivity.accountAddress = accountAddress.toLowerCase();
-  rawGlobalActivity.tokenAddress = tokenAddress.toLowerCase();
-  rawGlobalActivity.tokenId = tokenId;
-  rawGlobalActivity.tokenAmount = tokenAmount;
+  rawGlobalActivity.category = category;
+  rawGlobalActivity.subCategory = subCategory;
+  rawGlobalActivity.sourceRefId = sourceRefId;
+  rawGlobalActivity.contractAddress = contractAddress;
+  rawGlobalActivity.accountAddress = accountAddress;
   rawGlobalActivity.tokenIndex = tokenIndex;
-  rawGlobalActivity.sourceRefId = sourceRefId.toLowerCase();
-  rawGlobalActivity.category = category.toLowerCase();
+  rawGlobalActivity.tokenId = tokenId;
+  rawGlobalActivity.tokenAddress = tokenAddress;
+  rawGlobalActivity.tokenAmount = tokenAmount;
   rawGlobalActivity.blockNumber = blockNumber;
   rawGlobalActivity.blockTimestamp = blockTimestamp;
-  rawGlobalActivity.transactionHash = transactionHash
-    .toHexString()
-    .toLowerCase();
+  rawGlobalActivity.transactionHash = transactionHash.toHexString();
   rawGlobalActivity.logIndex = logIndex;
 
   rawGlobalActivity.save();
