@@ -19,10 +19,13 @@ export function createRawGlobalActivity(
     generateRawGlobalActivityId(rawMarketRefId, category, blockTimestamp)
   );
 
+  const tokenAddress = tokenId.split("-")[1];
+
   rawGlobalActivity.chainId = CHAIN_ID;
   rawGlobalActivity.contractAddress = rawMarketRefId.toLowerCase();
   rawGlobalActivity.accountAddress = accountAddress.toLowerCase();
-  rawGlobalActivity.tokenAddress = tokenId.toLowerCase();
+  rawGlobalActivity.tokenAddress = tokenAddress.toLowerCase();
+  rawGlobalActivity.tokenId = tokenId;
   rawGlobalActivity.tokenAmount = tokenAmount;
   rawGlobalActivity.tokenIndex = tokenIndex;
   rawGlobalActivity.sourceRefId = sourceRefId.toLowerCase();
