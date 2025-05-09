@@ -121,6 +121,7 @@ export function handleOnChainWithdrawRequested(
   );
 }
 
+//note: wasn't sure if we should use this, so commented out for now
 // export function handleOnChainWithdrawSolved(
 //   event: OnChainWithdrawSolvedEvent
 // ): void {
