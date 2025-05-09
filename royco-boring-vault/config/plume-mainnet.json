@@ -1,0 +1,13 @@
+{
+  "network": "mainnet",
+  "chainId": "1",
+  "sources": [
+    {
+      "id": "",
+      "vaultAddress": "0x83A6F6034ee44De6648B1885e24D837D8D98698f",
+      "startBlock": 1424555,
+      "vaultQueueAddress": "0x21AED7ab1f40710193ac26EAbD0E1E4b2b2EDd72",
+      "vaultQueueStartBlock": 1424555
+    }
+  ]
+}
