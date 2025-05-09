@@ -67,6 +67,7 @@ sources:
       - name: royco-recipe-{{network}}
         version: {{version}}
       {{/metadata}}
+    type: subgraph_entity
 transforms: {}
 sinks:
   raw_market_recipe_postgres:
@@ -124,4 +125,5 @@ sinks:
     schema: public
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_global_activity"
+    from: raw_global_activity_reference
 
