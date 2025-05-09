@@ -2,13 +2,13 @@
 
 # Array of networks
 networks=(
-    "sepolia"
-    "mainnet"
-    "arbitrum-one"
-    "base"
-    "plume-mainnet"
-    "corn-maizenet"
-    "sonic"
+    # "sepolia"
+    # "mainnet"
+    # "arbitrum-one"
+    # "base"
+    # "plume-mainnet"
+    # "corn-maizenet"
+    # "sonic"
     "hyperevm"
 )
 
