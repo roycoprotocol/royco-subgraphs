@@ -25,6 +25,7 @@ import { createRawOffer, fillRawOffer } from "./offer-handler";
 import { createRawPosition } from "./position-handler";
 import { WeirollWalletTemplate } from "../generated/templates";
 import { NULL_ADDRESS } from "./constants";
+import { createRawGlobalActivity } from "./global-activity-handler";
 
 export function createIPOffer(event: IPOfferCreatedEvent): void {
   let rawMarketRefId = generateRawMarketId(
@@ -169,6 +170,38 @@ export function fillIPOffer(event: IPOfferFilledEvent): void {
           event.logIndex, // Log index
           0 // Type: Add
         );
+      }
+
+      createRawGlobalActivity(
+        rawMarketRefId,
+        BigInt.fromI32(0),
+        rawMarket.inputTokenId,
+        event.params.fillAmount,
+        rawMarketRefId,
+        "deposit",
+        event.block.number,
+        event.block.timestamp,
+        event.transaction.hash,
+        event.logIndex,
+        event.params.ip.toHexString().toLowerCase()
+      );
+
+      if (rawMarket.rewardStyle == 0) {
+        for (let i = 0; i < rawOffer.token1Ids.length; i++) {
+          createRawGlobalActivity(
+            rawMarketRefId,
+            BigInt.fromI32(i),
+            rawOffer.token1Ids[i],
+            event.params.incentiveAmounts[i],
+            rawMarketRefId,
+            "claim",
+            event.block.number,
+            event.block.timestamp,
+            event.transaction.hash,
+            event.logIndex,
+            event.params.ip.toHexString().toLowerCase()
+          );
+        }
       }
     }
   }

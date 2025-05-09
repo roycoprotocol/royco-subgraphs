@@ -46,6 +46,18 @@ export const generateRawOfferId = (
     .concat(offerId.toString());
 };
 
+export const generateRawGlobalActivityId = (
+  name: string,
+  category: string,
+  timestamp: BigInt
+): string => {
+  return name
+    .concat("_")
+    .concat(category)
+    .concat("_")
+    .concat(timestamp.toString());
+};
+
 export const generateRawOfferTokenBalanceId = (
   rawOfferRefId: string,
   tokenClass: Int8,
