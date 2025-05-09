@@ -172,34 +172,39 @@ export function fillIPOffer(event: IPOfferFilledEvent): void {
         );
       }
 
+      // Create "deposit" event
       createRawGlobalActivity(
-        rawMarketRefId,
-        BigInt.fromI32(0),
-        rawMarket.inputTokenId,
-        event.params.fillAmount,
-        rawMarketRefId,
-        "deposit",
-        event.block.number,
-        event.block.timestamp,
-        event.transaction.hash,
-        event.logIndex,
-        event.params.ip.toHexString().toLowerCase()
+        "recipe", // Category
+        "deposit", // Sub Category
+        rawMarketRefId, // Source Ref ID
+        event.address.toHexString(), // Contract Address
+        event.params.ap.toHexString(), // Account Address
+        BigInt.fromI32(0), // Token Index
+        rawMarket.inputTokenId, // Token ID
+        event.params.fillAmount, // Token Amount
+        event.block.number, // Block Number
+        event.block.timestamp, // Block Timestamp
+        event.transaction.hash, // Transaction Hash
+        event.logIndex // Log Index
       );
 
+      // if reward style is 0, create a claim for every incentive token
       if (rawMarket.rewardStyle == 0) {
         for (let i = 0; i < rawOffer.token1Ids.length; i++) {
+          // Create "claim" events
           createRawGlobalActivity(
-            rawMarketRefId,
-            BigInt.fromI32(i),
-            rawOffer.token1Ids[i],
-            event.params.incentiveAmounts[i],
-            rawMarketRefId,
-            "claim",
-            event.block.number,
-            event.block.timestamp,
-            event.transaction.hash,
-            event.logIndex,
-            event.params.ip.toHexString().toLowerCase()
+            "recipe", // Category
+            "claim", // Sub Category
+            rawMarketRefId, // Source Ref ID
+            event.address.toHexString(), // Contract Address
+            event.params.ap.toHexString(), // Account Address
+            BigInt.fromI32(i), // Token Index
+            rawOffer.token1Ids[i], // Token ID
+            event.params.incentiveAmounts[i], // Token Amount
+            event.block.number, // Block Number
+            event.block.timestamp, // Block Timestamp
+            event.transaction.hash, // Transaction Hash
+            event.logIndex // Log Index
           );
         }
       }

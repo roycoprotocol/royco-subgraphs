@@ -2,7 +2,6 @@ import { Address, BigInt, Bytes, Int8 } from "@graphprotocol/graph-ts";
 import { RawMarketRecipe, RawOfferRecipe } from "../generated/schema";
 import { CHAIN_ID, MARKET_TYPE } from "./constants";
 import {
-  generateRawGlobalActivityId,
   generateRawMarketId,
   generateRawOfferId,
   generateRawOfferTokenBalanceId,
