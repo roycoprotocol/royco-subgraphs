@@ -18,6 +18,7 @@ import {
 import { createRawOffer, fillRawOffer } from "./offer-handler";
 import { createRawPosition } from "./position-handler";
 import { WeirollWalletTemplate } from "../generated/templates";
+import { createRawGlobalActivity } from "./global-activity-handler";
 
 export function createAPOffer(event: APOfferCreatedEvent): void {
   let rawMarketRefId = generateRawMarketId(
@@ -104,6 +105,39 @@ export function fillAPOffer(event: APOfferFilledEvent): void {
         event.transaction.hash, // Transaction Hash
         event.logIndex // Log Index
       );
+
+      createRawGlobalActivity(
+        rawMarketRefId,
+        BigInt.fromI32(0),
+        rawMarket.inputTokenId,
+        event.params.fillAmount,
+        rawMarketRefId,
+        "deposit",
+        event.block.number,
+        event.block.timestamp,
+        event.transaction.hash,
+        event.logIndex,
+        event.params.ap.toHexString().toLowerCase()
+      );
+
+      //if reward style is 0, create a claim for every incentive token
+      if (rawMarket.rewardStyle == 0) {
+        for (let i = 0; i < rawOffer.token1Ids.length; i++) {
+          createRawGlobalActivity(
+            rawMarketRefId,
+            BigInt.fromI32(i),
+            rawOffer.token1Ids[i],
+            event.params.incentiveAmounts[i],
+            rawMarketRefId,
+            "claim",
+            event.block.number,
+            event.block.timestamp,
+            event.transaction.hash,
+            event.logIndex,
+            event.params.ap.toHexString().toLowerCase()
+          );
+        }
+      }
 
       let deduplicatedTokenIdsVolume: string[] = [];
       let deduplicatedTokenAmountsVolume: BigInt[] = [];
