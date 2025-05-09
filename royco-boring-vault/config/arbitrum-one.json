@@ -5,7 +5,9 @@
     {
       "id": "",
       "vaultAddress": "0x3d1ad04e82e595b7295751c35203f542dc986a43",
-      "startBlock": 313324065
+      "startBlock": 313324065,
+      "vaultQueueAddress": "0xf7B0f4973B0b6a5457C4aF0B29c11158aF19C03f",
+      "vaultQueueStartBlock": 313324065
     }
   ]
 }

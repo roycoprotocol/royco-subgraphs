@@ -233,3 +233,129 @@ type BoringRewardClaimed @entity {
   transactionHash: String! # Transaction hash
   logIndex: BigInt! # Log index
 }
+
+type RawGlobalActivity @entity {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  chainId: BigInt! # Hardcoded
+  category: String! # Category (e.g. "recipe", "vault", "boring", etc.)
+  subCategory: String! # Sub Category (e.g. "deposit", "withdraw", "claim", etc.)
+  sourceRefId: String! # Source Ref ID
+  contractAddress: String! # Contract Address
+  accountAddress: String! # Account Address
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  tokenAmount: BigInt! # Token Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+}
+
+type OnChainWithdrawRequested @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  requestId: String! # bytes32
+  user: String! # address
+  assetOut: String! # address
+  nonce: BigInt! # uint96
+  amountOfShares: BigInt! # uint128
+  amountOfAssets: BigInt! # uint128
+  creationTime: BigInt! # uint40
+  secondsToMaturity: BigInt! # uint24
+  secondsToDeadline: BigInt! # uint24
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OnChainWithdrawCancelled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  requestId: String! # bytes32
+  user: String! # address
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OnChainWithdrawSolved @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  requestId: String! # bytes32
+  user: String! # address
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Paused @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Unpaused @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WithdrawAssetSetup @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  assetOut: String! # address
+  secondsToMaturity: BigInt! # uint24
+  minimumSecondsToDeadline: BigInt! # uint24
+  minDiscount: BigInt! # uint16
+  maxDiscount: BigInt! # uint16
+  minimumShares: BigInt! # uint96
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WithdrawAssetStopped @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  assetOut: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type WithdrawAssetUpdated @entity(immutable: true) {
+  id: String!
+  chainId: BigInt!
+  vaultQueueAddress: String!
+  assetOut: String! # address
+  minimumSecondsToDeadline: BigInt! # uint24
+  secondsToMaturity: BigInt! # uint24
+  minDiscount: BigInt! # uint16
+  maxDiscount: BigInt! # uint16
+  minimumShares: BigInt! # uint96
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
