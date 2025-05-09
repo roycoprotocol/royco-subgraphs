@@ -1,3 +1,4 @@
+import { BigInt } from "@graphprotocol/graph-ts";
 import {
   Approval as ApprovalEvent,
   AuthorityUpdated as AuthorityUpdatedEvent,
@@ -24,7 +25,8 @@ import {
   UserRewardsClaimed,
   UserWithdrawnFromEpoch,
 } from "../generated/schema";
-import { CHAIN_ID } from "./constants";
+import { CHAIN_ID, NULL_ADDRESS } from "./constants";
+import { createRawGlobalActivity } from "./global-activity-handler";
 import {
   createBoringAccountUpdateDeposit,
   createBoringAccountUpdateWithdraw,
@@ -36,7 +38,7 @@ import {
   updateBoringEpochSharesDeposit,
   updateBoringEpochSharesWithdraw,
 } from "./handle-boring-epoch";
-import { generateId } from "./utils";
+import { generateBoringVaultId, generateId, generateTokenId } from "./utils";
 
 export function handleEpochStarted(event: EpochStartedEvent): void {
   let entity = new EpochStarted(
@@ -154,6 +156,25 @@ export function handleUserRewardsClaimed(event: UserRewardsClaimedEvent): void {
   claimBoringReward(
     event // Event
   );
+
+  const sourceRefId = generateBoringVaultId(event.address);
+
+  const tokenId = generateTokenId(event.params.token);
+
+  createRawGlobalActivity(
+    "boring",
+    "claim",
+    sourceRefId,
+    event.address.toHexString(),
+    event.params.user.toHexString(),
+    BigInt.fromI32(0),
+    tokenId,
+    event.params.amount,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash,
+    event.logIndex
+  );
 }
 
 export function handleApproval(event: ApprovalEvent): void {
@@ -209,6 +230,43 @@ export function handleEnter(event: EnterEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  //add global
+
+  /*
+export function createRawGlobalActivity(
+  category: string,
+  subCategory: string,
+  sourceRefId: string,
+  contractAddress: string,
+  accountAddress: string,
+  tokenIndex: BigInt,
+  tokenId: string,
+  tokenAmount: BigInt,
+  blockNumber: BigInt,
+  blockTimestamp: BigInt,
+  transactionHash: Bytes,
+  logIndex: BigInt
+): void {
+  */
+  const sourceRefId = generateBoringVaultId(event.address);
+
+  const tokenId = generateTokenId(event.params.asset);
+
+  createRawGlobalActivity(
+    "boring",
+    "deposit",
+    sourceRefId,
+    event.address.toHexString(),
+    event.params.from.toHexString(),
+    BigInt.fromI32(0),
+    tokenId,
+    event.params.amount,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash,
+    event.logIndex
+  );
 }
 
 export function handleExit(event: ExitEvent): void {
@@ -229,6 +287,25 @@ export function handleExit(event: ExitEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  const sourceRefId = generateBoringVaultId(event.address);
+
+  const tokenId = generateTokenId(event.params.asset);
+
+  createRawGlobalActivity(
+    "boring",
+    "withdraw",
+    sourceRefId,
+    event.address.toHexString(),
+    event.params.to.toHexString(),
+    BigInt.fromI32(0),
+    tokenId,
+    event.params.amount,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash,
+    event.logIndex
+  );
 }
 
 export function handleOwnershipTransferred(
@@ -266,4 +343,40 @@ export function handleTransfer(event: TransferEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  const sourceRefId = generateBoringVaultId(event.address);
+
+  const tokenId = generateTokenId(event.params.asset);
+
+  createRawGlobalActivity(
+    "boring",
+    "withdraw",
+    sourceRefId,
+    event.address.toHexString(),
+    event.params.from.toHexString(),
+    BigInt.fromI32(0),
+    tokenId,
+    event.params.amount,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash,
+    event.logIndex
+  );
+
+  if (event.params.from.toHexString() !== NULL_ADDRESS) {
+    createRawGlobalActivity(
+      "boring",
+      "deposit",
+      sourceRefId,
+      event.address.toHexString(),
+      event.params.to.toHexString(),
+      BigInt.fromI32(0),
+      tokenId,
+      event.params.amount,
+      event.block.number,
+      event.block.timestamp,
+      event.transaction.hash,
+      event.logIndex
+    );
+  }
 }
