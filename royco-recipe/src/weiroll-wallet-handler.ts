@@ -22,6 +22,7 @@ import {
   withdrawRawPositionTokenBalance,
 } from "./token-balance-handler";
 import { store } from "@graphprotocol/graph-ts";
+import { createRawGlobalActivity } from "./global-activity-handler";
 
 export function claimIncentive(
   event: WeirollWalletClaimedIncentiveEvent
@@ -82,6 +83,20 @@ export function withdrawInputToken(
       event.transaction.hash, // Transaction hash
       event.logIndex, // Log index
       0 // Type: Add
+    );
+
+    createRawGlobalActivity(
+      rawPosition.marketId,
+      BigInt.fromI32(0),
+      rawPosition.token0Id,
+      rawPosition.token0Amount,
+      rawPosition.marketId,
+      "withdraw",
+      event.block.number,
+      event.block.timestamp,
+      event.transaction.hash,
+      event.logIndex,
+      rawPosition.accountAddress
     );
   }
 }
@@ -159,6 +174,20 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
           rawOffer.save();
         }
       }
+
+      createRawGlobalActivity(
+        rawPosition.marketId,
+        BigInt.fromI32(0),
+        rawPosition.token0Id,
+        rawPosition.token0Amount,
+        rawPosition.marketId,
+        "withdraw",
+        event.block.number,
+        event.block.timestamp,
+        event.transaction.hash,
+        event.logIndex,
+        rawPosition.accountAddress
+      );
     }
 
     // Remove all incentive tokens from rawPosition and rawPositionTokenBalance
