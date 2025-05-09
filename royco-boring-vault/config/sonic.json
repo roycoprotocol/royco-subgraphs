@@ -5,12 +5,16 @@
     {
       "id": "",
       "vaultAddress": "0x45088fb2ffebfdcf4dff7b7201bfa4cd2077c30e",
-      "startBlock": 16382223
+      "startBlock": 16382223,
+      "vaultQueueAddress": "0xd0885A285f9a00aa2d9734d2D26be1186f850E38",
+      "vaultQueueStartBlock": 16382223
     },
     {
       "id": "2",
       "vaultAddress": "0x74d1fafa4e0163b2f1035f1b052137f3f9bad5cc",
-      "startBlock": 16383407
+      "startBlock": 16383407,
+      "vaultQueueAddress": "0x9ec26125feCdE8CE5c67346dB2E20C9026225440",
+      "vaultQueueStartBlock": 16383407
     }
   ]
 }

@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: BoringVault
-    network: sonic
+    network: mainnet
     source:
-      address: "0x45088fb2ffebfdcf4dff7b7201bfa4cd2077c30e"
+      address: "0x74d1fafa4e0163b2f1035f1b052137f3f9bad5cc"
       abi: BoringVault
-      startBlock: 16382223
+      startBlock: 22139798
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -54,52 +54,49 @@ dataSources:
           handler: handleUserWithdrawnFromEpoch
       file: ./src/boring-vault.ts
   - kind: ethereum
-    name: BoringVault2
-    network: sonic
+    name: BoringVaultQueue
+    network: mainnet
     source:
-      address: "0x74d1fafa4e0163b2f1035f1b052137f3f9bad5cc"
-      abi: BoringVault
-      startBlock: 16383407
+      address: "0x9ec26125feCdE8CE5c67346dB2E20C9026225440"
+      abi: BoringVaultQueue
+      startBlock: 22139798
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - Approval
         - AuthorityUpdated
-        - Enter
-        - EpochStarted
-        - Exit
+        - OnChainWithdrawCancelled
+        - OnChainWithdrawRequested
+        - OnChainWithdrawSolved
         - OwnershipTransferred
-        - RewardsDistributed
-        - Transfer
-        - UserDepositedIntoEpoch
-        - UserRewardsClaimed
-        - UserWithdrawnFromEpoch
+        - Paused
+        - Unpaused
+        - WithdrawAssetSetup
+        - WithdrawAssetStopped
+        - WithdrawAssetUpdated
       abis:
-        - name: BoringVault
-          file: ./abis/BoringVault.json
+        - name: BoringVaultQueue
+          file: ./abis/BoringVaultQueue.json
       eventHandlers:
-        - event: Approval(indexed address,indexed address,uint256)
-          handler: handleApproval
         - event: AuthorityUpdated(indexed address,indexed address)
-          handler: handleAuthorityUpdated
-        - event: Enter(indexed address,indexed address,uint256,indexed address,uint256)
-          handler: handleEnter
-        - event: EpochStarted(indexed uint256,uint256,uint256)
-          handler: handleEpochStarted
-        - event: Exit(indexed address,indexed address,uint256,indexed address,uint256)
-          handler: handleExit
+          handler: handleQueueAuthorityUpdated
+        - event: OnChainWithdrawCancelled(indexed bytes32,indexed address,uint256)
+          handler: handleOnChainWithdrawCancelled
+        - event: OnChainWithdrawRequested(indexed bytes32,indexed address,indexed address,uint96,uint128,uint128,uint40,uint24,uint24)
+          handler: handleOnChainWithdrawRequested
+        - event: OnChainWithdrawSolved(indexed bytes32,indexed address,uint256)
+          handler: handleOnChainWithdrawSolved
         - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-        - event: RewardsDistributed(indexed address,indexed uint256,indexed uint256,uint256,uint256)
-          handler: handleRewardsDistributed
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-        - event: UserDepositedIntoEpoch(indexed address,indexed uint256,uint256)
-          handler: handleUserDepositedIntoEpoch
-        - event: UserRewardsClaimed(indexed address,indexed address,uint256,uint256)
-          handler: handleUserRewardsClaimed
-        - event: UserWithdrawnFromEpoch(indexed address,indexed uint256,uint256)
-          handler: handleUserWithdrawnFromEpoch
-      file: ./src/boring-vault.ts
+          handler: handleQueueOwnershipTransferred
+        - event: Paused()
+          handler: handlePaused
+        - event: Unpaused()
+          handler: handleUnpaused
+        - event: WithdrawAssetSetup(indexed address,uint24,uint24,uint16,uint16,uint96)
+          handler: handleWithdrawAssetSetup
+        - event: WithdrawAssetStopped(indexed address)
+          handler: handleWithdrawAssetStopped
+        - event: WithdrawAssetUpdated(indexed address,uint24,uint24,uint16,uint16,uint96)
+          handler: handleWithdrawAssetUpdated
+      file: ./src/boring-vault-queue.ts
