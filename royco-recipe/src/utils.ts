@@ -47,15 +47,23 @@ export const generateRawOfferId = (
 };
 
 export const generateRawGlobalActivityId = (
-  name: string,
+  transactionHash: Bytes,
+  logIndex: BigInt,
   category: string,
-  timestamp: BigInt
+  subCategory: string,
+  tokenIndex: BigInt
 ): string => {
-  return name
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(transactionHash.toHexString())
+    .concat("_")
+    .concat(logIndex.toString())
     .concat("_")
     .concat(category)
     .concat("_")
-    .concat(timestamp.toString());
+    .concat(subCategory)
+    .concat("_")
+    .concat(tokenIndex.toString());
 };
 
 export const generateRawOfferTokenBalanceId = (

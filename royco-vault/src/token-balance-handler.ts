@@ -325,7 +325,6 @@ export function createOrUpdateRawPositionVault(
 
     if (tokenClass == 0) {
       // Input Token
-
       if (type == 0) {
         // Add
         rawPosition.token0Amount = rawPosition.token0Amount.plus(tokenAmount);
@@ -338,12 +337,10 @@ export function createOrUpdateRawPositionVault(
       }
     } else if (tokenClass == 1) {
       // Incentive Token
-
       let index = rawPosition.token1Ids.indexOf(tokenId);
 
       if (index == -1) {
         // Token ID does not exist in the array
-
         let newToken1Ids = rawPosition.token1Ids;
         newToken1Ids.push(tokenId);
         rawPosition.token1Ids = newToken1Ids;
@@ -371,9 +368,6 @@ export function createOrUpdateRawPositionVault(
         }
       }
     } else if (tokenClass == 2) {
-      // Shares
-      rawPosition.shares = rawPosition.shares.plus(tokenAmount);
-
       if (type == 0) {
         // Add
         rawPosition.shares = rawPosition.shares.plus(tokenAmount);

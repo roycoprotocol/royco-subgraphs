@@ -205,24 +205,6 @@ type RawMarketRecipe @entity {
   rawVolume: [RawVolume!]! @derivedFrom(field: "rawMarketRefId")
 }
 
-
-type RawGlobalActivity @entity {
-  id: String! # name_category_timestamp
-  chainId: BigInt! # Hardcoded
-  contractAddress: String! # Contract Address
-  accountAddress: String! # Account Address
-  tokenAddress: String! # Token Address
-  tokenId: String! # Token ID
-  tokenAmount: BigInt! # Token Amount
-  tokenIndex: BigInt! # Token Index
-  sourceRefId: String! # Source Ref ID
-  category: String! # Category
-  blockNumber: BigInt! # Block Number
-  blockTimestamp: BigInt! # Block Timestamp
-  transactionHash: String! # Transaction hash
-  logIndex: BigInt!
-}
-
 type RawMarketTokenBalanceRecipe @entity {
   id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>_<TOKEN_CLASS>_<TOKEN_ID>
   rawMarketRefId: RawMarketRecipe! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_ID>
@@ -343,4 +325,22 @@ type RawPositionRecipeBoyco @entity {
   weirollWallet: String! # Weiroll Wallet Address
   tag: String! # Tag
   isWithdrawn: Boolean! # Initially: false
+}
+
+type RawGlobalActivity @entity {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  chainId: BigInt! # Hardcoded
+  category: String! # Category (e.g. "recipe", "vault", "boring", etc.)
+  subCategory: String! # Sub Category (e.g. "deposit", "withdraw", "claim", etc.)
+  sourceRefId: String! # Source Ref ID
+  contractAddress: String! # Contract Address
+  accountAddress: String! # Account Address
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  tokenAmount: BigInt! # Token Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
 }
