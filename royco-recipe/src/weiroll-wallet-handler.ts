@@ -50,6 +50,22 @@ export function claimIncentive(
       rawPosition.isClaimed = newIsClaimed;
 
       rawPosition.save();
+
+      // Create "claim" event
+      createRawGlobalActivity(
+        "recipe", // Category
+        "claim", // Sub Category
+        rawPosition.rawMarketRefId, // Source Ref ID
+        event.address.toHexString(), // Contract Address
+        rawPosition.accountAddress, // Account Address
+        BigInt.fromI32(tokenIndex), // Token Index
+        rawPosition.token1Ids[tokenIndex], // Token ID
+        rawPosition.token1Amounts[tokenIndex], // Token Amount
+        event.block.number, // Block Number
+        event.block.timestamp, // Block Timestamp
+        event.transaction.hash, // Transaction Hash
+        event.logIndex // Log Index
+      );
     }
   }
 }
@@ -85,18 +101,20 @@ export function withdrawInputToken(
       0 // Type: Add
     );
 
+    // Create "withdraw" event
     createRawGlobalActivity(
-      rawPosition.marketId,
-      BigInt.fromI32(0),
-      rawPosition.token0Id,
-      rawPosition.token0Amount,
-      rawPosition.marketId,
-      "withdraw",
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash,
-      event.logIndex,
-      rawPosition.accountAddress
+      "recipe", // Category
+      "withdraw", // Sub Category
+      rawPosition.rawMarketRefId, // Source Ref ID
+      event.address.toHexString(), // Contract Address
+      rawPosition.accountAddress, // Account Address
+      BigInt.fromI32(0), // Token Index
+      rawPosition.token0Id, // Token ID
+      rawPosition.token0Amount, // Token Amount
+      event.block.number, // Block Number
+      event.block.timestamp, // Block Timestamp
+      event.transaction.hash, // Transaction Hash
+      event.logIndex // Log Index
     );
   }
 }
@@ -174,20 +192,6 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
           rawOffer.save();
         }
       }
-
-      createRawGlobalActivity(
-        rawPosition.marketId,
-        BigInt.fromI32(0),
-        rawPosition.token0Id,
-        rawPosition.token0Amount,
-        rawPosition.marketId,
-        "withdraw",
-        event.block.number,
-        event.block.timestamp,
-        event.transaction.hash,
-        event.logIndex,
-        rawPosition.accountAddress
-      );
     }
 
     // Remove all incentive tokens from rawPosition and rawPositionTokenBalance
