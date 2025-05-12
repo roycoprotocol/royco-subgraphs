@@ -1,0 +1,11 @@
+{
+  "network": "plume-mainnet",
+  "chainId": "98866",
+  "sources": [
+    {
+      "id": "",
+      "vaultAddress": "0x83A6F6034ee44De6648B1885e24D837D8D98698f",
+      "startBlock": 1424555
+    }
+  ]
+}
