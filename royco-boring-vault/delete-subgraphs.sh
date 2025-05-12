@@ -5,6 +5,7 @@ networks=(
     "mainnet"
     "arbitrum-one"
     "sonic"
+    "plume-mainnet"
 )
 
 # Function to delete pipeline with confirmation
