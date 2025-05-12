@@ -1,5 +1,5 @@
 {
-  "network": "mainnet",
+  "network": "plume-mainnet",
   "chainId": "98866",
   "sources": [
     {
