@@ -7,6 +7,10 @@
     {
       "network": "mainnet",
       "version": "1.0.3"
+    },
+    {
+      "network": "plume-mainnet",
+      "version": "1.0.0"
     }
   ]
 }

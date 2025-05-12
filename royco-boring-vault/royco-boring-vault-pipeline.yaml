@@ -11,6 +11,8 @@ sources:
         version: 1.0.1
       - name: royco-boring-vault-mainnet
         version: 1.0.3
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.0
     type: subgraph_entity
   boring_account_update_reference:
     name: boring_account_update
@@ -19,6 +21,8 @@ sources:
         version: 1.0.1
       - name: royco-boring-vault-mainnet
         version: 1.0.3
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.0
     type: subgraph_entity
   boring_epoch_reward_balance_reference:
     name: boring_epoch_reward_balance
@@ -27,6 +31,8 @@ sources:
         version: 1.0.1
       - name: royco-boring-vault-mainnet
         version: 1.0.3
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.0
     type: subgraph_entity
   boring_reward_reference:
     name: boring_reward
@@ -35,6 +41,8 @@ sources:
         version: 1.0.1
       - name: royco-boring-vault-mainnet
         version: 1.0.3
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.0
     type: subgraph_entity
   boring_reward_claimed_reference:
     name: boring_reward_claimed
@@ -43,6 +51,8 @@ sources:
         version: 1.0.1
       - name: royco-boring-vault-mainnet
         version: 1.0.3
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.0
     type: subgraph_entity
 transforms: {}
 sinks:
