@@ -3,6 +3,7 @@
 # Array of networks
 networks=(
     "mainnet"
+    "plume-mainnet"
     # "arbitrum-one"
     "sonic"
 )

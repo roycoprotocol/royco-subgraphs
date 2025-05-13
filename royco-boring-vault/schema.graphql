@@ -180,16 +180,6 @@ type BoringAccountUpdate @entity(immutable: false) {
   logIndex: BigInt! # Log index
 }
 
-type VaultTokenHoldings @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault address
-  tokenAddress: String! # Token address
-  balance: BigInt! # Balance
-  shares: BigInt! # Shares
-  accountAddress: String! # Account address
-}
-
 type BoringEpochRewardBalance @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH>_<REWARD_ID>
   boringVaultRefId: String! # Boring vault reference
