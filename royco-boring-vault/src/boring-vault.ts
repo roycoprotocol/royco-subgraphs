@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 import {
   Approval as ApprovalEvent,
   AuthorityUpdated as AuthorityUpdatedEvent,
@@ -24,6 +24,7 @@ import {
   UserDepositedIntoEpoch,
   UserRewardsClaimed,
   UserWithdrawnFromEpoch,
+  VaultTokenHoldings,
 } from "../generated/schema";
 import { CHAIN_ID, NULL_ADDRESS } from "./constants";
 import { createRawGlobalActivity } from "./global-activity-handler";
@@ -38,7 +39,12 @@ import {
   updateBoringEpochSharesDeposit,
   updateBoringEpochSharesWithdraw,
 } from "./handle-boring-epoch";
-import { generateBoringVaultId, generateId, generateTokenId } from "./utils";
+import {
+  generateBoringVaultId,
+  generateId,
+  generateTokenId,
+  generateVaultTokenId,
+} from "./utils";
 
 export function handleEpochStarted(event: EpochStartedEvent): void {
   let entity = new EpochStarted(
@@ -231,27 +237,26 @@ export function handleEnter(event: EnterEvent): void {
 
   entity.save();
 
-  //add global
-
-  /*
-export function createRawGlobalActivity(
-  category: string,
-  subCategory: string,
-  sourceRefId: string,
-  contractAddress: string,
-  accountAddress: string,
-  tokenIndex: BigInt,
-  tokenId: string,
-  tokenAmount: BigInt,
-  blockNumber: BigInt,
-  blockTimestamp: BigInt,
-  transactionHash: Bytes,
-  logIndex: BigInt
-): void {
-  */
   const sourceRefId = generateBoringVaultId(event.address);
 
   const tokenId = generateTokenId(event.params.asset);
+
+  //save the vault token if it doesn't exist
+  let vaultToken = VaultTokenHoldings.load(
+    generateVaultTokenId(event.address, event.params.from)
+  );
+  if (!vaultToken) {
+    vaultToken = new VaultTokenHoldings(
+      generateVaultTokenId(event.address, event.params.from)
+    );
+    vaultToken.chainId = CHAIN_ID;
+    vaultToken.vaultAddress = event.address.toHexString();
+    vaultToken.tokenAddress = event.params.asset.toHexString();
+    vaultToken.accountAddress = event.params.from.toHexString();
+    vaultToken.balance = event.params.amount;
+    vaultToken.shares = event.params.shares;
+    vaultToken.save();
+  }
 
   createRawGlobalActivity(
     "boring",
@@ -291,6 +296,16 @@ export function handleExit(event: ExitEvent): void {
   const sourceRefId = generateBoringVaultId(event.address);
 
   const tokenId = generateTokenId(event.params.asset);
+
+  //save the vault token if it doesn't exist
+  let vaultToken = VaultTokenHoldings.load(
+    generateVaultTokenId(event.address, event.params.from)
+  );
+  if (vaultToken) {
+    vaultToken.balance = vaultToken.balance.minus(event.params.amount);
+    vaultToken.shares = vaultToken.shares.minus(event.params.shares);
+    vaultToken.save();
+  }
 
   createRawGlobalActivity(
     "boring",
@@ -346,30 +361,75 @@ export function handleTransfer(event: TransferEvent): void {
 
   const sourceRefId = generateBoringVaultId(event.address);
 
-  const tokenId = generateTokenId(event.params.asset);
-
-  createRawGlobalActivity(
-    "boring",
-    "withdraw",
-    sourceRefId,
-    event.address.toHexString(),
-    event.params.from.toHexString(),
-    BigInt.fromI32(0),
-    tokenId,
-    event.params.amount,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash,
-    event.logIndex
+  //get the token from the vault
+  let vaultToken = VaultTokenHoldings.load(
+    generateVaultTokenId(event.address, event.params.from)
   );
 
-  if (event.params.from.toHexString() !== NULL_ADDRESS) {
+  if (!vaultToken) {
+    return;
+  }
+
+  const tokenId = generateTokenId(
+    Address.fromHexString(vaultToken.tokenAddress)
+  );
+
+  if (
+    event.params.to.toHexString() !== NULL_ADDRESS &&
+    event.params.from.toHexString() !== NULL_ADDRESS &&
+    event.params.from.toHexString() !== event.params.to.toHexString()
+  ) {
+    const percentage = event.params.amount.div(vaultToken.shares);
+    const holdingsTransferred = vaultToken.balance.times(percentage);
+    const sharesTransferred = vaultToken.shares.times(percentage);
+    //update the vault token holdings to subtract by the percentage of shares transferred, then add that amount to the new vault token holdings
+    vaultToken.balance = vaultToken.balance.minus(holdingsTransferred);
+    vaultToken.shares = vaultToken.shares.minus(sharesTransferred);
+    vaultToken.save();
+
+    let newVaultToken = VaultTokenHoldings.load(
+      generateVaultTokenId(event.address, event.params.to)
+    );
+
+    if (!newVaultToken) {
+      newVaultToken = new VaultTokenHoldings(
+        generateVaultTokenId(event.address, event.params.to)
+      );
+      newVaultToken.chainId = CHAIN_ID;
+      newVaultToken.vaultAddress = event.address.toHexString();
+      newVaultToken.tokenAddress = vaultToken.tokenAddress;
+      newVaultToken.accountAddress = event.params.to.toHexString();
+      newVaultToken.balance = holdingsTransferred;
+      newVaultToken.shares = sharesTransferred;
+      newVaultToken.save();
+    } else {
+      newVaultToken.balance = newVaultToken.balance.plus(holdingsTransferred);
+      newVaultToken.shares = newVaultToken.shares.plus(sharesTransferred);
+      newVaultToken.save();
+    }
+
+    //if from or to is null, it means the token is a enter or exit event
     createRawGlobalActivity(
       "boring",
       "deposit",
       sourceRefId,
       event.address.toHexString(),
       event.params.to.toHexString(),
+      BigInt.fromI32(0),
+      tokenId,
+      event.params.amount,
+      event.block.number,
+      event.block.timestamp,
+      event.transaction.hash,
+      event.logIndex
+    );
+
+    createRawGlobalActivity(
+      "boring",
+      "withdraw",
+      sourceRefId,
+      event.address.toHexString(),
+      event.params.from.toHexString(),
       BigInt.fromI32(0),
       tokenId,
       event.params.amount,
