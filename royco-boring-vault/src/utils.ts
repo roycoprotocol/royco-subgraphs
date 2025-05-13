@@ -15,6 +15,17 @@ export function generateId(
     .concat(logIndex.toString());
 }
 
+export const generateVaultTokenId = (
+  vaultAddress: Address,
+  accountAddress: Address
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress.toHexString())
+    .concat("_")
+    .concat(accountAddress.toHexString());
+};
+
 export const generateTokenId = (tokenAddress: Address): string => {
   return CHAIN_ID.toString().concat("-").concat(tokenAddress.toHexString());
 };
