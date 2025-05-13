@@ -385,6 +385,11 @@ export function handleTransfer(event: TransferEvent): void {
     event.params.from.toHexString() !== NULL_ADDRESS &&
     event.params.from.toHexString() !== event.params.to.toHexString()
   ) {
+    // Check if shares is zero to prevent division by zero
+    if (vaultTokenHoldings.shares.equals(BigInt.fromI32(0))) {
+      return;
+    }
+
     const percentage = event.params.amount.div(vaultTokenHoldings.shares);
     const holdingsTransferred = vaultTokenHoldings.balance.times(percentage);
     const sharesTransferred = vaultTokenHoldings.shares.times(percentage);
