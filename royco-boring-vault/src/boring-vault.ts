@@ -370,9 +370,7 @@ export function handleTransfer(event: TransferEvent): void {
     return;
   }
 
-  const tokenId = generateTokenId(
-    Address.fromHexString(vaultToken.tokenAddress)
-  );
+  const tokenId = generateTokenId(Address.fromString(vaultToken.tokenAddress));
 
   //if not burn or mint
   if (

@@ -52,7 +52,7 @@ export function handleOnChainWithdrawCancelled(
   if (request) {
     const sourceRefId = generateBoringVaultId(event.address);
 
-    const tokenId = generateTokenId(Address.fromHexString(request.assetOut));
+    const tokenId = generateTokenId(Address.fromString(request.assetOut));
 
     //try to get the vault for the token
 

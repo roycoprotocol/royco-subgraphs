@@ -66,39 +66,15 @@ dataSources:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - AuthorityUpdated
         - OnChainWithdrawCancelled
         - OnChainWithdrawRequested
-        - OnChainWithdrawSolved
-        - OwnershipTransferred
-        - Paused
-        - Unpaused
-        - WithdrawAssetSetup
-        - WithdrawAssetStopped
-        - WithdrawAssetUpdated
       abis:
         - name: BoringVaultQueue
           file: ./abis/BoringVaultQueue.json
       eventHandlers:
-        - event: AuthorityUpdated(indexed address,indexed address)
-          handler: handleQueueAuthorityUpdated
         - event: OnChainWithdrawCancelled(indexed bytes32,indexed address,uint256)
           handler: handleOnChainWithdrawCancelled
         - event: OnChainWithdrawRequested(indexed bytes32,indexed address,indexed address,uint96,uint128,uint128,uint40,uint24,uint24)
           handler: handleOnChainWithdrawRequested
-        - event: OnChainWithdrawSolved(indexed bytes32,indexed address,uint256)
-          handler: handleOnChainWithdrawSolved
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleQueueOwnershipTransferred
-        - event: Paused()
-          handler: handlePaused
-        - event: Unpaused()
-          handler: handleUnpaused
-        - event: WithdrawAssetSetup(indexed address,uint24,uint24,uint16,uint16,uint96)
-          handler: handleWithdrawAssetSetup
-        - event: WithdrawAssetStopped(indexed address)
-          handler: handleWithdrawAssetStopped
-        - event: WithdrawAssetUpdated(indexed address,uint24,uint24,uint16,uint16,uint96)
-          handler: handleWithdrawAssetUpdated
       file: ./src/boring-vault-queue.ts
 {{/sources}}
