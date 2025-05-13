@@ -242,20 +242,20 @@ export function handleEnter(event: EnterEvent): void {
   const tokenId = generateTokenId(event.params.asset);
 
   //save the vault token if it doesn't exist
-  let vaultToken = VaultTokenHoldings.load(
+  let vaultTokenHoldings = VaultTokenHoldings.load(
     generateVaultTokenId(event.address, event.params.from)
   );
-  if (!vaultToken) {
-    vaultToken = new VaultTokenHoldings(
+  if (!vaultTokenHoldings) {
+    vaultTokenHoldings = new VaultTokenHoldings(
       generateVaultTokenId(event.address, event.params.from)
     );
-    vaultToken.chainId = CHAIN_ID;
-    vaultToken.vaultAddress = event.address.toHexString();
-    vaultToken.tokenAddress = event.params.asset.toHexString();
-    vaultToken.accountAddress = event.params.from.toHexString();
-    vaultToken.balance = event.params.amount;
-    vaultToken.shares = event.params.shares;
-    vaultToken.save();
+    vaultTokenHoldings.chainId = CHAIN_ID;
+    vaultTokenHoldings.vaultAddress = event.address.toHexString();
+    vaultTokenHoldings.tokenAddress = event.params.asset.toHexString();
+    vaultTokenHoldings.accountAddress = event.params.from.toHexString();
+    vaultTokenHoldings.balance = event.params.amount;
+    vaultTokenHoldings.shares = event.params.shares;
+    vaultTokenHoldings.save();
   }
 
   createRawGlobalActivity(
@@ -298,13 +298,17 @@ export function handleExit(event: ExitEvent): void {
   const tokenId = generateTokenId(event.params.asset);
 
   //save the vault token if it doesn't exist
-  let vaultToken = VaultTokenHoldings.load(
+  let vaultTokenHoldings = VaultTokenHoldings.load(
     generateVaultTokenId(event.address, event.params.from)
   );
-  if (vaultToken) {
-    vaultToken.balance = vaultToken.balance.minus(event.params.amount);
-    vaultToken.shares = vaultToken.shares.minus(event.params.shares);
-    vaultToken.save();
+  if (vaultTokenHoldings) {
+    vaultTokenHoldings.balance = vaultTokenHoldings.balance.minus(
+      event.params.amount
+    );
+    vaultTokenHoldings.shares = vaultTokenHoldings.shares.minus(
+      event.params.shares
+    );
+    vaultTokenHoldings.save();
   }
 
   createRawGlobalActivity(
@@ -362,15 +366,17 @@ export function handleTransfer(event: TransferEvent): void {
   const sourceRefId = generateBoringVaultId(event.address);
 
   //get the token from the vault
-  let vaultToken = VaultTokenHoldings.load(
+  let vaultTokenHoldings = VaultTokenHoldings.load(
     generateVaultTokenId(event.address, event.params.from)
   );
 
-  if (!vaultToken) {
+  if (!vaultTokenHoldings) {
     return;
   }
 
-  const tokenId = generateTokenId(Address.fromString(vaultToken.tokenAddress));
+  const tokenId = generateTokenId(
+    Address.fromString(vaultTokenHoldings.tokenAddress)
+  );
 
   //if not burn or mint
   if (
@@ -378,33 +384,37 @@ export function handleTransfer(event: TransferEvent): void {
     event.params.from.toHexString() !== NULL_ADDRESS &&
     event.params.from.toHexString() !== event.params.to.toHexString()
   ) {
-    const percentage = event.params.amount.div(vaultToken.shares);
-    const holdingsTransferred = vaultToken.balance.times(percentage);
-    const sharesTransferred = vaultToken.shares.times(percentage);
+    const percentage = event.params.amount.div(vaultTokenHoldings.shares);
+    const holdingsTransferred = vaultTokenHoldings.balance.times(percentage);
+    const sharesTransferred = vaultTokenHoldings.shares.times(percentage);
     //update the vault token holdings to subtract by the percentage of shares transferred, then add that amount to the new vault token holdings
-    vaultToken.balance = vaultToken.balance.minus(holdingsTransferred);
-    vaultToken.shares = vaultToken.shares.minus(sharesTransferred);
-    vaultToken.save();
+    vaultTokenHoldings.balance =
+      vaultTokenHoldings.balance.minus(holdingsTransferred);
+    vaultTokenHoldings.shares =
+      vaultTokenHoldings.shares.minus(sharesTransferred);
+    vaultTokenHoldings.save();
 
-    let newVaultToken = VaultTokenHoldings.load(
+    let newVaultAccountHoldings = VaultTokenHoldings.load(
       generateVaultTokenId(event.address, event.params.to)
     );
 
-    if (!newVaultToken) {
-      newVaultToken = new VaultTokenHoldings(
+    if (!newVaultAccountHoldings) {
+      newVaultAccountHoldings = new VaultTokenHoldings(
         generateVaultTokenId(event.address, event.params.to)
       );
-      newVaultToken.chainId = CHAIN_ID;
-      newVaultToken.vaultAddress = event.address.toHexString();
-      newVaultToken.tokenAddress = vaultToken.tokenAddress;
-      newVaultToken.accountAddress = event.params.to.toHexString();
-      newVaultToken.balance = holdingsTransferred;
-      newVaultToken.shares = sharesTransferred;
-      newVaultToken.save();
+      newVaultAccountHoldings.chainId = CHAIN_ID;
+      newVaultAccountHoldings.vaultAddress = event.address.toHexString();
+      newVaultAccountHoldings.tokenAddress = vaultTokenHoldings.tokenAddress;
+      newVaultAccountHoldings.accountAddress = event.params.to.toHexString();
+      newVaultAccountHoldings.balance = holdingsTransferred;
+      newVaultAccountHoldings.shares = sharesTransferred;
+      newVaultAccountHoldings.save();
     } else {
-      newVaultToken.balance = newVaultToken.balance.plus(holdingsTransferred);
-      newVaultToken.shares = newVaultToken.shares.plus(sharesTransferred);
-      newVaultToken.save();
+      newVaultAccountHoldings.balance =
+        newVaultAccountHoldings.balance.plus(holdingsTransferred);
+      newVaultAccountHoldings.shares =
+        newVaultAccountHoldings.shares.plus(sharesTransferred);
+      newVaultAccountHoldings.save();
     }
 
     //if from or to is null, it means the token is a enter or exit event
