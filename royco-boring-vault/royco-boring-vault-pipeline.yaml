@@ -1,48 +1,57 @@
 # prettier-ignore
 apiVersion: 3
 name: royco-boring-vault-pipeline
-status: ACTIVE
 resource_size: s
 sources:
   boring_epoch_reference:
     name: boring_epoch
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.1
+        version: 1.0.2
       - name: royco-boring-vault-mainnet
-        version: 1.0.3
+        version: 1.0.5
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.2
     type: subgraph_entity
   boring_account_update_reference:
     name: boring_account_update
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.1
+        version: 1.0.2
       - name: royco-boring-vault-mainnet
-        version: 1.0.3
+        version: 1.0.5
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.2
     type: subgraph_entity
   boring_epoch_reward_balance_reference:
     name: boring_epoch_reward_balance
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.1
+        version: 1.0.2
       - name: royco-boring-vault-mainnet
-        version: 1.0.3
+        version: 1.0.5
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.2
     type: subgraph_entity
   boring_reward_reference:
     name: boring_reward
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.1
+        version: 1.0.2
       - name: royco-boring-vault-mainnet
-        version: 1.0.3
+        version: 1.0.5
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.2
     type: subgraph_entity
   boring_reward_claimed_reference:
     name: boring_reward_claimed
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.1
+        version: 1.0.2
       - name: royco-boring-vault-mainnet
-        version: 1.0.3
+        version: 1.0.5
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.2
     type: subgraph_entity
 transforms: {}
 sinks:
