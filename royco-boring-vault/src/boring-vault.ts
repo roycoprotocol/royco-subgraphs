@@ -379,6 +379,7 @@ export function handleTransfer(event: TransferEvent): void {
   );
 
   //if not burn or mint
+  //if from or to is null, it means the token is a enter or exit event
   if (
     event.params.to.toHexString() !== NULL_ADDRESS &&
     event.params.from.toHexString() !== NULL_ADDRESS &&
@@ -417,7 +418,6 @@ export function handleTransfer(event: TransferEvent): void {
       newVaultAccountHoldings.save();
     }
 
-    //if from or to is null, it means the token is a enter or exit event
     createRawGlobalActivity(
       "boring",
       "deposit",
