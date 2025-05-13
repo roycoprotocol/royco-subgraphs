@@ -374,6 +374,7 @@ export function handleTransfer(event: TransferEvent): void {
     Address.fromHexString(vaultToken.tokenAddress)
   );
 
+  //if not burn or mint
   if (
     event.params.to.toHexString() !== NULL_ADDRESS &&
     event.params.from.toHexString() !== NULL_ADDRESS &&
