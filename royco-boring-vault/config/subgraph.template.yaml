@@ -54,4 +54,27 @@ dataSources:
         - event: UserWithdrawnFromEpoch(indexed address,indexed uint256,uint256)
           handler: handleUserWithdrawnFromEpoch
       file: ./src/boring-vault.ts
+  - kind: ethereum
+    name: BoringVaultQueue{{id}}
+    network: {{network}}
+    source:
+      address: "{{vaultQueueAddress}}"
+      abi: BoringVaultQueue
+      startBlock: {{vaultQueueStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - OnChainWithdrawCancelled
+        - OnChainWithdrawRequested
+      abis:
+        - name: BoringVaultQueue
+          file: ./abis/BoringVaultQueue.json
+      eventHandlers:
+        - event: OnChainWithdrawCancelled(indexed bytes32,indexed address,uint256)
+          handler: handleOnChainWithdrawCancelled
+        - event: OnChainWithdrawRequested(indexed bytes32,indexed address,indexed address,uint96,uint128,uint128,uint40,uint24,uint24)
+          handler: handleOnChainWithdrawRequested
+      file: ./src/boring-vault-queue.ts
 {{/sources}}
