@@ -1,4 +1,4 @@
-import { Int8 } from "@graphprotocol/graph-ts";
+import { Int8, BigInt } from "@graphprotocol/graph-ts";
 import {
   UserDepositedIntoEpoch as UserDepositedIntoEpochEvent,
   UserWithdrawnFromEpoch as UserWithdrawnFromEpochEvent,
@@ -122,15 +122,21 @@ export function createBoringAccountUpdateWithdraw(
     boringAccountUpdate.vaultAddress = event.address.toHexString();
     boringAccountUpdate.accountAddress = event.params.user.toHexString();
     boringAccountUpdate.epoch = event.params.epoch;
-    boringAccountUpdate.shares = event.params.shareAmount;
+    boringAccountUpdate.shares = BigInt.fromI32(0); // Start with zero instead of withdrawal amount
     boringAccountUpdate.blockNumber = event.block.number;
     boringAccountUpdate.blockTimestamp = event.block.timestamp;
     boringAccountUpdate.transactionHash = event.transaction.hash.toHexString();
     boringAccountUpdate.logIndex = event.logIndex;
   } else {
-    boringAccountUpdate.shares = boringAccountUpdate.shares.minus(
-      event.params.shareAmount
-    );
+    // Only subtract if there are enough shares to prevent going negative
+    if (boringAccountUpdate.shares.ge(event.params.shareAmount)) {
+      boringAccountUpdate.shares = boringAccountUpdate.shares.minus(
+        event.params.shareAmount
+      );
+    } else {
+      // If trying to withdraw more than available, set to zero
+      boringAccountUpdate.shares = BigInt.fromI32(0);
+    }
   }
 
   boringAccountUpdate.save();
