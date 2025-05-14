@@ -15,8 +15,30 @@ export function generateId(
     .concat(logIndex.toString());
 }
 
+export const generateVaultTokenId = (
+  vaultAddress: Address,
+  accountAddress: Address
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress.toHexString())
+    .concat("_")
+    .concat(accountAddress.toHexString());
+};
+
 export const generateTokenId = (tokenAddress: Address): string => {
   return CHAIN_ID.toString().concat("-").concat(tokenAddress.toHexString());
+};
+
+export const generateRequestId = (
+  address: Address,
+  requestId: Bytes
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(address.toHexString())
+    .concat("_")
+    .concat(requestId.toHexString());
 };
 
 export const generateBoringAccountUpdateId = (
@@ -42,6 +64,26 @@ export const generateBoringEpochId = (
     .concat(vaultAddress.toHexString())
     .concat("_")
     .concat(epoch.toString());
+};
+
+export const generateRawGlobalActivityId = (
+  transactionHash: Bytes,
+  logIndex: BigInt,
+  category: string,
+  subCategory: string,
+  tokenIndex: BigInt
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(transactionHash.toHexString())
+    .concat("_")
+    .concat(logIndex.toString())
+    .concat("_")
+    .concat(category)
+    .concat("_")
+    .concat(subCategory)
+    .concat("_")
+    .concat(tokenIndex.toString());
 };
 
 export const generateBoringRewardId = (
