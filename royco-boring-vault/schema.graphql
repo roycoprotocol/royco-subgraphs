@@ -369,3 +369,15 @@ type WithdrawAssetUpdated @entity(immutable: true) {
   transactionHash: String!
   logIndex: BigInt!
 }
+
+type RawPositionBoring @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  accountAddress: String! # Account address
+  shares: BigInt! # Shares
+  blockNumber: BigInt! # Block number
+  blockTimestamp: BigInt! # Block timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log index
+}
