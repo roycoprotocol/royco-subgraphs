@@ -35,10 +35,11 @@ export const generateRequestId = (
   requestId: Bytes
 ): string => {
   return CHAIN_ID.toString()
+    .toLowerCase()
     .concat("_")
-    .concat(address.toHexString())
+    .concat(address.toHexString().toLowerCase())
     .concat("_")
-    .concat(requestId.toHexString());
+    .concat(requestId.toHexString().toLowerCase());
 };
 
 export const generateBoringAccountUpdateId = (
@@ -48,11 +49,11 @@ export const generateBoringAccountUpdateId = (
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
-    .concat(vaultAddress.toHexString())
+    .concat(vaultAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(accountAddress.toHexString())
+    .concat(accountAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(epoch.toString());
+    .concat(epoch.toString().toLowerCase());
 };
 
 export const generateBoringEpochId = (
@@ -60,10 +61,11 @@ export const generateBoringEpochId = (
   epoch: BigInt
 ): string => {
   return CHAIN_ID.toString()
+    .toLowerCase()
     .concat("_")
-    .concat(vaultAddress.toHexString())
+    .concat(vaultAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(epoch.toString());
+    .concat(epoch.toString().toLowerCase());
 };
 
 export const generateRawGlobalActivityId = (
@@ -74,16 +76,17 @@ export const generateRawGlobalActivityId = (
   tokenIndex: BigInt
 ): string => {
   return CHAIN_ID.toString()
+    .toLowerCase()
     .concat("_")
-    .concat(transactionHash.toHexString())
+    .concat(transactionHash.toHexString().toLowerCase())
     .concat("_")
-    .concat(logIndex.toString())
+    .concat(logIndex.toString().toLowerCase())
     .concat("_")
-    .concat(category)
+    .concat(category.toLowerCase())
     .concat("_")
-    .concat(subCategory)
+    .concat(subCategory.toLowerCase())
     .concat("_")
-    .concat(tokenIndex.toString());
+    .concat(tokenIndex.toString().toLowerCase());
 };
 
 export const generateBoringRewardId = (
@@ -92,9 +95,9 @@ export const generateBoringRewardId = (
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
-    .concat(vaultAddress.toHexString())
+    .concat(vaultAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(rewardId.toString());
+    .concat(rewardId.toString().toLowerCase());
 };
 
 export const generateBoringEpochRewardBalanceId = (
@@ -104,11 +107,11 @@ export const generateBoringEpochRewardBalanceId = (
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
-    .concat(vaultAddress.toHexString())
+    .concat(vaultAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(epoch.toString())
+    .concat(epoch.toString().toLowerCase())
     .concat("_")
-    .concat(rewardId.toString());
+    .concat(rewardId.toString().toLowerCase());
 };
 
 export const generateBoringRewardClaimedId = (
@@ -118,11 +121,11 @@ export const generateBoringRewardClaimedId = (
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
-    .concat(vaultAddress.toHexString())
+    .concat(vaultAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(accountAddress.toHexString())
+    .concat(accountAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(rewardId.toString());
+    .concat(rewardId.toString().toLowerCase());
 };
 
 export const generateBoringVaultId = (vaultAddress: Address): string => {
