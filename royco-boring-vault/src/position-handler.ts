@@ -2,13 +2,15 @@ import { BigInt } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/BoringVault/BoringVault";
 import { RawPositionBoring } from "../generated/schema";
 import { CHAIN_ID, NULL_ADDRESS } from "./constants";
-import { generateRawPositionId } from "./utils";
+import { generateRawPositionId, generateBoringVaultId } from "./utils";
 
 export function handleRawPosition(event: TransferEvent): void {
   let vaultAddress = event.address.toHexString();
 
   let fromAddress = event.params.from.toHexString();
   let toAddress = event.params.to.toHexString();
+
+  let boringVaultRefId = generateBoringVaultId(event.address);
 
   let shares = event.params.amount;
 
@@ -20,6 +22,7 @@ export function handleRawPosition(event: TransferEvent): void {
     if (!rawPosition) {
       rawPosition = new RawPositionBoring(rawPositionRefId);
 
+      rawPosition.boringVaultRefId = boringVaultRefId;
       rawPosition.chainId = CHAIN_ID;
       rawPosition.vaultAddress = vaultAddress;
       rawPosition.accountAddress = toAddress;
@@ -41,6 +44,7 @@ export function handleRawPosition(event: TransferEvent): void {
     if (!rawPosition) {
       rawPosition = new RawPositionBoring(rawPositionRefId);
 
+      rawPosition.boringVaultRefId = boringVaultRefId;
       rawPosition.chainId = CHAIN_ID;
       rawPosition.vaultAddress = vaultAddress;
       rawPosition.accountAddress = fromAddress;
@@ -67,6 +71,7 @@ export function handleRawPosition(event: TransferEvent): void {
       if (!rawPositionFrom) {
         rawPositionFrom = new RawPositionBoring(rawPositionRefIdFrom);
 
+        rawPositionFrom.boringVaultRefId = boringVaultRefId;
         rawPositionFrom.chainId = CHAIN_ID;
         rawPositionFrom.vaultAddress = vaultAddress;
         rawPositionFrom.accountAddress = fromAddress;
@@ -86,6 +91,7 @@ export function handleRawPosition(event: TransferEvent): void {
       if (!rawPositionTo) {
         rawPositionTo = new RawPositionBoring(rawPositionRefIdTo);
 
+        rawPositionTo.boringVaultRefId = boringVaultRefId;
         rawPositionTo.chainId = CHAIN_ID;
         rawPositionTo.vaultAddress = vaultAddress;
         rawPositionTo.accountAddress = toAddress;

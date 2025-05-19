@@ -384,9 +384,9 @@ export function handleTransfer(event: TransferEvent): void {
   //if not burn or mint
   //if from or to is null, it means the token is a enter or exit event
   if (
-    event.params.to.toHexString() !== NULL_ADDRESS &&
-    event.params.from.toHexString() !== NULL_ADDRESS &&
-    event.params.from.toHexString() !== event.params.to.toHexString()
+    event.params.to.toHexString() != NULL_ADDRESS &&
+    event.params.from.toHexString() != NULL_ADDRESS &&
+    event.params.from.toHexString() != event.params.to.toHexString()
   ) {
     // Check if shares is zero to prevent division by zero
     if (vaultTokenHoldings.shares.equals(BigInt.fromI32(0))) {
