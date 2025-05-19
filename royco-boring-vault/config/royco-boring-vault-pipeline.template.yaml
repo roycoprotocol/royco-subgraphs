@@ -1,6 +1,7 @@
 # prettier-ignore
 apiVersion: 3
 name: royco-boring-vault-pipeline
+status: ACTIVE
 resource_size: s
 sources:
   boring_epoch_reference:
@@ -37,6 +38,22 @@ sources:
     type: subgraph_entity
   boring_reward_claimed_reference:
     name: boring_reward_claimed
+    subgraphs:
+      {{#metadata}}
+      - name: royco-boring-vault-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_global_activity_reference:
+    name: raw_global_activity
+    subgraphs:
+      {{#metadata}}
+      - name: royco-boring-vault-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_position_boring_reference:
+    name: raw_position_boring
     subgraphs:
       {{#metadata}}
       - name: royco-boring-vault-{{network}}
@@ -80,3 +97,17 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: boring_reward_claimed"
     from: boring_reward_claimed_reference
+  raw_global_activity_postgres:
+    type: postgres
+    table: raw_global_activity
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_global_activity"
+    from: raw_global_activity_reference
+  raw_position_boring_postgres:
+    type: postgres
+    table: raw_position_boring
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_position_boring"
+    from: raw_position_boring_reference
