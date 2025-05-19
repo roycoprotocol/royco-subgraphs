@@ -104,6 +104,7 @@ export function handleRawPosition(event: TransferEvent): void {
         rawPositionTo.shares = rawPositionTo.shares.plus(shares);
       }
 
+      rawPositionFrom.save();
       rawPositionTo.save();
     }
   }
