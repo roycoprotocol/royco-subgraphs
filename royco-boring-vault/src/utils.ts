@@ -131,3 +131,14 @@ export const generateBoringRewardClaimedId = (
 export const generateBoringVaultId = (vaultAddress: Address): string => {
   return CHAIN_ID.toString().concat("_").concat(vaultAddress.toHexString());
 };
+
+export const generateRawPositionId = (
+  vaultAddress: string,
+  accountAddress: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(accountAddress);
+};

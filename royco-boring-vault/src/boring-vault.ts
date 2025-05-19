@@ -45,6 +45,7 @@ import {
   generateTokenId,
   generateVaultTokenId,
 } from "./utils";
+import { handleRawPosition } from "./position-handler";
 
 export function handleEpochStarted(event: EpochStartedEvent): void {
   let entity = new EpochStarted(
@@ -362,6 +363,8 @@ export function handleTransfer(event: TransferEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  handleRawPosition(event);
 
   const sourceRefId = generateBoringVaultId(event.address);
 
