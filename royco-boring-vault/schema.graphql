@@ -372,6 +372,7 @@ type WithdrawAssetUpdated @entity(immutable: true) {
 
 type RawPositionBoring @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  boringVaultRefId: String! # Boring vault reference
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault address
   accountAddress: String! # Account address
