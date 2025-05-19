@@ -83,14 +83,20 @@ export function createBoringAccountUpdateDeposit(
     boringAccountUpdate.vaultAddress = event.address.toHexString();
     boringAccountUpdate.accountAddress = event.params.user.toHexString();
     boringAccountUpdate.epoch = event.params.epoch;
-    boringAccountUpdate.shares = event.params.shareAmount;
+
+    boringAccountUpdate.shares = event.params.shareAmount.lt(BigInt.fromI32(0))
+      ? BigInt.fromI32(0)
+      : event.params.shareAmount;
     boringAccountUpdate.blockNumber = event.block.number;
     boringAccountUpdate.blockTimestamp = event.block.timestamp;
     boringAccountUpdate.transactionHash = event.transaction.hash.toHexString();
     boringAccountUpdate.logIndex = event.logIndex;
   } else {
+    // Add the new shares ensuring the result isn't negative
     boringAccountUpdate.shares = boringAccountUpdate.shares.plus(
-      event.params.shareAmount
+      event.params.shareAmount.lt(BigInt.fromI32(0))
+        ? BigInt.fromI32(0)
+        : event.params.shareAmount
     );
   }
 
