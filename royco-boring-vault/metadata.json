@@ -2,15 +2,15 @@
   "metadata": [
     {
       "network": "sonic",
-      "version": "1.0.17"
+      "version": "1.0.18"
     },
     {
       "network": "mainnet",
-      "version": "1.0.20"
+      "version": "1.0.21"
     },
     {
       "network": "plume-mainnet",
-      "version": "1.0.17"
+      "version": "1.0.18"
     }
   ]
 }

@@ -57,7 +57,7 @@ dataSources:
     name: BoringVaultQueue
     network: sonic
     source:
-      address: "0xd0885A285f9a00aa2d9734d2D26be1186f850E38"
+      address: "0xd0885a285f9a00aa2d9734d2d26be1186f850e38"
       abi: BoringVaultQueue
       startBlock: 16382223
     mapping:
@@ -130,7 +130,7 @@ dataSources:
     name: BoringVaultQueue2
     network: sonic
     source:
-      address: "0x9ec26125feCdE8CE5c67346dB2E20C9026225440"
+      address: "0x9ec26125fecde8ce5c67346db2e20c9026225440"
       abi: BoringVaultQueue
       startBlock: 16383407
     mapping:

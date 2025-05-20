@@ -7,71 +7,71 @@ sources:
     name: boring_epoch
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
   boring_account_update_reference:
     name: boring_account_update
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
   boring_epoch_reward_balance_reference:
     name: boring_epoch_reward_balance
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
   boring_reward_reference:
     name: boring_reward
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
   boring_reward_claimed_reference:
     name: boring_reward_claimed
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
   raw_global_activity_reference:
     name: raw_global_activity
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
   raw_position_boring_reference:
     name: raw_position_boring
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.17
+        version: 1.0.18
       - name: royco-boring-vault-mainnet
-        version: 1.0.20
+        version: 1.0.21
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.17
+        version: 1.0.18
     type: subgraph_entity
 transforms: {}
 sinks:
