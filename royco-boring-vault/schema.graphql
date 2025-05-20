@@ -38,6 +38,21 @@ type Enter @entity(immutable: true) {
   logIndex: BigInt!
 }
 
+type RawBoringWithdrawal @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  boringVaultRefId: String! # Boring vault reference
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault address
+  accountAddress: String! # Account address
+  expirationTimestamp: BigInt! # Expiration timestamp
+  amount: BigInt! # Amount
+  blockNumber: BigInt! # Block number
+  blockTimestamp: BigInt! # Block timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log index
+  fundsRecovered: Boolean! # Funds recovered
+}
+
 
 type EpochStarted @entity(immutable: true) {
   id: String!
