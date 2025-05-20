@@ -148,8 +148,9 @@ export const generateBoringWithdrawalId = (
   requestId: Bytes
 ): string => {
   return CHAIN_ID.toString()
+    .toLowerCase()
     .concat("_")
-    .concat(vaultAddress.toHexString())
+    .concat(vaultAddress.toHexString().toLowerCase())
     .concat("_")
-    .concat(requestId.toHexString());
+    .concat(requestId.toHexString().toLowerCase());
 };
