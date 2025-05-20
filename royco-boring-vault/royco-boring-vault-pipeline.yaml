@@ -1,78 +1,87 @@
 # prettier-ignore
 apiVersion: 3
 name: royco-boring-vault-pipeline
-status: ACTIVE
 resource_size: s
 sources:
   boring_epoch_reference:
     name: boring_epoch
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
     type: subgraph_entity
   boring_account_update_reference:
     name: boring_account_update
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
     type: subgraph_entity
   boring_epoch_reward_balance_reference:
     name: boring_epoch_reward_balance
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
     type: subgraph_entity
   boring_reward_reference:
     name: boring_reward
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
     type: subgraph_entity
   boring_reward_claimed_reference:
     name: boring_reward_claimed
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
     type: subgraph_entity
   raw_global_activity_reference:
     name: raw_global_activity
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
     type: subgraph_entity
   raw_position_boring_reference:
     name: raw_position_boring
     subgraphs:
       - name: royco-boring-vault-sonic
-        version: 1.0.10
+        version: 1.0.20
       - name: royco-boring-vault-mainnet
-        version: 1.0.14
+        version: 1.0.23
       - name: royco-boring-vault-plume-mainnet
-        version: 1.0.10
+        version: 1.0.20
+    type: subgraph_entity
+  raw_boring_withdrawal_reference:
+    name: raw_boring_withdrawal
+    subgraphs:
+      - name: royco-boring-vault-sonic
+        version: 1.0.20
+      - name: royco-boring-vault-mainnet
+        version: 1.0.23
+      - name: royco-boring-vault-plume-mainnet
+        version: 1.0.20
     type: subgraph_entity
 transforms: {}
 sinks:
@@ -125,3 +134,10 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_position_boring"
     from: raw_position_boring_reference
+  raw_boring_withdrawal_postgres:
+    type: postgres
+    table: raw_boring_withdrawal
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_boring_withdrawal"
+    from: raw_boring_withdrawal_reference
