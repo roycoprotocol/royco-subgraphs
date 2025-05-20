@@ -1,7 +1,6 @@
 # prettier-ignore
 apiVersion: 3
 name: royco-boring-vault-pipeline
-status: ACTIVE
 resource_size: s
 sources:
   boring_epoch_reference:
@@ -60,6 +59,14 @@ sources:
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
+  raw_boring_withdrawal_reference:
+    name: raw_boring_withdrawal
+    subgraphs:
+      {{#metadata}}
+      - name: royco-boring-vault-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
 transforms: {}
 sinks:
   boring_epoch_postgres:
@@ -111,3 +118,10 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_position_boring"
     from: raw_position_boring_reference
+  raw_boring_withdrawal_postgres:
+    type: postgres
+    table: raw_boring_withdrawal
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_boring_withdrawal"
+    from: raw_boring_withdrawal_reference

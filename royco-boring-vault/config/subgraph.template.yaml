@@ -68,6 +68,7 @@ dataSources:
       entities:
         - OnChainWithdrawCancelled
         - OnChainWithdrawRequested
+        - OnChainWithdrawSolved
       abis:
         - name: BoringVaultQueue
           file: ./abis/BoringVaultQueue.json
@@ -76,5 +77,7 @@ dataSources:
           handler: handleOnChainWithdrawCancelled
         - event: OnChainWithdrawRequested(indexed bytes32,indexed address,indexed address,uint96,uint128,uint128,uint40,uint24,uint24)
           handler: handleOnChainWithdrawRequested
+        - event: OnChainWithdrawSolved(indexed bytes32,indexed address,uint256)
+          handler: handleOnChainWithdrawSolved
       file: ./src/boring-vault-queue.ts
 {{/sources}}
