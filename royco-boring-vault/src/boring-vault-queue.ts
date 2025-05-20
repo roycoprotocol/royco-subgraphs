@@ -19,6 +19,7 @@ import {
 import { CHAIN_ID } from "./constants";
 import {
   generateBoringVaultId,
+  generateBoringWithdrawalId,
   generateId,
   generateRequestId,
   generateTokenId,
