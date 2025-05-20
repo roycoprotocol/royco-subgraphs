@@ -26,7 +26,7 @@ import {
   UserWithdrawnFromEpoch,
   VaultTokenHoldings,
 } from "../generated/schema";
-import { CHAIN_ID, NULL_ADDRESS } from "./constants";
+import { CHAIN_ID, NULL_ADDRESS, VAULT_QUEUE_ADDRESSES } from "./constants";
 import { createRawGlobalActivity } from "./global-activity-handler";
 import {
   createBoringAccountUpdateDeposit,
@@ -383,6 +383,7 @@ export function handleTransfer(event: TransferEvent): void {
 
   //if not burn or mint
   //if from or to is null, it means the token is a enter or exit event
+  //get the queue for the vault
   if (
     event.params.to.toHexString() != NULL_ADDRESS &&
     event.params.from.toHexString() != NULL_ADDRESS &&
@@ -424,6 +425,19 @@ export function handleTransfer(event: TransferEvent): void {
       newVaultAccountHoldings.shares =
         newVaultAccountHoldings.shares.plus(sharesTransferred);
       newVaultAccountHoldings.save();
+    }
+
+    //if the vault queue is involved in the transaction skip
+
+    if (
+      VAULT_QUEUE_ADDRESSES.includes(
+        event.params.from.toHexString().toLowerCase()
+      ) ||
+      VAULT_QUEUE_ADDRESSES.includes(
+        event.params.to.toHexString().toLowerCase()
+      )
+    ) {
+      return;
     }
 
     createRawGlobalActivity(

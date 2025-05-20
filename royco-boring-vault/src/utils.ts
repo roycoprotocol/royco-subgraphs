@@ -142,3 +142,14 @@ export const generateRawPositionId = (
     .concat("_")
     .concat(accountAddress);
 };
+
+export const generateBoringWithdrawalId = (
+  vaultAddress: Address,
+  requestId: Bytes
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress.toHexString())
+    .concat("_")
+    .concat(requestId.toHexString());
+};

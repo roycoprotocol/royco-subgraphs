@@ -38,6 +38,7 @@ type Enter @entity(immutable: true) {
   logIndex: BigInt!
 }
 
+
 type EpochStarted @entity(immutable: true) {
   id: String!
   chainId: BigInt!
