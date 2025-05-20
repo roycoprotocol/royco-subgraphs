@@ -385,9 +385,11 @@ export function handleTransfer(event: TransferEvent): void {
   //if from or to is null, it means the token is a enter or exit event
   //get the queue for the vault
   if (
-    event.params.to.toHexString() != NULL_ADDRESS &&
-    event.params.from.toHexString() != NULL_ADDRESS &&
-    event.params.from.toHexString() != event.params.to.toHexString()
+    event.params.to.toHexString().toLowerCase() != NULL_ADDRESS.toLowerCase() &&
+    event.params.from.toHexString().toLowerCase() !=
+      NULL_ADDRESS.toLowerCase() &&
+    event.params.from.toHexString().toLowerCase() !=
+      event.params.to.toHexString().toLowerCase()
   ) {
     // Check if shares is zero to prevent division by zero
     if (vaultTokenHoldings.shares.equals(BigInt.fromI32(0))) {
