@@ -1,91 +1,25 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 import {
-  AuthorityUpdated as AuthorityUpdatedEvent,
   OnChainWithdrawCancelled as OnChainWithdrawCancelledEvent,
   OnChainWithdrawRequested as OnChainWithdrawRequestedEvent,
   OnChainWithdrawSolved as OnChainWithdrawSolvedEvent,
-  OwnershipTransferred as OwnershipTransferredEvent,
-  Paused as PausedEvent,
-  Unpaused as UnpausedEvent,
-  WithdrawAssetSetup as WithdrawAssetSetupEvent,
-  WithdrawAssetStopped as WithdrawAssetStoppedEvent,
-  WithdrawAssetUpdated as WithdrawAssetUpdatedEvent,
 } from "../generated/BoringVaultQueue/BoringVaultQueue";
 import {
+  BoringWithdrawal,
   OnChainWithdrawCancelled,
   OnChainWithdrawRequested,
   OnChainWithdrawSolved,
-  RawBoringWithdrawal,
+  RawGlobalActivity,
 } from "../generated/schema";
-import { CHAIN_ID } from "./constants";
+import { CHAIN_ID, getVaultAddress } from "./constants";
 import {
   generateBoringVaultId,
-  generateBoringWithdrawalId,
   generateId,
+  generateQueueId,
+  generateRawGlobalActivityId,
   generateRequestId,
   generateTokenId,
 } from "./utils";
-import { createRawGlobalActivity } from "./global-activity-handler";
-
-export function handleOnChainWithdrawCancelled(
-  event: OnChainWithdrawCancelledEvent
-): void {
-  let entity = new OnChainWithdrawCancelled(
-    generateId(event.address, event.transaction.hash, event.logIndex)
-  );
-  entity.chainId = CHAIN_ID;
-  entity.vaultQueueAddress = event.address.toHexString();
-  entity.requestId = event.params.requestId.toHexString();
-  entity.user = event.params.user.toHexString();
-  entity.timestamp = event.params.timestamp;
-
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString();
-  entity.logIndex = event.logIndex;
-
-  entity.save();
-
-  //check if request exists
-  let request = OnChainWithdrawRequested.load(
-    generateRequestId(event.address, event.params.requestId)
-  );
-
-  if (request) {
-    const sourceRefId = generateBoringVaultId(event.address);
-
-    const tokenId = generateTokenId(Address.fromString(request.assetOut));
-
-    //try to get the vault for the token
-
-    createRawGlobalActivity(
-      "boring",
-      "withdraw-cancelled",
-      sourceRefId,
-      event.address.toHexString(),
-      event.params.user.toHexString(),
-      BigInt.fromI32(0),
-      tokenId,
-      request.amountOfAssets,
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash,
-      event.logIndex
-    );
-
-    let boringWithdrawal = RawBoringWithdrawal.load(
-      generateBoringWithdrawalId(
-        event.address,
-        Bytes.fromHexString(request.requestId)
-      )
-    );
-
-    if (boringWithdrawal) {
-      boringWithdrawal.fundsRecovered = false;
-      boringWithdrawal.save();
-    }
-  }
-}
 
 export function handleOnChainWithdrawRequested(
   event: OnChainWithdrawRequestedEvent
@@ -113,52 +47,144 @@ export function handleOnChainWithdrawRequested(
 
   entity.save();
 
-  const sourceRefId = generateBoringVaultId(event.address);
+  const vaultAddress = getVaultAddress(event.address.toHexString());
 
-  const tokenId = generateTokenId(event.params.assetOut);
-
-  //try to get the vault for the token
-
-  let boringWithdrawal = RawBoringWithdrawal.load(
-    generateBoringWithdrawalId(event.address, event.params.requestId)
+  // === Create boring withdrawal ===
+  let boringWithdrawal = new BoringWithdrawal(
+    generateQueueId(vaultAddress, event.params.requestId.toHexString())
   );
 
-  if (!boringWithdrawal) {
-    boringWithdrawal = new RawBoringWithdrawal(
-      generateBoringWithdrawalId(event.address, event.params.requestId)
-    );
+  boringWithdrawal.boringVaultRefId = generateBoringVaultId(
+    Address.fromString(vaultAddress)
+  );
+  boringWithdrawal.requestId = event.params.requestId.toHexString();
+  boringWithdrawal.chainId = CHAIN_ID;
+  boringWithdrawal.vaultAddress = vaultAddress;
+  boringWithdrawal.accountAddress = event.params.user.toHexString();
+  boringWithdrawal.assetId = generateTokenId(event.params.assetOut);
+  boringWithdrawal.assetOut = event.params.assetOut.toHexString();
+  boringWithdrawal.nonce = event.params.nonce;
+  boringWithdrawal.amountOfShares = event.params.amountOfShares;
+  boringWithdrawal.amountOfAssets = event.params.amountOfAssets;
+  boringWithdrawal.creationTime = event.params.creationTime;
+  boringWithdrawal.secondsToMaturity = BigInt.fromU32(
+    event.params.secondsToMaturity
+  );
+  boringWithdrawal.secondsToDeadline = BigInt.fromU32(
+    event.params.secondsToDeadline
+  );
+  boringWithdrawal.status = "requested";
+  boringWithdrawal.expiresAt = BigInt.fromU32(
+    event.params.secondsToMaturity
+  ).plus(event.block.timestamp);
+  boringWithdrawal.blockNumber = event.block.number;
+  boringWithdrawal.blockTimestamp = event.block.timestamp;
+  boringWithdrawal.transactionHash = event.transaction.hash.toHexString();
+  boringWithdrawal.logIndex = event.logIndex;
 
-    boringWithdrawal.boringVaultRefId = sourceRefId;
-    boringWithdrawal.chainId = CHAIN_ID;
-    boringWithdrawal.vaultAddress = event.address.toHexString();
-    boringWithdrawal.accountAddress = event.params.user.toHexString();
-    boringWithdrawal.expirationTimestamp = BigInt.fromU32(
-      event.params.secondsToMaturity
-    ).plus(event.block.timestamp);
-    boringWithdrawal.amount = event.params.amountOfAssets;
+  boringWithdrawal.save();
+  // xxx Create raw global activity xxx
+
+  // === Create raw global activity ===
+  let rawGlobalActivity = new RawGlobalActivity(
+    generateRawGlobalActivityId(
+      event.transaction.hash,
+      event.logIndex,
+      "boring",
+      "withdraw-requested",
+      BigInt.fromI32(0)
+    )
+  );
+
+  rawGlobalActivity.chainId = CHAIN_ID;
+  rawGlobalActivity.category = "boring";
+  rawGlobalActivity.subCategory = "withdraw-requested";
+  rawGlobalActivity.sourceRefId = generateBoringVaultId(
+    Address.fromString(vaultAddress)
+  );
+  rawGlobalActivity.contractAddress = vaultAddress;
+  rawGlobalActivity.accountAddress = event.params.user.toHexString();
+  rawGlobalActivity.tokenIndex = BigInt.fromI32(0);
+  rawGlobalActivity.tokenId = generateTokenId(event.params.assetOut);
+  rawGlobalActivity.tokenAddress = event.params.assetOut.toHexString();
+  rawGlobalActivity.tokenAmount = event.params.amountOfAssets;
+  rawGlobalActivity.blockNumber = event.block.number;
+  rawGlobalActivity.blockTimestamp = event.block.timestamp;
+  rawGlobalActivity.transactionHash = event.transaction.hash.toHexString();
+  rawGlobalActivity.logIndex = event.logIndex;
+
+  rawGlobalActivity.save();
+  // xxx Create raw global activity xxx
+}
+
+export function handleOnChainWithdrawCancelled(
+  event: OnChainWithdrawCancelledEvent
+): void {
+  let entity = new OnChainWithdrawCancelled(
+    generateId(event.address, event.transaction.hash, event.logIndex)
+  );
+  entity.chainId = CHAIN_ID;
+  entity.vaultQueueAddress = event.address.toHexString();
+  entity.requestId = event.params.requestId.toHexString();
+  entity.user = event.params.user.toHexString();
+  entity.timestamp = event.params.timestamp;
+
+  entity.blockNumber = event.block.number;
+  entity.blockTimestamp = event.block.timestamp;
+  entity.transactionHash = event.transaction.hash.toHexString();
+  entity.logIndex = event.logIndex;
+
+  entity.save();
+
+  const vaultAddress = getVaultAddress(event.address.toHexString());
+
+  let boringWithdrawal = BoringWithdrawal.load(
+    generateQueueId(vaultAddress, event.params.requestId.toHexString())
+  );
+
+  if (boringWithdrawal) {
+    // === Update boring withdrawal ===
+    boringWithdrawal.status = "cancelled";
+
     boringWithdrawal.blockNumber = event.block.number;
     boringWithdrawal.blockTimestamp = event.block.timestamp;
     boringWithdrawal.transactionHash = event.transaction.hash.toHexString();
     boringWithdrawal.logIndex = event.logIndex;
-    boringWithdrawal.fundsRecovered = false;
 
     boringWithdrawal.save();
-  }
+    // xxx Update raw global activity xxx
 
-  createRawGlobalActivity(
-    "boring",
-    "withdraw-requested",
-    sourceRefId,
-    event.address.toHexString(),
-    event.params.user.toHexString(),
-    BigInt.fromI32(0),
-    tokenId,
-    event.params.amountOfAssets,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash,
-    event.logIndex
-  );
+    // === Create raw global activity ===
+    let rawGlobalActivity = new RawGlobalActivity(
+      generateRawGlobalActivityId(
+        event.transaction.hash,
+        event.logIndex,
+        "boring",
+        "withdraw-cancelled",
+        BigInt.fromI32(0)
+      )
+    );
+
+    rawGlobalActivity.chainId = CHAIN_ID;
+    rawGlobalActivity.category = "boring";
+    rawGlobalActivity.subCategory = "withdraw-cancelled";
+    rawGlobalActivity.sourceRefId = boringWithdrawal.boringVaultRefId;
+    rawGlobalActivity.contractAddress = vaultAddress;
+    rawGlobalActivity.accountAddress = event.params.user.toHexString();
+    rawGlobalActivity.tokenIndex = BigInt.fromI32(0);
+    rawGlobalActivity.tokenId = generateTokenId(
+      Address.fromString(boringWithdrawal.assetOut)
+    );
+    rawGlobalActivity.tokenAddress = boringWithdrawal.assetOut;
+    rawGlobalActivity.tokenAmount = boringWithdrawal.amountOfAssets;
+    rawGlobalActivity.blockNumber = event.block.number;
+    rawGlobalActivity.blockTimestamp = event.block.timestamp;
+    rawGlobalActivity.transactionHash = event.transaction.hash.toHexString();
+    rawGlobalActivity.logIndex = event.logIndex;
+
+    rawGlobalActivity.save();
+    // xxx Create raw global activity xxx
+  }
 }
 
 export function handleOnChainWithdrawSolved(
@@ -180,12 +206,53 @@ export function handleOnChainWithdrawSolved(
 
   entity.save();
 
-  let boringWithdrawal = RawBoringWithdrawal.load(
-    generateBoringWithdrawalId(event.address, event.params.requestId)
+  const vaultAddress = getVaultAddress(event.address.toHexString());
+
+  let boringWithdrawal = BoringWithdrawal.load(
+    generateQueueId(vaultAddress, event.params.requestId.toHexString())
   );
 
   if (boringWithdrawal) {
-    boringWithdrawal.fundsRecovered = true;
+    // === Update boring withdrawal ===
+    boringWithdrawal.status = "complete";
+
+    boringWithdrawal.blockNumber = event.block.number;
+    boringWithdrawal.blockTimestamp = event.block.timestamp;
+    boringWithdrawal.transactionHash = event.transaction.hash.toHexString();
+    boringWithdrawal.logIndex = event.logIndex;
+
     boringWithdrawal.save();
+    // xxx Update raw global activity xxx
+
+    // === Create raw global activity ===
+    let rawGlobalActivity = new RawGlobalActivity(
+      generateRawGlobalActivityId(
+        event.transaction.hash,
+        event.logIndex,
+        "boring",
+        "withdraw-complete",
+        BigInt.fromI32(0)
+      )
+    );
+
+    rawGlobalActivity.chainId = CHAIN_ID;
+    rawGlobalActivity.category = "boring";
+    rawGlobalActivity.subCategory = "withdraw-complete";
+    rawGlobalActivity.sourceRefId = boringWithdrawal.boringVaultRefId;
+    rawGlobalActivity.contractAddress = vaultAddress;
+    rawGlobalActivity.accountAddress = event.params.user.toHexString();
+    rawGlobalActivity.tokenIndex = BigInt.fromI32(0);
+    rawGlobalActivity.tokenId = generateTokenId(
+      Address.fromString(boringWithdrawal.assetOut)
+    );
+    rawGlobalActivity.tokenAddress = boringWithdrawal.assetOut;
+    rawGlobalActivity.tokenAmount = boringWithdrawal.amountOfAssets;
+    rawGlobalActivity.blockNumber = event.block.number;
+    rawGlobalActivity.blockTimestamp = event.block.timestamp;
+    rawGlobalActivity.transactionHash = event.transaction.hash.toHexString();
+    rawGlobalActivity.logIndex = event.logIndex;
+
+    rawGlobalActivity.save();
+    // xxx Create raw global activity xxx
   }
 }
