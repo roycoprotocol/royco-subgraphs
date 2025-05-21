@@ -154,3 +154,35 @@ export const generateBoringWithdrawalId = (
     .concat("_")
     .concat(requestId.toHexString().toLowerCase());
 };
+
+export const generateRawGlobalActivityIdWithdraw = (
+  sourceRefId: string,
+  requestId: string
+): string => {
+  return sourceRefId.concat("_").concat(requestId);
+};
+
+export const generateQueueId = (
+  vaultAddress: string,
+  requestId: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(requestId);
+};
+
+export const generateRawGlobalAccountUpdateId = (
+  vaultAddress: string,
+  accountAddress: string,
+  blockTimestamp: BigInt
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(accountAddress)
+    .concat("_")
+    .concat(blockTimestamp.toString());
+};

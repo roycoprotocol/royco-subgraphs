@@ -1,4 +1,4 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
+import { BigInt } from "@graphprotocol/graph-ts";
 import {
   Approval as ApprovalEvent,
   AuthorityUpdated as AuthorityUpdatedEvent,
@@ -19,15 +19,14 @@ import {
   EpochStarted,
   Exit,
   OwnershipTransferred,
+  RawGlobalActivity,
   RewardsDistributed,
   Transfer,
   UserDepositedIntoEpoch,
   UserRewardsClaimed,
   UserWithdrawnFromEpoch,
-  VaultTokenHoldings,
 } from "../generated/schema";
-import { CHAIN_ID, NULL_ADDRESS, VAULT_QUEUE_ADDRESSES } from "./constants";
-import { createRawGlobalActivity } from "./global-activity-handler";
+import { CHAIN_ID } from "./constants";
 import {
   createBoringAccountUpdateDeposit,
   createBoringAccountUpdateWithdraw,
@@ -42,8 +41,8 @@ import {
 import {
   generateBoringVaultId,
   generateId,
+  generateRawGlobalActivityId,
   generateTokenId,
-  generateVaultTokenId,
 } from "./utils";
 import { handleRawPosition } from "./position-handler";
 
@@ -164,24 +163,34 @@ export function handleUserRewardsClaimed(event: UserRewardsClaimedEvent): void {
     event // Event
   );
 
-  const sourceRefId = generateBoringVaultId(event.address);
-
-  const tokenId = generateTokenId(event.params.token);
-
-  createRawGlobalActivity(
-    "boring",
-    "claim",
-    sourceRefId,
-    event.address.toHexString(),
-    event.params.user.toHexString(),
-    BigInt.fromI32(0),
-    tokenId,
-    event.params.amount,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash,
-    event.logIndex
+  // === Create raw global activity ===
+  let rawGlobalActivity = new RawGlobalActivity(
+    generateRawGlobalActivityId(
+      event.transaction.hash,
+      event.logIndex,
+      "boring",
+      "claim",
+      BigInt.fromI32(0)
+    )
   );
+
+  rawGlobalActivity.chainId = CHAIN_ID;
+  rawGlobalActivity.category = "boring";
+  rawGlobalActivity.subCategory = "claim";
+  rawGlobalActivity.sourceRefId = generateBoringVaultId(event.address);
+  rawGlobalActivity.contractAddress = event.address.toHexString();
+  rawGlobalActivity.accountAddress = event.params.user.toHexString();
+  rawGlobalActivity.tokenIndex = BigInt.fromI32(0);
+  rawGlobalActivity.tokenId = generateTokenId(event.params.token);
+  rawGlobalActivity.tokenAddress = event.params.token.toHexString();
+  rawGlobalActivity.tokenAmount = event.params.amount;
+  rawGlobalActivity.blockNumber = event.block.number;
+  rawGlobalActivity.blockTimestamp = event.block.timestamp;
+  rawGlobalActivity.transactionHash = event.transaction.hash.toHexString();
+  rawGlobalActivity.logIndex = event.logIndex;
+
+  rawGlobalActivity.save();
+  // xxx Create raw global activity xxx
 }
 
 export function handleApproval(event: ApprovalEvent): void {
@@ -238,41 +247,34 @@ export function handleEnter(event: EnterEvent): void {
 
   entity.save();
 
-  const sourceRefId = generateBoringVaultId(event.address);
-
-  const tokenId = generateTokenId(event.params.asset);
-
-  //save the vault token if it doesn't exist
-  let vaultTokenHoldings = VaultTokenHoldings.load(
-    generateVaultTokenId(event.address, event.params.from)
+  // === Create raw global activity ===
+  let rawGlobalActivity = new RawGlobalActivity(
+    generateRawGlobalActivityId(
+      event.transaction.hash,
+      event.logIndex,
+      "boring",
+      "deposit",
+      BigInt.fromI32(0)
+    )
   );
-  if (!vaultTokenHoldings) {
-    vaultTokenHoldings = new VaultTokenHoldings(
-      generateVaultTokenId(event.address, event.params.from)
-    );
-    vaultTokenHoldings.chainId = CHAIN_ID;
-    vaultTokenHoldings.vaultAddress = event.address.toHexString();
-    vaultTokenHoldings.tokenAddress = event.params.asset.toHexString();
-    vaultTokenHoldings.accountAddress = event.params.from.toHexString();
-    vaultTokenHoldings.balance = event.params.amount;
-    vaultTokenHoldings.shares = event.params.shares;
-    vaultTokenHoldings.save();
-  }
 
-  createRawGlobalActivity(
-    "boring",
-    "deposit",
-    sourceRefId,
-    event.address.toHexString(),
-    event.params.from.toHexString(),
-    BigInt.fromI32(0),
-    tokenId,
-    event.params.amount,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash,
-    event.logIndex
-  );
+  rawGlobalActivity.chainId = CHAIN_ID;
+  rawGlobalActivity.category = "boring";
+  rawGlobalActivity.subCategory = "deposit";
+  rawGlobalActivity.sourceRefId = generateBoringVaultId(event.address);
+  rawGlobalActivity.contractAddress = event.address.toHexString();
+  rawGlobalActivity.accountAddress = event.params.from.toHexString();
+  rawGlobalActivity.tokenIndex = BigInt.fromI32(0);
+  rawGlobalActivity.tokenId = generateTokenId(event.params.asset);
+  rawGlobalActivity.tokenAddress = event.params.asset.toHexString();
+  rawGlobalActivity.tokenAmount = event.params.amount;
+  rawGlobalActivity.blockNumber = event.block.number;
+  rawGlobalActivity.blockTimestamp = event.block.timestamp;
+  rawGlobalActivity.transactionHash = event.transaction.hash.toHexString();
+  rawGlobalActivity.logIndex = event.logIndex;
+
+  rawGlobalActivity.save();
+  // xxx Create raw global activity xxx
 }
 
 export function handleExit(event: ExitEvent): void {
@@ -294,38 +296,34 @@ export function handleExit(event: ExitEvent): void {
 
   entity.save();
 
-  const sourceRefId = generateBoringVaultId(event.address);
-
-  const tokenId = generateTokenId(event.params.asset);
-
-  //save the vault token if it doesn't exist
-  let vaultTokenHoldings = VaultTokenHoldings.load(
-    generateVaultTokenId(event.address, event.params.from)
+  // === Create raw global activity ===
+  let rawGlobalActivity = new RawGlobalActivity(
+    generateRawGlobalActivityId(
+      event.transaction.hash,
+      event.logIndex,
+      "boring",
+      "withdraw",
+      BigInt.fromI32(0)
+    )
   );
-  if (vaultTokenHoldings) {
-    vaultTokenHoldings.balance = vaultTokenHoldings.balance.minus(
-      event.params.amount
-    );
-    vaultTokenHoldings.shares = vaultTokenHoldings.shares.minus(
-      event.params.shares
-    );
-    vaultTokenHoldings.save();
-  }
 
-  createRawGlobalActivity(
-    "boring",
-    "withdraw",
-    sourceRefId,
-    event.address.toHexString(),
-    event.params.to.toHexString(),
-    BigInt.fromI32(0),
-    tokenId,
-    event.params.amount,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash,
-    event.logIndex
-  );
+  rawGlobalActivity.chainId = CHAIN_ID;
+  rawGlobalActivity.category = "boring";
+  rawGlobalActivity.subCategory = "withdraw";
+  rawGlobalActivity.sourceRefId = generateBoringVaultId(event.address);
+  rawGlobalActivity.contractAddress = event.address.toHexString();
+  rawGlobalActivity.accountAddress = event.params.to.toHexString();
+  rawGlobalActivity.tokenIndex = BigInt.fromI32(0);
+  rawGlobalActivity.tokenId = generateTokenId(event.params.asset);
+  rawGlobalActivity.tokenAddress = event.params.asset.toHexString();
+  rawGlobalActivity.tokenAmount = event.params.amount;
+  rawGlobalActivity.blockNumber = event.block.number;
+  rawGlobalActivity.blockTimestamp = event.block.timestamp;
+  rawGlobalActivity.transactionHash = event.transaction.hash.toHexString();
+  rawGlobalActivity.logIndex = event.logIndex;
+
+  rawGlobalActivity.save();
+  // xxx Create raw global activity xxx
 }
 
 export function handleOwnershipTransferred(
@@ -365,111 +363,4 @@ export function handleTransfer(event: TransferEvent): void {
   entity.save();
 
   handleRawPosition(event);
-
-  const sourceRefId = generateBoringVaultId(event.address);
-
-  //get the token from the vault
-  let vaultTokenHoldings = VaultTokenHoldings.load(
-    generateVaultTokenId(event.address, event.params.from)
-  );
-
-  if (!vaultTokenHoldings) {
-    return;
-  }
-
-  const tokenId = generateTokenId(
-    Address.fromString(vaultTokenHoldings.tokenAddress)
-  );
-
-  //if not burn or mint
-  //if from or to is null, it means the token is a enter or exit event
-  //get the queue for the vault
-  if (
-    event.params.to.toHexString().toLowerCase() != NULL_ADDRESS.toLowerCase() &&
-    event.params.from.toHexString().toLowerCase() !=
-      NULL_ADDRESS.toLowerCase() &&
-    event.params.from.toHexString().toLowerCase() !=
-      event.params.to.toHexString().toLowerCase()
-  ) {
-    // Check if shares is zero to prevent division by zero
-    if (vaultTokenHoldings.shares.equals(BigInt.fromI32(0))) {
-      return;
-    }
-
-    const percentage = event.params.amount.div(vaultTokenHoldings.shares);
-    const holdingsTransferred = vaultTokenHoldings.balance.times(percentage);
-    const sharesTransferred = vaultTokenHoldings.shares.times(percentage);
-    //update the vault token holdings to subtract by the percentage of shares transferred, then add that amount to the new vault token holdings
-    vaultTokenHoldings.balance =
-      vaultTokenHoldings.balance.minus(holdingsTransferred);
-    vaultTokenHoldings.shares =
-      vaultTokenHoldings.shares.minus(sharesTransferred);
-    vaultTokenHoldings.save();
-
-    let newVaultAccountHoldings = VaultTokenHoldings.load(
-      generateVaultTokenId(event.address, event.params.to)
-    );
-
-    if (!newVaultAccountHoldings) {
-      newVaultAccountHoldings = new VaultTokenHoldings(
-        generateVaultTokenId(event.address, event.params.to)
-      );
-      newVaultAccountHoldings.chainId = CHAIN_ID;
-      newVaultAccountHoldings.vaultAddress = event.address.toHexString();
-      newVaultAccountHoldings.tokenAddress = vaultTokenHoldings.tokenAddress;
-      newVaultAccountHoldings.accountAddress = event.params.to.toHexString();
-      newVaultAccountHoldings.balance = holdingsTransferred;
-      newVaultAccountHoldings.shares = sharesTransferred;
-      newVaultAccountHoldings.save();
-    } else {
-      newVaultAccountHoldings.balance =
-        newVaultAccountHoldings.balance.plus(holdingsTransferred);
-      newVaultAccountHoldings.shares =
-        newVaultAccountHoldings.shares.plus(sharesTransferred);
-      newVaultAccountHoldings.save();
-    }
-
-    //if the vault queue is involved in the transaction skip
-
-    if (
-      VAULT_QUEUE_ADDRESSES.includes(
-        event.params.from.toHexString().toLowerCase()
-      ) ||
-      VAULT_QUEUE_ADDRESSES.includes(
-        event.params.to.toHexString().toLowerCase()
-      )
-    ) {
-      return;
-    }
-
-    createRawGlobalActivity(
-      "boring",
-      "deposit",
-      sourceRefId,
-      event.address.toHexString(),
-      event.params.to.toHexString(),
-      BigInt.fromI32(0),
-      tokenId,
-      event.params.amount,
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash,
-      event.logIndex
-    );
-
-    createRawGlobalActivity(
-      "boring",
-      "withdraw",
-      sourceRefId,
-      event.address.toHexString(),
-      event.params.from.toHexString(),
-      BigInt.fromI32(0),
-      tokenId,
-      event.params.amount,
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash,
-      event.logIndex
-    );
-  }
 }
