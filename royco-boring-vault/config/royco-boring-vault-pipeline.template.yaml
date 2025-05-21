@@ -59,8 +59,16 @@ sources:
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
-  raw_boring_withdrawal_reference:
-    name: raw_boring_withdrawal
+  boring_withdrawal_reference:
+    name: boring_withdrawal
+    subgraphs:
+      {{#metadata}}
+      - name: royco-boring-vault-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_global_account_update_reference:
+    name: raw_global_account_update
     subgraphs:
       {{#metadata}}
       - name: royco-boring-vault-{{network}}
@@ -118,10 +126,17 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_position_boring"
     from: raw_position_boring_reference
-  raw_boring_withdrawal_postgres:
+  boring_withdrawal_postgres:
     type: postgres
-    table: raw_boring_withdrawal
+    table: boring_withdrawal
     schema: public
     secret_name: NEON_ROYCO
-    description: "Postgres sink for: raw_boring_withdrawal"
-    from: raw_boring_withdrawal_reference
+    description: "Postgres sink for: boring_withdrawal"
+    from: boring_withdrawal_reference
+  raw_global_account_update_postgres:
+    type: postgres
+    table: raw_global_account_update
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_global_account_update"
+    from: raw_global_account_update_reference
