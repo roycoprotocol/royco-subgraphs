@@ -4,7 +4,7 @@
   "sources": [
     {
       "id": "",
-      "vaultAddress": "0x83A6F6034ee44De6648B1885e24D837D8D98698f",
+      "vaultAddress": "0x83a6f6034ee44de6648b1885e24d837d8d98698f",
       "startBlock": 1424555,
       "vaultQueueAddress": "0x21aed7ab1f40710193ac26eabd0e1e4b2b2edd72",
       "vaultQueueStartBlock": 1424555
