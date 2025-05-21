@@ -1,6 +1,7 @@
 # prettier-ignore
 apiVersion: 3
 name: royco-boring-vault-pipeline
+status: ACTIVE
 resource_size: s
 sources:
   boring_epoch_reference:
