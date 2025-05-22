@@ -343,7 +343,6 @@ export function handleOwnershipTransferred(
   entity.logIndex = event.logIndex;
 
   entity.save();
-  console.log("handleOwnershipTransferred: " + event.address.toHexString());
 }
 
 export function handleTransfer(event: TransferEvent): void {
