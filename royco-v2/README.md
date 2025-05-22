@@ -33,19 +33,19 @@ yarn prepare:<network> && graph codegen && graph build
 ### Deploy
 
 ```bash
-goldsky subgraph deploy royco-recipe-<network>/<version> --path .
+goldsky subgraph deploy royco-vault-<network>/<version> --path .
 ```
 
 ### Pause
 
 ```bash
-goldsky subgraph pause royco-recipe-<network>/<version>
+goldsky subgraph pause royco-vault-<network>/<version>
 ```
 
 ### Delete
 
 ```bash
-goldsky subgraph delete royco-recipe-<network>/<version>
+goldsky subgraph delete royco-vault-<network>/<version>
 ```
 
 ## Pipeline Commands
@@ -53,23 +53,17 @@ goldsky subgraph delete royco-recipe-<network>/<version>
 ### Update
 
 ```bash
-goldsky pipeline apply royco-recipe.yaml
+goldsky pipeline apply royco-vault.yaml
 ```
 
 ### Stop
 
 ```bash
-goldsky pipeline stop royco-recipe
+goldsky pipeline stop royco-vault
 ```
 
 ### Delete
 
 ```bash
-goldsky pipeline delete royco-recipe
-```
-
-## Sentio
-
-```bash
-npx @sentio/cli graph deploy --owner uday --name royco-recipe-sonic
+goldsky pipeline delete royco-vault
 ```
