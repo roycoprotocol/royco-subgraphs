@@ -2,7 +2,7 @@
 
 # Array of networks
 networks=(
-    # "sepolia"
+    "sepolia"
     "mainnet"
     "arbitrum-one"
     "base"
@@ -17,7 +17,7 @@ prepare_and_deploy() {
     local network=$1
 
     # Note: update version if needed
-    local subgraph_name="royco-recipe-${network}/2.0.30" 
+    local subgraph_name="royco-recipe-${network}/2.0.31" 
     
     echo "Preparing and deploying ${subgraph_name}..."
     yarn prepare:${network} && graph codegen && graph build
