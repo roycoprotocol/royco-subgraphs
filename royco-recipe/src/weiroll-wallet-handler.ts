@@ -168,6 +168,7 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
             );
           }
         } else {
+          let newToken0AmountRemaining = rawOffer.token0AmountRemaining;
           let newToken1AmountsRemaining = rawOffer.token1AmountsRemaining;
 
           // @note: no de-duplication required, because token1Ids will always have unique tokens
@@ -187,6 +188,9 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
             ].plus(token1Amounts[i]);
           }
 
+          rawOffer.token0AmountRemaining = rawOffer.token0AmountRemaining.plus(
+            rawPosition.token0Amount
+          );
           rawOffer.token1AmountsRemaining = newToken1AmountsRemaining;
 
           rawOffer.save();
