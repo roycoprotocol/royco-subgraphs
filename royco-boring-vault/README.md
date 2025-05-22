@@ -15,7 +15,7 @@
 ### Deploy Pipeline
 
 ```bash
-./deploy-pipeline.sh
+npm run deploy:pipeline
 ```
 
 ### Delete Pipeline
