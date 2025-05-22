@@ -154,8 +154,8 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
 
         if (
           rawOffer.isCancelled == true ||
-          (rawOffer.expiry <= event.block.timestamp &&
-            !rawOffer.expiry.equals(BigInt.zero()))
+          (!rawOffer.expiry.equals(BigInt.zero()) &&
+            rawOffer.expiry < event.block.timestamp)
         ) {
           // @note: no de-duplication required, because token1Ids will always have unique tokens
           for (let i = 0; i < token1Ids.length; i++) {
@@ -168,7 +168,9 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
             );
           }
         } else {
-          let newToken0AmountRemaining = rawOffer.token0AmountRemaining;
+          let newToken0AmountRemaining = rawOffer.token0AmountRemaining.plus(
+            rawPosition.token0Amount
+          );
           let newToken1AmountsRemaining = rawOffer.token1AmountsRemaining;
 
           // @note: no de-duplication required, because token1Ids will always have unique tokens
@@ -188,9 +190,7 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
             ].plus(token1Amounts[i]);
           }
 
-          rawOffer.token0AmountRemaining = rawOffer.token0AmountRemaining.plus(
-            rawPosition.token0Amount
-          );
+          rawOffer.token0AmountRemaining = newToken0AmountRemaining;
           rawOffer.token1AmountsRemaining = newToken1AmountsRemaining;
 
           rawOffer.save();
@@ -218,10 +218,7 @@ export function forfeitPosition(event: WeirollWalletForfeitedEvent): void {
       }
     }
 
-    // rawPosition.token1Ids = [];
-    // rawPosition.token1Amounts = [];
     rawPosition.isForfeited = true;
-    // rawPosition.isClaimed = [];
     rawPosition.unlockTimestamp = event.block.timestamp;
 
     rawPosition.save();

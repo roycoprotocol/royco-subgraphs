@@ -28,7 +28,7 @@ delete_subgraph() {
     local network=$1
 
     # Note: update version if needed
-    local subgraph_name="royco-recipe-${network}/2.0.29" 
+    local subgraph_name="royco-recipe-${network}/2.0.30" 
     
     echo "Attempting to delete ${subgraph_name}..."
     goldsky subgraph delete "${subgraph_name}" --force || true 
