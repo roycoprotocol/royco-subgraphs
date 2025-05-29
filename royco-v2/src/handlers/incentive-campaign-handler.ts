@@ -6,6 +6,7 @@ import {
   RawIncentiveCampaign,
   RawIncentiveClaimBalance,
   RawCoIp,
+  RawGlobalActivity,
 } from "../../generated/schema";
 import {
   generateRawIncentiveCampaignId,
@@ -13,9 +14,11 @@ import {
   generateRawIncentiveClaimBalanceId,
   generateRawCoIpId,
   generateIncentiveCampaignTag,
+  generateRawGlobalActivityId,
+  generateTokenId,
 } from "../utils/id-generator";
 import { BIG_INT_ZERO, CHAIN_ID } from "../utils/constants";
-import { BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 
 export function handleIncentiveCampaignCreation(
   entity: IncentiveCampaignCreated
@@ -194,6 +197,39 @@ export function handleClaim(entity: IncentivesClaimed): void {
 
   balances.save();
   campaign.save();
+
+  // Create a raw global activity entity for each incentive claimed
+  const category = "v2";
+  const subCategory = "claim";
+  for (let i = 0; i < entity.incentivesClaimed.length; i++) {
+    let rawGlobalActivity = new RawGlobalActivity(
+      generateRawGlobalActivityId(
+        Bytes.fromHexString(entity.transactionHash),
+        entity.logIndex,
+        category,
+        subCategory,
+        BigInt.fromI32(i)
+      )
+    );
+
+    rawGlobalActivity.chainId = CHAIN_ID;
+    rawGlobalActivity.category = category;
+    rawGlobalActivity.subCategory = subCategory;
+    rawGlobalActivity.sourceRefId = entity.incentiveCampaignId;
+    rawGlobalActivity.contractAddress = entity.incentiveLockerAddress;
+    rawGlobalActivity.accountAddress = entity.ap.toLowerCase();
+    rawGlobalActivity.tokenIndex = BigInt.fromI32(i);
+    rawGlobalActivity.tokenId = generateTokenId(
+      Address.fromString(entity.incentivesClaimed[i])
+    );
+    rawGlobalActivity.tokenAddress = entity.incentivesClaimed[i].toLowerCase();
+    rawGlobalActivity.tokenAmount = entity.incentiveAmountsPaid[i];
+    rawGlobalActivity.blockNumber = entity.blockNumber;
+    rawGlobalActivity.blockTimestamp = entity.blockTimestamp;
+    rawGlobalActivity.transactionHash = entity.transactionHash;
+    rawGlobalActivity.logIndex = entity.logIndex;
+    rawGlobalActivity.save();
+  }
 }
 
 export function handleAddOrRemoveCoIP(
