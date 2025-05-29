@@ -35,7 +35,7 @@ export const generateRawGlobalActivityId = (
 };
 
 export const generateTokenId = (tokenAddress: Address): string => {
-  return CHAIN_ID.toString().concat("-").concat(tokenAddress.toHexString());
+  return CHAIN_ID.toString().concat("-").concat(tokenAddress.toHexString().toLowerCase());
 };
 
 export const generateRawWhitelistedIpId = (
