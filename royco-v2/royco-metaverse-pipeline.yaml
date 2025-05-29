@@ -7,79 +7,85 @@ sources:
     name: raw_incentive_campaign
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_incentive_campaign_uma_merkle_chef_reference:
     name: raw_incentive_campaign_uma_merkle_chef
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_multiplier_ap_offer_reference:
     name: raw_multiplier_ap_offer
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_historical_multiplier_state_reference:
     name: raw_historical_multiplier_state
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_user_multiplier_state_reference:
     name: raw_user_multiplier_state
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_incentive_claim_balance_reference:
     name: raw_incentive_claim_balance
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_co_ip_reference:
     name: raw_co_ip
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_points_program_reference:
     name: raw_points_program
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_whitelisted_ip_reference:
     name: raw_whitelisted_ip
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_points_program_balance_reference:
     name: raw_points_program_balance
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_incentive_emission_rates_reference:
     name: raw_incentive_emission_rates
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_uma_merkle_root_assertion_reference:
     name: raw_uma_merkle_root_assertion
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
     type: subgraph_entity
   raw_uma_merkle_root_state_reference:
     name: raw_uma_merkle_root_state
     subgraphs:
       - name: royco-metaverse-sepolia
-        version: 0.0.12
+        version: 0.0.16
+    type: subgraph_entity
+  raw_global_activity_reference:
+    name: raw_global_activity
+    subgraphs:
+      - name: royco-metaverse-sepolia
+        version: 0.0.16
     type: subgraph_entity
 transforms: {}
 sinks:
@@ -174,3 +180,10 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_uma_merkle_root_state"
     from: raw_uma_merkle_root_state_reference
+  raw_global_activity_postgres:
+    type: postgres
+    table: raw_global_activity
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_global_activity"
+    from: raw_global_activity_reference
