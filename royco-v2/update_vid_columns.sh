@@ -12,7 +12,7 @@ fi
 
 # Function to extract table names from pipeline.yaml
 extract_tables() {
-    local pipeline_name="royco-metaverse-pipeline" 
+    local pipeline_name="royco-multiverse-pipeline" 
     # Use yq to parse the YAML file and extract table names from sinks
     yq '.sinks | keys | .[]' $pipeline_name.yaml | while read -r sink_name; do
         yq ".sinks.$sink_name.table" $pipeline_name.yaml
