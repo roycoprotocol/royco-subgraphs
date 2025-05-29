@@ -2,7 +2,7 @@
 
 # Function to deploy pipeline
 deploy_pipeline() {
-    local pipeline_name="royco-metaverse-pipeline"
+    local pipeline_name="royco-multiverse-pipeline"
     
     echo "Preparing $pipeline_name..."
     npm run prepare:pipeline
