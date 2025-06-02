@@ -68,6 +68,7 @@ type FeesClaimed @entity(immutable: true) {
 type IncentiveCampaignCreated @entity(immutable: true) {
   id: String!
   chainId: BigInt!
+  incentiveLockerAddress: String! # address
   incentiveCampaignId: String! # bytes32
   ip: String! # address
   actionVerifier: String! # address
@@ -96,10 +97,29 @@ type IncentivesAdded @entity(immutable: true) {
   logIndex: BigInt!
 }
 
+type RawGlobalActivity @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  chainId: BigInt! # Hardcoded
+  category: String! # Category (e.g. "recipe", "vault", "boring", "v2", etc.)
+  subCategory: String! # Sub Category (e.g. "deposit", "withdraw", "claim", etc.)
+  sourceRefId: String! # Source Ref ID
+  contractAddress: String! # Contract Address
+  accountAddress: String! # Account Address
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  tokenAmount: BigInt! # Token Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+}
+
 type IncentivesClaimed @entity(immutable: true) {
   id: String!
   chainId: BigInt!
   incentiveCampaignId: String! # bytes32
+  incentiveLockerAddress: String! # address
   ap: String! # address
   incentivesClaimed: [String!]! # address[]
   incentiveAmountsPaid: [BigInt!]! # uint256[]
