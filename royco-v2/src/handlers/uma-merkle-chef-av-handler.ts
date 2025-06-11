@@ -20,7 +20,10 @@ import {
 import { CHAIN_ID, UMA_MERKLE_ORACLE_STATES } from "../utils/constants";
 
 export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
-  let ratesId = generateRawIncentiveEmissionRatesId(entity.incentiveCampaignId, entity.logIndex);
+  let ratesId = generateRawIncentiveEmissionRatesId(
+    entity.incentiveCampaignId,
+    entity.logIndex
+  );
   let merkleCampaignId = generateRawIncentiveCampaignId(
     entity.incentiveCampaignId
   );
@@ -78,7 +81,9 @@ export function handleRateUpdates(entity: IncentiveEmissionRatesUpdated): void {
   // Strip chain id to make this avm friendly
   let updatedIncentives: string[] = [];
   for (let i = 0; i < updatedIncentiveIds.length; i++) {
-    updatedIncentives[i] = updatedIncentiveIds[i].slice(updatedIncentiveIds[i].indexOf("-") + 1);
+    updatedIncentives[i] = updatedIncentiveIds[i].slice(
+      updatedIncentiveIds[i].indexOf("-") + 1
+    );
   }
   rates.incentives = updatedIncentives;
   rates.incentiveEmissionRates = updatedRates;

@@ -3,6 +3,7 @@
 # Array of networks
 networks=(
     "sepolia"
+    "mainnet"
 )
 
 # Function to get current version
