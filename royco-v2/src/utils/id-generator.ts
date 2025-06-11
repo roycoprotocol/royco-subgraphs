@@ -67,7 +67,7 @@ export const generateRawIncentiveCampaignId = (
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
-    .concat("2")
+    .concat(INCENTIVE_CAMPAIGN_TYPE)
     .concat("_")
     .concat(incentiveCampaignId);
 };
