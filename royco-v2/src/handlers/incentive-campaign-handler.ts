@@ -7,6 +7,7 @@ import {
   RawIncentiveClaimBalance,
   RawCoIp,
   RawGlobalActivity,
+  RawIncentraAVActionParams,
 } from "../../generated/schema";
 import {
   generateRawIncentiveCampaignId,
@@ -17,8 +18,13 @@ import {
   generateRawGlobalActivityId,
   generateTokenId,
 } from "../utils/id-generator";
-import { BIG_INT_ZERO, CHAIN_ID } from "../utils/constants";
+import {
+  BIG_INT_ZERO,
+  CHAIN_ID,
+  INCENTRA_AV_ADDRESS,
+} from "../utils/constants";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { decodeIncentraActionParams } from "../utils/action-params-decoder";
 
 export function handleIncentiveCampaignCreation(
   entity: IncentiveCampaignCreated
@@ -42,6 +48,32 @@ export function handleIncentiveCampaignCreation(
   campaign.blockTimestamp = entity.blockTimestamp;
   campaign.transactionHash = entity.transactionHash;
   campaign.logIndex = entity.logIndex;
+
+  // If this is an Incentra campaign, decode the actionParams and create RawIncentraAVActionParams entity
+  if (
+    entity.actionVerifier.toLowerCase() == INCENTRA_AV_ADDRESS.toLowerCase()
+  ) {
+    const decodedParams = decodeIncentraActionParams(
+      Bytes.fromHexString(entity.actionParams)
+    );
+    if (decodedParams != null) {
+      // Create RawIncentraAVActionParams entity
+      let incentraParams = new RawIncentraAVActionParams(
+        generateRawIncentiveCampaignId(entity.incentiveCampaignId)
+      );
+      incentraParams.chainId = CHAIN_ID;
+      incentraParams.incentiveCampaignId = entity.incentiveCampaignId;
+      incentraParams.rawIncentiveCampaignRefId = campaign.id;
+      incentraParams.campaignType = decodedParams.campaignType;
+      incentraParams.incentraCampaign =
+        decodedParams.incentraCampaign.toHexString();
+      incentraParams.blockNumber = entity.blockTimestamp;
+      incentraParams.blockTimestamp = entity.blockTimestamp;
+      incentraParams.transactionHash = entity.transactionHash;
+      incentraParams.logIndex = entity.logIndex;
+      incentraParams.save();
+    }
+  }
 
   campaign.save();
 }
