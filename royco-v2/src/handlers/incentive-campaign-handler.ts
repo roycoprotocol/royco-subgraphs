@@ -67,7 +67,7 @@ export function handleIncentiveCampaignCreation(
       incentraParams.campaignType = decodedParams.campaignType;
       incentraParams.incentraCampaign =
         decodedParams.incentraCampaign.toHexString();
-      incentraParams.blockNumber = entity.blockTimestamp;
+      incentraParams.blockNumber = entity.blockNumber;
       incentraParams.blockTimestamp = entity.blockTimestamp;
       incentraParams.transactionHash = entity.transactionHash;
       incentraParams.logIndex = entity.logIndex;
