@@ -1,5 +1,10 @@
 import { Address, BigInt, Bytes, Int8 } from "@graphprotocol/graph-ts";
-import { CHAIN_ID, OFFER_TYPE, INCENTRA_AV_ADDRESS } from "./constants";
+import {
+  CHAIN_ID,
+  OFFER_TYPE,
+  INCENTRA_AV_ADDRESS,
+  INCENTIVE_CAMPAIGN_TYPE,
+} from "./constants";
 
 export function generateId(transactionHash: Bytes, logIndex: BigInt): string {
   return CHAIN_ID.toString()
@@ -169,6 +174,6 @@ export function generateIncentiveCampaignTag(
   else if (
     actionVerifierAddress.toLowerCase() == INCENTRA_AV_ADDRESS.toLowerCase()
   )
-    return "brevis";
+    return "BREVIS";
   else return "";
 }

@@ -13,6 +13,8 @@ export enum OFFER_TYPE {
     IP_OFFER
 }
 
+export const INCENTIVE_CAMPAIGN_TYPE = "2";
+
 export const INCENTRA_AV_ADDRESS = "{{ sources.0.incentraAVAddress }}";
 
 
