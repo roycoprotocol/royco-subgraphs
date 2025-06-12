@@ -13,6 +13,11 @@ export enum OFFER_TYPE {
     IP_OFFER
 }
 
+export const INCENTIVE_CAMPAIGN_TYPE = "2";
+
+export const INCENTRA_AV_ADDRESS = "{{ sources.0.incentraAVAddress }}";
+
+
 // Multipliers are denominated in BPS, so 100 = 1x multiplier
 export const DEFAULT_MULTIPLIER = BigInt.fromI32(100);
 
