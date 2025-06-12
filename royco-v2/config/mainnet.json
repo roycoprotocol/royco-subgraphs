@@ -1,0 +1,12 @@
+{
+  "network": "mainnet",
+  "chainId": "1",
+  "sources": [
+    {
+      "incentiveLockerAddress": "0x7eed8e02cf440034a6335e87a6724b1c14666f85",
+      "incentiveLockerStartBlock": 22598282,
+      "incentraAVAddress": "0xb56c0a94246736897225294d587f65b005fd6135",
+      "incentraAVStartBlock": 22598307
+    }
+  ]
+}

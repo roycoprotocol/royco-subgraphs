@@ -3,12 +3,18 @@
     "IncentiveLocker": {
       "address": "0x2bB6F292536CF874274CEca4f1663254636E15CE",
       "startBlock": 8093100
-    },
-    "UmaMerkleChefAV": {
-      "address": "0x0e6db09B98369aFfb3049580936B1c86127EBB52"
-    },
-    "MultiplierMarketHub": {
-      "address": "0xe3b296d1BA3Cf0ad06C3B74Cd4b0891293AFe5B0"
+    }
+    // "UmaMerkleChefAV": {
+    //   "address": "0x0e6db09B98369aFfb3049580936B1c86127EBB52"
+    // },
+    // "MultiplierMarketHub": {
+    //   "address": "0xe3b296d1BA3Cf0ad06C3B74Cd4b0891293AFe5B0"
+    // }
+  },
+  "mainnet": {
+    "IncentiveLocker": {
+      "address": "0x7eed8e02cf440034a6335e87a6724b1c14666f85",
+      "startBlock": 22598282
     }
   }
 }
