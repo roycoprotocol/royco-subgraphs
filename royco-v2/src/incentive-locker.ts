@@ -193,7 +193,7 @@ export function handleIncentiveCampaignCreated(
   );
   entity.chainId = CHAIN_ID;
   entity.incentiveCampaignId = event.params.incentiveCampaignId.toHexString();
-  entity.incentiveLockerAddress = event.address.toHexString();
+  entity.incentiveLockerAddress = event.address.toHexString().toLowerCase();
   entity.ip = event.params.ip.toHexString();
   entity.actionVerifier = event.params.actionVerifier.toHexString();
   entity.actionParams = event.params.actionParams.toHexString();
@@ -254,7 +254,7 @@ export function handleIncentivesClaimed(event: IncentivesClaimedEvent): void {
   entity.incentivesClaimed = event.params.incentivesClaimed.map<string>(
     (incentive) => incentive.toHexString()
   );
-  entity.incentiveLockerAddress = event.address.toHexString();
+  entity.incentiveLockerAddress = event.address.toHexString().toLowerCase();
   entity.incentiveAmountsPaid = event.params.incentiveAmountsPaid;
   entity.protocolFeesPaid = event.params.protocolFeesPaid;
   entity.rawIncentiveCampaignRefId = generateRawIncentiveCampaignId(

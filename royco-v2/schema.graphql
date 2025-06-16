@@ -491,6 +491,7 @@ type SpendCapsUpdated @entity(immutable: true) {
 type RawIncentiveCampaign @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
   chainId: BigInt! # Hardcoded
+  incentiveLockerAddress: String!
   incentiveCampaignId: String! # Unique Campaign ID
   actionVerifier: String! # Address of the action verifier
   actionParams: String! # String representing the actionParams for this campaign
