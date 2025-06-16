@@ -37,6 +37,7 @@ export function handleIncentiveCampaignCreation(
   campaign.actionVerifier = entity.actionVerifier;
   campaign.actionParams = entity.actionParams;
   campaign.owner = entity.ip;
+  campaign.incentiveLockerAddress = entity.incentiveLockerAddress;
   campaign.incentivesOfferedIds = entity.incentivesOffered.map<string>(
     (incentiveOffered) => generateIncentiveId(incentiveOffered)
   );

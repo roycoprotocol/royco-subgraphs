@@ -2,11 +2,11 @@
   "metadata": [
     {
       "network": "sepolia",
-      "version": "0.0.27"
+      "version": "0.0.30"
     },
     {
       "network": "mainnet",
-      "version": "0.0.9"
+      "version": "0.0.12"
     }
   ]
 }
