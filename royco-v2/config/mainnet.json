@@ -3,10 +3,10 @@
   "chainId": "1",
   "sources": [
     {
-      "incentiveLockerAddress": "0x7eed8e02cf440034a6335e87a6724b1c14666f85",
-      "incentiveLockerStartBlock": 22598282,
-      "incentraAVAddress": "0xb56c0a94246736897225294d587f65b005fd6135",
-      "incentraAVStartBlock": 22598307
+      "incentiveLockerAddress": "0x0564e0ee02a2c2e65a66a355b6c336a818093e6e",
+      "incentiveLockerStartBlock": 22740139,
+      "incentraAVAddress": "0x870391a9489f7361cb082e4f523e73ab00067f83",
+      "incentraAVStartBlock": 22740148
     }
   ]
 }

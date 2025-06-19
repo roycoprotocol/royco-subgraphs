@@ -492,6 +492,7 @@ type RawIncentiveCampaign @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
   chainId: BigInt! # Hardcoded
   incentiveCampaignId: String! # Unique Campaign ID
+  incentiveLockerAddress: String! # Address of the incentive locker
   actionVerifier: String! # Address of the action verifier
   actionParams: String! # String representing the actionParams for this campaign
   owner: String! # The address of the IP of this campaign

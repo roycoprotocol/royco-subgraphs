@@ -34,6 +34,7 @@ export function handleIncentiveCampaignCreation(
   );
   campaign.chainId = CHAIN_ID;
   campaign.incentiveCampaignId = entity.incentiveCampaignId;
+  campaign.incentiveLockerAddress = entity.incentiveLockerAddress;
   campaign.actionVerifier = entity.actionVerifier;
   campaign.actionParams = entity.actionParams;
   campaign.owner = entity.ip;
