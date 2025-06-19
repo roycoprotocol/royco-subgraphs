@@ -13,8 +13,8 @@
   },
   "mainnet": {
     "IncentiveLocker": {
-      "address": "0x7eed8e02cf440034a6335e87a6724b1c14666f85",
-      "startBlock": 22598282
+      "address": "0x0564e0ee02a2c2e65a66a355b6c336a818093e6e",
+      "startBlock": 22740139
     }
   }
 }

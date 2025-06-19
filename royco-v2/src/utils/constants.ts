@@ -15,7 +15,7 @@ export enum OFFER_TYPE {
 
 export const INCENTIVE_CAMPAIGN_TYPE = "2";
 
-export const INCENTRA_AV_ADDRESS = "0xb56c0a94246736897225294d587f65b005fd6135";
+export const INCENTRA_AV_ADDRESS = "0x870391a9489f7361cb082e4f523e73ab00067f83";
 
 
 // Multipliers are denominated in BPS, so 100 = 1x multiplier
