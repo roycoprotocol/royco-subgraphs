@@ -1,0 +1,26 @@
+specVersion: 1.3.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: GnosisSafeProxyFactory
+    network: mainnet
+    source:
+      address: "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2"
+      abi: GnosisSafeProxyFactory
+      startBlock: 12504126
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ProxyCreation
+      abis:
+        - name: GnosisSafeProxyFactory
+          file: ./abis/GnosisSafeProxyFactory.json
+      eventHandlers:
+        - event: ProxyCreation(address,address)
+          handler: handleProxyCreation
+      file: ./src/gnosis-safe-proxy-factory.ts
