@@ -81,7 +81,9 @@ function updateSafeTokenPosition(
   if (isIncoming) {
     position.tokenAmount = position.tokenAmount.plus(value);
   } else {
-    position.tokenAmount = position.tokenAmount.minus(value);
+    position.tokenAmount = position.tokenAmount.ge(value)
+      ? position.tokenAmount.minus(value)
+      : BigInt.fromI32(0);
   }
 
   position.updatedBlockNumber = blockNumber;
