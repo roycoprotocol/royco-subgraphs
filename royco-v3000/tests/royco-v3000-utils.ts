@@ -7,7 +7,8 @@ import { Transfer } from "../generated/templates/ERC20Template/ERC20"
 export function createRoycoAccountDeployedEvent(
   user: Address,
   accountId: BigInt,
-  roycoAccount: Address
+  roycoAccount: Address,
+  logIndex: i32 = 1
 ): RoycoAccountDeployed {
   let roycoAccountDeployedEvent = changetype<RoycoAccountDeployed>(newMockEvent())
 
@@ -23,9 +24,9 @@ export function createRoycoAccountDeployedEvent(
     new ethereum.EventParam("roycoAccount", ethereum.Value.fromAddress(roycoAccount))
   )
 
-  // Set a known transaction hash for testing
-  roycoAccountDeployedEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  roycoAccountDeployedEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  roycoAccountDeployedEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd01")
+  roycoAccountDeployedEvent.logIndex = BigInt.fromI32(logIndex)
 
   return roycoAccountDeployedEvent
 }
@@ -35,7 +36,8 @@ export function createSafeSetupEvent(
   owners: Address[],
   threshold: BigInt,
   initializer: Address,
-  fallbackHandler: Address
+  fallbackHandler: Address,
+  logIndex: i32 = 2
 ): SafeSetup {
   let safeSetupEvent = changetype<SafeSetup>(newMockEvent())
 
@@ -59,16 +61,17 @@ export function createSafeSetupEvent(
 
   // Set transaction value to 0 to avoid ETH tracking during setup
   safeSetupEvent.transaction.value = BigInt.fromI32(0)
-  // Set a known transaction hash for testing
-  safeSetupEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  safeSetupEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  safeSetupEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd02")
+  safeSetupEvent.logIndex = BigInt.fromI32(logIndex)
 
   return safeSetupEvent
 }
 
 export function createExecutionSuccessEvent(
   txHash: string,
-  payment: BigInt
+  payment: BigInt,
+  logIndex: i32 = 3
 ): ExecutionSuccess {
   let executionSuccessEvent = changetype<ExecutionSuccess>(newMockEvent())
 
@@ -81,16 +84,17 @@ export function createExecutionSuccessEvent(
     new ethereum.EventParam("payment", ethereum.Value.fromUnsignedBigInt(payment))
   )
 
-  // Set a known transaction hash for testing
-  executionSuccessEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  executionSuccessEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  executionSuccessEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd03")
+  executionSuccessEvent.logIndex = BigInt.fromI32(logIndex)
 
   return executionSuccessEvent
 }
 
 export function createExecutionFailureEvent(
   txHash: string,
-  payment: BigInt
+  payment: BigInt,
+  logIndex: i32 = 4
 ): ExecutionFailure {
   let executionFailureEvent = changetype<ExecutionFailure>(newMockEvent())
 
@@ -103,9 +107,9 @@ export function createExecutionFailureEvent(
     new ethereum.EventParam("payment", ethereum.Value.fromUnsignedBigInt(payment))
   )
 
-  // Set a known transaction hash for testing
-  executionFailureEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  executionFailureEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  executionFailureEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd04")
+  executionFailureEvent.logIndex = BigInt.fromI32(logIndex)
 
   return executionFailureEvent
 }
@@ -113,7 +117,8 @@ export function createExecutionFailureEvent(
 export function createTransferEvent(
   from: Address,
   to: Address,
-  value: BigInt
+  value: BigInt,
+  logIndex: i32 = 5
 ): Transfer {
   let transferEvent = changetype<Transfer>(newMockEvent())
 
@@ -129,15 +134,16 @@ export function createTransferEvent(
     new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
   )
 
-  // Set a known transaction hash for testing
-  transferEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  transferEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  transferEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd05")
+  transferEvent.logIndex = BigInt.fromI32(logIndex)
 
   return transferEvent
 }
 
 export function createAddedOwnerEvent(
-  owner: Address
+  owner: Address,
+  logIndex: i32 = 6
 ): AddedOwner {
   let addedOwnerEvent = changetype<AddedOwner>(newMockEvent())
 
@@ -147,15 +153,16 @@ export function createAddedOwnerEvent(
     new ethereum.EventParam("owner", ethereum.Value.fromAddress(owner))
   )
 
-  // Set a known transaction hash for testing
-  addedOwnerEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  addedOwnerEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  addedOwnerEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd06")
+  addedOwnerEvent.logIndex = BigInt.fromI32(logIndex)
 
   return addedOwnerEvent
 }
 
 export function createRemovedOwnerEvent(
-  owner: Address
+  owner: Address,
+  logIndex: i32 = 7
 ): RemovedOwner {
   let removedOwnerEvent = changetype<RemovedOwner>(newMockEvent())
 
@@ -165,15 +172,16 @@ export function createRemovedOwnerEvent(
     new ethereum.EventParam("owner", ethereum.Value.fromAddress(owner))
   )
 
-  // Set a known transaction hash for testing
-  removedOwnerEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  removedOwnerEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  removedOwnerEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd07")
+  removedOwnerEvent.logIndex = BigInt.fromI32(logIndex)
 
   return removedOwnerEvent
 }
 
 export function createChangedThresholdEvent(
-  threshold: BigInt
+  threshold: BigInt,
+  logIndex: i32 = 8
 ): ChangedThreshold {
   let changedThresholdEvent = changetype<ChangedThreshold>(newMockEvent())
 
@@ -183,9 +191,9 @@ export function createChangedThresholdEvent(
     new ethereum.EventParam("threshold", ethereum.Value.fromUnsignedBigInt(threshold))
   )
 
-  // Set a known transaction hash for testing
-  changedThresholdEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-  changedThresholdEvent.logIndex = BigInt.fromI32(1)
+  // Set a unique transaction hash for testing
+  changedThresholdEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd08")
+  changedThresholdEvent.logIndex = BigInt.fromI32(logIndex)
 
   return changedThresholdEvent
 }
