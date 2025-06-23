@@ -1,0 +1,112 @@
+apiVersion: 3
+name: royco-v3000-pipeline
+status: ACTIVE
+resource_size: s
+sources:
+  royco_account_deployed_reference:
+    name: royco_account_deployed
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  safe_setup_reference:
+    name: safe_setup
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  execution_success_reference:
+    name: execution_success
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  execution_failure_reference:
+    name: execution_failure
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_safe_reference:
+    name: raw_safe
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_safe_map_reference:
+    name: raw_safe_map
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_safe_tokenized_position_reference:
+    name: raw_safe_tokenized_position
+    subgraphs:
+      {{#metadata}}
+      - name: royco-v3000-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  royco_account_deployed_postgres:
+    type: postgres
+    table: royco_account_deployed
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: royco_account_deployed"
+    from: royco_account_deployed_reference
+  safe_setup_postgres:
+    type: postgres
+    table: safe_setup
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: safe_setup"
+    from: safe_setup_reference
+  execution_success_postgres:
+    type: postgres
+    table: execution_success
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: execution_success"
+    from: execution_success_reference
+  execution_failure_postgres:
+    type: postgres
+    table: execution_failure
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: execution_failure"
+    from: execution_failure_reference
+  raw_safe_postgres:
+    type: postgres
+    table: raw_safe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe"
+    from: raw_safe_reference
+  raw_safe_map_postgres:
+    type: postgres
+    table: raw_safe_map
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe_map"
+    from: raw_safe_map_reference
+  raw_safe_tokenized_position_postgres:
+    type: postgres
+    table: raw_safe_tokenized_position
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe_tokenized_position"
+    from: raw_safe_tokenized_position_reference
