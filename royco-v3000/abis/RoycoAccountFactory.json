@@ -1,0 +1,177 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint96",
+        "name": "accountId",
+        "type": "uint96"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "roycoAccount",
+        "type": "address"
+      }
+    ],
+    "name": "RoycoAccountDeployed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newSafeSingleton",
+        "type": "address"
+      }
+    ],
+    "name": "SafeSingletonSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newRoycoGuard",
+        "type": "address"
+      }
+    ],
+    "name": "RoycoGuardSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newRoycoExecutor",
+        "type": "address"
+      }
+    ],
+    "name": "RoycoMiddlewareSet",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_owners",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_threshold",
+        "type": "uint256"
+      }
+    ],
+    "name": "deployRoycoAccount",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "accountId",
+        "type": "uint96"
+      },
+      {
+        "internalType": "address",
+        "name": "roycoAccount",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
+    ],
+    "name": "getNextRoycoAccountCounterfactualAddress",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "accountId",
+        "type": "uint96"
+      },
+      {
+        "internalType": "address",
+        "name": "roycoAccount",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "userToNextAccountId",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "accountId",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MULTISEND",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "safeSingleton",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "roycoMiddleware",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

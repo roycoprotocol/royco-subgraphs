@@ -6,3 +6,107 @@ type ProxyCreation @entity(immutable: true) {
   blockTimestamp: BigInt!
   transactionHash: Bytes!
 }
+
+type RoycoAccountDeployed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  user: String! @indexed # address
+  accountId: BigInt! # uint96
+  roycoAccount: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type SafeSetup @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  initiator: String! @indexed # address
+  owners: [String!]! # address[]
+  threshold: BigInt! # uint256
+  initializer: String! # address
+  fallbackHandler: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type ExecutionSuccess @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  safeAddress: String! @indexed # address
+  txHash: Bytes! @indexed # bytes32
+  payment: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type ExecutionFailure @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  safeAddress: String! @indexed # address
+  txHash: Bytes! @indexed # bytes32
+  payment: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawSafe @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt! @indexed
+  safeAddress: String! @indexed # address
+  owners: [String!]! # array of addresses
+  threshold: BigInt! # number of confirmations
+  creatorAddress: String! @indexed # address of the wallet that created the safe
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+  # Derived fields
+  rawSafeMaps: [RawSafeMap!]! @derivedFrom(field: "rawSafeRefId")
+  rawSafeTokenizedPositions: [RawSafeTokenizedPosition!]! @derivedFrom(field: "rawSafeRefId")
+}
+
+type RawSafeMap @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<SAFE_ADDRESS>_<ACCOUNT_ADDRESS>
+  rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt! @indexed
+  safeAddress: String! @indexed # address
+  accountAddress: String! @indexed # address
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+}
+
+type RawSafeTokenizedPosition @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<SAFE_ADDRESS>_<TOKEN_ADDRESS>
+  rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt! @indexed
+  safeAddress: String! @indexed # address
+  tokenAddress: String! @indexed # address
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS> (Note: this has 'hyphen', not 'underscore')
+  tokenAmount: BigInt!
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+}
