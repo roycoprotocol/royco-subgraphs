@@ -42,7 +42,7 @@ describe("RoycoAccountFactory tests", () => {
 
     // The actual ID format is CHAIN_ID_TRANSACTION_HASH_LOG_INDEX
     // Using the transaction hash we set in the mock
-    let expectedRoycoAccountId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
+    let expectedRoycoAccountId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd01_1")
     assert.fieldEquals(
       "RoycoAccountDeployed",
       expectedRoycoAccountId,
@@ -110,7 +110,7 @@ describe("Safe template tests", () => {
     assert.entityCount("SafeSetup", 1)
     assert.entityCount("RawSafeMap", 1)
 
-    let expectedSafeSetupId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
+    let expectedSafeSetupId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd02_2")
     assert.fieldEquals(
       "SafeSetup",
       expectedSafeSetupId,
@@ -150,14 +150,14 @@ describe("Safe template tests", () => {
   })
 
   test("ExecutionSuccess created and stored", () => {
-    let txHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    let txHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd03"
     let payment = BigInt.fromI32(0) // Set to 0 to avoid ETH tracking interference
     let newExecutionSuccessEvent = createExecutionSuccessEvent(txHash, payment)
     handleExecutionSuccess(newExecutionSuccessEvent)
 
     assert.entityCount("ExecutionSuccess", 1)
     
-    let expectedExecutionSuccessId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
+    let expectedExecutionSuccessId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd03_3")
     assert.fieldEquals(
       "ExecutionSuccess",
       expectedExecutionSuccessId,
@@ -167,14 +167,14 @@ describe("Safe template tests", () => {
   })
 
   test("ExecutionFailure created and stored", () => {
-    let txHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    let txHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd04"
     let payment = BigInt.fromI32(0) // Set to 0 to avoid ETH tracking interference
     let newExecutionFailureEvent = createExecutionFailureEvent(txHash, payment)
     handleExecutionFailure(newExecutionFailureEvent)
 
     assert.entityCount("ExecutionFailure", 1)
     
-    let expectedExecutionFailureId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
+    let expectedExecutionFailureId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd04_4")
     assert.fieldEquals(
       "ExecutionFailure",
       expectedExecutionFailureId,
@@ -308,7 +308,7 @@ describe("ERC20 token tracking tests", () => {
       true, // incoming
       BigInt.fromI32(100),
       BigInt.fromI32(1000000),
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd05",
       BigInt.fromI32(1)
     )
 
@@ -350,7 +350,7 @@ describe("ERC20 token tracking tests", () => {
       false, // outgoing
       BigInt.fromI32(101),
       BigInt.fromI32(1000001),
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcde0",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd05",
       BigInt.fromI32(2)
     )
 
@@ -379,7 +379,7 @@ describe("ERC20 token tracking tests", () => {
     handleRoycoAccountDeployed(newRoycoAccountDeployedEvent)
     
     // Create ExecutionSuccess with transaction value to trigger ETH tracking
-    let txHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    let txHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd03"
     let payment = BigInt.fromI32(0)
     let newExecutionSuccessEvent = createExecutionSuccessEvent(txHash, payment)
     newExecutionSuccessEvent.address = roycoAccount
