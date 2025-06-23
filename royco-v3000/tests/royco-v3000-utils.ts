@@ -23,6 +23,10 @@ export function createRoycoAccountDeployedEvent(
     new ethereum.EventParam("roycoAccount", ethereum.Value.fromAddress(roycoAccount))
   )
 
+  // Set a known transaction hash for testing
+  roycoAccountDeployedEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  roycoAccountDeployedEvent.logIndex = BigInt.fromI32(1)
+
   return roycoAccountDeployedEvent
 }
 
@@ -55,6 +59,9 @@ export function createSafeSetupEvent(
 
   // Set transaction value to 0 to avoid ETH tracking during setup
   safeSetupEvent.transaction.value = BigInt.fromI32(0)
+  // Set a known transaction hash for testing
+  safeSetupEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  safeSetupEvent.logIndex = BigInt.fromI32(1)
 
   return safeSetupEvent
 }
@@ -74,6 +81,10 @@ export function createExecutionSuccessEvent(
     new ethereum.EventParam("payment", ethereum.Value.fromUnsignedBigInt(payment))
   )
 
+  // Set a known transaction hash for testing
+  executionSuccessEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  executionSuccessEvent.logIndex = BigInt.fromI32(1)
+
   return executionSuccessEvent
 }
 
@@ -91,6 +102,10 @@ export function createExecutionFailureEvent(
   executionFailureEvent.parameters.push(
     new ethereum.EventParam("payment", ethereum.Value.fromUnsignedBigInt(payment))
   )
+
+  // Set a known transaction hash for testing
+  executionFailureEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  executionFailureEvent.logIndex = BigInt.fromI32(1)
 
   return executionFailureEvent
 }
@@ -114,6 +129,10 @@ export function createTransferEvent(
     new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
   )
 
+  // Set a known transaction hash for testing
+  transferEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  transferEvent.logIndex = BigInt.fromI32(1)
+
   return transferEvent
 }
 
@@ -127,6 +146,10 @@ export function createAddedOwnerEvent(
   addedOwnerEvent.parameters.push(
     new ethereum.EventParam("owner", ethereum.Value.fromAddress(owner))
   )
+
+  // Set a known transaction hash for testing
+  addedOwnerEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  addedOwnerEvent.logIndex = BigInt.fromI32(1)
 
   return addedOwnerEvent
 }
@@ -142,6 +165,10 @@ export function createRemovedOwnerEvent(
     new ethereum.EventParam("owner", ethereum.Value.fromAddress(owner))
   )
 
+  // Set a known transaction hash for testing
+  removedOwnerEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  removedOwnerEvent.logIndex = BigInt.fromI32(1)
+
   return removedOwnerEvent
 }
 
@@ -155,6 +182,10 @@ export function createChangedThresholdEvent(
   changedThresholdEvent.parameters.push(
     new ethereum.EventParam("threshold", ethereum.Value.fromUnsignedBigInt(threshold))
   )
+
+  // Set a known transaction hash for testing
+  changedThresholdEvent.transaction.hash = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+  changedThresholdEvent.logIndex = BigInt.fromI32(1)
 
   return changedThresholdEvent
 }

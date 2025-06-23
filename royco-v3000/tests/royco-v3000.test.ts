@@ -15,6 +15,7 @@ import { handleRoycoAccountDeployed } from "../src/royco-account-factory"
 import { handleSafeSetup, handleExecutionSuccess, handleExecutionFailure, handleAddedOwner, handleRemovedOwner, handleChangedThreshold } from "../src/safe"
 import { handleTransfer, trackNativeETHTransfer } from "../src/erc20"
 import { createRoycoAccountDeployedEvent, createSafeSetupEvent, createExecutionSuccessEvent, createExecutionFailureEvent, createTransferEvent, createAddedOwnerEvent, createRemovedOwnerEvent, createChangedThresholdEvent } from "./royco-v3000-utils"
+import { CHAIN_ID } from "../src/constants"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/developer/matchstick/#tests-structure-0-5-0
@@ -40,36 +41,38 @@ describe("RoycoAccountFactory tests", () => {
     assert.entityCount("RawSafe", 1)
 
     // The actual ID format is CHAIN_ID_TRANSACTION_HASH_LOG_INDEX
-    // Using the default mock event values
+    // Using the transaction hash we set in the mock
+    let expectedRoycoAccountId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
     assert.fieldEquals(
       "RoycoAccountDeployed",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedRoycoAccountId,
       "user",
       "0x0000000000000000000000000000000000000001"
     )
     assert.fieldEquals(
       "RoycoAccountDeployed",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedRoycoAccountId,
       "roycoAccount",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "RoycoAccountDeployed",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedRoycoAccountId,
       "accountId",
       "1"
     )
 
     // Check RawSafe was created
+    let expectedSafeId = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002")
     assert.fieldEquals(
       "RawSafe",
-      "8453_0x0000000000000000000000000000000000000002",
+      expectedSafeId,
       "safeAddress",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "RawSafe",
-      "8453_0x0000000000000000000000000000000000000002",
+      expectedSafeId,
       "creatorAddress",
       "0x0000000000000000000000000000000000000001"
     )
@@ -107,37 +110,40 @@ describe("Safe template tests", () => {
     assert.entityCount("SafeSetup", 1)
     assert.entityCount("RawSafeMap", 1)
 
+    let expectedSafeSetupId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
     assert.fieldEquals(
       "SafeSetup",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedSafeSetupId,
       "initiator",
       "0x0000000000000000000000000000000000000001"
     )
     assert.fieldEquals(
       "SafeSetup",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedSafeSetupId,
       "threshold",
       "1"
     )
 
     // Check RawSafe was updated
+    let expectedSafeId2 = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002")
     assert.fieldEquals(
       "RawSafe",
-      "8453_0x0000000000000000000000000000000000000002",
+      expectedSafeId2,
       "threshold",
       "1"
     )
 
     // Check RawSafeMap was created
+    let expectedSafeMapId = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000001")
     assert.fieldEquals(
       "RawSafeMap",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000001",
+      expectedSafeMapId,
       "safeAddress",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "RawSafeMap",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000001",
+      expectedSafeMapId,
       "accountAddress",
       "0x0000000000000000000000000000000000000001"
     )
@@ -151,9 +157,10 @@ describe("Safe template tests", () => {
 
     assert.entityCount("ExecutionSuccess", 1)
     
+    let expectedExecutionSuccessId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
     assert.fieldEquals(
       "ExecutionSuccess",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedExecutionSuccessId,
       "payment",
       "0"
     )
@@ -167,9 +174,10 @@ describe("Safe template tests", () => {
 
     assert.entityCount("ExecutionFailure", 1)
     
+    let expectedExecutionFailureId = CHAIN_ID.toString().concat("_0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_1")
     assert.fieldEquals(
       "ExecutionFailure",
-      "8453_0xa16081f360e3847006db660bae1c6d1b2e17ec2a_1",
+      expectedExecutionFailureId,
       "payment",
       "0"
     )
@@ -214,29 +222,31 @@ describe("ERC20 token tracking tests", () => {
 
     assert.entityCount("RawSafeTokenizedPosition", 1)
     
+    let expectedTokenPositionId = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005")
+    let expectedTokenId = CHAIN_ID.toString().concat("-0x0000000000000000000000000000000000000005")
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005",
+      expectedTokenPositionId,
       "safeAddress",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005",
+      expectedTokenPositionId,
       "tokenAddress",
       "0x0000000000000000000000000000000000000005"
     )
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005",
+      expectedTokenPositionId,
       "tokenAmount",
       "1000"
     )
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005",
+      expectedTokenPositionId,
       "tokenId",
-      "8453-0x0000000000000000000000000000000000000005"
+      expectedTokenId
     )
   })
 
@@ -254,9 +264,10 @@ describe("ERC20 token tracking tests", () => {
     assert.entityCount("RawSafeTokenizedPosition", 1)
     
     // Original amount was 1000, after transfer out of 300, should be 700
+    let expectedTokenPositionId2 = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005")
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000005",
+      expectedTokenPositionId2,
       "tokenAmount",
       "700"
     )
@@ -305,29 +316,31 @@ describe("ERC20 token tracking tests", () => {
     assert.entityCount("RawSafeTokenizedPosition", 1)
     
     // Check ETH position was created with NULL_ADDRESS
+    let expectedETHPositionId = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000")
+    let expectedETHTokenId = CHAIN_ID.toString().concat("-0x0000000000000000000000000000000000000000")
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId,
       "safeAddress",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId,
       "tokenAddress",
       "0x0000000000000000000000000000000000000000"
     )
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId,
       "tokenAmount",
       "1000"
     )
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId,
       "tokenId",
-      "8453-0x0000000000000000000000000000000000000000"
+      expectedETHTokenId
     )
 
     // Test outgoing ETH transfer
@@ -345,9 +358,10 @@ describe("ERC20 token tracking tests", () => {
     assert.entityCount("RawSafeTokenizedPosition", 1)
     
     // Original amount was 1000, after outgoing transfer of 300, should be 700
+    let expectedETHPositionId2 = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000")
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId2,
       "tokenAmount",
       "700"
     )
@@ -377,16 +391,17 @@ describe("ERC20 token tracking tests", () => {
     assert.entityCount("RawSafeTokenizedPosition", 1)
     
     // Check ETH position was created for incoming ETH
+    let expectedETHPositionId3 = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000")
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId3,
       "tokenAddress",
       "0x0000000000000000000000000000000000000000"
     )
     // ETH is incoming to the Safe
     assert.fieldEquals(
       "RawSafeTokenizedPosition",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000000",
+      expectedETHPositionId3,
       "tokenAmount",
       "500"
     )
@@ -429,15 +444,16 @@ describe("Safe owner management tests", () => {
     assert.entityCount("RawSafeMap", 2)
     
     // Check the new RawSafeMap was created
+    let expectedNewSafeMapId = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000008")
     assert.fieldEquals(
       "RawSafeMap",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000008",
+      expectedNewSafeMapId,
       "safeAddress",
       "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
       "RawSafeMap",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000008",
+      expectedNewSafeMapId,
       "accountAddress",
       "0x0000000000000000000000000000000000000008"
     )
@@ -453,9 +469,10 @@ describe("Safe owner management tests", () => {
     assert.entityCount("RawSafeMap", 2)
     
     // Check the removed owner's RawSafeMap is marked with NULL_ADDRESS
+    let expectedRemovedSafeMapId = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000001")
     assert.fieldEquals(
       "RawSafeMap",
-      "8453_0x0000000000000000000000000000000000000002_0x0000000000000000000000000000000000000001",
+      expectedRemovedSafeMapId,
       "safeAddress",
       "0x0000000000000000000000000000000000000000"
     )
@@ -468,9 +485,10 @@ describe("Safe owner management tests", () => {
     handleChangedThreshold(changedThresholdEvent)
 
     // Check the threshold was updated
+    let expectedSafeId3 = CHAIN_ID.toString().concat("_0x0000000000000000000000000000000000000002")
     assert.fieldEquals(
       "RawSafe",
-      "8453_0x0000000000000000000000000000000000000002",
+      expectedSafeId3,
       "threshold",
       "2"
     )
