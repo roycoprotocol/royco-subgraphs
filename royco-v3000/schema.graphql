@@ -1,12 +1,3 @@
-type ProxyCreation @entity(immutable: true) {
-  id: Bytes!
-  proxy: Bytes! # address
-  singleton: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
 type RoycoAccountDeployed @entity(immutable: true) {
   id: String!
   chainId: BigInt! @indexed
