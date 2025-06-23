@@ -28,7 +28,7 @@ export function handleRoycoAccountDeployed(
   rawSafe.chainId = CHAIN_ID;
   rawSafe.safeAddress = event.params.roycoAccount.toHexString();
   rawSafe.owners = [];
-  rawSafe.threshold = BigInt.fromI32(0); // Will be populated by SafeSetup event
+  rawSafe.threshold = BigInt.fromI32(0);
   rawSafe.creatorAddress = event.params.user.toHexString();
   rawSafe.createdBlockNumber = event.block.number;
   rawSafe.createdBlockTimestamp = event.block.timestamp;
@@ -41,6 +41,5 @@ export function handleRoycoAccountDeployed(
 
   rawSafe.save();
 
-  // Start tracking this Safe with a template
   SafeTemplate.create(event.params.roycoAccount);
 }

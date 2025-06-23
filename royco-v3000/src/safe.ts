@@ -20,6 +20,7 @@ import {
   generateRawSafeId,
   generateRawSafeMapId,
 } from "./utils/id-generator";
+import { trackNativeETHTransfer } from "./erc20";
 
 export function handleSafeSetup(event: SafeSetupEvent): void {
   let entity = new SafeSetup(
@@ -39,6 +40,19 @@ export function handleSafeSetup(event: SafeSetupEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  // Track incoming ETH if transaction has value
+  if (event.transaction.value.gt(BigInt.fromI32(0))) {
+    trackNativeETHTransfer(
+      event.address.toHexString(),
+      event.transaction.value,
+      true, // incoming
+      event.block.number,
+      event.block.timestamp,
+      event.transaction.hash.toHexString(),
+      event.logIndex
+    );
+  }
 
   let safeId = generateRawSafeId(event.address.toHexString());
   let rawSafe = RawSafe.load(safeId);
@@ -92,6 +106,19 @@ export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  // Track native ETH transfer if transaction has value
+  if (event.transaction.value.gt(BigInt.fromI32(0))) {
+    trackNativeETHTransfer(
+      event.address.toHexString(),
+      event.transaction.value,
+      true, // incoming ETH to Safe
+      event.block.number,
+      event.block.timestamp,
+      event.transaction.hash.toHexString(),
+      event.logIndex
+    );
+  }
 }
 
 export function handleExecutionFailure(event: ExecutionFailureEvent): void {
@@ -108,6 +135,19 @@ export function handleExecutionFailure(event: ExecutionFailureEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
+
+  // Track native ETH transfer if transaction has value
+  if (event.transaction.value.gt(BigInt.fromI32(0))) {
+    trackNativeETHTransfer(
+      event.address.toHexString(),
+      event.transaction.value,
+      true, // incoming ETH to Safe
+      event.block.number,
+      event.block.timestamp,
+      event.transaction.hash.toHexString(),
+      event.logIndex
+    );
+  }
 }
 
 export function handleAddedOwner(event: AddedOwnerEvent): void {
@@ -129,7 +169,6 @@ export function handleAddedOwner(event: AddedOwnerEvent): void {
     //check if the mapId already exists
     let rawSafeMap = RawSafeMap.load(mapId);
     if (rawSafeMap) {
-      //update the block info
       rawSafeMap.updatedBlockNumber = event.block.number;
       rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
       rawSafeMap.updatedTransactionHash = event.transaction.hash.toHexString();

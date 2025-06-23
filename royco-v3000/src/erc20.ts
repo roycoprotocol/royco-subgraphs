@@ -2,7 +2,7 @@ import { BigInt, Address } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/templates/ERC20Template/ERC20";
 import { RawSafeTokenizedPosition, RawSafe } from "../generated/schema";
 import { ERC20 } from "../generated/templates/ERC20Template/ERC20";
-import { CHAIN_ID } from "./constants";
+import { CHAIN_ID, NULL_ADDRESS } from "./constants";
 import {
   generateRawSafeId,
   generateRawSafeTokenizedPositionId,
@@ -90,4 +90,31 @@ function updateSafeTokenPosition(
   position.updatedLogIndex = logIndex;
 
   position.save();
+}
+
+// Helper function to track native ETH transfers for Safes
+export function trackNativeETHTransfer(
+  safeAddress: string,
+  value: BigInt,
+  isIncoming: boolean,
+  blockNumber: BigInt,
+  blockTimestamp: BigInt,
+  transactionHash: string,
+  logIndex: BigInt
+): void {
+  let safeId = generateRawSafeId(safeAddress);
+  let safe = RawSafe.load(safeId);
+  
+  if (safe) {
+    updateSafeTokenPosition(
+      safe,
+      NULL_ADDRESS, // Use null address for native ETH
+      value,
+      isIncoming,
+      blockNumber,
+      blockTimestamp,
+      transactionHash,
+      logIndex
+    );
+  }
 }
