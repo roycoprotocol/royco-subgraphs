@@ -10,9 +10,9 @@ import {
 } from "./utils/id-generator";
 
 export function handleTransfer(event: TransferEvent): void {
-  let tokenAddress = event.address.toHexString();
-  let fromAddress = event.params.from.toHexString();
-  let toAddress = event.params.to.toHexString();
+  let tokenAddress = event.address.toHexString().toLowerCase();
+  let fromAddress = event.params.from.toHexString().toLowerCase();
+  let toAddress = event.params.to.toHexString().toLowerCase();
   let value = event.params.value;
 
   // Check if 'to' address is a tracked Safe
@@ -26,7 +26,7 @@ export function handleTransfer(event: TransferEvent): void {
       true, // adding tokens
       event.block.number,
       event.block.timestamp,
-      event.transaction.hash.toHexString(),
+      event.transaction.hash.toHexString().toLowerCase(),
       event.logIndex
     );
   }
@@ -42,7 +42,7 @@ export function handleTransfer(event: TransferEvent): void {
       false, // subtracting tokens
       event.block.number,
       event.block.timestamp,
-      event.transaction.hash.toHexString(),
+      event.transaction.hash.toHexString().toLowerCase(),
       event.logIndex
     );
   }
