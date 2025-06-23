@@ -27,16 +27,18 @@ export function handleSafeSetup(event: SafeSetupEvent): void {
     generateEventId(event.transaction.hash, event.logIndex)
   );
   entity.chainId = CHAIN_ID;
-  entity.initiator = event.params.initiator.toHexString();
+  entity.initiator = event.params.initiator.toHexString().toLowerCase();
   entity.owners = event.params.owners.map<string>((owner) =>
-    owner.toHexString()
+    owner.toHexString().toLowerCase()
   );
   entity.threshold = event.params.threshold;
-  entity.initializer = event.params.initializer.toHexString();
-  entity.fallbackHandler = event.params.fallbackHandler.toHexString();
+  entity.initializer = event.params.initializer.toHexString().toLowerCase();
+  entity.fallbackHandler = event.params.fallbackHandler
+    .toHexString()
+    .toLowerCase();
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString();
+  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
   entity.logIndex = event.logIndex;
 
   entity.save();
@@ -44,12 +46,12 @@ export function handleSafeSetup(event: SafeSetupEvent): void {
   // Track incoming ETH if transaction has value
   if (event.transaction.value.gt(BigInt.fromI32(0))) {
     trackNativeETHTransfer(
-      event.address.toHexString(),
+      event.address.toHexString().toLowerCase(),
       event.transaction.value,
       true, // incoming
       event.block.number,
       event.block.timestamp,
-      event.transaction.hash.toHexString(),
+      event.transaction.hash.toHexString().toLowerCase(),
       event.logIndex
     );
   }
@@ -58,34 +60,39 @@ export function handleSafeSetup(event: SafeSetupEvent): void {
   let rawSafe = RawSafe.load(safeId);
   if (rawSafe) {
     rawSafe.owners = event.params.owners.map<string>((owner) =>
-      owner.toHexString()
+      owner.toHexString().toLowerCase()
     );
     rawSafe.threshold = event.params.threshold;
     rawSafe.updatedBlockNumber = event.block.number;
     rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash.toHexString();
+    rawSafe.updatedTransactionHash = event.transaction.hash
+      .toHexString()
+      .toLowerCase();
     rawSafe.updatedLogIndex = event.logIndex;
     rawSafe.save();
 
-    // Create RawSafeMap entries for each owner
     for (let i = 0; i < event.params.owners.length; i++) {
-      let ownerAddress = event.params.owners[i].toHexString();
+      let ownerAddress = event.params.owners[i].toHexString().toLowerCase();
       let mapId = generateRawSafeMapId(
-        event.address.toHexString(),
+        event.address.toHexString().toLowerCase(),
         ownerAddress
       );
       let rawSafeMap = new RawSafeMap(mapId);
       rawSafeMap.rawSafeRefId = safeId;
       rawSafeMap.chainId = CHAIN_ID;
-      rawSafeMap.safeAddress = event.address.toHexString();
+      rawSafeMap.safeAddress = event.address.toHexString().toLowerCase();
       rawSafeMap.accountAddress = ownerAddress;
       rawSafeMap.createdBlockNumber = event.block.number;
       rawSafeMap.createdBlockTimestamp = event.block.timestamp;
-      rawSafeMap.createdTransactionHash = event.transaction.hash.toHexString();
+      rawSafeMap.createdTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
       rawSafeMap.createdLogIndex = event.logIndex;
       rawSafeMap.updatedBlockNumber = event.block.number;
       rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash.toHexString();
+      rawSafeMap.updatedTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
       rawSafeMap.updatedLogIndex = event.logIndex;
       rawSafeMap.save();
     }
@@ -97,12 +104,12 @@ export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
     generateEventId(event.transaction.hash, event.logIndex)
   );
   entity.chainId = CHAIN_ID;
-  entity.safeAddress = event.address.toHexString();
+  entity.safeAddress = event.address.toHexString().toLowerCase();
   entity.txHash = event.params.txHash;
   entity.payment = event.params.payment;
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString();
+  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
   entity.logIndex = event.logIndex;
 
   entity.save();
@@ -110,12 +117,12 @@ export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
   // Track native ETH transfer if transaction has value
   if (event.transaction.value.gt(BigInt.fromI32(0))) {
     trackNativeETHTransfer(
-      event.address.toHexString(),
+      event.address.toHexString().toLowerCase(),
       event.transaction.value,
       true, // incoming ETH to Safe
       event.block.number,
       event.block.timestamp,
-      event.transaction.hash.toHexString(),
+      event.transaction.hash.toHexString().toLowerCase(),
       event.logIndex
     );
   }
@@ -126,12 +133,12 @@ export function handleExecutionFailure(event: ExecutionFailureEvent): void {
     generateEventId(event.transaction.hash, event.logIndex)
   );
   entity.chainId = CHAIN_ID;
-  entity.safeAddress = event.address.toHexString();
+  entity.safeAddress = event.address.toHexString().toLowerCase();
   entity.txHash = event.params.txHash;
   entity.payment = event.params.payment;
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString();
+  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
   entity.logIndex = event.logIndex;
 
   entity.save();
@@ -139,12 +146,12 @@ export function handleExecutionFailure(event: ExecutionFailureEvent): void {
   // Track native ETH transfer if transaction has value
   if (event.transaction.value.gt(BigInt.fromI32(0))) {
     trackNativeETHTransfer(
-      event.address.toHexString(),
+      event.address.toHexString().toLowerCase(),
       event.transaction.value,
       true, // incoming ETH to Safe
       event.block.number,
       event.block.timestamp,
-      event.transaction.hash.toHexString(),
+      event.transaction.hash.toHexString().toLowerCase(),
       event.logIndex
     );
   }
@@ -154,26 +161,32 @@ export function handleAddedOwner(event: AddedOwnerEvent): void {
   let safeId = generateRawSafeId(event.address.toHexString());
   let rawSafe = RawSafe.load(safeId);
   if (rawSafe) {
-    // Add new owner to the owners array
     let owners = rawSafe.owners;
-    owners.push(event.params.owner.toHexString());
+    owners.push(event.params.owner.toHexString().toLowerCase());
     rawSafe.owners = owners;
     rawSafe.updatedBlockNumber = event.block.number;
     rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash.toHexString();
+    rawSafe.updatedTransactionHash = event.transaction.hash
+      .toHexString()
+      .toLowerCase();
     rawSafe.updatedLogIndex = event.logIndex;
     rawSafe.save();
 
-    let ownerAddress = event.params.owner.toHexString();
-    let mapId = generateRawSafeMapId(event.address.toHexString(), ownerAddress);
+    let ownerAddress = event.params.owner.toHexString().toLowerCase();
+    let mapId = generateRawSafeMapId(
+      event.address.toHexString().toLowerCase(),
+      ownerAddress
+    );
     //check if the mapId already exists
     let rawSafeMap = RawSafeMap.load(mapId);
     if (rawSafeMap) {
       rawSafeMap.updatedBlockNumber = event.block.number;
       rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash.toHexString();
+      rawSafeMap.updatedTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
       rawSafeMap.updatedLogIndex = event.logIndex;
-      rawSafeMap.safeAddress = event.address.toHexString();
+      rawSafeMap.safeAddress = event.address.toHexString().toLowerCase();
       rawSafeMap.accountAddress = ownerAddress;
       rawSafeMap.chainId = CHAIN_ID;
       rawSafeMap.save();
@@ -182,15 +195,19 @@ export function handleAddedOwner(event: AddedOwnerEvent): void {
       let rawSafeMap = new RawSafeMap(mapId);
       rawSafeMap.rawSafeRefId = safeId;
       rawSafeMap.chainId = CHAIN_ID;
-      rawSafeMap.safeAddress = event.address.toHexString();
+      rawSafeMap.safeAddress = event.address.toHexString().toLowerCase();
       rawSafeMap.accountAddress = ownerAddress;
       rawSafeMap.createdBlockNumber = event.block.number;
       rawSafeMap.createdBlockTimestamp = event.block.timestamp;
-      rawSafeMap.createdTransactionHash = event.transaction.hash.toHexString();
+      rawSafeMap.createdTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
       rawSafeMap.createdLogIndex = event.logIndex;
       rawSafeMap.updatedBlockNumber = event.block.number;
       rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash.toHexString();
+      rawSafeMap.updatedTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
       rawSafeMap.updatedLogIndex = event.logIndex;
       rawSafeMap.save();
     }
@@ -203,7 +220,7 @@ export function handleRemovedOwner(event: RemovedOwnerEvent): void {
   if (rawSafe) {
     // Remove owner from the owners array
     let owners = rawSafe.owners;
-    let removedOwner = event.params.owner.toHexString();
+    let removedOwner = event.params.owner.toHexString().toLowerCase();
     let newOwners: string[] = [];
     for (let i = 0; i < owners.length; i++) {
       if (owners[i] != removedOwner) {
@@ -213,16 +230,23 @@ export function handleRemovedOwner(event: RemovedOwnerEvent): void {
     rawSafe.owners = newOwners;
     rawSafe.updatedBlockNumber = event.block.number;
     rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash.toHexString();
+    rawSafe.updatedTransactionHash = event.transaction.hash
+      .toHexString()
+      .toLowerCase();
     rawSafe.updatedLogIndex = event.logIndex;
     rawSafe.save();
 
-    let mapId = generateRawSafeMapId(event.address.toHexString(), removedOwner);
+    let mapId = generateRawSafeMapId(
+      event.address.toHexString().toLowerCase(),
+      removedOwner
+    );
     let rawSafeMap = RawSafeMap.load(mapId);
     if (rawSafeMap) {
       rawSafeMap.updatedBlockNumber = event.block.number;
       rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash.toHexString();
+      rawSafeMap.updatedTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
       rawSafeMap.updatedLogIndex = event.logIndex;
       rawSafeMap.safeAddress = NULL_ADDRESS;
       rawSafeMap.save();
@@ -237,7 +261,9 @@ export function handleChangedThreshold(event: ChangedThresholdEvent): void {
     rawSafe.threshold = event.params.threshold;
     rawSafe.updatedBlockNumber = event.block.number;
     rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash.toHexString();
+    rawSafe.updatedTransactionHash = event.transaction.hash
+      .toHexString()
+      .toLowerCase();
     rawSafe.updatedLogIndex = event.logIndex;
     rawSafe.save();
   }
