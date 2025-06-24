@@ -1,6 +1,5 @@
 apiVersion: 3
 name: royco-v3000-pipeline
-status: ACTIVE
 resource_size: s
 sources:
   raw_safe_reference:
