@@ -14,7 +14,7 @@ import {
   ExecutionSuccess,
   ExecutionFailure,
   SafeReceived,
-  SafeTransaction,
+  RawSafeTransaction,
   RawSafe,
   RawSafeMap,
 } from "../generated/schema";
@@ -118,12 +118,12 @@ export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
 
   entity.save();
 
-  // Look for corresponding SafeTransaction to get actual ETH value
+  // Look for corresponding RawSafeTransaction to get actual ETH value
   let safeTransactionId = event.transaction.hash.toHexString().toLowerCase();
-  let safeTransaction = SafeTransaction.load(safeTransactionId);
+  let safeTransaction = RawSafeTransaction.load(safeTransactionId);
 
   if (safeTransaction && safeTransaction.value.gt(BigInt.fromI32(0))) {
-    // Track native ETH transfer using the actual value from SafeTransaction
+    // Track native ETH transfer using the actual value from RawSafeTransaction
     trackNativeETHTransfer(
       event.address.toHexString().toLowerCase(), // Safe address (from)
       safeTransaction.value,
@@ -293,12 +293,13 @@ export function handleSafeReceived(event: SafeReceivedEvent): void {
 
 export function handleExecTransaction(call: ExecTransactionCall): void {
   let transactionId = call.transaction.hash.toHexString().toLowerCase();
-  let entity = SafeTransaction.load(transactionId);
+  let entity = RawSafeTransaction.load(transactionId);
   
   if (!entity) {
-    entity = new SafeTransaction(transactionId);
+    entity = new RawSafeTransaction(transactionId);
   }
   
+  entity.rawSafeRefId = generateRawSafeId(call.to.toHexString());
   entity.chainId = CHAIN_ID;
   entity.safeAddress = call.to.toHexString().toLowerCase();
   entity.to = call.inputs.to.toHexString().toLowerCase();

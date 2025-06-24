@@ -67,6 +67,7 @@ templates:
         - RawSafe
         - RawSafeMap
         - RawSafeTokenizedPosition
+        - RawSafeTransaction
       abis:
         - name: ISafe
           file: ./abis/ISafe.json
