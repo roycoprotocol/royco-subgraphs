@@ -63,6 +63,7 @@ templates:
         - SafeSetup
         - ExecutionSuccess
         - ExecutionFailure
+        - SafeReceived
         - RawSafe
         - RawSafeMap
         - RawSafeTokenizedPosition
@@ -84,4 +85,9 @@ templates:
           handler: handleRemovedOwner
         - event: ChangedThreshold(uint256)
           handler: handleChangedThreshold
+        - event: SafeReceived(indexed address,uint256)
+          handler: handleSafeReceived
+      callHandlers:
+        - function: execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)
+          handler: handleExecTransaction
       file: ./src/safe.ts

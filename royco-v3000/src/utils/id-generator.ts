@@ -56,3 +56,21 @@ export function generateRawSafeTokenizedPositionId(
 export function generateTokenId(tokenAddress: string): string {
   return CHAIN_ID.toString().concat("-").concat(tokenAddress.toLowerCase());
 }
+
+/**
+ * Generate a unique ID for SafeTransaction entities
+ * Uses safeAddress + blockNumber + transactionIndex to correlate with ExecutionSuccess/Failure events
+ */
+export function generateSafeTransactionId(
+  safeAddress: string,
+  blockNumber: BigInt,
+  transactionIndex: BigInt
+): string {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(safeAddress.toLowerCase())
+    .concat("_")
+    .concat(blockNumber.toString())
+    .concat("_")
+    .concat(transactionIndex.toString());
+}
