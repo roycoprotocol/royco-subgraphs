@@ -30,6 +30,25 @@ dataSources:
         - event: RoycoAccountDeployed(indexed address,uint96,address)
           handler: handleRoycoAccountDeployed
       file: ./src/royco-account-factory.ts
+  - kind: ethereum
+    name: ERC20
+    network: base
+    source:
+      abi: ERC20
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - RawSafeTokenizedPosition
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/erc20.ts
 templates:
   - name: SafeTemplate
     kind: ethereum/contract
@@ -66,21 +85,3 @@ templates:
         - event: ChangedThreshold(uint256)
           handler: handleChangedThreshold
       file: ./src/safe.ts
-  - name: ERC20Template
-    kind: ethereum/contract
-    network: base
-    source:
-      abi: ERC20
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - RawSafeTokenizedPosition
-      abis:
-        - name: ERC20
-          file: ./abis/ERC20.json
-      eventHandlers:
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-      file: ./src/erc20.ts
