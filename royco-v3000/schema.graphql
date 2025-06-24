@@ -60,8 +60,9 @@ type SafeReceived @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type SafeTransaction @entity(immutable: true) {
+type RawSafeTransaction @entity(immutable: true) {
   id: String!
+  rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
   chainId: BigInt! @indexed
   safeAddress: String! @indexed # address
   to: String! @indexed # address
@@ -96,6 +97,7 @@ type RawSafe @entity(immutable: false) {
   # Derived fields
   rawSafeMaps: [RawSafeMap!]! @derivedFrom(field: "rawSafeRefId")
   rawSafeTokenizedPositions: [RawSafeTokenizedPosition!]! @derivedFrom(field: "rawSafeRefId")
+  rawSafeTransactions: [RawSafeTransaction!]! @derivedFrom(field: "rawSafeRefId")
 }
 
 type RawSafeMap @entity(immutable: true) {
