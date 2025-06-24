@@ -168,7 +168,7 @@ export function handleClaim(entity: IncentivesClaimed): void {
   let campaign = RawIncentiveCampaign.load(
     generateRawIncentiveCampaignId(entity.incentiveCampaignId)
   );
-  if (campaign == null) {
+  if (!campaign) {
     // Possibly log an error
     return;
   }
@@ -187,6 +187,8 @@ export function handleClaim(entity: IncentivesClaimed): void {
       entity.incentiveCampaignId
     );
     balances.accountAddress = entity.ap;
+    balances.incentiveIds = [];
+    balances.incentiveAmounts = [];
     balances.blockNumber = entity.blockNumber;
     balances.blockTimestamp = entity.blockTimestamp;
     balances.transactionHash = entity.transactionHash;
