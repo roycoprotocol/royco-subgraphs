@@ -67,7 +67,7 @@ type RawSafeTransaction @entity(immutable: true) {
   safeAddress: String! @indexed # address
   to: String! @indexed # address
   value: BigInt! # uint256
-  data: Bytes! # bytes
+  data: String! # hex-encoded bytes
   operation: Int! # uint8
   safeTxGas: BigInt! # uint256
   baseGas: BigInt! # uint256

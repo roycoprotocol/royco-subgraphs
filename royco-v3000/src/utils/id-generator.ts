@@ -56,3 +56,13 @@ export function generateRawSafeTokenizedPositionId(
 export function generateTokenId(tokenAddress: string): string {
   return CHAIN_ID.toString().concat("-").concat(tokenAddress.toLowerCase());
 }
+
+/**
+ * Generate a unique ID for RawSafeTransaction based on rawSafeId and transaction hash
+ */
+export function generateRawSafeTransactionId(
+  rawSafeId: string,
+  transactionHash: string
+): string {
+  return rawSafeId.concat("_").concat(transactionHash.toLowerCase());
+}
