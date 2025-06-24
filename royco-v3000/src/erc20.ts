@@ -1,7 +1,6 @@
-import { BigInt, Address } from "@graphprotocol/graph-ts";
-import { Transfer as TransferEvent } from "../generated/templates/ERC20Template/ERC20";
+import { BigInt } from "@graphprotocol/graph-ts";
+import { Transfer as TransferEvent } from "../generated/ERC20/ERC20";
 import { RawSafeTokenizedPosition, RawSafe } from "../generated/schema";
-import { ERC20 } from "../generated/templates/ERC20Template/ERC20";
 import { CHAIN_ID, NULL_ADDRESS } from "./constants";
 import {
   generateRawSafeId,
@@ -106,7 +105,7 @@ export function trackNativeETHTransfer(
 ): void {
   let safeId = generateRawSafeId(safeAddress);
   let safe = RawSafe.load(safeId);
-  
+
   if (safe) {
     updateSafeTokenPosition(
       safe,
