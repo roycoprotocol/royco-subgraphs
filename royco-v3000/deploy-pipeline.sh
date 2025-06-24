@@ -19,7 +19,7 @@ prepare_and_deploy() {
     npm run prepare:pipeline
     
     if [ $? -eq 0 ]; then
-        goldsky pipeline apply "${pipeline_name}.yaml"
+        goldsky pipeline apply "${pipeline_name}.yaml" --status ACTIVE
     else
         echo "Error during preparation of ${pipeline_name}"
         return 1
