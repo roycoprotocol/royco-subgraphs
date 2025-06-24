@@ -6,11 +6,13 @@ import {
   AddedOwner as AddedOwnerEvent,
   RemovedOwner as RemovedOwnerEvent,
   ChangedThreshold as ChangedThresholdEvent,
+  SafeReceived as SafeReceivedEvent,
 } from "../generated/templates/SafeTemplate/ISafe";
 import {
   SafeSetup,
   ExecutionSuccess,
   ExecutionFailure,
+  SafeReceived,
   RawSafe,
   RawSafeMap,
 } from "../generated/schema";
@@ -143,18 +145,7 @@ export function handleExecutionFailure(event: ExecutionFailureEvent): void {
 
   entity.save();
 
-  // Track native ETH transfer if transaction has value
-  if (event.transaction.value.gt(BigInt.fromI32(0))) {
-    trackNativeETHTransfer(
-      event.address.toHexString().toLowerCase(),
-      event.transaction.value,
-      true, // incoming ETH to Safe
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash.toHexString().toLowerCase(),
-      event.logIndex
-    );
-  }
+
 }
 
 export function handleAddedOwner(event: AddedOwnerEvent): void {
@@ -267,4 +258,31 @@ export function handleChangedThreshold(event: ChangedThresholdEvent): void {
     rawSafe.updatedLogIndex = event.logIndex;
     rawSafe.save();
   }
+}
+
+export function handleSafeReceived(event: SafeReceivedEvent): void {
+  let entity = new SafeReceived(
+    generateEventId(event.transaction.hash, event.logIndex)
+  );
+  entity.chainId = CHAIN_ID;
+  entity.safeAddress = event.address.toHexString().toLowerCase();
+  entity.sender = event.params.sender.toHexString().toLowerCase();
+  entity.value = event.params.value;
+  entity.blockNumber = event.block.number;
+  entity.blockTimestamp = event.block.timestamp;
+  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
+  entity.logIndex = event.logIndex;
+
+  entity.save();
+
+  // Track native ETH transfer
+  trackNativeETHTransfer(
+    event.address.toHexString().toLowerCase(),
+    event.params.value,
+    true, // incoming ETH to Safe
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash.toHexString().toLowerCase(),
+    event.logIndex
+  );
 }
