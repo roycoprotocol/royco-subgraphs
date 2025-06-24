@@ -10,7 +10,7 @@ sources:
       - name: royco-v3000-base
         version: 1.0.0
       - name: royco-v3000-sepolia
-        version: 1.0.2
+        version: 1.0.3
     type: subgraph_entity
   raw_safe_map_reference:
     name: raw_safe_map
@@ -20,7 +20,7 @@ sources:
       - name: royco-v3000-base
         version: 1.0.0
       - name: royco-v3000-sepolia
-        version: 1.0.2
+        version: 1.0.3
     type: subgraph_entity
   raw_safe_tokenized_position_reference:
     name: raw_safe_tokenized_position
@@ -30,7 +30,7 @@ sources:
       - name: royco-v3000-base
         version: 1.0.0
       - name: royco-v3000-sepolia
-        version: 1.0.2
+        version: 1.0.3
     type: subgraph_entity
   raw_safe_transaction_reference:
     name: raw_safe_transaction
@@ -40,7 +40,7 @@ sources:
       - name: royco-v3000-base
         version: 1.0.0
       - name: royco-v3000-sepolia
-        version: 1.0.2
+        version: 1.0.3
     type: subgraph_entity
 transforms: {}
 sinks:
