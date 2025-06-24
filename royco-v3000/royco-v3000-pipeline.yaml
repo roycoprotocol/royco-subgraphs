@@ -6,26 +6,32 @@ sources:
   raw_safe_reference:
     name: raw_safe
     subgraphs:
-      {{#metadata}}
-      - name: royco-v3000-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.1
     type: subgraph_entity
   raw_safe_map_reference:
     name: raw_safe_map
     subgraphs:
-      {{#metadata}}
-      - name: royco-v3000-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.1
     type: subgraph_entity
   raw_safe_tokenized_position_reference:
     name: raw_safe_tokenized_position
     subgraphs:
-      {{#metadata}}
-      - name: royco-v3000-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.1
     type: subgraph_entity
 transforms: {}
 sinks:

@@ -28,7 +28,7 @@ type ExecutionSuccess @entity(immutable: true) {
   id: String!
   chainId: BigInt! @indexed
   safeAddress: String! @indexed # address
-  txHash: Bytes! @indexed # bytes32
+  txHash: String! @indexed # bytes32
   payment: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -40,7 +40,7 @@ type ExecutionFailure @entity(immutable: true) {
   id: String!
   chainId: BigInt! @indexed
   safeAddress: String! @indexed # address
-  txHash: Bytes! @indexed # bytes32
+  txHash: String! @indexed # bytes32
   payment: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -58,6 +58,24 @@ type SafeReceived @entity(immutable: true) {
   blockTimestamp: BigInt!
   transactionHash: String!
   logIndex: BigInt!
+}
+
+type SafeTransaction @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  safeAddress: String! @indexed # address
+  to: String! @indexed # address
+  value: BigInt! # uint256
+  data: Bytes! # bytes
+  operation: Int! # uint8
+  safeTxGas: BigInt! # uint256
+  baseGas: BigInt! # uint256
+  gasPrice: BigInt! # uint256
+  gasToken: String! # address
+  refundReceiver: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
 }
 
 type RawSafe @entity(immutable: false) {

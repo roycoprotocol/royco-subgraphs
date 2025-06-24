@@ -7,12 +7,14 @@ import {
   RemovedOwner as RemovedOwnerEvent,
   ChangedThreshold as ChangedThresholdEvent,
   SafeReceived as SafeReceivedEvent,
+  ExecTransactionCall,
 } from "../generated/templates/SafeTemplate/ISafe";
 import {
   SafeSetup,
   ExecutionSuccess,
   ExecutionFailure,
   SafeReceived,
+  SafeTransaction,
   RawSafe,
   RawSafeMap,
 } from "../generated/schema";
@@ -107,7 +109,7 @@ export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
   );
   entity.chainId = CHAIN_ID;
   entity.safeAddress = event.address.toHexString().toLowerCase();
-  entity.txHash = event.params.txHash;
+  entity.txHash = event.params.txHash.toHexString().toLowerCase();
   entity.payment = event.params.payment;
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
@@ -116,12 +118,16 @@ export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
 
   entity.save();
 
-  // Track native ETH transfer if transaction has value
-  if (event.transaction.value.gt(BigInt.fromI32(0))) {
+  // Look for corresponding SafeTransaction to get actual ETH value
+  let safeTransactionId = event.transaction.hash.toHexString().toLowerCase();
+  let safeTransaction = SafeTransaction.load(safeTransactionId);
+
+  if (safeTransaction && safeTransaction.value.gt(BigInt.fromI32(0))) {
+    // Track native ETH transfer using the actual value from SafeTransaction
     trackNativeETHTransfer(
-      event.address.toHexString().toLowerCase(),
-      event.transaction.value,
-      true, // incoming ETH to Safe
+      event.address.toHexString().toLowerCase(), // Safe address (from)
+      safeTransaction.value,
+      false, // outgoing ETH from Safe
       event.block.number,
       event.block.timestamp,
       event.transaction.hash.toHexString().toLowerCase(),
@@ -136,7 +142,7 @@ export function handleExecutionFailure(event: ExecutionFailureEvent): void {
   );
   entity.chainId = CHAIN_ID;
   entity.safeAddress = event.address.toHexString().toLowerCase();
-  entity.txHash = event.params.txHash;
+  entity.txHash = event.params.txHash.toHexString().toLowerCase();
   entity.payment = event.params.payment;
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
@@ -144,8 +150,6 @@ export function handleExecutionFailure(event: ExecutionFailureEvent): void {
   entity.logIndex = event.logIndex;
 
   entity.save();
-
-
 }
 
 export function handleAddedOwner(event: AddedOwnerEvent): void {
@@ -285,4 +289,46 @@ export function handleSafeReceived(event: SafeReceivedEvent): void {
     event.transaction.hash.toHexString().toLowerCase(),
     event.logIndex
   );
+}
+
+export function handleExecTransaction(call: ExecTransactionCall): void {
+  let transactionId = call.transaction.hash.toHexString().toLowerCase();
+  let entity = SafeTransaction.load(transactionId);
+  
+  if (!entity) {
+    entity = new SafeTransaction(transactionId);
+  }
+  
+  entity.chainId = CHAIN_ID;
+  entity.safeAddress = call.to.toHexString().toLowerCase();
+  entity.to = call.inputs.to.toHexString().toLowerCase();
+  entity.value = call.inputs.value;
+  entity.data = call.inputs.data;
+  entity.operation = call.inputs.operation;
+  entity.safeTxGas = call.inputs.safeTxGas;
+  entity.baseGas = call.inputs.baseGas;
+  entity.gasPrice = call.inputs.gasPrice;
+  entity.gasToken = call.inputs.gasToken.toHexString().toLowerCase();
+  entity.refundReceiver = call.inputs.refundReceiver
+    .toHexString()
+    .toLowerCase();
+  entity.blockNumber = call.block.number;
+  entity.blockTimestamp = call.block.timestamp;
+  entity.transactionHash = call.transaction.hash.toHexString().toLowerCase();
+
+  entity.save();
+
+  // If transaction has ETH value, track it immediately since ExecTransaction
+  // is called and we have the value, regardless of ExecutionSuccess timing
+  if (entity.value.gt(BigInt.fromI32(0))) {
+    trackNativeETHTransfer(
+      call.to.toHexString().toLowerCase(), // Safe address (from)
+      entity.value,
+      false, // outgoing ETH from Safe
+      call.block.number,
+      call.block.timestamp,
+      call.transaction.hash.toHexString().toLowerCase(),
+      BigInt.fromI32(0) // Use 0 as logIndex for call handlers
+    );
+  }
 }
