@@ -1,0 +1,74 @@
+apiVersion: 3
+name: royco-v3000-pipeline
+resource_size: s
+sources:
+  raw_safe_reference:
+    name: raw_safe
+    subgraphs:
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.3
+    type: subgraph_entity
+  raw_safe_map_reference:
+    name: raw_safe_map
+    subgraphs:
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.3
+    type: subgraph_entity
+  raw_safe_tokenized_position_reference:
+    name: raw_safe_tokenized_position
+    subgraphs:
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.3
+    type: subgraph_entity
+  raw_safe_transaction_reference:
+    name: raw_safe_transaction
+    subgraphs:
+      - name: royco-v3000-mainnet
+        version: 1.0.0
+      - name: royco-v3000-base
+        version: 1.0.0
+      - name: royco-v3000-sepolia
+        version: 1.0.3
+    type: subgraph_entity
+transforms: {}
+sinks:
+  raw_safe_postgres:
+    type: postgres
+    table: raw_safe
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe"
+    from: raw_safe_reference
+  raw_safe_map_postgres:
+    type: postgres
+    table: raw_safe_map
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe_map"
+    from: raw_safe_map_reference
+  raw_safe_tokenized_position_postgres:
+    type: postgres
+    table: raw_safe_tokenized_position
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe_tokenized_position"
+    from: raw_safe_tokenized_position_reference
+  raw_safe_transaction_postgres:
+    type: postgres
+    table: raw_safe_transaction
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_safe_transaction"
+    from: raw_safe_transaction_reference
