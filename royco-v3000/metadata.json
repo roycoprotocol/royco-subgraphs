@@ -1,0 +1,16 @@
+{
+  "metadata": [
+    {
+      "network": "mainnet",
+      "version": "1.0.0"
+    },
+    {
+      "network": "base",
+      "version": "1.0.0"
+    },
+    {
+      "network": "sepolia",
+      "version": "1.0.8"
+    }
+  ]
+}

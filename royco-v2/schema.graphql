@@ -242,164 +242,257 @@ type SpendCapsUpdated @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type AssertersBlacklisted @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  blacklistedAsserters: [String!]! # address[]
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type AssertersBlacklisted @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   blacklistedAsserters: [String!]! # address[]
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type AssertersWhitelisted @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  whitelistedAsserters: [String!]! # address[]
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type AssertersWhitelisted @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   whitelistedAsserters: [String!]! # address[]
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type AssertionLivenessUpdated @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  newAssertionLiveness: BigInt! # uint64
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type AssertionLivenessUpdated @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   newAssertionLiveness: BigInt! # uint64
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type BondCurrencyUpdated @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  newBondCurrency: String! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type BondCurrencyUpdated @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   newBondCurrency: String! # address
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type IncentiveEmissionRatesUpdated @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  incentiveCampaignId: String! # bytes32
-  incentives: [String!]! # address[]
-  updatedRates: [BigInt!]! # uint256[]
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type IncentiveEmissionRatesUpdated @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   incentiveCampaignId: String! # bytes32
+#   incentives: [String!]! # address[]
+#   updatedRates: [BigInt!]! # uint256[]
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type MerkleRootAsserted @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  assertionId: String! # bytes32
-  incentiveCampaignId: String! # bytes32
-  asserter: String! # address
-  merkleRoot: String! # bytes32
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type MerkleRootAsserted @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   assertionId: String! # bytes32
+#   incentiveCampaignId: String! # bytes32
+#   asserter: String! # address
+#   merkleRoot: String! # bytes32
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type MerkleRootAssertionDisputed @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  assertionId: String! # bytes32
-  merkleRoot: String! # bytes32
-  rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type MerkleRootAssertionDisputed @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   assertionId: String! # bytes32
+#   merkleRoot: String! # bytes32
+#   rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type MerkleRootAssertionResolved @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  assertionId: String! # bytes32
-  merkleRoot: String! # bytes32
-  rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type MerkleRootAssertionResolved @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   assertionId: String! # bytes32
+#   merkleRoot: String! # bytes32
+#   rawMerkleRootAssertionRefId: RawUmaMerkleRootAssertion!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type UmaMerkleChefAVOwnershipTransferStarted @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  previousOwner: String! # address
-  newOwner: String! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type UmaMerkleChefAVOwnershipTransferStarted @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   previousOwner: String! # address
+#   newOwner: String! # address
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type UmaMerkleChefAVOwnershipTransferred @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  previousOwner: String! # address
-  newOwner: String! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type UmaMerkleChefAVOwnershipTransferred @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   previousOwner: String! # address
+#   newOwner: String! # address
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type APOfferCreated @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  incentiveCampaignId: String! # bytes32
-  apOfferHash: String! # bytes32
-  ap: String! # address
-  multiplier: BigInt! # uint96
-  offerSize: BigInt! # uint256
-  rawUserMultiplierStateRefId: RawUserMultiplierState!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type APOfferCreated @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   incentiveCampaignId: String! # bytes32
+#   apOfferHash: String! # bytes32
+#   ap: String! # address
+#   multiplier: BigInt! # uint96
+#   offerSize: BigInt! # uint256
+#   rawUserMultiplierStateRefId: RawUserMultiplierState!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type APOfferFilled @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  apOfferHash: String! # bytes32
-  incentiveCampaignId: String! # bytes32
-  ap: String! # address
-  multiplier: BigInt! # uint96
-  offerSize: BigInt! # uint256
-  rawUserMultiplierStateRefId: RawUserMultiplierState!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type APOfferFilled @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   apOfferHash: String! # bytes32
+#   incentiveCampaignId: String! # bytes32
+#   ap: String! # address
+#   multiplier: BigInt! # uint96
+#   offerSize: BigInt! # uint256
+#   rawUserMultiplierStateRefId: RawUserMultiplierState!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
-type OptedInToIncentiveCampaign @entity(immutable: true) {
-  id: String!
-  chainId: BigInt!
-  incentiveCampaignId: String! # bytes32
-  ap: String! # address
-  rawUserMultiplierStateRefId: RawUserMultiplierState!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
+# type OptedInToIncentiveCampaign @entity(immutable: true) {
+#   id: String!
+#   chainId: BigInt!
+#   incentiveCampaignId: String! # bytes32
+#   ap: String! # address
+#   rawUserMultiplierStateRefId: RawUserMultiplierState!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
+# type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
+#   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
+#   chainId: BigInt! # Hardcoded
+#   incentiveCampaignId: String! # Unique Campaign ID
+#   incentiveIds: [String!]! # address[] - The incentives claimed for this campaign by the AP
+#   incentiveEmissionRates: [BigInt!]! # Corresponding list of incentive emission rates, initially set to 0 for all
+#   merkleRoot: String # Can be null, so removed "!" -- this will store the last "resolved" merkle root
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
+
+# type RawMultiplierAPOffer @entity(immutable: false) {
+#   id: String! # <CHAIN_ID>_<CAMPAIGN_ID>_<OFFER_TYPE>_<OFFER_HASH>
+#   chainId: BigInt! # Hardcoded
+#   incentiveCampaignId: String! # Unique Campaign ID
+#   rawUserMultiplierStateRefId: RawUserMultiplierState!
+#   offerType: Int!
+#   offerHash: String!
+#   accountAddress: String!
+#   multiplier: BigInt!
+#   offerSize: BigInt!
+#   filled: Boolean!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
+
+# type RawHistoricalMultiplierState @entity(immutable: false) {
+#   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<AP_ADDRESS>_<LOG_INDEX>
+#   chainId: BigInt! # Hardcoded
+#   incentiveCampaignId: String! # Unique Campaign ID
+#   rawUserMultiplierStateRefId: RawUserMultiplierState!
+#   accountAddress: String!
+#   multiplier: BigInt!
+#   offerSize: BigInt!
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
+
+# type RawUserMultiplierState @entity(immutable: false) {
+#   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_<AP_ADDRESS>
+#   chainId: BigInt! # Hardcoded
+#   incentiveCampaignId: String! # Unique Campaign ID
+#   rawIncentiveCampaignRefId: RawIncentiveCampaign!
+#   accountAddress: String!
+#   multiplier: BigInt!
+#   offerSize: BigInt!
+#   historicalMultiplierStateRefIds: [RawHistoricalMultiplierState!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
+#   apOfferRefIds: [RawMultiplierAPOffer!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
+#   optInRefId: OptedInToIncentiveCampaign!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+#   createdAPOfferRefIds: [APOfferCreated!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+#   filledAPOfferRefIds: [APOfferFilled!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
+
+# type RawUmaMerkleRootAssertion @entity(immutable: false) {
+#   id: String! # <CHAIN_ID>_<ASSERTION_ID>
+#   chainId: BigInt! # Hardcoded
+#   incentiveCampaignId: String! # Unique Campaign ID
+#   rawMerkleRootStateRefId: RawUmaMerkleRootState!
+#   assertionId: String!
+#   accountAddress: String!
+#   merkleRoot: String!
+#   state: Int! # 0 = Asserted, 1 = Resolved, 2 = Disputed
+#   merkleRootDisputedRefId: MerkleRootAssertionDisputed! @derivedFrom(field: "rawMerkleRootAssertionRefId")
+#   merkleRootResolvedRefId: MerkleRootAssertionResolved! @derivedFrom(field: "rawMerkleRootAssertionRefId")
+#   blockNumber: BigInt! 
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
+
+# type RawUmaMerkleRootState @entity(immutable: false) {
+#   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>_UMA_MERKLE_ROOT_STATE
+#   chainId: BigInt! # Hardcoded
+#   incentiveCampaignId: String! # Unique Campaign ID
+#   rawIncentiveCampaignRefId: RawIncentiveCampaign!
+#   merkleRoot: String!
+#   rawUmaMerkleRootAssertionRefIds: [RawUmaMerkleRootAssertion!]! @derivedFrom(field: "rawMerkleRootStateRefId")
+#   blockNumber: BigInt!
+#   blockTimestamp: BigInt!
+#   transactionHash: String!
+#   logIndex: BigInt!
+# }
 
 type RawIncentiveCampaign @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
   chainId: BigInt! # Hardcoded
   incentiveCampaignId: String! # Unique Campaign ID
+  incentiveLockerAddress: String! # Address of the incentive locker
   actionVerifier: String! # Address of the action verifier
   actionParams: String! # String representing the actionParams for this campaign
   owner: String! # The address of the IP of this campaign
@@ -418,9 +511,23 @@ type RawIncentiveCampaign @entity(immutable: false) {
   incentivesAddedRefIds: [IncentivesAdded!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesRemovedRefIds: [IncentivesRemoved!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
   incentivesClaimedRefIds: [IncentivesClaimed!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
-  umcAvEmissionRateUpdateRefIds: [RawIncentiveEmissionRateUpdate!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
-  umcAvMerkleRootStateRefId: RawUmaMerkleRootState! @derivedFrom(field: "rawIncentiveCampaignRefId")
-  userMultiplierRefIds: [RawUserMultiplierState!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  incentraAVActionParamsRefId: RawIncentraAVActionParams @derivedFrom(field: "rawIncentiveCampaignRefId")
+  # umcAvEmissionRateUpdateRefIds: [RawIncentiveEmissionRateUpdate!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  # umcAvMerkleRootStateRefId: RawUmaMerkleRootState! @derivedFrom(field: "rawIncentiveCampaignRefId")
+  # userMultiplierRefIds: [RawUserMultiplierState!]! @derivedFrom(field: "rawIncentiveCampaignRefId")
+}
+
+type RawIncentraAVActionParams @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<INCENTIVE_CAMPAIGN_ID>
+  chainId: BigInt! # Hardcoded
+  incentiveCampaignId: String! # Unique Campaign ID
+  rawIncentiveCampaignRefId: RawIncentiveCampaign!
+  campaignType: Int! # 0 = SAME_CHAIN, 1 = CROSS_CHAIN
+  incentraCampaign: String! # Address of the Incentra campaign
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
 }
 
 type RawIncentiveCampaignUmaMerkleChef @entity(immutable: false) {
@@ -480,9 +587,9 @@ type RawUserMultiplierState @entity(immutable: false) {
   offerSize: BigInt!
   historicalMultiplierStateRefIds: [RawHistoricalMultiplierState!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
   apOfferRefIds: [RawMultiplierAPOffer!]! @derivedFrom(field: "rawUserMultiplierStateRefId")
-  optInRefId: OptedInToIncentiveCampaign!  @derivedFrom(field: "rawUserMultiplierStateRefId")
-  createdAPOfferRefIds: [APOfferCreated!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
-  filledAPOfferRefIds: [APOfferFilled!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+  # optInRefId: OptedInToIncentiveCampaign!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+  # createdAPOfferRefIds: [APOfferCreated!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
+  # filledAPOfferRefIds: [APOfferFilled!]!  @derivedFrom(field: "rawUserMultiplierStateRefId")
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
@@ -589,8 +696,8 @@ type RawUmaMerkleRootAssertion @entity(immutable: false) {
   accountAddress: String!
   merkleRoot: String!
   state: Int! # 0 = Asserted, 1 = Resolved, 2 = Disputed
-  merkleRootDisputedRefId: MerkleRootAssertionDisputed! @derivedFrom(field: "rawMerkleRootAssertionRefId")
-  merkleRootResolvedRefId: MerkleRootAssertionResolved! @derivedFrom(field: "rawMerkleRootAssertionRefId")
+  # merkleRootDisputedRefId: MerkleRootAssertionDisputed! @derivedFrom(field: "rawMerkleRootAssertionRefId")
+  # merkleRootResolvedRefId: MerkleRootAssertionResolved! @derivedFrom(field: "rawMerkleRootAssertionRefId")
   blockNumber: BigInt! 
   blockTimestamp: BigInt!
   transactionHash: String!

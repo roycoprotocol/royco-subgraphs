@@ -1,0 +1,6 @@
+{
+  "network": "sepolia",
+  "chainId": "11155111",
+  "roycoAccountFactoryAddress": "0xa7081d927570a98b74f0448e7c83c91b499c5847",
+  "roycoAccountFactoryStartBlock": 8620278
+}
