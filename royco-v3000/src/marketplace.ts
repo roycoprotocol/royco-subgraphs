@@ -17,7 +17,7 @@ export function handleMarketCreated(event: MarketCreatedEvent): void {
   );
   eventEntity.chainId = CHAIN_ID;
   eventEntity.nodeHash = formatBytes(event.params.nodeHash);
-  eventEntity.marketType = 2; // Always 2 for signal markets
+  eventEntity.marketType = 2;
   eventEntity.oracle = formatAddress(event.params.oracle);
   eventEntity.data = formatBytes(event.params.data);
   eventEntity.blockNumber = event.block.number;
@@ -47,7 +47,7 @@ export function handleMarketCreated(event: MarketCreatedEvent): void {
   let rawMarket = new RawMarket(marketId);
   rawMarket.chainId = CHAIN_ID;
   rawMarket.marketHash = formatBytes(Bytes.fromByteArray(marketHash));
-  rawMarket.marketType = 2; // Always 2 for signal markets
+  rawMarket.marketType = 2;
   rawMarket.nodeHash = formatBytes(event.params.nodeHash);
   rawMarket.signalTarget = formatAddress(event.params.oracle);
   rawMarket.signalData = formatBytes(event.params.data);
