@@ -31,12 +31,9 @@ export function handleTransfer(event: TransferEvent): void {
     return;
   }
 
-  // ------------------------------------------------------------------
-  // GLOBAL DATA-SOURCE LOGIC (no address filter)
-  // ------------------------------------------------------------------
   if (!isTemplateInstance) {
     // Ensure we start tracking this token via template – do this ONLY once.
-    let trackedTokenId = CHAIN_ID.toString().concat("_").concat(tokenAddress);
+    let trackedTokenId = generateTokenId(tokenAddress);
     let tracked = TrackedERC20Token.load(trackedTokenId);
 
     if (tracked == null) {
@@ -64,7 +61,6 @@ export function handleTransfer(event: TransferEvent): void {
     }
 
     // Skip position update here; the newly spawned template will process
-    // this very same Transfer (templates are active for rest of block).
     return;
   }
 
@@ -177,11 +173,11 @@ export function trackNativeETHTransfer(
 
 // Spawn template & maintain TrackedERC20Token bookkeeping
 function updateTrackedStats(event: TransferEvent, tokenAddress: string): void {
-  let trackedTokenId = CHAIN_ID.toString().concat("_").concat(tokenAddress);
+  let trackedTokenId = generateTokenId(tokenAddress);
   let tracked = TrackedERC20Token.load(trackedTokenId);
 
   if (tracked == null) {
-    // Should not happen inside template; guard anyway
+    // Should not happen inside template;
     return;
   }
 
