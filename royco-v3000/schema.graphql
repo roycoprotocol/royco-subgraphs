@@ -100,7 +100,7 @@ type RawSafe @entity(immutable: false) {
   rawSafeTransactions: [RawSafeTransaction!]! @derivedFrom(field: "rawSafeRefId")
 }
 
-type RawSafeMap @entity(immutable: true) {
+type RawSafeMap @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<SAFE_ADDRESS>_<ACCOUNT_ADDRESS>
   rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
   chainId: BigInt! @indexed
