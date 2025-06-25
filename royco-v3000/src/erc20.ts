@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { BigInt, dataSource, Address } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/ERC20/ERC20";
 import {
   RawSafeTokenizedPosition,
@@ -19,12 +19,52 @@ export function handleTransfer(event: TransferEvent): void {
   let toAddress = event.params.to.toHexString().toLowerCase();
   let value = event.params.value;
 
+  // Determine if this handler is running inside a per-token template or the global catch-all
+  let isTemplateInstance = !dataSource.address().equals(Address.zero());
+
   // Load potential safes once
   let toSafe = RawSafe.load(generateRawSafeId(toAddress));
   let fromSafe = RawSafe.load(generateRawSafeId(fromAddress));
 
   // If neither side is a Safe we track, exit early – saves computation & storage
   if (!toSafe && !fromSafe) {
+    return;
+  }
+
+  // ------------------------------------------------------------------
+  // GLOBAL DATA-SOURCE LOGIC (no address filter)
+  // ------------------------------------------------------------------
+  if (!isTemplateInstance) {
+    // Ensure we start tracking this token via template – do this ONLY once.
+    let trackedTokenId = CHAIN_ID.toString().concat("_").concat(tokenAddress);
+    let tracked = TrackedERC20Token.load(trackedTokenId);
+
+    if (tracked == null) {
+      tracked = new TrackedERC20Token(trackedTokenId);
+      tracked.chainId = CHAIN_ID;
+      tracked.tokenAddress = tokenAddress;
+      tracked.tokenId = generateTokenId(tokenAddress);
+      tracked.interactionCount = BigInt.fromI32(0);
+      tracked.firstSeenBlockNumber = event.block.number;
+      tracked.firstSeenBlockTimestamp = event.block.timestamp;
+      tracked.firstSeenTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
+
+      tracked.lastSeenBlockNumber = event.block.number;
+      tracked.lastSeenBlockTimestamp = event.block.timestamp;
+      tracked.lastSeenTransactionHash = event.transaction.hash
+        .toHexString()
+        .toLowerCase();
+
+      tracked.save();
+
+      // Activate per-token template for subsequent transfers
+      ERC20Template.create(event.address);
+    }
+
+    // Skip position update here; the newly spawned template will process
+    // this very same Transfer (templates are active for rest of block).
     return;
   }
 
@@ -58,7 +98,8 @@ export function handleTransfer(event: TransferEvent): void {
 
   // Ensure the token is now tracked via dynamic template so that future
   // transfers bypass the global data source entirely.
-  ensureTokenTemplate(event, tokenAddress);
+  // (No-op inside template, handled in global branch above.)
+  updateTrackedStats(event, tokenAddress);
 }
 
 function updateSafeTokenPosition(
@@ -135,28 +176,15 @@ export function trackNativeETHTransfer(
 }
 
 // Spawn template & maintain TrackedERC20Token bookkeeping
-function ensureTokenTemplate(event: TransferEvent, tokenAddress: string): void {
+function updateTrackedStats(event: TransferEvent, tokenAddress: string): void {
   let trackedTokenId = CHAIN_ID.toString().concat("_").concat(tokenAddress);
   let tracked = TrackedERC20Token.load(trackedTokenId);
 
   if (tracked == null) {
-    // First-time interaction with any Safe – create entity & start template
-    tracked = new TrackedERC20Token(trackedTokenId);
-    tracked.chainId = CHAIN_ID;
-    tracked.tokenAddress = tokenAddress;
-    tracked.tokenId = generateTokenId(tokenAddress);
-    tracked.interactionCount = BigInt.fromI32(0);
-    tracked.firstSeenBlockNumber = event.block.number;
-    tracked.firstSeenBlockTimestamp = event.block.timestamp;
-    tracked.firstSeenTransactionHash = event.transaction.hash
-      .toHexString()
-      .toLowerCase();
-
-    // Activate per-token template for subsequent transfers
-    ERC20Template.create(event.address);
+    // Should not happen inside template; guard anyway
+    return;
   }
 
-  // Update rolling stats
   let tk = tracked as TrackedERC20Token;
   tk.interactionCount = tk.interactionCount.plus(BigInt.fromI32(1));
   tk.lastSeenBlockNumber = event.block.number;
