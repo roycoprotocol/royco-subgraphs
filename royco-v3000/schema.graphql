@@ -133,3 +133,18 @@ type RawSafeTokenizedPosition @entity(immutable: false) {
   updatedTransactionHash: String!
   updatedLogIndex: BigInt!
 }
+
+# Entity to track tokens that have interacted with safes (used for template bootstrapping)
+type TrackedERC20Token @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<TOKEN_ADDRESS>
+  chainId: BigInt! @indexed
+  tokenAddress: String! @indexed # address
+  tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS> (Note: this has 'hyphen', not 'underscore')
+  interactionCount: BigInt!
+  firstSeenBlockNumber: BigInt!
+  firstSeenBlockTimestamp: BigInt!
+  firstSeenTransactionHash: String!
+  lastSeenBlockNumber: BigInt!
+  lastSeenBlockTimestamp: BigInt!
+  lastSeenTransactionHash: String!
+}
