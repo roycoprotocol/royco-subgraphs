@@ -1,12 +1,17 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 import { Transfer as TransferEvent } from "../generated/ERC20/ERC20";
-import { RawSafeTokenizedPosition, RawSafe } from "../generated/schema";
+import {
+  RawSafeTokenizedPosition,
+  RawSafe,
+  TrackedERC20Token,
+} from "../generated/schema";
 import { CHAIN_ID, NULL_ADDRESS } from "./constants";
 import {
   generateRawSafeId,
   generateRawSafeTokenizedPositionId,
   generateTokenId,
 } from "./utils/id-generator";
+import { ERC20Template } from "../generated/templates";
 
 export function handleTransfer(event: TransferEvent): void {
   let tokenAddress = event.address.toHexString().toLowerCase();
@@ -14,15 +19,22 @@ export function handleTransfer(event: TransferEvent): void {
   let toAddress = event.params.to.toHexString().toLowerCase();
   let value = event.params.value;
 
-  // Check if 'to' address is a tracked Safe
-  let toSafeId = generateRawSafeId(toAddress);
-  let toSafe = RawSafe.load(toSafeId);
+  // Load potential safes once
+  let toSafe = RawSafe.load(generateRawSafeId(toAddress));
+  let fromSafe = RawSafe.load(generateRawSafeId(fromAddress));
+
+  // If neither side is a Safe we track, exit early – saves computation & storage
+  if (!toSafe && !fromSafe) {
+    return;
+  }
+
+  // Update positions for the Safe that receives tokens
   if (toSafe) {
     updateSafeTokenPosition(
       toSafe,
       tokenAddress,
       value,
-      true, // adding tokens
+      true, // incoming
       event.block.number,
       event.block.timestamp,
       event.transaction.hash.toHexString().toLowerCase(),
@@ -30,21 +42,23 @@ export function handleTransfer(event: TransferEvent): void {
     );
   }
 
-  // Check if 'from' address is a tracked Safe
-  let fromSafeId = generateRawSafeId(fromAddress);
-  let fromSafe = RawSafe.load(fromSafeId);
+  // Update positions for the Safe that sends tokens
   if (fromSafe) {
     updateSafeTokenPosition(
       fromSafe,
       tokenAddress,
       value,
-      false, // subtracting tokens
+      false, // outgoing
       event.block.number,
       event.block.timestamp,
       event.transaction.hash.toHexString().toLowerCase(),
       event.logIndex
     );
   }
+
+  // Ensure the token is now tracked via dynamic template so that future
+  // transfers bypass the global data source entirely.
+  ensureTokenTemplate(event, tokenAddress);
 }
 
 function updateSafeTokenPosition(
@@ -118,4 +132,38 @@ export function trackNativeETHTransfer(
       logIndex
     );
   }
+}
+
+// Spawn template & maintain TrackedERC20Token bookkeeping
+function ensureTokenTemplate(event: TransferEvent, tokenAddress: string): void {
+  let trackedTokenId = CHAIN_ID.toString().concat("_").concat(tokenAddress);
+  let tracked = TrackedERC20Token.load(trackedTokenId);
+
+  if (tracked == null) {
+    // First-time interaction with any Safe – create entity & start template
+    tracked = new TrackedERC20Token(trackedTokenId);
+    tracked.chainId = CHAIN_ID;
+    tracked.tokenAddress = tokenAddress;
+    tracked.tokenId = generateTokenId(tokenAddress);
+    tracked.interactionCount = BigInt.fromI32(0);
+    tracked.firstSeenBlockNumber = event.block.number;
+    tracked.firstSeenBlockTimestamp = event.block.timestamp;
+    tracked.firstSeenTransactionHash = event.transaction.hash
+      .toHexString()
+      .toLowerCase();
+
+    // Activate per-token template for subsequent transfers
+    ERC20Template.create(event.address);
+  }
+
+  // Update rolling stats
+  let tk = tracked as TrackedERC20Token;
+  tk.interactionCount = tk.interactionCount.plus(BigInt.fromI32(1));
+  tk.lastSeenBlockNumber = event.block.number;
+  tk.lastSeenBlockTimestamp = event.block.timestamp;
+  tk.lastSeenTransactionHash = event.transaction.hash
+    .toHexString()
+    .toLowerCase();
+
+  tk.save();
 }
