@@ -49,6 +49,49 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/erc20.ts
+  - kind: ethereum
+    name: Royco
+    network: sepolia
+    source:
+      address: "0xa7081d927570a98b74f0448e7c83c91b499c5847"
+      abi: Royco
+      startBlock: 8620278
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - NodeInserted
+        - MarketCreated
+        - CancelledOrder
+        - RawNode
+        - RawMarket
+        - RawOrder
+        - RawGlobalActivity
+        - RawOperand
+        - RawCondition
+      abis:
+        - name: Royco
+          file: ./abis/Royco.json
+        - name: OpenLiquidityGraph
+          file: ./abis/OpenLiquidityGraph.json
+        - name: Marketplace
+          file: ./abis/Marketplace.json
+        - name: OrderProcessor
+          file: ./abis/OrderProcessor.json
+      eventHandlers:
+        - event: NodeInserted(indexed bytes32,indexed address,(bytes32[],bytes[]),(bytes32[],bytes[]),(bytes32[],bytes[]),indexed address)
+          handler: handleNodeInserted
+        - event: MarketCreated(indexed bytes32,indexed address,bytes)
+          handler: handleMarketCreated
+        - event: CancelledOrder(bytes32)
+          handler: handleCancelledOrder
+      callHandlers:
+        - function: fillOrder((address,address,bytes32,uint8,(address,bytes),bool,bytes,uint256,address,uint40,address,bytes,((address,bytes),uint8,(address,bytes))[],((address,bytes),uint8,(address,bytes))[],bytes),uint256)
+          handler: handleFillOrder
+        - function: cancelOrder((address,address,bytes32,uint8,(address,bytes),bool,bytes,uint256,address,uint40,address,bytes,((address,bytes),uint8,(address,bytes))[],((address,bytes),uint8,(address,bytes))[],bytes),bytes)
+          handler: handleCancelOrder
+      file: ./src/royco.ts
 templates:
   - name: SafeTemplate
     kind: ethereum/contract

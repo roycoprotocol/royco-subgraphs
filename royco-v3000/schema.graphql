@@ -133,3 +133,160 @@ type RawSafeTokenizedPosition @entity(immutable: false) {
   updatedTransactionHash: String!
   updatedLogIndex: BigInt!
 }
+
+# ===== EVENT ENTITIES (Raw Events) =====
+
+type NodeInserted @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TX_HASH>_<LOG_INDEX>
+  chainId: BigInt! @indexed
+  nodeHash: String! @indexed # bytes32
+  inputToken: String! @indexed # address
+  depositRecipeCommands: [String!]! # bytes32[]
+  depositRecipeState: [String!]! # bytes[]
+  liquidityQueryCommands: [String!]! # bytes32[]
+  liquidityQueryState: [String!]! # bytes[]
+  withdrawalRecipeCommands: [String!]! # bytes32[]
+  withdrawalRecipeState: [String!]! # bytes[]
+  outputToken: String! @indexed # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MarketCreated @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TX_HASH>_<LOG_INDEX>
+  chainId: BigInt! @indexed
+  nodeHash: String! @indexed # bytes32
+  marketHash: String! @indexed # bytes32 (derived)
+  marketType: Int! @indexed # Market type (1=Node, 2=Signal, etc.)
+  oracle: String! @indexed # address
+  data: String! # bytes (hex-encoded)
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CancelledOrder @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TX_HASH>_<LOG_INDEX>
+  chainId: BigInt! @indexed
+  orderHash: String! @indexed # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+# ===== RAW ENTITIES (Processed State) =====
+
+type RawNode @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<NODE_HASH>
+  chainId: BigInt! @indexed
+  nodeHash: String! @indexed # bytes32
+  inputToken: String! @indexed # address
+  depositRecipeCommands: [String!]! # bytes32[]
+  depositRecipeState: [String!]! # bytes[]
+  liquidityQueryCommands: [String!]! # bytes32[]
+  liquidityQueryState: [String!]! # bytes[]
+  withdrawalRecipeCommands: [String!]! # bytes32[]
+  withdrawalRecipeState: [String!]! # bytes[]
+  outputToken: String! @indexed # address
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+  # Derived fields
+  rawMarkets: [RawMarket!]! @derivedFrom(field: "rawNodeRefId")
+}
+
+type RawMarket @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>
+  rawNodeRefId: RawNode! @indexed # <CHAIN_ID>_<NODE_HASH>
+  chainId: BigInt! @indexed
+  marketHash: String! @indexed # bytes32
+  marketType: Int! @indexed # Market type (1=Node, 2=Signal, etc.)
+  nodeHash: String! @indexed # bytes32
+  signalTarget: String! @indexed # address
+  signalData: String! # bytes (hex-encoded)
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+  # Derived fields
+  rawOrders: [RawOrder!]! @derivedFrom(field: "rawMarketRefId")
+}
+
+type RawOperand @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<KECCAK256(target+data)>
+  chainId: BigInt! @indexed
+  target: String! @indexed # address
+  data: String! # bytes (hex-encoded)
+}
+
+type RawCondition @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<KECCAK256(lhs+cmp+rhs)>
+  chainId: BigInt! @indexed
+  lhsOperandRefId: RawOperand! @indexed
+  comparator: Int! # uint8 enum Comparator
+  rhsOperandRefId: RawOperand! @indexed
+}
+
+type RawOrder @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<ORDER_HASH>
+  rawMarketRefId: RawMarket! @indexed # <CHAIN_ID>_<MARKET_HASH>
+  chainId: BigInt! @indexed
+  orderHash: String! @indexed # bytes32
+  roycoAccount: String! @indexed # address
+  taker: String # address (nullable)
+  targetMarketHash: String! @indexed # bytes32
+  signalComparator: Int! # uint8 enum Comparator
+  rhsSignalOperandRefId: RawOperand! @indexed
+  checkSignalBeforeFill: Boolean!
+  auxiliaryExecutionParams: String! # bytes (hex-encoded)
+  quantity: BigInt! # uint256
+  recipient: String! @indexed # address
+  expiry: BigInt! # uint40
+  allocator: String! @indexed # address
+  allocatorArgs: String! # bytes (hex-encoded)
+  preCheckConditionRefIds: [RawCondition!]! # Reference to conditions
+  postCheckConditionRefIds: [RawCondition!]! # Reference to conditions
+  signature: String! # bytes (hex-encoded)
+  isCancelled: Boolean!
+  amountFilled: BigInt!
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+
+}
+
+type RawGlobalActivity @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  chainId: BigInt! @indexed
+  category: String! @indexed # Category (e.g. "v3000")
+  subCategory: String! @indexed # Sub Category (e.g. "deposit")
+  sourceRefId: String! @indexed # Source Ref ID (e.g. Order ID)
+  contractAddress: String! @indexed # Contract Address
+  accountAddress: String! @indexed # Account Address
+  tokenIndex: BigInt! @indexed # Token Index
+  tokenId: String! @indexed # Token ID (<CHAIN_ID>-<TOKEN_ADDRESS>)
+  tokenAddress: String! @indexed # Token Address
+  tokenAmount: BigInt! # Token Amount
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}

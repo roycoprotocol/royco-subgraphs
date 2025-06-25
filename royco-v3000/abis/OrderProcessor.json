@@ -1,0 +1,267 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      { "name": "_name", "type": "string", "internalType": "string" },
+      { "name": "_version", "type": "string", "internalType": "string" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "ABSOLUTE_LIQUIDITY_ORDER_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "CANCEL_ORDER_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "CONDITION_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "OPERAND_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "eip712Domain",
+    "inputs": [],
+    "outputs": [
+      { "name": "fields", "type": "bytes1", "internalType": "bytes1" },
+      { "name": "name", "type": "string", "internalType": "string" },
+      { "name": "version", "type": "string", "internalType": "string" },
+      { "name": "chainId", "type": "uint256", "internalType": "uint256" },
+      {
+        "name": "verifyingContract",
+        "type": "address",
+        "internalType": "address"
+      },
+      { "name": "salt", "type": "bytes32", "internalType": "bytes32" },
+      {
+        "name": "extensions",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hashOrder",
+    "inputs": [
+      {
+        "name": "_order",
+        "type": "tuple",
+        "internalType": "struct AbsoluteLiquidityOrder",
+        "components": [
+          {
+            "name": "roycoAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "taker", "type": "address", "internalType": "address" },
+          {
+            "name": "targetMarketHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "signalComparator",
+            "type": "uint8",
+            "internalType": "enum Comparator"
+          },
+          {
+            "name": "rhsSignalOperand",
+            "type": "tuple",
+            "internalType": "struct Operand",
+            "components": [
+              {
+                "name": "target",
+                "type": "address",
+                "internalType": "address"
+              },
+              { "name": "data", "type": "bytes", "internalType": "bytes" }
+            ]
+          },
+          {
+            "name": "checkSignalBeforeFill",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "auxiliaryExecutionParams",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "quantity",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "expiry", "type": "uint40", "internalType": "uint40" },
+          {
+            "name": "allocator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "allocatorArgs",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "preChecks",
+            "type": "tuple[]",
+            "internalType": "struct Condition[]",
+            "components": [
+              {
+                "name": "lhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              },
+              {
+                "name": "cmp",
+                "type": "uint8",
+                "internalType": "enum Comparator"
+              },
+              {
+                "name": "rhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "postChecks",
+            "type": "tuple[]",
+            "internalType": "struct Condition[]",
+            "components": [
+              {
+                "name": "lhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              },
+              {
+                "name": "cmp",
+                "type": "uint8",
+                "internalType": "enum Comparator"
+              },
+              {
+                "name": "rhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              }
+            ]
+          },
+          { "name": "signature", "type": "bytes", "internalType": "bytes" }
+        ]
+      }
+    ],
+    "outputs": [
+      { "name": "orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "orderHashToAmountFilled",
+    "inputs": [
+      { "name": "orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "amountFilled", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "orderHashToIsCancelled",
+    "inputs": [
+      { "name": "orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "cancelled", "type": "bool", "internalType": "bool" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "CancelledOrder",
+    "inputs": [
+      {
+        "name": "orderHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EIP712DomainChanged",
+    "inputs": [],
+    "anonymous": false
+  },
+  { "type": "error", "name": "AmountFilledExceedsQuantity", "inputs": [] },
+  { "type": "error", "name": "InvalidShortString", "inputs": [] },
+  { "type": "error", "name": "InvalidSignature", "inputs": [] },
+  { "type": "error", "name": "InvalidTaker", "inputs": [] },
+  { "type": "error", "name": "OrderCancelled", "inputs": [] },
+  { "type": "error", "name": "OrderExpired", "inputs": [] },
+  {
+    "type": "error",
+    "name": "StringTooLong",
+    "inputs": [{ "name": "str", "type": "string", "internalType": "string" }]
+  }
+]
