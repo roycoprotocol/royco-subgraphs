@@ -9,7 +9,7 @@
       "mocha": "ts-mocha test/**/*.ts",
       "codegen": "envio codegen",
       "dev": "envio dev",
-      "start": "envio codegen && envio start",
+      "start": "envio codegen --yes && envio start",
       "test": "pnpm mocha",
       "prepare:mainnet": "mustache config/mainnet.json config/subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/constants.template.ts > src/constants.ts",
       "prepare:base": "mustache config/base.json config/subgraph.template.yaml > subgraph.yaml && mustache config/base.json config/constants.template.ts > src/constants.ts",
