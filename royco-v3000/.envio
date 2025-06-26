@@ -1,0 +1,4 @@
+# Envio configuration to disable interactive prompts
+[envio]
+non_interactive = true
+auto_confirm = true 

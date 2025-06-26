@@ -27,8 +27,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Generate Envio code first (this creates the 'generated' module)
-# Use yes command to automatically answer prompts
-RUN yes | pnpm run codegen
+# Use printf to automatically answer prompts
+RUN printf 'y\n' | pnpm run codegen
 
 # Then build the application
 RUN pnpm run build
