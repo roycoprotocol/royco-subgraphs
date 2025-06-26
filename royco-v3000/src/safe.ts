@@ -173,7 +173,7 @@ ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
   // Decode the Safe transaction data to get the actual ETH value being sent
   const decodedTx = decodeSafeTransactionData(event.transaction.input);
   if (decodedTx && decodedTx.value > BigInt(0)) {
-    context.log.info(`Detected outgoing ETH transfer from Safe: ${decodedTx.value.toString()} wei to ${decodedTx.to}`);
+    context.log.info(`Detected outgoing ETH transfer from Safe!: ${decodedTx.value.toString()} wei to ${decodedTx.to}`);
     
     // Track the outgoing ETH transfer
     await trackNativeETHTransfer(
