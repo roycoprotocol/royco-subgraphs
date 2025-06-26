@@ -1,50 +1,101 @@
-version: "3"
+version: "3.8"
+
 services:
-  graph-node:
-    image: graphprotocol/graph-node
+  envio-postgres:
+    image: postgres:16
+    restart: always
     ports:
-      - "8000:8000"
-      - "8001:8001"
-      - "8020:8020"
-      - "8030:8030"
-      - "8040:8040"
+      - "${ENVIO_PG_PORT:-5433}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${ENVIO_POSTGRES_PASSWORD}
+      POSTGRES_USER: ${ENVIO_PG_USER}
+      POSTGRES_DB: ${ENVIO_PG_DATABASE}
+      POSTGRES_HOST: ${ENVIO_PG_HOST}
+      POSTGRES_PORT: ${ENVIO_PG_PORT:-5432}
+      POSTGRES_SSL: ${ENVIO_PG_SSL:-true}
+    networks:
+      - my-proxy-net
+
+  graphql-engine:
+    image: hasura/graphql-engine:v2.43.0
+    ports:
+      - "${HASURA_EXTERNAL_PORT:-8080}:8080"
+    user: 1001:1001
     depends_on:
-      - ipfs
-      - postgres
-    extra_hosts:
-      - host.docker.internal:host-gateway
+      - "envio-postgres"
+    restart: always
     environment:
-      postgres_host: postgres
-      postgres_user: graph-node
-      postgres_pass: let-me-in
-      postgres_db: graph-node
-      ipfs: "ipfs:5001"
-      ethereum: "mainnet:http://host.docker.internal:8545"
-      GRAPH_LOG: info
-  ipfs:
-    image: ipfs/kubo:v0.17.0
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:${ENVIO_POSTGRES_PASSWORD:-testing}@envio-postgres:5432/envio-dev
+      HASURA_GRAPHQL_ENABLE_CONSOLE: ${HASURA_GRAPHQL_ENABLE_CONSOLE:-true}
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES:
+        startup, http-log, webhook-log, websocket-log,
+        query-log
+      HASURA_GRAPHQL_NO_OF_RETRIES: 10
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "true"
+      PORT: 8080
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+    healthcheck:
+      test: timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
+      interval: 5s
+      timeout: 2s
+      retries: 50
+      start_period: 5s
+    networks:
+      - my-proxy-net
+
+  envio-indexer:
+    container_name: envio-indexer
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "5001:5001"
-    volumes:
-      - ./data/ipfs:/data/ipfs
-  postgres:
-    image: postgres:14
-    ports:
-      - "5432:5432"
-    command:
-      [
-        "postgres",
-        "-cshared_preload_libraries=pg_stat_statements",
-        "-cmax_connections=200",
-      ]
+      - "8081:8081"
+    depends_on:
+      graphql-engine:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.8" # Limit to 80% of 1 CPU (800m)
+          memory: 800M # Conservative limit, can be increased if needed
+    restart: always
     environment:
-      POSTGRES_USER: graph-node
-      POSTGRES_PASSWORD: let-me-in
-      POSTGRES_DB: graph-node
-      # FIXME: remove this env. var. which we shouldn't need. Introduced by
-      # <https://github.com/graphprotocol/graph-node/pull/3511>, maybe as a
-      # workaround for https://github.com/docker/for-mac/issues/6270?
-      PGDATA: "/var/lib/postgresql/data"
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      ENVIO_POSTGRES_PASSWORD: ${ENVIO_POSTGRES_PASSWORD:-testing}
+      ENVIO_PG_HOST: ${ENVIO_PG_HOST}
+      ENVIO_PG_PORT: 5432
+      ENVIO_PG_USER: ${ENVIO_PG_USER:-postgres}
+      ENVIO_PG_DATABASE: ${ENVIO_PG_DATABASE:-envio-dev}
+      PG_PASSWORD: ${ENVIO_POSTGRES_PASSWORD:-testing}
+      PG_HOST: ${ENVIO_PG_HOST}
+      PG_PORT: 5432
+      PG_USER: ${ENVIO_PG_USER:-postgres}
+      PG_DATABASE: ${ENVIO_PG_DATABASE:-envio-dev}
+      CONFIG_FILE: ${CONFIG_FILE:-config.yaml}
+      LOG_LEVEL: ${LOG_LEVEL:-trace}
+      LOG_STRATEGY: ${LOG_STRATEGY:-console-pretty}
+      MAX_QUEUE_SIZE: 50000
+      MAX_BATCH_SIZE: 10000
+      # These variables can be skipped if Hasura is not necessary
+      HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080/v1/metadata
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      HASURA_SERVICE_HOST: graphql-engine
+      HASURA_SERVICE_PORT: 8080
+      TUI_OFF: ${TUI_OFF:-true}
+    healthcheck:
+      test: timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
+      interval: 5s
+      timeout: 2s
+      retries: 50
+      start_period: 5s
+    networks:
+      - my-proxy-net
+
+volumes:
+  db_data:
+
+networks:
+  my-proxy-net:
+    name: local_test_network

@@ -1,0 +1,58 @@
+name: royco-v3000
+description: Royco V3000 multichain subgraph for tracking Royco accounts, safes, and token positions
+
+unordered_multichain_mode: true
+
+field_selection:
+  transaction_fields:
+    - "to"
+    - "value" 
+    - "input"
+    - "gasPrice"
+    - "hash"
+
+contracts:
+  - name: RoycoAccountFactory
+    abi_file_path: ./abis/RoycoAccountFactory.json
+    handler: src/royco-account-factory.ts
+    events:
+      - event: "RoycoAccountDeployed(address indexed user, uint96 accountId, address roycoAccount)"
+  - name: ISafe  
+    abi_file_path: ./abis/ISafe.json
+    handler: src/safe.ts
+    events:
+      - event: "SafeSetup(address indexed initiator, address[] owners, uint256 threshold, address initializer, address fallbackHandler)"
+      - event: "ExecutionSuccess(bytes32 indexed txHash, uint256 payment)"
+      - event: "ExecutionFailure(bytes32 indexed txHash, uint256 payment)"
+      - event: "AddedOwner(address indexed owner)"
+      - event: "RemovedOwner(address indexed owner)"
+      - event: "ChangedThreshold(uint256 threshold)"
+      - event: "SafeReceived(address indexed sender, uint256 value)"
+      - event: "Transfer(address indexed from, address indexed to, uint256 value)"
+
+networks:
+  - id: 11155111 # Sepolia
+    start_block: 8620270
+    contracts:
+      - name: RoycoAccountFactory
+        address: 
+          - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
+      - name: ISafe
+        # Dynamic contract - address will be registered from RoycoAccountDeployed events
+
+  # Template for adding additional networks
+  # - id: 1 # Ethereum Mainnet
+  #   start_block: 0
+  #   contracts:
+  #     - name: RoycoAccountFactory
+  #       address: 
+  #         - "0x..." # Mainnet factory address
+  #     - name: ISafe
+  
+  # - id: 8453 # Base
+  #   start_block: 0
+  #   contracts:
+  #     - name: RoycoAccountFactory
+  #       address:
+  #         - "0x..." # Base factory address
+  #     - name: ISafe

@@ -1,19 +1,19 @@
-type RoycoAccountDeployed @entity(immutable: true) {
-  id: String!
-  chainId: BigInt! @indexed
-  user: String! @indexed # address
+type RoycoAccountDeployed {
+  id: ID!
+  chainId: BigInt!
+  user: String! # address
   accountId: BigInt! # uint96
-  roycoAccount: String! @indexed # address
-  blockNumber: BigInt!
+  roycoAccount: String! # address
+  blockNumber:   BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
   logIndex: BigInt!
 }
 
-type SafeSetup @entity(immutable: true) {
-  id: String!
-  chainId: BigInt! @indexed
-  initiator: String! @indexed # address
+type SafeSetup {
+  id: ID!
+  chainId: BigInt!
+  initiator: String! # address
   owners: [String!]! # address[]
   threshold: BigInt! # uint256
   initializer: String! # address
@@ -24,11 +24,11 @@ type SafeSetup @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type ExecutionSuccess @entity(immutable: true) {
-  id: String!
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
-  txHash: String! @indexed # bytes32
+type ExecutionSuccess {
+  id: ID!
+  chainId: BigInt!
+  safeAddress: String! # address
+  txHash: String! # bytes32
   payment: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -36,11 +36,11 @@ type ExecutionSuccess @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type ExecutionFailure @entity(immutable: true) {
-  id: String!
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
-  txHash: String! @indexed # bytes32
+type ExecutionFailure {
+  id: ID!
+  chainId: BigInt!
+  safeAddress: String! # address
+  txHash: String! # bytes32
   payment: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -48,11 +48,11 @@ type ExecutionFailure @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type SafeReceived @entity(immutable: true) {
-  id: String!
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
-  sender: String! @indexed # address
+type SafeReceived {
+  id: ID!
+  chainId: BigInt!
+  safeAddress: String! # address
+  sender: String! # address
   value: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -60,12 +60,12 @@ type SafeReceived @entity(immutable: true) {
   logIndex: BigInt!
 }
 
-type RawSafeTransaction @entity(immutable: true) {
-  id: String!
-  rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
-  to: String! @indexed # address
+type RawSafeTransaction {
+  id: ID!
+  rawSafeRefId: String! # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt!
+  safeAddress: String! # address
+  to: String! # address
   value: BigInt! # uint256
   data: String! # hex-encoded bytes
   operation: Int! # uint8
@@ -79,33 +79,13 @@ type RawSafeTransaction @entity(immutable: true) {
   transactionHash: String!
 }
 
-type RawSafe @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<SAFE_ADDRESS>
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
+type RawSafe {
+  id: ID! # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt!
+  safeAddress: String! # address
   owners: [String!]! # array of addresses
   threshold: BigInt! # number of confirmations
-  creatorAddress: String! @indexed # address of the wallet that created the safe
-  createdBlockNumber: BigInt!
-  createdBlockTimestamp: BigInt!
-  createdTransactionHash: String!
-  createdLogIndex: BigInt!
-  updatedBlockNumber: BigInt!
-  updatedBlockTimestamp: BigInt!
-  updatedTransactionHash: String!
-  updatedLogIndex: BigInt!
-  # Derived fields
-  rawSafeMaps: [RawSafeMap!]! @derivedFrom(field: "rawSafeRefId")
-  rawSafeTokenizedPositions: [RawSafeTokenizedPosition!]! @derivedFrom(field: "rawSafeRefId")
-  rawSafeTransactions: [RawSafeTransaction!]! @derivedFrom(field: "rawSafeRefId")
-}
-
-type RawSafeMap @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<SAFE_ADDRESS>_<ACCOUNT_ADDRESS>
-  rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
-  accountAddress: String! @indexed # address
+  creatorAddress: String! # address of the wallet that created the safe
   createdBlockNumber: BigInt!
   createdBlockTimestamp: BigInt!
   createdTransactionHash: String!
@@ -116,12 +96,28 @@ type RawSafeMap @entity(immutable: false) {
   updatedLogIndex: BigInt!
 }
 
-type RawSafeTokenizedPosition @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<SAFE_ADDRESS>_<TOKEN_ADDRESS>
-  rawSafeRefId: RawSafe! @indexed # <CHAIN_ID>_<SAFE_ADDRESS>
-  chainId: BigInt! @indexed
-  safeAddress: String! @indexed # address
-  tokenAddress: String! @indexed # address
+type RawSafeMap {
+  id: ID! # <CHAIN_ID>_<SAFE_ADDRESS>_<ACCOUNT_ADDRESS>
+  rawSafeRefId: String! # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt!
+  safeAddress: String! # address
+  accountAddress: String! # address
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdTransactionHash: String!
+  createdLogIndex: BigInt!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+}
+
+type RawSafeTokenizedPosition {
+  id: ID! # <CHAIN_ID>_<SAFE_ADDRESS>_<TOKEN_ADDRESS>
+  rawSafeRefId: String! # <CHAIN_ID>_<SAFE_ADDRESS>
+  chainId: BigInt!
+  safeAddress: String! # address
+  tokenAddress: String! # address
   tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS> (Note: this has 'hyphen', not 'underscore')
   tokenAmount: BigInt!
   createdBlockNumber: BigInt!
@@ -135,10 +131,10 @@ type RawSafeTokenizedPosition @entity(immutable: false) {
 }
 
 # Entity to track tokens that have interacted with safes (used for template bootstrapping)
-type TrackedERC20Token @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<TOKEN_ADDRESS>
-  chainId: BigInt! @indexed
-  tokenAddress: String! @indexed # address
+type TrackedErc20Token {
+  id: ID! # <CHAIN_ID>_<TOKEN_ADDRESS>
+  chainId: BigInt!
+  tokenAddress: String! # address
   tokenId: String! # <CHAIN_ID>-<TOKEN_ADDRESS> (Note: this has 'hyphen', not 'underscore')
   interactionCount: BigInt!
   firstSeenBlockNumber: BigInt!
