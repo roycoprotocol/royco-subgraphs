@@ -3,10 +3,6 @@ import { ISafe } from "generated";
 // Note: CHAIN_ID is now dynamic - use event.chainId in handlers
 const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// Helper function to get chain ID from event (for multichain compatibility)
-function getChainId(event: any): bigint {
-  return BigInt(event.chainId);
-}
 
 ISafe.Transfer.handler(async ({ event, context }) => {
   const tokenAddress = event.srcAddress.toLowerCase();
@@ -410,7 +406,7 @@ async function ensureTokenTracked(
       lastSeenTransactionHash: event.block.hash.toLowerCase(),
     };
 
-    // Note: Dynamic contract registration needs to be configured differently in HyperIndex v2
+   
   } else {
     tracked.interactionCount = tracked.interactionCount + BigInt(1);
     tracked.lastSeenBlockNumber = BigInt(event.block.number);
@@ -455,8 +451,7 @@ export async function trackNativeETHTransfer(
 // Function to decode Safe execTransaction call data
 function decodeSafeTransactionData(input: string): { to: string; value: bigint; data: string } | null {
   try {
-    // execTransaction function signature: execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)
-    // Function selector: 0x6a761202
+  
     if (!input.startsWith('0x6a761202')) {
       return null;
     }

@@ -8,8 +8,7 @@ RoycoAccountFactory.RoycoAccountDeployed.contractRegister(({ event, context }) =
 RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId); // Dynamic chain ID for multichain compatibility
   
-  context.log.info(`[Chain ${event.chainId}] RoycoAccountDeployed: user=${event.params.user} accountId=${event.params.accountId} roycoAccount=${event.params.roycoAccount}`);
-  
+
   // Create RoycoAccountDeployed entity
   const roycoAccountDeployedEntity = {
     id: `${event.block.hash}_${event.logIndex}`,
@@ -46,5 +45,4 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
 
   context.RawSafe.set(rawSafeEntity);
 
-  // Note: Dynamic contract registration needs to be configured differently in HyperIndex v2
 });
