@@ -3,74 +3,73 @@ import { ISafe } from "generated";
 // Note: CHAIN_ID is now dynamic - use event.chainId in handlers
 const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+ISafe.Transfer.handler(
+  async ({ event, context }) => {
+    const tokenAddress = event.srcAddress.toLowerCase();
+    const fromAddress = event.params.from.toLowerCase();
+    const toAddress = event.params.to.toLowerCase();
+    const value = event.params.value;
 
-ISafe.Transfer.handler(async ({ event, context }) => {
-  const tokenAddress = event.srcAddress.toLowerCase();
-  const fromAddress = event.params.from.toLowerCase();
-  const toAddress = event.params.to.toLowerCase();
-  const value = event.params.value;
+    // Load potential safes
+    const chainId = BigInt(event.chainId);
+    const toSafeId = `${chainId}_${toAddress}`;
+    const fromSafeId = `${chainId}_${fromAddress}`;
 
-  
+    const toSafe = await context.RawSafe.get(toSafeId);
+    const fromSafe = await context.RawSafe.get(fromSafeId);
 
-  // Load potential safes
-  const chainId = BigInt(event.chainId);
-  const toSafeId = `${chainId}_${toAddress}`;
-  const fromSafeId = `${chainId}_${fromAddress}`;
-  
-  const toSafe = await context.RawSafe.get(toSafeId);
-  const fromSafe = await context.RawSafe.get(fromSafeId);
+    // If neither side is a Safe we track, exit early
+    if (!toSafe && !fromSafe) {
+      return;
+    }
 
+    // Ensure token is tracked
+    await ensureTokenTracked(tokenAddress, event, context);
 
-  // If neither side is a Safe we track, exit early
-  if (!toSafe && !fromSafe) {
+    // Update positions for the Safe that receives tokens
+    if (toSafe) {
+      await updateSafeTokenPosition(
+        toSafe,
+        tokenAddress,
+        value,
+        true, // incoming
+        BigInt(event.block.number),
+        BigInt(event.block.timestamp),
+        event.block.hash.toLowerCase(),
+        BigInt(event.logIndex),
+        context,
+        chainId
+      );
+    }
 
-    return;
+    // Update positions for the Safe that sends tokens
+    if (fromSafe) {
+      await updateSafeTokenPosition(
+        fromSafe,
+        tokenAddress,
+        value,
+        false, // outgoing
+        BigInt(event.block.number),
+        BigInt(event.block.timestamp),
+        event.block.hash.toLowerCase(),
+        BigInt(event.logIndex),
+        context,
+        chainId
+      );
+    }
+  },
+  {
+    wildcard: true,
+    eventFilters: ({ addresses }: { addresses: string[] }) => [
+      { from: addresses },
+      { to: addresses },
+    ],
   }
-
-  // Ensure token is tracked
-  await ensureTokenTracked(tokenAddress, event, context);
-
-  // Update positions for the Safe that receives tokens
-  if (toSafe) {
-    await updateSafeTokenPosition(
-      toSafe,
-      tokenAddress,
-      value,
-      true, // incoming
-      BigInt(event.block.number),
-      BigInt(event.block.timestamp),
-      event.block.hash.toLowerCase(),
-      BigInt(event.logIndex),
-      context,
-      chainId
-    );
-  }
-
-  // Update positions for the Safe that sends tokens
-  if (fromSafe) {
-    await updateSafeTokenPosition(
-      fromSafe,
-      tokenAddress,
-      value,
-      false, // outgoing
-      BigInt(event.block.number),
-      BigInt(event.block.timestamp),
-      event.block.hash.toLowerCase(),
-      BigInt(event.logIndex),
-      context,
-      chainId
-    );
-  }
-}, {
-  wildcard: true,
-  eventFilters: ({ addresses }: { addresses: string[] }) => [{ from: addresses }, { to: addresses }],
-});
-
-
+);
 
 ISafe.SafeSetup.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  
+
   const safeSetupEntity = {
     id: `${event.block.hash}_${event.logIndex}`,
     chainId: chainId,
@@ -103,6 +102,26 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
     };
 
     context.RawSafe.set(updatedRawSafe);
+  } else {
+    // Create RawSafe entity with the SafeSetup data
+    const newRawSafe = {
+      id: safeId,
+      chainId: chainId,
+      safeAddress: event.srcAddress.toLowerCase(),
+      owners: event.params.owners.map((owner: string) => owner.toLowerCase()),
+      threshold: event.params.threshold,
+      creatorAddress: event.params.initiator.toLowerCase(), // Use initiator as creator since we don't have user info
+      createdBlockNumber: BigInt(event.block.number),
+      createdBlockTimestamp: BigInt(event.block.timestamp),
+      createdTransactionHash: event.block.hash.toLowerCase(),
+      createdLogIndex: BigInt(event.logIndex),
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
+
+    context.RawSafe.set(newRawSafe);
   }
 
   // Create RawSafeMap for each owner
@@ -130,7 +149,7 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
 
 ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  
+
   const executionSuccessEntity = {
     id: `${event.block.hash}_${event.logIndex}`,
     chainId: chainId,
@@ -154,12 +173,14 @@ ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
     rawSafeRefId: safeId,
     chainId: chainId,
     safeAddress: event.srcAddress.toLowerCase(),
-    to: event.transaction.to?.toLowerCase() || "0x0000000000000000000000000000000000000000",
+    to:
+      event.transaction.to?.toLowerCase() ||
+      "0x0000000000000000000000000000000000000000",
     value: event.transaction.value || BigInt(0),
     data: event.transaction.input || "0x",
     operation: 0, // Default to CALL operation
     safeTxGas: BigInt(0), // Not available from transaction
-    baseGas: BigInt(0), // Not available from transaction  
+    baseGas: BigInt(0), // Not available from transaction
     gasPrice: event.transaction.gasPrice || BigInt(0),
     gasToken: "0x0000000000000000000000000000000000000000", // ETH
     refundReceiver: "0x0000000000000000000000000000000000000000",
@@ -173,8 +194,6 @@ ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
   // Decode the Safe transaction data to get the actual ETH value being sent
   const decodedTx = decodeSafeTransactionData(event.transaction.input);
   if (decodedTx && decodedTx.value > BigInt(0)) {
-    context.log.info(`Detected outgoing ETH transfer from Safe!!: ${decodedTx.value.toString()} wei to ${decodedTx.to}`);
-    
     // Track the outgoing ETH transfer
     await trackNativeETHTransfer(
       event.srcAddress.toLowerCase(),
@@ -192,7 +211,7 @@ ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
 
 ISafe.ExecutionFailure.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  
+
   const executionFailureEntity = {
     id: `${event.block.hash}_${event.logIndex}`,
     chainId: chainId,
@@ -295,7 +314,7 @@ ISafe.ChangedThreshold.handler(async ({ event, context }) => {
 
 ISafe.SafeReceived.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  
+
   const safeReceivedEntity = {
     id: `${event.block.hash}_${event.logIndex}`,
     chainId: chainId,
@@ -324,8 +343,6 @@ ISafe.SafeReceived.handler(async ({ event, context }) => {
   );
 });
 
-
-
 async function updateSafeTokenPosition(
   safe: any,
   tokenAddress: string,
@@ -342,9 +359,8 @@ async function updateSafeTokenPosition(
   let position = await context.RawSafeTokenizedPosition.get(positionId);
 
   const oldAmount = position?.tokenAmount || BigInt(0);
-  
+
   if (!position) {
-    context.log.info(`Creating new position for Safe ${safe.safeAddress} token ${tokenAddress}`);
     position = {
       id: positionId,
       rawSafeRefId: safe.id,
@@ -366,12 +382,15 @@ async function updateSafeTokenPosition(
 
   if (isIncoming) {
     position.tokenAmount = position.tokenAmount + value;
-    context.log.info(`Incoming transfer: ${oldAmount.toString()} + ${value.toString()} = ${position.tokenAmount.toString()}`);
+    context.log.info(
+      `Incoming transfer: ${oldAmount.toString()} + ${value.toString()} = ${position.tokenAmount.toString()}`
+    );
   } else {
-    position.tokenAmount = position.tokenAmount >= value 
-      ? position.tokenAmount - value 
-      : BigInt(0);
-    context.log.info(`Outgoing transfer: ${oldAmount.toString()} - ${value.toString()} = ${position.tokenAmount.toString()}`);
+    position.tokenAmount =
+      position.tokenAmount >= value ? position.tokenAmount - value : BigInt(0);
+    context.log.info(
+      `Outgoing transfer: ${oldAmount.toString()} - ${value.toString()} = ${position.tokenAmount.toString()}`
+    );
   }
 
   position.updatedBlockNumber = blockNumber;
@@ -405,8 +424,6 @@ async function ensureTokenTracked(
       lastSeenBlockTimestamp: BigInt(event.block.timestamp),
       lastSeenTransactionHash: event.block.hash.toLowerCase(),
     };
-
-   
   } else {
     tracked.interactionCount = tracked.interactionCount + BigInt(1);
     tracked.lastSeenBlockNumber = BigInt(event.block.number);
@@ -449,27 +466,28 @@ export async function trackNativeETHTransfer(
 }
 
 // Function to decode Safe execTransaction call data
-function decodeSafeTransactionData(input: string): { to: string; value: bigint; data: string } | null {
+function decodeSafeTransactionData(
+  input: string
+): { to: string; value: bigint; data: string } | null {
   try {
-  
-    if (!input.startsWith('0x6a761202')) {
+    if (!input.startsWith("0x6a761202")) {
       return null;
     }
 
     // Remove function selector (first 4 bytes = 8 hex chars)
     const params = input.slice(10);
-    
+
     // Decode parameters (each parameter is 32 bytes = 64 hex chars)
     // Parameter 0: to (address) - bytes 0-31
     const toHex = params.slice(24, 64); // Skip first 24 chars (12 bytes) for address
-    const to = '0x' + toHex;
+    const to = "0x" + toHex;
 
-    // Parameter 1: value (uint256) - bytes 32-63  
+    // Parameter 1: value (uint256) - bytes 32-63
     const valueHex = params.slice(64, 128);
-    const value = BigInt('0x' + valueHex);
+    const value = BigInt("0x" + valueHex);
 
     // Parameter 2: data (bytes) - we dont need to parse for now
-    const data = '0x'; // Placeholder
+    const data = "0x"; // Placeholder
 
     return { to: to.toLowerCase(), value, data };
   } catch (error) {

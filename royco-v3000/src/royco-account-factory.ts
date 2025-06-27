@@ -1,13 +1,15 @@
 import { RoycoAccountFactory } from "generated";
 
-RoycoAccountFactory.RoycoAccountDeployed.contractRegister(({ event, context }) => {
-  // Register the deployed Royco account as a Safe contract to track its events
-  context.addISafe(event.params.roycoAccount);
-});
+RoycoAccountFactory.RoycoAccountDeployed.contractRegister(
+  ({ event, context }) => {
+    // Register the deployed Royco account as a Safe contract to track its events
+
+    context.addISafe(event.params.roycoAccount);
+  }
+);
 
 RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId); // Dynamic chain ID for multichain compatibility
-  
 
   // Create RoycoAccountDeployed entity
   const roycoAccountDeployedEntity = {
@@ -24,25 +26,41 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
 
   context.RoycoAccountDeployed.set(roycoAccountDeployedEntity);
 
-  // Create RawSafe entity
+  // Create or update RawSafe entity
   const safeId = `${chainId}_${event.params.roycoAccount.toLowerCase()}`;
-  const rawSafeEntity = {
-    id: safeId,
-    chainId: chainId,
-    safeAddress: event.params.roycoAccount.toLowerCase(),
-    owners: [],
-    threshold: BigInt(0),
-    creatorAddress: event.params.user.toLowerCase(),
-    createdBlockNumber: BigInt(event.block.number),
-    createdBlockTimestamp: BigInt(event.block.timestamp),
-    createdTransactionHash: event.block.hash.toLowerCase(),
-    createdLogIndex: BigInt(event.logIndex),
-    updatedBlockNumber: BigInt(event.block.number),
-    updatedBlockTimestamp: BigInt(event.block.timestamp),
-    updatedTransactionHash: event.block.hash.toLowerCase(),
-    updatedLogIndex: BigInt(event.logIndex),
-  };
+  let existingRawSafe = await context.RawSafe.get(safeId);
 
-  context.RawSafe.set(rawSafeEntity);
+  if (existingRawSafe) {
+    // Update existing RawSafe with user information
+    const updatedRawSafe = {
+      ...existingRawSafe,
+      creatorAddress: event.params.user.toLowerCase(),
+      // Keep the existing created timestamps (from SafeSetup) but update the updated fields
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
 
+    context.RawSafe.set(updatedRawSafe);
+  } else {
+    const rawSafeEntity = {
+      id: safeId,
+      chainId: chainId,
+      safeAddress: event.params.roycoAccount.toLowerCase(),
+      owners: [],
+      threshold: BigInt(0),
+      creatorAddress: event.params.user.toLowerCase(),
+      createdBlockNumber: BigInt(event.block.number),
+      createdBlockTimestamp: BigInt(event.block.timestamp),
+      createdTransactionHash: event.block.hash.toLowerCase(),
+      createdLogIndex: BigInt(event.logIndex),
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
+
+    context.RawSafe.set(rawSafeEntity);
+  }
 });
