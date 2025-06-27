@@ -103,7 +103,7 @@ templates:
       language: wasm/assemblyscript
       entities:
         - RawSafeTokenizedPosition
-        - TrackedERC20Token
+        - TrackedErc20Token
       abis:
         - name: ERC20
           file: ./abis/ERC20.json

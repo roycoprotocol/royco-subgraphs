@@ -1,45 +1,48 @@
-import { BigInt } from "@graphprotocol/graph-ts";
-import { RoycoAccountDeployed as RoycoAccountDeployedEvent } from "../generated/RoycoAccountFactory/RoycoAccountFactory";
-import { RoycoAccountDeployed, RawSafe, RawSafeMap } from "../generated/schema";
-import { SafeTemplate } from "../generated/templates";
-import { CHAIN_ID } from "./constants";
-import { generateEventId, generateRawSafeId } from "./utils/id-generator";
+import { RoycoAccountFactory } from "generated";
 
-export function handleRoycoAccountDeployed(
-  event: RoycoAccountDeployedEvent
-): void {
-  let entity = new RoycoAccountDeployed(
-    generateEventId(event.transaction.hash, event.logIndex)
-  );
-  entity.chainId = CHAIN_ID;
-  entity.user = event.params.user.toHexString().toLowerCase();
-  entity.accountId = event.params.accountId;
-  entity.roycoAccount = event.params.roycoAccount.toHexString().toLowerCase();
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
-  entity.logIndex = event.logIndex;
+RoycoAccountFactory.RoycoAccountDeployed.contractRegister(({ event, context }) => {
+  // Register the deployed Royco account as a Safe contract to track its events
+  context.addISafe(event.params.roycoAccount);
+});
 
-  entity.save();
+RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId); // Dynamic chain ID for multichain compatibility
+  
+
+  // Create RoycoAccountDeployed entity
+  const roycoAccountDeployedEntity = {
+    id: `${event.block.hash}_${event.logIndex}`,
+    chainId: chainId,
+    user: event.params.user.toLowerCase(),
+    accountId: event.params.accountId,
+    roycoAccount: event.params.roycoAccount.toLowerCase(),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.block.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.RoycoAccountDeployed.set(roycoAccountDeployedEntity);
 
   // Create RawSafe entity
-  let safeId = generateRawSafeId(event.params.roycoAccount.toHexString());
-  let rawSafe = new RawSafe(safeId);
-  rawSafe.chainId = CHAIN_ID;
-  rawSafe.safeAddress = event.params.roycoAccount.toHexString().toLowerCase();
-  rawSafe.owners = [];
-  rawSafe.threshold = BigInt.fromI32(0);
-  rawSafe.creatorAddress = event.params.user.toHexString().toLowerCase();
-  rawSafe.createdBlockNumber = event.block.number;
-  rawSafe.createdBlockTimestamp = event.block.timestamp;
-  rawSafe.createdTransactionHash = event.transaction.hash.toHexString().toLowerCase();
-  rawSafe.createdLogIndex = event.logIndex;
-  rawSafe.updatedBlockNumber = event.block.number;
-  rawSafe.updatedBlockTimestamp = event.block.timestamp;
-  rawSafe.updatedTransactionHash = event.transaction.hash.toHexString().toLowerCase();
-  rawSafe.updatedLogIndex = event.logIndex;
+  const safeId = `${chainId}_${event.params.roycoAccount.toLowerCase()}`;
+  const rawSafeEntity = {
+    id: safeId,
+    chainId: chainId,
+    safeAddress: event.params.roycoAccount.toLowerCase(),
+    owners: [],
+    threshold: BigInt(0),
+    creatorAddress: event.params.user.toLowerCase(),
+    createdBlockNumber: BigInt(event.block.number),
+    createdBlockTimestamp: BigInt(event.block.timestamp),
+    createdTransactionHash: event.block.hash.toLowerCase(),
+    createdLogIndex: BigInt(event.logIndex),
+    updatedBlockNumber: BigInt(event.block.number),
+    updatedBlockTimestamp: BigInt(event.block.timestamp),
+    updatedTransactionHash: event.block.hash.toLowerCase(),
+    updatedLogIndex: BigInt(event.logIndex),
+  };
 
-  rawSafe.save();
+  context.RawSafe.set(rawSafeEntity);
 
-  SafeTemplate.create(event.params.roycoAccount);
-}
+});

@@ -1,338 +1,478 @@
-import { BigInt, store } from "@graphprotocol/graph-ts";
-import {
-  SafeSetup as SafeSetupEvent,
-  ExecutionSuccess as ExecutionSuccessEvent,
-  ExecutionFailure as ExecutionFailureEvent,
-  AddedOwner as AddedOwnerEvent,
-  RemovedOwner as RemovedOwnerEvent,
-  ChangedThreshold as ChangedThresholdEvent,
-  SafeReceived as SafeReceivedEvent,
-  ExecTransactionCall,
-} from "../generated/templates/SafeTemplate/ISafe";
-import {
-  SafeSetup,
-  ExecutionSuccess,
-  ExecutionFailure,
-  SafeReceived,
-  RawSafeTransaction,
-  RawSafe,
-  RawSafeMap,
-} from "../generated/schema";
-import { CHAIN_ID, NULL_ADDRESS } from "./constants";
-import {
-  generateEventId,
-  generateRawSafeId,
-  generateRawSafeMapId,
-  generateRawSafeTransactionId,
-} from "./utils/id-generator";
-import { trackNativeETHTransfer } from "./erc20";
+import { ISafe } from "generated";
 
-export function handleSafeSetup(event: SafeSetupEvent): void {
-  let entity = new SafeSetup(
-    generateEventId(event.transaction.hash, event.logIndex)
-  );
-  entity.chainId = CHAIN_ID;
-  entity.initiator = event.params.initiator.toHexString().toLowerCase();
-  entity.owners = event.params.owners.map<string>((owner) =>
-    owner.toHexString().toLowerCase()
-  );
-  entity.threshold = event.params.threshold;
-  entity.initializer = event.params.initializer.toHexString().toLowerCase();
-  entity.fallbackHandler = event.params.fallbackHandler
-    .toHexString()
-    .toLowerCase();
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
-  entity.logIndex = event.logIndex;
+// Note: CHAIN_ID is now dynamic - use event.chainId in handlers
+const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-  entity.save();
 
-  // Track incoming ETH if transaction has value
-  if (event.transaction.value.gt(BigInt.fromI32(0))) {
-    trackNativeETHTransfer(
-      event.address.toHexString().toLowerCase(),
-      event.transaction.value,
+ISafe.Transfer.handler(async ({ event, context }) => {
+  const tokenAddress = event.srcAddress.toLowerCase();
+  const fromAddress = event.params.from.toLowerCase();
+  const toAddress = event.params.to.toLowerCase();
+  const value = event.params.value;
+
+  
+
+  // Load potential safes
+  const chainId = BigInt(event.chainId);
+  const toSafeId = `${chainId}_${toAddress}`;
+  const fromSafeId = `${chainId}_${fromAddress}`;
+  
+  const toSafe = await context.RawSafe.get(toSafeId);
+  const fromSafe = await context.RawSafe.get(fromSafeId);
+
+
+  // If neither side is a Safe we track, exit early
+  if (!toSafe && !fromSafe) {
+
+    return;
+  }
+
+  // Ensure token is tracked
+  await ensureTokenTracked(tokenAddress, event, context);
+
+  // Update positions for the Safe that receives tokens
+  if (toSafe) {
+    await updateSafeTokenPosition(
+      toSafe,
+      tokenAddress,
+      value,
       true, // incoming
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash.toHexString().toLowerCase(),
-      event.logIndex
+      BigInt(event.block.number),
+      BigInt(event.block.timestamp),
+      event.block.hash.toLowerCase(),
+      BigInt(event.logIndex),
+      context,
+      chainId
     );
   }
 
-  let safeId = generateRawSafeId(event.address.toHexString());
-  let rawSafe = RawSafe.load(safeId);
-  if (rawSafe) {
-    rawSafe.owners = event.params.owners.map<string>((owner) =>
-      owner.toHexString().toLowerCase()
+  // Update positions for the Safe that sends tokens
+  if (fromSafe) {
+    await updateSafeTokenPosition(
+      fromSafe,
+      tokenAddress,
+      value,
+      false, // outgoing
+      BigInt(event.block.number),
+      BigInt(event.block.timestamp),
+      event.block.hash.toLowerCase(),
+      BigInt(event.logIndex),
+      context,
+      chainId
     );
-    rawSafe.threshold = event.params.threshold;
-    rawSafe.updatedBlockNumber = event.block.number;
-    rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash
-      .toHexString()
-      .toLowerCase();
-    rawSafe.updatedLogIndex = event.logIndex;
-    rawSafe.save();
+  }
+}, {
+  wildcard: true,
+  eventFilters: ({ addresses }: { addresses: string[] }) => [{ from: addresses }, { to: addresses }],
+});
 
-    for (let i = 0; i < event.params.owners.length; i++) {
-      let ownerAddress = event.params.owners[i].toHexString().toLowerCase();
-      let mapId = generateRawSafeMapId(
-        event.address.toHexString().toLowerCase(),
-        ownerAddress
-      );
-      let rawSafeMap = new RawSafeMap(mapId);
-      rawSafeMap.rawSafeRefId = safeId;
-      rawSafeMap.chainId = CHAIN_ID;
-      rawSafeMap.safeAddress = event.address.toHexString().toLowerCase();
-      rawSafeMap.accountAddress = ownerAddress;
-      rawSafeMap.createdBlockNumber = event.block.number;
-      rawSafeMap.createdBlockTimestamp = event.block.timestamp;
-      rawSafeMap.createdTransactionHash = event.transaction.hash
-        .toHexString()
-        .toLowerCase();
-      rawSafeMap.createdLogIndex = event.logIndex;
-      rawSafeMap.updatedBlockNumber = event.block.number;
-      rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash
-        .toHexString()
-        .toLowerCase();
-      rawSafeMap.updatedLogIndex = event.logIndex;
-      rawSafeMap.save();
+
+
+ISafe.SafeSetup.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  
+  const safeSetupEntity = {
+    id: `${event.block.hash}_${event.logIndex}`,
+    chainId: chainId,
+    initiator: event.params.initiator.toLowerCase(),
+    owners: event.params.owners.map((owner: string) => owner.toLowerCase()),
+    threshold: event.params.threshold,
+    initializer: event.params.initializer.toLowerCase(),
+    fallbackHandler: event.params.fallbackHandler.toLowerCase(),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.block.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.SafeSetup.set(safeSetupEntity);
+
+  // Update RawSafe with owners and threshold
+  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  let rawSafe = await context.RawSafe.get(safeId);
+
+  if (rawSafe) {
+    const updatedRawSafe = {
+      ...rawSafe,
+      owners: event.params.owners.map((owner: string) => owner.toLowerCase()),
+      threshold: event.params.threshold,
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
+
+    context.RawSafe.set(updatedRawSafe);
+  }
+
+  // Create RawSafeMap for each owner
+  for (const owner of event.params.owners) {
+    const mapId = `${chainId}_${event.srcAddress.toLowerCase()}_${owner.toLowerCase()}`;
+    const rawSafeMapEntity = {
+      id: mapId,
+      rawSafeRefId: safeId,
+      chainId: chainId,
+      safeAddress: event.srcAddress.toLowerCase(),
+      accountAddress: owner.toLowerCase(),
+      createdBlockNumber: BigInt(event.block.number),
+      createdBlockTimestamp: BigInt(event.block.timestamp),
+      createdTransactionHash: event.block.hash.toLowerCase(),
+      createdLogIndex: BigInt(event.logIndex),
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
+
+    context.RawSafeMap.set(rawSafeMapEntity);
+  }
+});
+
+ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  
+  const executionSuccessEntity = {
+    id: `${event.block.hash}_${event.logIndex}`,
+    chainId: chainId,
+    safeAddress: event.srcAddress.toLowerCase(),
+    txHash: event.params.txHash,
+    payment: event.params.payment,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.block.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.ExecutionSuccess.set(executionSuccessEntity);
+
+  // Create RawSafeTransaction entity using available transaction data
+  const transactionId = `${event.block.hash}_${event.srcAddress.toLowerCase()}_${event.logIndex}`;
+  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+
+  const rawSafeTransactionEntity = {
+    id: transactionId,
+    rawSafeRefId: safeId,
+    chainId: chainId,
+    safeAddress: event.srcAddress.toLowerCase(),
+    to: event.transaction.to?.toLowerCase() || "0x0000000000000000000000000000000000000000",
+    value: event.transaction.value || BigInt(0),
+    data: event.transaction.input || "0x",
+    operation: 0, // Default to CALL operation
+    safeTxGas: BigInt(0), // Not available from transaction
+    baseGas: BigInt(0), // Not available from transaction  
+    gasPrice: event.transaction.gasPrice || BigInt(0),
+    gasToken: "0x0000000000000000000000000000000000000000", // ETH
+    refundReceiver: "0x0000000000000000000000000000000000000000",
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.transaction.hash.toLowerCase(),
+  };
+
+  context.RawSafeTransaction.set(rawSafeTransactionEntity);
+
+  // Decode the Safe transaction data to get the actual ETH value being sent
+  const decodedTx = decodeSafeTransactionData(event.transaction.input);
+  if (decodedTx && decodedTx.value > BigInt(0)) {
+    context.log.info(`Detected outgoing ETH transfer from Safe!!: ${decodedTx.value.toString()} wei to ${decodedTx.to}`);
+    
+    // Track the outgoing ETH transfer
+    await trackNativeETHTransfer(
+      event.srcAddress.toLowerCase(),
+      decodedTx.value,
+      false, // outgoing
+      BigInt(event.block.number),
+      BigInt(event.block.timestamp),
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex),
+      context,
+      chainId
+    );
+  }
+});
+
+ISafe.ExecutionFailure.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  
+  const executionFailureEntity = {
+    id: `${event.block.hash}_${event.logIndex}`,
+    chainId: chainId,
+    safeAddress: event.srcAddress.toLowerCase(),
+    txHash: event.params.txHash,
+    payment: event.params.payment,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.block.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.ExecutionFailure.set(executionFailureEntity);
+});
+
+ISafe.AddedOwner.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  let rawSafe = await context.RawSafe.get(safeId);
+
+  if (rawSafe) {
+    const newOwner = event.params.owner.toLowerCase();
+    if (!rawSafe.owners.includes(newOwner)) {
+      const updatedRawSafe = {
+        ...rawSafe,
+        owners: [...rawSafe.owners, newOwner],
+        updatedBlockNumber: BigInt(event.block.number),
+        updatedBlockTimestamp: BigInt(event.block.timestamp),
+        updatedTransactionHash: event.block.hash.toLowerCase(),
+        updatedLogIndex: BigInt(event.logIndex),
+      };
+
+      context.RawSafe.set(updatedRawSafe);
+
+      // Create RawSafeMap for new owner
+      const mapId = `${chainId}_${event.srcAddress.toLowerCase()}_${newOwner}`;
+      const rawSafeMapEntity = {
+        id: mapId,
+        rawSafeRefId: safeId,
+        chainId: chainId,
+        safeAddress: event.srcAddress.toLowerCase(),
+        accountAddress: newOwner,
+        createdBlockNumber: BigInt(event.block.number),
+        createdBlockTimestamp: BigInt(event.block.timestamp),
+        createdTransactionHash: event.block.hash.toLowerCase(),
+        createdLogIndex: BigInt(event.logIndex),
+        updatedBlockNumber: BigInt(event.block.number),
+        updatedBlockTimestamp: BigInt(event.block.timestamp),
+        updatedTransactionHash: event.block.hash.toLowerCase(),
+        updatedLogIndex: BigInt(event.logIndex),
+      };
+
+      context.RawSafeMap.set(rawSafeMapEntity);
     }
   }
-}
+});
 
-export function handleExecutionSuccess(event: ExecutionSuccessEvent): void {
-  let entity = new ExecutionSuccess(
-    generateEventId(event.transaction.hash, event.logIndex)
-  );
-  entity.chainId = CHAIN_ID;
-  entity.safeAddress = event.address.toHexString().toLowerCase();
-  entity.txHash = event.params.txHash.toHexString().toLowerCase();
-  entity.payment = event.params.payment;
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
-  entity.logIndex = event.logIndex;
+ISafe.RemovedOwner.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  let rawSafe = await context.RawSafe.get(safeId);
 
-  entity.save();
-
-  // Look for corresponding RawSafeTransaction to get actual ETH value
-  let rawSafeId = generateRawSafeId(event.address.toHexString());
-  let safeTransactionId = generateRawSafeTransactionId(rawSafeId, event.transaction.hash.toHexString());
-  let safeTransaction = RawSafeTransaction.load(safeTransactionId);
-
-  if (safeTransaction && safeTransaction.value.gt(BigInt.fromI32(0))) {
-    // Track native ETH transfer using the actual value from RawSafeTransaction
-    trackNativeETHTransfer(
-      event.address.toHexString().toLowerCase(), // Safe address (from)
-      safeTransaction.value,
-      false, // outgoing ETH from Safe
-      event.block.number,
-      event.block.timestamp,
-      event.transaction.hash.toHexString().toLowerCase(),
-      event.logIndex
-    );
-  }
-}
-
-export function handleExecutionFailure(event: ExecutionFailureEvent): void {
-  let entity = new ExecutionFailure(
-    generateEventId(event.transaction.hash, event.logIndex)
-  );
-  entity.chainId = CHAIN_ID;
-  entity.safeAddress = event.address.toHexString().toLowerCase();
-  entity.txHash = event.params.txHash.toHexString().toLowerCase();
-  entity.payment = event.params.payment;
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
-  entity.logIndex = event.logIndex;
-
-  entity.save();
-}
-
-export function handleAddedOwner(event: AddedOwnerEvent): void {
-  let safeId = generateRawSafeId(event.address.toHexString());
-  let rawSafe = RawSafe.load(safeId);
   if (rawSafe) {
-    let owners = rawSafe.owners;
-    owners.push(event.params.owner.toHexString().toLowerCase());
-    rawSafe.owners = owners;
-    rawSafe.updatedBlockNumber = event.block.number;
-    rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash
-      .toHexString()
-      .toLowerCase();
-    rawSafe.updatedLogIndex = event.logIndex;
-    rawSafe.save();
+    const removedOwner = event.params.owner.toLowerCase();
+    const updatedRawSafe = {
+      ...rawSafe,
+      owners: rawSafe.owners.filter((owner: string) => owner !== removedOwner),
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
 
-    let ownerAddress = event.params.owner.toHexString().toLowerCase();
-    let mapId = generateRawSafeMapId(
-      event.address.toHexString().toLowerCase(),
-      ownerAddress
-    );
-    //check if the mapId already exists
-    let rawSafeMap = RawSafeMap.load(mapId);
-    if (rawSafeMap) {
-      rawSafeMap.updatedBlockNumber = event.block.number;
-      rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash
-        .toHexString()
-        .toLowerCase();
-      rawSafeMap.updatedLogIndex = event.logIndex;
-      rawSafeMap.safeAddress = event.address.toHexString().toLowerCase();
-      rawSafeMap.accountAddress = ownerAddress;
-      rawSafeMap.chainId = CHAIN_ID;
-      rawSafeMap.save();
-    } else {
-      // Create new RawSafeMap entry for the added owner
-      let rawSafeMap = new RawSafeMap(mapId);
-      rawSafeMap.rawSafeRefId = safeId;
-      rawSafeMap.chainId = CHAIN_ID;
-      rawSafeMap.safeAddress = event.address.toHexString().toLowerCase();
-      rawSafeMap.accountAddress = ownerAddress;
-      rawSafeMap.createdBlockNumber = event.block.number;
-      rawSafeMap.createdBlockTimestamp = event.block.timestamp;
-      rawSafeMap.createdTransactionHash = event.transaction.hash
-        .toHexString()
-        .toLowerCase();
-      rawSafeMap.createdLogIndex = event.logIndex;
-      rawSafeMap.updatedBlockNumber = event.block.number;
-      rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash
-        .toHexString()
-        .toLowerCase();
-      rawSafeMap.updatedLogIndex = event.logIndex;
-      rawSafeMap.save();
-    }
+    context.RawSafe.set(updatedRawSafe);
+
+    // Remove RawSafeMap for removed owner
+    const mapId = `${chainId}_${event.srcAddress.toLowerCase()}_${removedOwner}`;
+    context.RawSafeMap.deleteUnsafe(mapId);
   }
-}
+});
 
-export function handleRemovedOwner(event: RemovedOwnerEvent): void {
-  let safeId = generateRawSafeId(event.address.toHexString());
-  let rawSafe = RawSafe.load(safeId);
+ISafe.ChangedThreshold.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  let rawSafe = await context.RawSafe.get(safeId);
+
   if (rawSafe) {
-    // Remove owner from the owners array
-    let owners = rawSafe.owners;
-    let removedOwner = event.params.owner.toHexString().toLowerCase();
-    let newOwners: string[] = [];
-    for (let i = 0; i < owners.length; i++) {
-      if (owners[i] != removedOwner) {
-        newOwners.push(owners[i]);
-      }
-    }
-    rawSafe.owners = newOwners;
-    rawSafe.updatedBlockNumber = event.block.number;
-    rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash
-      .toHexString()
-      .toLowerCase();
-    rawSafe.updatedLogIndex = event.logIndex;
-    rawSafe.save();
+    const updatedRawSafe = {
+      ...rawSafe,
+      threshold: event.params.threshold,
+      updatedBlockNumber: BigInt(event.block.number),
+      updatedBlockTimestamp: BigInt(event.block.timestamp),
+      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedLogIndex: BigInt(event.logIndex),
+    };
 
-    let mapId = generateRawSafeMapId(
-      event.address.toHexString().toLowerCase(),
-      removedOwner
-    );
-    let rawSafeMap = RawSafeMap.load(mapId);
-    if (rawSafeMap) {
-      rawSafeMap.updatedBlockNumber = event.block.number;
-      rawSafeMap.updatedBlockTimestamp = event.block.timestamp;
-      rawSafeMap.updatedTransactionHash = event.transaction.hash
-        .toHexString()
-        .toLowerCase();
-      rawSafeMap.updatedLogIndex = event.logIndex;
-      rawSafeMap.safeAddress = NULL_ADDRESS;
-      rawSafeMap.save();
-    }
+    context.RawSafe.set(updatedRawSafe);
   }
-}
+});
 
-export function handleChangedThreshold(event: ChangedThresholdEvent): void {
-  let safeId = generateRawSafeId(event.address.toHexString());
-  let rawSafe = RawSafe.load(safeId);
-  if (rawSafe) {
-    rawSafe.threshold = event.params.threshold;
-    rawSafe.updatedBlockNumber = event.block.number;
-    rawSafe.updatedBlockTimestamp = event.block.timestamp;
-    rawSafe.updatedTransactionHash = event.transaction.hash
-      .toHexString()
-      .toLowerCase();
-    rawSafe.updatedLogIndex = event.logIndex;
-    rawSafe.save();
-  }
-}
+ISafe.SafeReceived.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+  
+  const safeReceivedEntity = {
+    id: `${event.block.hash}_${event.logIndex}`,
+    chainId: chainId,
+    safeAddress: event.srcAddress.toLowerCase(),
+    sender: event.params.sender.toLowerCase(),
+    value: event.params.value,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.block.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
 
-export function handleSafeReceived(event: SafeReceivedEvent): void {
-  let entity = new SafeReceived(
-    generateEventId(event.transaction.hash, event.logIndex)
-  );
-  entity.chainId = CHAIN_ID;
-  entity.safeAddress = event.address.toHexString().toLowerCase();
-  entity.sender = event.params.sender.toHexString().toLowerCase();
-  entity.value = event.params.value;
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash.toHexString().toLowerCase();
-  entity.logIndex = event.logIndex;
-
-  entity.save();
+  context.SafeReceived.set(safeReceivedEntity);
 
   // Track native ETH transfer
-  trackNativeETHTransfer(
-    event.address.toHexString().toLowerCase(),
+  await trackNativeETHTransfer(
+    event.srcAddress.toLowerCase(),
     event.params.value,
-    true, // incoming ETH to Safe
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash.toHexString().toLowerCase(),
-    event.logIndex
+    true, // incoming
+    BigInt(event.block.number),
+    BigInt(event.block.timestamp),
+    event.block.hash.toLowerCase(),
+    BigInt(event.logIndex),
+    context,
+    chainId
   );
+});
+
+
+
+async function updateSafeTokenPosition(
+  safe: any,
+  tokenAddress: string,
+  value: bigint,
+  isIncoming: boolean,
+  blockNumber: bigint,
+  blockTimestamp: bigint,
+  transactionHash: string,
+  logIndex: bigint,
+  context: any,
+  chainId: bigint
+): Promise<void> {
+  const positionId = `${chainId}_${safe.safeAddress}_${tokenAddress}`;
+  let position = await context.RawSafeTokenizedPosition.get(positionId);
+
+  const oldAmount = position?.tokenAmount || BigInt(0);
+  
+  if (!position) {
+    context.log.info(`Creating new position for Safe ${safe.safeAddress} token ${tokenAddress}`);
+    position = {
+      id: positionId,
+      rawSafeRefId: safe.id,
+      chainId: chainId,
+      safeAddress: safe.safeAddress,
+      tokenAddress: tokenAddress,
+      tokenId: `${chainId}-${tokenAddress}`,
+      tokenAmount: BigInt(0),
+      createdBlockNumber: blockNumber,
+      createdBlockTimestamp: blockTimestamp,
+      createdTransactionHash: transactionHash,
+      createdLogIndex: logIndex,
+      updatedBlockNumber: blockNumber,
+      updatedBlockTimestamp: blockTimestamp,
+      updatedTransactionHash: transactionHash,
+      updatedLogIndex: logIndex,
+    };
+  }
+
+  if (isIncoming) {
+    position.tokenAmount = position.tokenAmount + value;
+    context.log.info(`Incoming transfer: ${oldAmount.toString()} + ${value.toString()} = ${position.tokenAmount.toString()}`);
+  } else {
+    position.tokenAmount = position.tokenAmount >= value 
+      ? position.tokenAmount - value 
+      : BigInt(0);
+    context.log.info(`Outgoing transfer: ${oldAmount.toString()} - ${value.toString()} = ${position.tokenAmount.toString()}`);
+  }
+
+  position.updatedBlockNumber = blockNumber;
+  position.updatedBlockTimestamp = blockTimestamp;
+  position.updatedTransactionHash = transactionHash;
+  position.updatedLogIndex = logIndex;
+
+  context.RawSafeTokenizedPosition.set(position);
 }
 
-export function handleExecTransaction(call: ExecTransactionCall): void {
-  let rawSafeId = generateRawSafeId(call.to.toHexString());
-  let transactionId = generateRawSafeTransactionId(rawSafeId, call.transaction.hash.toHexString());
-  let entity = RawSafeTransaction.load(transactionId);
-  
-  if (!entity) {
-    entity = new RawSafeTransaction(transactionId);
+async function ensureTokenTracked(
+  tokenAddress: string,
+  event: any,
+  context: any
+): Promise<void> {
+  const chainId = BigInt(event.chainId);
+  const trackedTokenId = `${chainId}-${tokenAddress}`;
+  let tracked = await context.TrackedErc20Token.get(trackedTokenId);
+
+  if (!tracked) {
+    tracked = {
+      id: trackedTokenId,
+      chainId: chainId,
+      tokenAddress: tokenAddress,
+      tokenId: `${chainId}-${tokenAddress}`,
+      interactionCount: BigInt(1),
+      firstSeenBlockNumber: BigInt(event.block.number),
+      firstSeenBlockTimestamp: BigInt(event.block.timestamp),
+      firstSeenTransactionHash: event.block.hash.toLowerCase(),
+      lastSeenBlockNumber: BigInt(event.block.number),
+      lastSeenBlockTimestamp: BigInt(event.block.timestamp),
+      lastSeenTransactionHash: event.block.hash.toLowerCase(),
+    };
+
+   
+  } else {
+    tracked.interactionCount = tracked.interactionCount + BigInt(1);
+    tracked.lastSeenBlockNumber = BigInt(event.block.number);
+    tracked.lastSeenBlockTimestamp = BigInt(event.block.timestamp);
+    tracked.lastSeenTransactionHash = event.block.hash.toLowerCase();
   }
-  
-  entity.rawSafeRefId = rawSafeId;
-  entity.chainId = CHAIN_ID;
-  entity.safeAddress = call.to.toHexString().toLowerCase();
-  entity.to = call.inputs.to.toHexString().toLowerCase();
-  entity.value = call.inputs.value;
-  entity.data = call.inputs.data.toHexString();
-  entity.operation = call.inputs.operation;
-  entity.safeTxGas = call.inputs.safeTxGas;
-  entity.baseGas = call.inputs.baseGas;
-  entity.gasPrice = call.inputs.gasPrice;
-  entity.gasToken = call.inputs.gasToken.toHexString().toLowerCase();
-  entity.refundReceiver = call.inputs.refundReceiver
-    .toHexString()
-    .toLowerCase();
-  entity.blockNumber = call.block.number;
-  entity.blockTimestamp = call.block.timestamp;
-  entity.transactionHash = call.transaction.hash.toHexString().toLowerCase();
 
-  entity.save();
+  context.TrackedErc20Token.set(tracked);
+}
 
-  // If transaction has ETH value, track it immediately since ExecTransaction
-  // is called and we have the value, regardless of ExecutionSuccess timing
-  if (entity.value.gt(BigInt.fromI32(0))) {
-    trackNativeETHTransfer(
-      call.to.toHexString().toLowerCase(), // Safe address (from)
-      entity.value,
-      false, // outgoing ETH from Safe
-      call.block.number,
-      call.block.timestamp,
-      call.transaction.hash.toHexString().toLowerCase(),
-      BigInt.fromI32(0) // Use 0 as logIndex for call handlers
+// Helper function to track native ETH transfers for Safes
+export async function trackNativeETHTransfer(
+  safeAddress: string,
+  value: bigint,
+  isIncoming: boolean,
+  blockNumber: bigint,
+  blockTimestamp: bigint,
+  transactionHash: string,
+  logIndex: bigint,
+  context: any,
+  chainId: bigint
+): Promise<void> {
+  const safeId = `${chainId}_${safeAddress}`;
+  const safe = await context.RawSafe.get(safeId);
+
+  if (safe) {
+    await updateSafeTokenPosition(
+      safe,
+      NULL_ADDRESS, // Use null address for native ETH
+      value,
+      isIncoming,
+      blockNumber,
+      blockTimestamp,
+      transactionHash,
+      logIndex,
+      context,
+      chainId
     );
+  }
+}
+
+// Function to decode Safe execTransaction call data
+function decodeSafeTransactionData(input: string): { to: string; value: bigint; data: string } | null {
+  try {
+  
+    if (!input.startsWith('0x6a761202')) {
+      return null;
+    }
+
+    // Remove function selector (first 4 bytes = 8 hex chars)
+    const params = input.slice(10);
+    
+    // Decode parameters (each parameter is 32 bytes = 64 hex chars)
+    // Parameter 0: to (address) - bytes 0-31
+    const toHex = params.slice(24, 64); // Skip first 24 chars (12 bytes) for address
+    const to = '0x' + toHex;
+
+    // Parameter 1: value (uint256) - bytes 32-63  
+    const valueHex = params.slice(64, 128);
+    const value = BigInt('0x' + valueHex);
+
+    // Parameter 2: data (bytes) - we dont need to parse for now
+    const data = '0x'; // Placeholder
+
+    return { to: to.toLowerCase(), value, data };
+  } catch (error) {
+    return null;
   }
 }
