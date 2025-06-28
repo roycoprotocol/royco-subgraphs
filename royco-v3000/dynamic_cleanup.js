@@ -26,10 +26,10 @@ async function cleanup() {
     console.log("✅ Connection test successful");
 
     console.log("");
-    console.log("Finding all insert_*_history functions...");
+    console.log("Finding duplicate insert_*_history functions...");
     console.log("==============================================================");
 
-    // First, get all the functions we need to drop
+    // First, get all the functions and group them by base name
     const findQuery = `
       SELECT 
         n.nspname as schema_name, 
@@ -39,23 +39,60 @@ async function cleanup() {
       FROM pg_proc p
       JOIN pg_namespace n ON p.pronamespace = n.oid
       WHERE p.proname LIKE 'insert_%_history'
-      ORDER BY p.proname;
+      ORDER BY p.proname, pg_get_function_identity_arguments(p.oid);
     `;
 
     const result = await client.query(findQuery);
-    const functions = result.rows;
+    const allFunctions = result.rows;
 
-    console.log(`Found ${functions.length} functions to drop:`);
-    functions.forEach(func => {
+    console.log(`Found ${allFunctions.length} insert_*_history functions:`);
+    allFunctions.forEach(func => {
       console.log(`  ${func.full_signature}`);
     });
 
+    // Group functions by name to identify duplicates
+    const functionGroups = {};
+    allFunctions.forEach(func => {
+      if (!functionGroups[func.function_name]) {
+        functionGroups[func.function_name] = [];
+      }
+      functionGroups[func.function_name].push(func);
+    });
+
+    // Identify which functions to drop (keep one per function name, drop the rest)
+    const functionsToRemove = [];
+    Object.entries(functionGroups).forEach(([functionName, functions]) => {
+      if (functions.length > 1) {
+        console.log(`\n📋 Function ${functionName} has ${functions.length} variants:`);
+        functions.forEach((func, index) => {
+          console.log(`  ${index + 1}. ${func.full_signature}`);
+        });
+        
+        // Keep the first one (usually the simpler signature), drop the rest
+        const toKeep = functions[0];
+        const toDrop = functions.slice(1);
+        
+        console.log(`  ✅ Keeping: ${toKeep.full_signature}`);
+        toDrop.forEach(func => {
+          console.log(`  ❌ Will remove: ${func.full_signature}`);
+          functionsToRemove.push(func);
+        });
+      } else {
+        console.log(`\n✅ Function ${functionName} has only one variant - keeping it`);
+      }
+    });
+
+    if (functionsToRemove.length === 0) {
+      console.log("\n🎉 No duplicate functions found - nothing to remove!");
+      return;
+    }
+
     console.log("");
-    console.log("Dropping functions...");
+    console.log(`Removing ${functionsToRemove.length} duplicate functions...`);
     console.log("==============================================================");
 
-    // Drop each function with detailed error reporting
-    for (const func of functions) {
+    // Drop only the duplicate functions
+    for (const func of functionsToRemove) {
       console.log(`\nAttempting to drop: ${func.full_signature}`);
       
       // First check if function exists
