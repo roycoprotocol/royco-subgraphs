@@ -9,7 +9,7 @@
     "mocha": "ts-mocha test/**/*.ts",
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "start": "pnpm codegen && node dynamic_cleanup.js && npx envio local db-migrate up && envio start",
+    "start": "node dynamic_cleanup.js && npx envio local db-migrate up && envio start",
     "test": "pnpm mocha",
     "prepare:mainnet": "mustache config/mainnet.json config/subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/constants.template.ts > src/constants.ts",
     "prepare:base": "mustache config/base.json config/subgraph.template.yaml > subgraph.yaml && mustache config/base.json config/constants.template.ts > src/constants.ts",
