@@ -22,6 +22,7 @@
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-v3000"
   },
   "dependencies": {
+    "dotenv": "^17.0.0",
     "envio": "2.24.0",
     "pg": "^8.16.3"
   },
