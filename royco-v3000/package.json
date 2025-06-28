@@ -9,7 +9,7 @@
     "mocha": "ts-mocha test/**/*.ts",
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "start": "chmod +x ./find_history_functions_and_migrate.sh && ./find_history_functions_and_migrate.sh && envio start",
+    "start": "pnpm codegen && node dynamic_cleanup.js && npx envio local db-migrate up && envio start",
     "test": "pnpm mocha",
     "prepare:mainnet": "mustache config/mainnet.json config/subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/constants.template.ts > src/constants.ts",
     "prepare:base": "mustache config/base.json config/subgraph.template.yaml > subgraph.yaml && mustache config/base.json config/constants.template.ts > src/constants.ts",
@@ -22,16 +22,17 @@
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-v3000"
   },
   "dependencies": {
-    "envio": "2.24.0"
+    "envio": "2.24.0",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@types/chai": "^4.3.11",
     "@types/mocha": "10.0.6",
     "@types/node": "20.8.8",
-    "ts-mocha": "^10.0.0",
-    "typescript": "5.2.2",
     "chai": "4.3.10",
-    "mocha": "10.2.0"
+    "mocha": "10.2.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "5.2.2"
   },
   "optionalDependencies": {
     "generated": "./generated"
