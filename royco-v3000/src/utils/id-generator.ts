@@ -12,7 +12,7 @@ export class IdGenerator {
     transactionHash: string,
     logIndex: bigint
   ): string {
-    return `${transactionHash}_${logIndex}`;
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
 
   /**
@@ -68,7 +68,7 @@ export class IdGenerator {
    * Format: <CHAIN_ID>_<NODE_HASH>
    */
   static rawNode(chainId: bigint, nodeHash: string): string {
-    return `${chainId}_${nodeHash}`;
+    return `${chainId}_${nodeHash.toLowerCase()}`;
   }
 
   /**
@@ -76,7 +76,7 @@ export class IdGenerator {
    * Format: <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>
    */
   static rawMarketAtlas(chainId: bigint, marketHash: string): string {
-    return `${chainId}_3_${marketHash}`;
+    return `${chainId}_3_${marketHash.toLowerCase()}`;
   }
 
   /**
@@ -84,7 +84,7 @@ export class IdGenerator {
    * Format: <CHAIN_ID>_<ORDER_HASH>
    */
   static rawOrderAtlas(chainId: bigint, orderHash: string): string {
-    return `${chainId}_${orderHash}`;
+    return `${chainId}_${orderHash.toLowerCase()}`;
   }
 
   /**
@@ -92,7 +92,7 @@ export class IdGenerator {
    * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
   static safeSetup(transactionHash: string, logIndex: bigint): string {
-    return `${transactionHash}_${logIndex}`;
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
 
   /**
@@ -100,7 +100,7 @@ export class IdGenerator {
    * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
   static executionSuccess(transactionHash: string, logIndex: bigint): string {
-    return `${transactionHash}_${logIndex}`;
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
 
   /**
@@ -108,7 +108,7 @@ export class IdGenerator {
    * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
   static executionFailure(transactionHash: string, logIndex: bigint): string {
-    return `${transactionHash}_${logIndex}`;
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
 
   /**
@@ -116,7 +116,7 @@ export class IdGenerator {
    * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
   static safeReceived(transactionHash: string, logIndex: bigint): string {
-    return `${transactionHash}_${logIndex}`;
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
 
   /**
@@ -124,7 +124,7 @@ export class IdGenerator {
    * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
   static rawSafeTransaction(transactionHash: string, logIndex: bigint): string {
-    return `${transactionHash}_${logIndex}`;
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
 }
 

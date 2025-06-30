@@ -35,7 +35,9 @@ Marketplace.NodeInserted.handler(async ({ event, context }) => {
     blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: event.transaction.hash.toLowerCase(),
     logIndex: BigInt(event.logIndex),
-    rawMarketsAtlas: IdGenerator.rawMarketAtlas(chainId, event.params.nodeHash),
+    rawMarketsAtlas: [
+      IdGenerator.rawMarketAtlas(chainId, event.params.nodeHash),
+    ],
   };
 
   context.RawNode.set(rawNodeEntity);

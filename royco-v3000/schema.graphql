@@ -162,7 +162,7 @@ type RawNode @entity(immutable: false) {
   transactionHash: String!
   logIndex: BigInt!
   # Derived fields
-  rawMarketsAtlas: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>
+  rawMarketsAtlas: [String!]! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>
 }
 
 # Market Type of Atlas: 3
@@ -202,3 +202,4 @@ type RawOrderAtlas @entity(immutable: false) {
   updatedTransactionHash: String!
   updatedLogIndex: BigInt!
 }
+
