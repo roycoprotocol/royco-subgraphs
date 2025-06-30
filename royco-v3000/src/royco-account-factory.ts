@@ -14,14 +14,17 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
 
   // Create RoycoAccountDeployed entity
   const roycoAccountDeployedEntity = {
-    id: IdGenerator.roycoAccountDeployed(event.block.hash, BigInt(event.logIndex)),
+    id: IdGenerator.roycoAccountDeployed(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
     chainId: chainId,
     user: event.params.user.toLowerCase(),
     accountId: event.params.accountId,
     roycoAccount: event.params.roycoAccount.toLowerCase(),
     blockNumber: BigInt(event.block.number),
     blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: event.block.hash.toLowerCase(),
+    transactionHash: event.transaction.hash.toLowerCase(),
     logIndex: BigInt(event.logIndex),
   };
 
@@ -39,7 +42,7 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
       // Keep the existing created timestamps (from SafeSetup) but update the updated fields
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 
@@ -54,11 +57,11 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
       creatorAddress: event.params.user.toLowerCase(),
       createdBlockNumber: BigInt(event.block.number),
       createdBlockTimestamp: BigInt(event.block.timestamp),
-      createdTransactionHash: event.block.hash.toLowerCase(),
+      createdTransactionHash: event.transaction.hash.toLowerCase(),
       createdLogIndex: BigInt(event.logIndex),
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 

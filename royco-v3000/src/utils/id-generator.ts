@@ -6,10 +6,13 @@
 export class IdGenerator {
   /**
    * Generate ID for RoycoAccountDeployed entity
-   * Format: <BLOCK_HASH>_<LOG_INDEX>
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
-  static roycoAccountDeployed(blockHash: string, logIndex: bigint): string {
-    return `${blockHash}_${logIndex}`;
+  static roycoAccountDeployed(
+    transactionHash: string,
+    logIndex: bigint
+  ): string {
+    return `${transactionHash}_${logIndex}`;
   }
 
   /**
@@ -86,42 +89,42 @@ export class IdGenerator {
 
   /**
    * Generate ID for SafeSetup entity
-   * Format: <BLOCK_HASH>_<LOG_INDEX>
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
-  static safeSetup(blockHash: string, logIndex: bigint): string {
-    return `${blockHash}_${logIndex}`;
+  static safeSetup(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash}_${logIndex}`;
   }
 
   /**
    * Generate ID for ExecutionSuccess entity
-   * Format: <BLOCK_HASH>_<LOG_INDEX>
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
-  static executionSuccess(blockHash: string, logIndex: bigint): string {
-    return `${blockHash}_${logIndex}`;
+  static executionSuccess(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash}_${logIndex}`;
   }
 
   /**
    * Generate ID for ExecutionFailure entity
-   * Format: <BLOCK_HASH>_<LOG_INDEX>
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
-  static executionFailure(blockHash: string, logIndex: bigint): string {
-    return `${blockHash}_${logIndex}`;
+  static executionFailure(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash}_${logIndex}`;
   }
 
   /**
    * Generate ID for SafeReceived entity
-   * Format: <BLOCK_HASH>_<LOG_INDEX>
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
-  static safeReceived(blockHash: string, logIndex: bigint): string {
-    return `${blockHash}_${logIndex}`;
+  static safeReceived(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash}_${logIndex}`;
   }
 
   /**
    * Generate ID for RawSafeTransaction entity
-   * Format: <BLOCK_HASH>_<LOG_INDEX>
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
    */
-  static rawSafeTransaction(blockHash: string, logIndex: bigint): string {
-    return `${blockHash}_${logIndex}`;
+  static rawSafeTransaction(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash}_${logIndex}`;
   }
 }
 
