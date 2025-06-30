@@ -29,6 +29,18 @@ contracts:
       - event: "ChangedThreshold(uint256 threshold)"
       - event: "SafeReceived(address indexed sender, uint256 value)"
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
+  - name: Marketplace
+    abi_file_path: ./abis/Marketplace.json
+    handler: src/marketplace.ts
+    events:
+      - event: "NodeInserted(bytes32 indexed nodeHash, address indexed inputToken, (bytes[],bytes[]) depositRecipe, (bytes[],bytes[]) liquidityQuery, (bytes[],bytes[]) withdrawalRecipe, address indexed outputToken)"
+      - event: "MarketCreated(bytes32 indexed marketHash, bytes32 indexed nodeHash, address indexed signalProvider, bytes data)"
+  - name: Royco
+    abi_file_path: ./abis/Royco.json
+    handler: src/marketplace.ts
+    events:
+      - event: "AbsoluteOrderFilled(bytes32 indexed orderhash, bytes32 indexed targetMarket, address indexed maker, address taker, uint256 amountFilled)"
+      - event: "OrderCancelled(address indexed account, bytes32 orderHash)"
 
 networks:
   - id: 11155111 # Sepolia
@@ -39,6 +51,12 @@ networks:
           - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
       - name: ISafe
         # Dynamic contract - address will be registered from RoycoAccountDeployed events
+      - name: Marketplace
+        address:
+          - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
+      - name: Royco
+        address:
+          - "0xa7081d927570a98b74f0448e7c83c91b499c5847" 
 
   # Template for adding additional networks
   # - id: 1 # Ethereum Mainnet

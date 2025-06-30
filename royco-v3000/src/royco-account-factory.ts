@@ -1,4 +1,5 @@
 import { RoycoAccountFactory } from "generated";
+import { IdGenerator } from "./utils/id-generator";
 
 RoycoAccountFactory.RoycoAccountDeployed.contractRegister(
   ({ event, context }) => {
@@ -13,7 +14,7 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
 
   // Create RoycoAccountDeployed entity
   const roycoAccountDeployedEntity = {
-    id: `${event.block.hash}_${event.logIndex}`,
+    id: IdGenerator.roycoAccountDeployed(event.block.hash, BigInt(event.logIndex)),
     chainId: chainId,
     user: event.params.user.toLowerCase(),
     accountId: event.params.accountId,
@@ -27,7 +28,7 @@ RoycoAccountFactory.RoycoAccountDeployed.handler(async ({ event, context }) => {
   context.RoycoAccountDeployed.set(roycoAccountDeployedEntity);
 
   // Create or update RawSafe entity
-  const safeId = `${chainId}_${event.params.roycoAccount.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.params.roycoAccount);
   let existingRawSafe = await context.RawSafe.get(safeId);
 
   if (existingRawSafe) {

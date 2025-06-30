@@ -1,7 +1,7 @@
 import { ISafe } from "generated";
+import { IdGenerator, ID_CONSTANTS } from "./utils/id-generator";
 
 // Note: CHAIN_ID is now dynamic - use event.chainId in handlers
-const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 ISafe.Transfer.handler(
   async ({ event, context }) => {
@@ -12,8 +12,8 @@ ISafe.Transfer.handler(
 
     // Load potential safes
     const chainId = BigInt(event.chainId);
-    const toSafeId = `${chainId}_${toAddress}`;
-    const fromSafeId = `${chainId}_${fromAddress}`;
+    const toSafeId = IdGenerator.rawSafe(chainId, toAddress);
+    const fromSafeId = IdGenerator.rawSafe(chainId, fromAddress);
 
     const toSafe = await context.RawSafe.get(toSafeId);
     const fromSafe = await context.RawSafe.get(fromSafeId);
@@ -71,7 +71,7 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
 
   const safeSetupEntity = {
-    id: `${event.block.hash}_${event.logIndex}`,
+    id: IdGenerator.safeSetup(event.block.hash, BigInt(event.logIndex)),
     chainId: chainId,
     initiator: event.params.initiator.toLowerCase(),
     owners: event.params.owners.map((owner: string) => owner.toLowerCase()),
@@ -87,7 +87,7 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
   context.SafeSetup.set(safeSetupEntity);
 
   // Update RawSafe with owners and threshold
-  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
   let rawSafe = await context.RawSafe.get(safeId);
 
   if (rawSafe) {
@@ -452,7 +452,7 @@ export async function trackNativeETHTransfer(
   if (safe) {
     await updateSafeTokenPosition(
       safe,
-      NULL_ADDRESS, // Use null address for native ETH
+      ID_CONSTANTS.NULL_ADDRESS, // Use null address for native ETH
       value,
       isIncoming,
       blockNumber,

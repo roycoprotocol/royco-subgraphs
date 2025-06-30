@@ -1,0 +1,1182 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      { "name": "_owner", "type": "address", "internalType": "address" },
+      { "name": "_multiSend", "type": "address", "internalType": "address" },
+      {
+        "name": "_safeSingleton",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_roycoMiddleware",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "ABSOLUTE_ORDER_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "CANCEL_ORDER_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "CONDITION_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MULTISEND",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "OPERAND_TYPEHASH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "accountToOrderHashToIsCancelled",
+    "inputs": [
+      { "name": "account", "type": "address", "internalType": "address" },
+      { "name": "orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "cancelled", "type": "bool", "internalType": "bool" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "cancelOrder",
+    "inputs": [
+      { "name": "_orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimFees",
+    "inputs": [
+      { "name": "_feeToken", "type": "address", "internalType": "address" },
+      { "name": "_recipient", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createMarket",
+    "inputs": [
+      { "name": "_nodeHash", "type": "bytes32", "internalType": "bytes32" },
+      {
+        "name": "_marketSignal",
+        "type": "tuple",
+        "internalType": "struct Operand",
+        "components": [
+          { "name": "target", "type": "address", "internalType": "address" },
+          { "name": "data", "type": "bytes", "internalType": "bytes" }
+        ]
+      }
+    ],
+    "outputs": [
+      { "name": "marketHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deployRoycoAccount",
+    "inputs": [
+      { "name": "_owners", "type": "address[]", "internalType": "address[]" },
+      { "name": "_threshold", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [
+      { "name": "accountId", "type": "uint96", "internalType": "uint96" },
+      { "name": "roycoAccount", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deposit",
+    "inputs": [
+      {
+        "name": "_targetNodeHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "_amountIn", "type": "uint256", "internalType": "uint256" },
+      { "name": "_executionParams", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "edgeExists",
+    "inputs": [
+      {
+        "name": "_sourceNodeHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_targetNodeHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [{ "name": "exists", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "eip712Domain",
+    "inputs": [],
+    "outputs": [
+      { "name": "fields", "type": "bytes1", "internalType": "bytes1" },
+      { "name": "name", "type": "string", "internalType": "string" },
+      { "name": "version", "type": "string", "internalType": "string" },
+      { "name": "chainId", "type": "uint256", "internalType": "uint256" },
+      {
+        "name": "verifyingContract",
+        "type": "address",
+        "internalType": "address"
+      },
+      { "name": "salt", "type": "bytes32", "internalType": "bytes32" },
+      {
+        "name": "extensions",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "fillOrder",
+    "inputs": [
+      {
+        "name": "_order",
+        "type": "tuple",
+        "internalType": "struct AbsoluteOrder",
+        "components": [
+          { "name": "nonce", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "roycoAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "taker", "type": "address", "internalType": "address" },
+          {
+            "name": "targetMarketHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "signalComparator",
+            "type": "uint8",
+            "internalType": "enum Comparator"
+          },
+          {
+            "name": "rhsSignalOperand",
+            "type": "tuple",
+            "internalType": "struct Operand",
+            "components": [
+              {
+                "name": "target",
+                "type": "address",
+                "internalType": "address"
+              },
+              { "name": "data", "type": "bytes", "internalType": "bytes" }
+            ]
+          },
+          {
+            "name": "checkSignalBeforeFill",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "executionParams",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "quantity",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "expiry", "type": "uint40", "internalType": "uint40" },
+          {
+            "name": "positionManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "positionManagerArgs",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "preChecks",
+            "type": "tuple[]",
+            "internalType": "struct Condition[]",
+            "components": [
+              {
+                "name": "lhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              },
+              {
+                "name": "cmp",
+                "type": "uint8",
+                "internalType": "enum Comparator"
+              },
+              {
+                "name": "rhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "postChecks",
+            "type": "tuple[]",
+            "internalType": "struct Condition[]",
+            "components": [
+              {
+                "name": "lhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              },
+              {
+                "name": "cmp",
+                "type": "uint8",
+                "internalType": "enum Comparator"
+              },
+              {
+                "name": "rhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "feeToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "signature", "type": "bytes", "internalType": "bytes" }
+        ]
+      },
+      { "name": "_fillAmount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getLiquidityQueries",
+    "inputs": [
+      {
+        "name": "nodeHashes",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "liquidityQueries",
+        "type": "tuple[]",
+        "internalType": "struct Recipe[]",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLiquidityQuery",
+    "inputs": [
+      { "name": "nodeHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      {
+        "name": "liquidityQuery",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getNextRoycoAccountCounterfactualAddress",
+    "inputs": [
+      { "name": "_user", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "accountId", "type": "uint96", "internalType": "uint96" },
+      { "name": "roycoAccount", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hashOrder",
+    "inputs": [
+      {
+        "name": "_order",
+        "type": "tuple",
+        "internalType": "struct AbsoluteOrder",
+        "components": [
+          { "name": "nonce", "type": "uint256", "internalType": "uint256" },
+          {
+            "name": "roycoAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          { "name": "taker", "type": "address", "internalType": "address" },
+          {
+            "name": "targetMarketHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "signalComparator",
+            "type": "uint8",
+            "internalType": "enum Comparator"
+          },
+          {
+            "name": "rhsSignalOperand",
+            "type": "tuple",
+            "internalType": "struct Operand",
+            "components": [
+              {
+                "name": "target",
+                "type": "address",
+                "internalType": "address"
+              },
+              { "name": "data", "type": "bytes", "internalType": "bytes" }
+            ]
+          },
+          {
+            "name": "checkSignalBeforeFill",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "executionParams",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "quantity",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "expiry", "type": "uint40", "internalType": "uint40" },
+          {
+            "name": "positionManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "positionManagerArgs",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "preChecks",
+            "type": "tuple[]",
+            "internalType": "struct Condition[]",
+            "components": [
+              {
+                "name": "lhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              },
+              {
+                "name": "cmp",
+                "type": "uint8",
+                "internalType": "enum Comparator"
+              },
+              {
+                "name": "rhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "postChecks",
+            "type": "tuple[]",
+            "internalType": "struct Condition[]",
+            "components": [
+              {
+                "name": "lhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              },
+              {
+                "name": "cmp",
+                "type": "uint8",
+                "internalType": "enum Comparator"
+              },
+              {
+                "name": "rhs",
+                "type": "tuple",
+                "internalType": "struct Operand",
+                "components": [
+                  {
+                    "name": "target",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  { "name": "data", "type": "bytes", "internalType": "bytes" }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "feeToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          { "name": "signature", "type": "bytes", "internalType": "bytes" }
+        ]
+      }
+    ],
+    "outputs": [
+      { "name": "orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "insertNode",
+    "inputs": [
+      { "name": "_inputToken", "type": "address", "internalType": "address" },
+      {
+        "name": "_depositRecipe",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "_liquidityQuery",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "_withdrawalRecipe",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      { "name": "_outputToken", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "nodeHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "marketHashToMarket",
+    "inputs": [
+      { "name": "marketHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "nodeHash", "type": "bytes32", "internalType": "bytes32" },
+      {
+        "name": "marketSignal",
+        "type": "tuple",
+        "internalType": "struct Operand",
+        "components": [
+          { "name": "target", "type": "address", "internalType": "address" },
+          { "name": "data", "type": "bytes", "internalType": "bytes" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nodeHashToNode",
+    "inputs": [
+      { "name": "nodeHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "inputToken", "type": "address", "internalType": "address" },
+      {
+        "name": "depositRecipe",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "liquidityQuery",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "withdrawalRecipe",
+        "type": "tuple",
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      { "name": "outputToken", "type": "address", "internalType": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "orderHashToAmountFilled",
+    "inputs": [
+      { "name": "orderHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "amountFilled", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "roycoMiddleware",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "safeSingleton",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setRoycoMiddleware",
+    "inputs": [
+      {
+        "name": "_newRoycoMiddleware",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSafeSingleton",
+    "inputs": [
+      {
+        "name": "_newSafeSingleton",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      { "name": "newOwner", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "userToNextAccountId",
+    "inputs": [
+      { "name": "user", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "accountId", "type": "uint96", "internalType": "uint96" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "withdraw",
+    "inputs": [
+      {
+        "name": "_targetNodeHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "_amountOut", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "AbsoluteOrderFilled",
+    "inputs": [
+      {
+        "name": "orderhash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "targetMarket",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "maker",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "taker",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amountFilled",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AccountDeposited",
+    "inputs": [
+      {
+        "name": "roycoAccount",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "targetNode",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "executionParams",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AccountWithdrew",
+    "inputs": [
+      {
+        "name": "roycoAccount",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "targetNode",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EIP712DomainChanged",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeesClaimed",
+    "inputs": [
+      {
+        "name": "claimant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "feeToken",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "feesClaimed",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketCreated",
+    "inputs": [
+      {
+        "name": "marketHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "nodeHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "signalProvider",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NodeInserted",
+    "inputs": [
+      {
+        "name": "nodeHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "inputToken",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "depositRecipe",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "liquidityQuery",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "withdrawalRecipe",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct Recipe",
+        "components": [
+          {
+            "name": "commands",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          { "name": "state", "type": "bytes[]", "internalType": "bytes[]" }
+        ]
+      },
+      {
+        "name": "outputToken",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OrderCancelled",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "orderHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferStarted",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoycoAccountDeployed",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "roycoAccount",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoycoGuardSet",
+    "inputs": [
+      {
+        "name": "newRoycoGuard",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoycoMiddlewareSet",
+    "inputs": [
+      {
+        "name": "newRoycoExecutor",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SafeSingletonSet",
+    "inputs": [
+      {
+        "name": "newSafeSingleton",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  { "type": "error", "name": "AmountFilledExceedsQuantity", "inputs": [] },
+  { "type": "error", "name": "CancelledOrder", "inputs": [] },
+  { "type": "error", "name": "ExpiredOrder", "inputs": [] },
+  { "type": "error", "name": "FailedDeployment", "inputs": [] },
+  { "type": "error", "name": "FailedToClaimFees", "inputs": [] },
+  { "type": "error", "name": "FailedToFreeLiquidity", "inputs": [] },
+  { "type": "error", "name": "FailedToRefundFee", "inputs": [] },
+  {
+    "type": "error",
+    "name": "InsufficientBalance",
+    "inputs": [
+      { "name": "balance", "type": "uint256", "internalType": "uint256" },
+      { "name": "needed", "type": "uint256", "internalType": "uint256" }
+    ]
+  },
+  { "type": "error", "name": "InvalidInputToken", "inputs": [] },
+  { "type": "error", "name": "InvalidNodeHash", "inputs": [] },
+  { "type": "error", "name": "InvalidShortString", "inputs": [] },
+  { "type": "error", "name": "InvalidSignature", "inputs": [] },
+  { "type": "error", "name": "InvalidTaker", "inputs": [] },
+  { "type": "error", "name": "MarketAlreadyExists", "inputs": [] },
+  { "type": "error", "name": "NodeAlreadyExists", "inputs": [] },
+  {
+    "type": "error",
+    "name": "OwnableInvalidOwner",
+    "inputs": [
+      { "name": "owner", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OwnableUnauthorizedAccount",
+    "inputs": [
+      { "name": "account", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      { "name": "token", "type": "address", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "StringTooLong",
+    "inputs": [{ "name": "str", "type": "string", "internalType": "string" }]
+  }
+]
