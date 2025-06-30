@@ -1,7 +1,6 @@
 import { Marketplace, Royco } from "generated";
 import { IdGenerator, ID_CONSTANTS } from "./utils/id-generator";
 
-// Handle NodeInserted events from Marketplace contract
 Marketplace.NodeInserted.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
   const nodeId = IdGenerator.rawNode(chainId, event.params.nodeHash);
@@ -76,7 +75,6 @@ Marketplace.MarketCreated.handler(async ({ event, context }) => {
   context.RawMarketAtlas.set(rawMarketAtlasEntity);
 });
 
-// Handle AbsoluteOrderFilled events from Royco contract
 Royco.AbsoluteOrderFilled.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
   const orderId = IdGenerator.rawOrderAtlas(chainId, event.params.orderhash);
@@ -113,7 +111,6 @@ Royco.AbsoluteOrderFilled.handler(async ({ event, context }) => {
   context.RawOrderAtlas.set(updatedOrder);
 });
 
-// Handle OrderCancelled events from Royco contract
 Royco.OrderCancelled.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
   const orderId = IdGenerator.rawOrderAtlas(chainId, event.params.orderHash);
