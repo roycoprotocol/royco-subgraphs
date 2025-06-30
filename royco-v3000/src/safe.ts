@@ -1,7 +1,7 @@
 import { ISafe } from "generated";
+import { IdGenerator, ID_CONSTANTS } from "./utils/id-generator";
 
 // Note: CHAIN_ID is now dynamic - use event.chainId in handlers
-const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 ISafe.Transfer.handler(
   async ({ event, context }) => {
@@ -12,8 +12,8 @@ ISafe.Transfer.handler(
 
     // Load potential safes
     const chainId = BigInt(event.chainId);
-    const toSafeId = `${chainId}_${toAddress}`;
-    const fromSafeId = `${chainId}_${fromAddress}`;
+    const toSafeId = IdGenerator.rawSafe(chainId, toAddress);
+    const fromSafeId = IdGenerator.rawSafe(chainId, fromAddress);
 
     const toSafe = await context.RawSafe.get(toSafeId);
     const fromSafe = await context.RawSafe.get(fromSafeId);
@@ -35,7 +35,7 @@ ISafe.Transfer.handler(
         true, // incoming
         BigInt(event.block.number),
         BigInt(event.block.timestamp),
-        event.block.hash.toLowerCase(),
+        event.transaction.hash.toLowerCase(),
         BigInt(event.logIndex),
         context,
         chainId
@@ -51,7 +51,7 @@ ISafe.Transfer.handler(
         false, // outgoing
         BigInt(event.block.number),
         BigInt(event.block.timestamp),
-        event.block.hash.toLowerCase(),
+        event.transaction.hash.toLowerCase(),
         BigInt(event.logIndex),
         context,
         chainId
@@ -71,7 +71,10 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
 
   const safeSetupEntity = {
-    id: `${event.block.hash}_${event.logIndex}`,
+    id: IdGenerator.safeSetup(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
     chainId: chainId,
     initiator: event.params.initiator.toLowerCase(),
     owners: event.params.owners.map((owner: string) => owner.toLowerCase()),
@@ -80,14 +83,14 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
     fallbackHandler: event.params.fallbackHandler.toLowerCase(),
     blockNumber: BigInt(event.block.number),
     blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: event.block.hash.toLowerCase(),
+    transactionHash: event.transaction.hash.toLowerCase(),
     logIndex: BigInt(event.logIndex),
   };
 
   context.SafeSetup.set(safeSetupEntity);
 
   // Update RawSafe with owners and threshold
-  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
   let rawSafe = await context.RawSafe.get(safeId);
 
   if (rawSafe) {
@@ -97,7 +100,7 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
       threshold: event.params.threshold,
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 
@@ -113,11 +116,11 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
       creatorAddress: event.params.initiator.toLowerCase(), // Use initiator as creator since we don't have user info
       createdBlockNumber: BigInt(event.block.number),
       createdBlockTimestamp: BigInt(event.block.timestamp),
-      createdTransactionHash: event.block.hash.toLowerCase(),
+      createdTransactionHash: event.transaction.hash.toLowerCase(),
       createdLogIndex: BigInt(event.logIndex),
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 
@@ -135,11 +138,11 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
       accountAddress: owner.toLowerCase(),
       createdBlockNumber: BigInt(event.block.number),
       createdBlockTimestamp: BigInt(event.block.timestamp),
-      createdTransactionHash: event.block.hash.toLowerCase(),
+      createdTransactionHash: event.transaction.hash.toLowerCase(),
       createdLogIndex: BigInt(event.logIndex),
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 
@@ -151,21 +154,27 @@ ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
 
   const executionSuccessEntity = {
-    id: `${event.block.hash}_${event.logIndex}`,
+    id: IdGenerator.executionSuccess(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
     chainId: chainId,
     safeAddress: event.srcAddress.toLowerCase(),
     txHash: event.params.txHash,
     payment: event.params.payment,
     blockNumber: BigInt(event.block.number),
     blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: event.block.hash.toLowerCase(),
+    transactionHash: event.transaction.hash.toLowerCase(),
     logIndex: BigInt(event.logIndex),
   };
 
   context.ExecutionSuccess.set(executionSuccessEntity);
 
   // Create RawSafeTransaction entity using available transaction data
-  const transactionId = `${event.block.hash}_${event.srcAddress.toLowerCase()}_${event.logIndex}`;
+  const transactionId = IdGenerator.rawSafeTransaction(
+    event.transaction.hash.toLowerCase(),
+    BigInt(event.logIndex)
+  );
   const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
 
   const rawSafeTransactionEntity = {
@@ -213,14 +222,17 @@ ISafe.ExecutionFailure.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
 
   const executionFailureEntity = {
-    id: `${event.block.hash}_${event.logIndex}`,
+    id: IdGenerator.executionFailure(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
     chainId: chainId,
     safeAddress: event.srcAddress.toLowerCase(),
     txHash: event.params.txHash,
     payment: event.params.payment,
     blockNumber: BigInt(event.block.number),
     blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: event.block.hash.toLowerCase(),
+    transactionHash: event.transaction.hash.toLowerCase(),
     logIndex: BigInt(event.logIndex),
   };
 
@@ -240,7 +252,7 @@ ISafe.AddedOwner.handler(async ({ event, context }) => {
         owners: [...rawSafe.owners, newOwner],
         updatedBlockNumber: BigInt(event.block.number),
         updatedBlockTimestamp: BigInt(event.block.timestamp),
-        updatedTransactionHash: event.block.hash.toLowerCase(),
+        updatedTransactionHash: event.transaction.hash.toLowerCase(),
         updatedLogIndex: BigInt(event.logIndex),
       };
 
@@ -256,11 +268,11 @@ ISafe.AddedOwner.handler(async ({ event, context }) => {
         accountAddress: newOwner,
         createdBlockNumber: BigInt(event.block.number),
         createdBlockTimestamp: BigInt(event.block.timestamp),
-        createdTransactionHash: event.block.hash.toLowerCase(),
+        createdTransactionHash: event.transaction.hash.toLowerCase(),
         createdLogIndex: BigInt(event.logIndex),
         updatedBlockNumber: BigInt(event.block.number),
         updatedBlockTimestamp: BigInt(event.block.timestamp),
-        updatedTransactionHash: event.block.hash.toLowerCase(),
+        updatedTransactionHash: event.transaction.hash.toLowerCase(),
         updatedLogIndex: BigInt(event.logIndex),
       };
 
@@ -281,7 +293,7 @@ ISafe.RemovedOwner.handler(async ({ event, context }) => {
       owners: rawSafe.owners.filter((owner: string) => owner !== removedOwner),
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 
@@ -304,7 +316,7 @@ ISafe.ChangedThreshold.handler(async ({ event, context }) => {
       threshold: event.params.threshold,
       updatedBlockNumber: BigInt(event.block.number),
       updatedBlockTimestamp: BigInt(event.block.timestamp),
-      updatedTransactionHash: event.block.hash.toLowerCase(),
+      updatedTransactionHash: event.transaction.hash.toLowerCase(),
       updatedLogIndex: BigInt(event.logIndex),
     };
 
@@ -316,14 +328,17 @@ ISafe.SafeReceived.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
 
   const safeReceivedEntity = {
-    id: `${event.block.hash}_${event.logIndex}`,
+    id: IdGenerator.safeReceived(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
     chainId: chainId,
     safeAddress: event.srcAddress.toLowerCase(),
     sender: event.params.sender.toLowerCase(),
     value: event.params.value,
     blockNumber: BigInt(event.block.number),
     blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: event.block.hash.toLowerCase(),
+    transactionHash: event.transaction.hash.toLowerCase(),
     logIndex: BigInt(event.logIndex),
   };
 
@@ -336,7 +351,7 @@ ISafe.SafeReceived.handler(async ({ event, context }) => {
     true, // incoming
     BigInt(event.block.number),
     BigInt(event.block.timestamp),
-    event.block.hash.toLowerCase(),
+    event.transaction.hash.toLowerCase(),
     BigInt(event.logIndex),
     context,
     chainId
@@ -419,16 +434,16 @@ async function ensureTokenTracked(
       interactionCount: BigInt(1),
       firstSeenBlockNumber: BigInt(event.block.number),
       firstSeenBlockTimestamp: BigInt(event.block.timestamp),
-      firstSeenTransactionHash: event.block.hash.toLowerCase(),
+      firstSeenTransactionHash: event.transaction.hash.toLowerCase(),
       lastSeenBlockNumber: BigInt(event.block.number),
       lastSeenBlockTimestamp: BigInt(event.block.timestamp),
-      lastSeenTransactionHash: event.block.hash.toLowerCase(),
+      lastSeenTransactionHash: event.transaction.hash.toLowerCase(),
     };
   } else {
     tracked.interactionCount = tracked.interactionCount + BigInt(1);
     tracked.lastSeenBlockNumber = BigInt(event.block.number);
     tracked.lastSeenBlockTimestamp = BigInt(event.block.timestamp);
-    tracked.lastSeenTransactionHash = event.block.hash.toLowerCase();
+    tracked.lastSeenTransactionHash = event.transaction.hash.toLowerCase();
   }
 
   context.TrackedErc20Token.set(tracked);
@@ -452,7 +467,7 @@ export async function trackNativeETHTransfer(
   if (safe) {
     await updateSafeTokenPosition(
       safe,
-      NULL_ADDRESS, // Use null address for native ETH
+      ID_CONSTANTS.NULL_ADDRESS, // Use null address for native ETH
       value,
       isIncoming,
       blockNumber,

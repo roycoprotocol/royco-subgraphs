@@ -144,3 +144,62 @@ type TrackedErc20Token {
   lastSeenBlockTimestamp: BigInt!
   lastSeenTransactionHash: String!
 }
+
+type RawNode @entity(immutable: false) {
+  id: ID! # <CHAIN_ID>_<NODE_HASH>
+  chainId: BigInt! @indexed
+  nodeHash: String! @indexed # bytes32
+  inputTokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>
+  depositRecipeCommands: [String!]! # string[]
+  depositRecipeState: [String!]! # string[]
+  withdrawalRecipeCommands: [String!]! # string[]
+  withdrawalRecipeState: [String!]! # string[]
+  liquidityQueryCommands: [String!]! # string[]
+  liquidityQueryState: [String!]! # string[]
+  outputTokenId: String! @indexed # <CHAIN_ID>-<TOKEN_ADDRESS>
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  # Derived fields
+  rawMarketsAtlas: [String!]! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>
+}
+
+# Market Type of Atlas: 3
+type RawMarketAtlas @entity(immutable: true) {
+  id: ID! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>>
+  rawNodeRefId: String! # <CHAIN_ID>_<NODE_HASH>
+  chainId: BigInt! @indexed
+  marketType: Int! # Hardcoded to "3"
+  marketHash: String! @indexed # bytes32
+  nodeHash: String! @indexed # bytes32
+  signalTarget: String! @indexed # address
+  signalData: String! # bytes (hex-encoded)
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  # Derived fields
+  rawOrderRefId: String! # <CHAIN_ID>_<ORDER_HASH>
+}
+
+type RawOrderAtlas @entity(immutable: false) {
+  id: ID! # <CHAIN_ID>_<ORDER_HASH>
+  rawMarketAtlasRefId: String! # <CHAIN_ID>_<MARKET_TYPE>_<MARKET_HASH>
+  chainId: BigInt! @indexed
+  orderHash: String! @indexed # bytes32
+  marketHash: String! @indexed # bytes32
+  maker: String! @indexed # address
+  taker: String # address (nullable for unfilled orders)
+  amountFilled: BigInt # nullable for unfilled orders
+  status: String! # "created", "filled", "cancelled"
+  createdBlockNumber: BigInt!
+  createdBlockTimestamp: BigInt!
+  createdLogIndex: BigInt!
+  createdTransactionHash: String!
+  updatedBlockNumber: BigInt!
+  updatedBlockTimestamp: BigInt!
+  updatedTransactionHash: String!
+  updatedLogIndex: BigInt!
+}
+
