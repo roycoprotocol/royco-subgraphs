@@ -58,14 +58,22 @@ networks:
         address:
           - "0xa7081d927570a98b74f0448e7c83c91b499c5847" 
 
+  - id: 1 # Ethereum Mainnet
+    start_block: 2826833
+    contracts:
+      - name: RoycoAccountFactory
+        address: 
+          - "0xe10dCd3c4848247da8Cbb261cE30f5f6E794f3aE"
+      - name: ISafe
+        # Dynamic contract - address will be registered from RoycoAccountDeployed events
+      - name: Marketplace
+        address:
+          - "0xe10dCd3c4848247da8Cbb261cE30f5f6E794f3aE"
+      - name: Royco
+        address:
+          - "0xe10dCd3c4848247da8Cbb261cE30f5f6E794f3aE"
+
   # Template for adding additional networks
-  # - id: 1 # Ethereum Mainnet
-  #   start_block: 0
-  #   contracts:
-  #     - name: RoycoAccountFactory
-  #       address: 
-  #         - "0x..." # Mainnet factory address
-  #     - name: ISafe
   
   # - id: 8453 # Base
   #   start_block: 0
