@@ -63,15 +63,15 @@ networks:
     contracts:
       - name: RoycoAccountFactory
         address: 
-          - "0xe10dCd3c4848247da8Cbb261cE30f5f6E794f3aE"
+          - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
       - name: ISafe
         # Dynamic contract - address will be registered from RoycoAccountDeployed events
       - name: Marketplace
         address:
-          - "0xe10dCd3c4848247da8Cbb261cE30f5f6E794f3aE"
+          - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
       - name: Royco
         address:
-          - "0xe10dCd3c4848247da8Cbb261cE30f5f6E794f3aE"
+          - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
 
   # Template for adding additional networks
   
