@@ -59,7 +59,7 @@ networks:
           - "0xa7081d927570a98b74f0448e7c83c91b499c5847" 
 
   - id: 1 # Ethereum Mainnet
-    start_block: 2826833
+    start_block: 22826833
     contracts:
       - name: RoycoAccountFactory
         address: 
