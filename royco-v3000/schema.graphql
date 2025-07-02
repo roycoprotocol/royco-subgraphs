@@ -2,7 +2,6 @@ type RoycoAccountDeployed {
   id: ID!
   chainId: BigInt!
   user: String! # address
-  accountId: BigInt! # uint96
   roycoAccount: String! # address
   blockNumber:   BigInt!
   blockTimestamp: BigInt!
@@ -203,3 +202,40 @@ type RawOrderAtlas @entity(immutable: false) {
   updatedLogIndex: BigInt!
 }
 
+
+
+type AccountDeposited {
+  id: ID!
+  chainId: BigInt!
+  roycoAccount: String! # address
+  targetNode: String! # bytes32
+  amountIn: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type AccountWithdrew {
+  id: ID!
+  chainId: BigInt!
+  roycoAccount: String! # address
+  targetNode: String! # bytes32
+  amountOut: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type FeesClaimed {
+  id: ID!
+  chainId: BigInt!
+  claimant: String! # address
+  feeToken: String! # address
+  feesClaimed: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}

@@ -1,8 +1,6 @@
 import { ISafe } from "generated";
 import { IdGenerator, ID_CONSTANTS } from "./utils/id-generator";
 
-// Note: CHAIN_ID is now dynamic - use event.chainId in handlers
-
 ISafe.Transfer.handler(
   async ({ event, context }) => {
     const tokenAddress = event.srcAddress.toLowerCase();
@@ -89,7 +87,6 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
 
   context.SafeSetup.set(safeSetupEntity);
 
-  // Update RawSafe with owners and threshold
   const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
   let rawSafe = await context.RawSafe.get(safeId);
 
@@ -106,14 +103,14 @@ ISafe.SafeSetup.handler(async ({ event, context }) => {
 
     context.RawSafe.set(updatedRawSafe);
   } else {
-    // Create RawSafe entity with the SafeSetup data
+    // Create RawSafe entity with the SafeSetup data - this handles race condition
     const newRawSafe = {
       id: safeId,
       chainId: chainId,
       safeAddress: event.srcAddress.toLowerCase(),
       owners: event.params.owners.map((owner: string) => owner.toLowerCase()),
       threshold: event.params.threshold,
-      creatorAddress: event.params.initiator.toLowerCase(), // Use initiator as creator since we don't have user info
+      creatorAddress: event.params.initiator.toLowerCase(), // Use initiator as creator since we don't have user info yet
       createdBlockNumber: BigInt(event.block.number),
       createdBlockTimestamp: BigInt(event.block.timestamp),
       createdTransactionHash: event.transaction.hash.toLowerCase(),
@@ -175,7 +172,7 @@ ISafe.ExecutionSuccess.handler(async ({ event, context }) => {
     event.transaction.hash.toLowerCase(),
     BigInt(event.logIndex)
   );
-  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
 
   const rawSafeTransactionEntity = {
     id: transactionId,
@@ -241,7 +238,7 @@ ISafe.ExecutionFailure.handler(async ({ event, context }) => {
 
 ISafe.AddedOwner.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
   let rawSafe = await context.RawSafe.get(safeId);
 
   if (rawSafe) {
@@ -283,7 +280,7 @@ ISafe.AddedOwner.handler(async ({ event, context }) => {
 
 ISafe.RemovedOwner.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
   let rawSafe = await context.RawSafe.get(safeId);
 
   if (rawSafe) {
@@ -300,14 +297,18 @@ ISafe.RemovedOwner.handler(async ({ event, context }) => {
     context.RawSafe.set(updatedRawSafe);
 
     // Remove RawSafeMap for removed owner
-    const mapId = `${chainId}_${event.srcAddress.toLowerCase()}_${removedOwner}`;
+    const mapId = IdGenerator.rawSafeMap(
+      chainId,
+      event.srcAddress,
+      removedOwner
+    );
     context.RawSafeMap.deleteUnsafe(mapId);
   }
 });
 
 ISafe.ChangedThreshold.handler(async ({ event, context }) => {
   const chainId = BigInt(event.chainId);
-  const safeId = `${chainId}_${event.srcAddress.toLowerCase()}`;
+  const safeId = IdGenerator.rawSafe(chainId, event.srcAddress);
   let rawSafe = await context.RawSafe.get(safeId);
 
   if (rawSafe) {
@@ -370,7 +371,11 @@ async function updateSafeTokenPosition(
   context: any,
   chainId: bigint
 ): Promise<void> {
-  const positionId = `${chainId}_${safe.safeAddress}_${tokenAddress}`;
+  const positionId = IdGenerator.rawSafeTokenizedPosition(
+    chainId,
+    safe.safeAddress,
+    tokenAddress
+  );
   let position = await context.RawSafeTokenizedPosition.get(positionId);
 
   const oldAmount = position?.tokenAmount || BigInt(0);
@@ -422,7 +427,7 @@ async function ensureTokenTracked(
   context: any
 ): Promise<void> {
   const chainId = BigInt(event.chainId);
-  const trackedTokenId = `${chainId}-${tokenAddress}`;
+  const trackedTokenId = IdGenerator.trackedErc20Token(chainId, tokenAddress);
   let tracked = await context.TrackedErc20Token.get(trackedTokenId);
 
   if (!tracked) {
@@ -461,7 +466,7 @@ export async function trackNativeETHTransfer(
   context: any,
   chainId: bigint
 ): Promise<void> {
-  const safeId = `${chainId}_${safeAddress}`;
+  const safeId = IdGenerator.rawSafe(chainId, safeAddress);
   const safe = await context.RawSafe.get(safeId);
 
   if (safe) {

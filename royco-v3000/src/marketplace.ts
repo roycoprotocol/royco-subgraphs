@@ -1,46 +1,6 @@
-import { Marketplace, Royco } from "generated";
+// import { Marketplace, Royco } from "generated";
+import { Royco, Marketplace, OpenLiquidityGraph } from "generated";
 import { IdGenerator, ID_CONSTANTS } from "./utils/id-generator";
-
-Marketplace.NodeInserted.handler(async ({ event, context }) => {
-  const chainId = BigInt(event.chainId);
-  const nodeId = IdGenerator.rawNode(chainId, event.params.nodeHash);
-
-  // Create RawNode entity
-  const rawNodeEntity = {
-    id: nodeId,
-    chainId: chainId,
-    nodeHash: event.params.nodeHash,
-    inputTokenId: IdGenerator.tokenId(chainId, event.params.inputToken),
-    depositRecipeCommands: event.params.depositRecipe[0].map(
-      (cmd: string) => cmd
-    ),
-    depositRecipeState: event.params.depositRecipe[1].map(
-      (state: string) => state
-    ),
-    withdrawalRecipeCommands: event.params.withdrawalRecipe[0].map(
-      (cmd: string) => cmd
-    ),
-    withdrawalRecipeState: event.params.withdrawalRecipe[1].map(
-      (state: string) => state
-    ),
-    liquidityQueryCommands: event.params.liquidityQuery[0].map(
-      (cmd: string) => cmd
-    ),
-    liquidityQueryState: event.params.liquidityQuery[1].map(
-      (state: string) => state
-    ),
-    outputTokenId: IdGenerator.tokenId(chainId, event.params.outputToken),
-    blockNumber: BigInt(event.block.number),
-    blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: event.transaction.hash.toLowerCase(),
-    logIndex: BigInt(event.logIndex),
-    rawMarketsAtlas: [
-      IdGenerator.rawMarketAtlas(chainId, event.params.nodeHash),
-    ],
-  };
-
-  context.RawNode.set(rawNodeEntity);
-});
 
 // Handle MarketCreated events from Marketplace contract
 Marketplace.MarketCreated.handler(async ({ event, context }) => {
@@ -131,4 +91,67 @@ Royco.OrderCancelled.handler(async ({ event, context }) => {
   };
 
   context.RawOrderAtlas.set(updatedOrder);
+});
+
+Royco.AccountDeposited.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+
+  const accountDepositedEntity = {
+    id: IdGenerator.accountDeposited(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
+    chainId: chainId,
+    roycoAccount: event.params.roycoAccount.toLowerCase(),
+    targetNode: event.params.targetNode,
+    amountIn: event.params.amountIn,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.transaction.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.AccountDeposited.set(accountDepositedEntity);
+});
+
+Royco.AccountWithdrew.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+
+  const accountWithdrewEntity = {
+    id: IdGenerator.accountWithdrew(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
+    chainId: chainId,
+    roycoAccount: event.params.roycoAccount.toLowerCase(),
+    targetNode: event.params.targetNode,
+    amountOut: event.params.amountOut,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.transaction.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.AccountWithdrew.set(accountWithdrewEntity);
+});
+
+Royco.FeesClaimed.handler(async ({ event, context }) => {
+  const chainId = BigInt(event.chainId);
+
+  const feesClaimedEntity = {
+    id: IdGenerator.feesClaimed(
+      event.transaction.hash.toLowerCase(),
+      BigInt(event.logIndex)
+    ),
+    chainId: chainId,
+    claimant: event.params.claimant.toLowerCase(),
+    feeToken: event.params.feeToken.toLowerCase(),
+    feesClaimed: event.params.feesClaimed,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: event.transaction.hash.toLowerCase(),
+    logIndex: BigInt(event.logIndex),
+  };
+
+  context.FeesClaimed.set(feesClaimedEntity);
 });
