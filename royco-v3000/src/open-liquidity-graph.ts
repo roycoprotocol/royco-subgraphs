@@ -9,7 +9,7 @@ OpenLiquidityGraph.NodeInserted.handler(async ({ event, context }) => {
   const rawNodeEntity = {
     id: nodeId,
     chainId: chainId,
-    nodeHash: event.params.nodeHash,
+    nodeHash: event.params.nodeHash.toLowerCase(),
     inputTokenId: IdGenerator.tokenId(chainId, event.params.inputToken),
     depositRecipeCommands: event.params.depositRecipe[0].map(
       (cmd: string) => cmd
