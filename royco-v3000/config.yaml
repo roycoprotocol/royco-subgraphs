@@ -16,7 +16,7 @@ contracts:
     abi_file_path: ./abis/RoycoAccountFactory.json
     handler: src/royco-account-factory.ts
     events:
-      - event: "RoycoAccountDeployed(address indexed user, uint96 accountId, address roycoAccount)"
+      - event: "RoycoAccountDeployed(address indexed user, address roycoAccount)"
   - name: ISafe  
     abi_file_path: ./abis/ISafe.json
     handler: src/safe.ts
@@ -29,11 +29,15 @@ contracts:
       - event: "ChangedThreshold(uint256 threshold)"
       - event: "SafeReceived(address indexed sender, uint256 value)"
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
+  - name: OpenLiquidityGraph
+    abi_file_path: ./abis/OpenLiquidityGraph.json
+    handler: src/open-liquidity-graph.ts
+    events:
+      - event: "NodeInserted(bytes32 indexed nodeHash, address indexed inputToken, (bytes32[],bytes[]) depositRecipe, (bytes32[],bytes[]) liquidityQuery, (bytes32[],bytes[]) withdrawalRecipe, address indexed outputToken)"
   - name: Marketplace
     abi_file_path: ./abis/Marketplace.json
     handler: src/marketplace.ts
     events:
-      - event: "NodeInserted(bytes32 indexed nodeHash, address indexed inputToken, (bytes[],bytes[]) depositRecipe, (bytes[],bytes[]) liquidityQuery, (bytes[],bytes[]) withdrawalRecipe, address indexed outputToken)"
       - event: "MarketCreated(bytes32 indexed marketHash, bytes32 indexed nodeHash, address indexed signalProvider, bytes data)"
   - name: Royco
     abi_file_path: ./abis/Royco.json
@@ -41,23 +45,25 @@ contracts:
     events:
       - event: "AbsoluteOrderFilled(bytes32 indexed orderhash, bytes32 indexed targetMarket, address indexed maker, address taker, uint256 amountFilled)"
       - event: "OrderCancelled(address indexed account, bytes32 orderHash)"
+      - event: "AccountDeposited(address roycoAccount, bytes32 targetNode, uint256 amountIn, bytes executionParams)"
+      - event: "AccountWithdrew(address roycoAccount, bytes32 targetNode, uint256 amountOut)"
+      - event: "FeesClaimed(address indexed claimant, address feeToken, uint256 feesClaimed, address recipient)"
 
 networks:
-  - id: 11155111 # Sepolia
-    start_block: 8620270
-    contracts:
-      - name: RoycoAccountFactory
-        address: 
-          - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
-      - name: ISafe
-        # Dynamic contract - address will be registered from RoycoAccountDeployed events
-      - name: Marketplace
-        address:
-          - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
-      - name: Royco
-        address:
-          - "0xa7081d927570a98b74f0448e7c83c91b499c5847" 
-
+  # - id: 11155111 # Sepolia
+  #   start_block: 8620270
+  #   contracts:
+  #     - name: RoycoAccountFactory
+  #       address: 
+  #         - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
+  #     - name: ISafe
+  #       # Dynamic contract - address will be registered from RoycoAccountDeployed events
+  #     - name: Marketplace
+  #       address:
+  #         - "0xa7081d927570a98b74f0448e7c83c91b499c5847"
+  #     - name: Royco
+  #       address:
+  #         - "0xa7081d927570a98b74f0448e7c83c91b499c5847" 
   - id: 1 # Ethereum Mainnet
     start_block: 22826833
     contracts:
@@ -66,12 +72,15 @@ networks:
           - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
       - name: ISafe
         # Dynamic contract - address will be registered from RoycoAccountDeployed events
-      - name: Marketplace
-        address:
-          - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
-      - name: Royco
-        address:
-          - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
+      # - name: OpenLiquidityGraph
+      #   address:
+      #     - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
+      # - name: Marketplace
+      #   address:
+      #     - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
+      # - name: Royco
+      #   address:
+      #     - "0xe10dcd3c4848247da8cbb261ce30f5f6e794f3ae"
 
   # Template for adding additional networks
   

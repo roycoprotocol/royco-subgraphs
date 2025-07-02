@@ -1,6 +1,0 @@
-{
-  "network": "mainnet",
-  "chainId": "1",
-  "roycoAccountFactoryAddress": "0x0000000000000000000000000000000000000000",
-  "roycoAccountFactoryStartBlock": 0
-}

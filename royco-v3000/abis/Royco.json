@@ -390,6 +390,25 @@
   },
   {
     "type": "function",
+    "name": "getMarketSignal",
+    "inputs": [
+      { "name": "_marketHash", "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [
+      {
+        "name": "marketSignal",
+        "type": "tuple",
+        "internalType": "struct Operand",
+        "components": [
+          { "name": "target", "type": "address", "internalType": "address" },
+          { "name": "data", "type": "bytes", "internalType": "bytes" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getNextRoycoAccountCounterfactualAddress",
     "inputs": [
       { "name": "_user", "type": "address", "internalType": "address" }

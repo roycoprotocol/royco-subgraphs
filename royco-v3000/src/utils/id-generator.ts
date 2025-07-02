@@ -126,6 +126,30 @@ export class IdGenerator {
   static rawSafeTransaction(transactionHash: string, logIndex: bigint): string {
     return `${transactionHash.toLowerCase()}_${logIndex}`;
   }
+
+  /**
+   * Generate ID for AccountDeposited entity
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
+   */
+  static accountDeposited(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
+  }
+
+  /**
+   * Generate ID for AccountWithdrew entity
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
+   */
+  static accountWithdrew(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
+  }
+
+  /**
+   * Generate ID for FeesClaimed entity
+   * Format: <TRANSACTION_HASH>_<LOG_INDEX>
+   */
+  static feesClaimed(transactionHash: string, logIndex: bigint): string {
+    return `${transactionHash.toLowerCase()}_${logIndex}`;
+  }
 }
 
 /**
