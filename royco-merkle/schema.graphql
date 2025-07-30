@@ -1,13 +1,165 @@
 type UrdCreated @entity(immutable: true) {
-  id: Bytes!
-  urd: Bytes! # address
-  caller: Bytes! # address
-  initialOwner: Bytes! # address
+  id: String!
+  chainId: BigInt! # Hardcoded
+  urd: String! # address
+  caller: String! # address
+  initialOwner: String! # address
   initialTimelock: BigInt! # uint256
-  initialRoot: Bytes! # bytes32
-  initialIpfsHash: Bytes! # bytes32
-  salt: Bytes! # bytes32
+  initialRoot: String! # String32
+  initialIpfsHash: String! # String32
+  salt: String! # String32
   blockNumber: BigInt!
   blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type UniversalRewardsDistributor @entity(immutable: true) {
+  id: String! # contract address
+  chainId: BigInt! # Hardcoded
+  owner: String! # address
+  timelock: BigInt! # uint256
+  root: String! # String32
+  ipfsHash: String! # String32
+  pendingRoot: String! # String32
+  pendingIpfsHash: String! # String32
+  pendingValidAt: BigInt! # uint256
+  claims: [Claim!]! @derivedFrom(field: "urd")
+  rootUpdates: [RootUpdate!]! @derivedFrom(field: "urd")
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  logIndex: BigInt!
+}
+
+type Claim @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  urd: UniversalRewardsDistributor!
+  account: String! # address
+  reward: String! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RootUpdate @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  urd: UniversalRewardsDistributor!
+  newRoot: String! # String32
+  newIpfsHash: String! # String32
+  updater: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Claimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  account: String! # address
+  reward: String! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type OwnerSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  newOwner: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type PendingRootRevoked @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  caller: String! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type PendingRootSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  caller: String! # address
+  newRoot: String! # String32
+  newIpfsHash: String! # String32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RootSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  newRoot: String! # String32
+  newIpfsHash: String! # String32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RootUpdaterSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  rootUpdater: String! # address
+  active: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type TimelockSet @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  newTimelock: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type MerkleContract @entity(immutable: false) {
+  id: String!
+  chainId: BigInt! # Hardcoded
+  contractAddress: String! # address
+  initialOwner: String! # address
+  initialTimelock: BigInt! # uint256
+  initialRoot: String! # String32
+  initialIpfsHash: String! # String32
+  salt: String! # String32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  # Derived fields
+  merkleClaims: [MerkleClaim!]! @derivedFrom(field: "merkleContractRefId")
+}
+
+type MerkleClaim @entity(immutable: false) {
+  id: String!
+  merkleContractRefId: MerkleContract! # <CHAIN_ID>_<CONTRACT_ADDRESS>
+  chainId: BigInt! # Hardcoded
+  contractAddress: String! # address
+  accountAddress: String! # address
+  tokenId: String! # uint256
+  tokenAmount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
 }

@@ -1,0 +1,37 @@
+# prettier-ignore
+apiVersion: 3
+name: royco-merkle-pipeline
+resource_size: s
+sources:
+  merkle_contract_reference:
+    name: merkle_contract
+    subgraphs:
+      {{#metadata}}
+      - name: royco-merkle-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  merkle_claim_reference:
+    name: merkle_claim
+    subgraphs:
+      {{#metadata}}
+      - name: royco-merkle-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  merkle_contract_postgres:
+    type: postgres
+    table: merkle_contract
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: merkle_contract"
+    from: merkle_contract_reference
+  merkle_claim_postgres:
+    type: postgres
+    table: merkle_claim
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: merkle_claim"
+    from: merkle_claim_reference

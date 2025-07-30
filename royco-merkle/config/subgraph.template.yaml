@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: UrdFactory
-    network: sepolia
+    network: {{network}}
     source:
-      address: "0x0c09D5640eF37647CBCCCAEbcd9A2Cf2Cd65fa29"
+      address: "{{UrdFactoryAddress}}"
       abi: UrdFactory
-      startBlock: 8877989
+      startBlock: {{UrdFactoryStartBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -29,7 +29,7 @@ dataSources:
 templates:
   - kind: ethereum
     name: UniversalRewardsDistributor
-    network: sepolia
+    network: {{network}}
     source:
       abi: UniversalRewardsDistributor
     mapping:
