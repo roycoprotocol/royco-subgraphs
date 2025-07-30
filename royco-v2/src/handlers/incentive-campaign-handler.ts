@@ -7,7 +7,10 @@ import {
   RawIncentiveClaimBalance,
   RawCoIp,
   RawGlobalActivity,
+<<<<<<< HEAD
   RawIncentraAVActionParams,
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
 } from "../../generated/schema";
 import {
   generateRawIncentiveCampaignId,
@@ -18,6 +21,7 @@ import {
   generateRawGlobalActivityId,
   generateTokenId,
 } from "../utils/id-generator";
+<<<<<<< HEAD
 import {
   BIG_INT_ZERO,
   CHAIN_ID,
@@ -25,6 +29,10 @@ import {
 } from "../utils/constants";
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { decodeIncentraActionParams } from "../utils/action-params-decoder";
+=======
+import { BIG_INT_ZERO, CHAIN_ID } from "../utils/constants";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
 
 export function handleIncentiveCampaignCreation(
   entity: IncentiveCampaignCreated
@@ -34,7 +42,10 @@ export function handleIncentiveCampaignCreation(
   );
   campaign.chainId = CHAIN_ID;
   campaign.incentiveCampaignId = entity.incentiveCampaignId;
+<<<<<<< HEAD
   campaign.incentiveLockerAddress = entity.incentiveLockerAddress;
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   campaign.actionVerifier = entity.actionVerifier;
   campaign.actionParams = entity.actionParams;
   campaign.owner = entity.ip;
@@ -50,6 +61,7 @@ export function handleIncentiveCampaignCreation(
   campaign.transactionHash = entity.transactionHash;
   campaign.logIndex = entity.logIndex;
 
+<<<<<<< HEAD
   // If this is an Incentra campaign, decode the actionParams and create RawIncentraAVActionParams entity
   if (
     entity.actionVerifier.toLowerCase() == INCENTRA_AV_ADDRESS.toLowerCase()
@@ -76,6 +88,8 @@ export function handleIncentiveCampaignCreation(
     }
   }
 
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   campaign.save();
 }
 
@@ -168,7 +182,11 @@ export function handleClaim(entity: IncentivesClaimed): void {
   let campaign = RawIncentiveCampaign.load(
     generateRawIncentiveCampaignId(entity.incentiveCampaignId)
   );
+<<<<<<< HEAD
   if (!campaign) {
+=======
+  if (campaign == null) {
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
     // Possibly log an error
     return;
   }
@@ -187,8 +205,11 @@ export function handleClaim(entity: IncentivesClaimed): void {
       entity.incentiveCampaignId
     );
     balances.accountAddress = entity.ap;
+<<<<<<< HEAD
     balances.incentiveIds = [];
     balances.incentiveAmounts = [];
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
     balances.blockNumber = entity.blockNumber;
     balances.blockTimestamp = entity.blockTimestamp;
     balances.transactionHash = entity.transactionHash;

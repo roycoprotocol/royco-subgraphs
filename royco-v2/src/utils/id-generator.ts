@@ -1,10 +1,14 @@
 import { Address, BigInt, Bytes, Int8 } from "@graphprotocol/graph-ts";
+<<<<<<< HEAD
 import {
   CHAIN_ID,
   OFFER_TYPE,
   INCENTRA_AV_ADDRESS,
   INCENTIVE_CAMPAIGN_TYPE,
 } from "./constants";
+=======
+import { CHAIN_ID, OFFER_TYPE } from "./constants";
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
 
 export function generateId(transactionHash: Bytes, logIndex: BigInt): string {
   return CHAIN_ID.toString()
@@ -40,9 +44,13 @@ export const generateRawGlobalActivityId = (
 };
 
 export const generateTokenId = (tokenAddress: Address): string => {
+<<<<<<< HEAD
   return CHAIN_ID.toString()
     .concat("-")
     .concat(tokenAddress.toHexString().toLowerCase());
+=======
+  return CHAIN_ID.toString().concat("-").concat(tokenAddress.toHexString().toLowerCase());
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
 };
 
 export const generateRawWhitelistedIpId = (
@@ -70,11 +78,15 @@ export const generateRawPointsProgramBalanceId = (
 export const generateRawIncentiveCampaignId = (
   incentiveCampaignId: string
 ): string => {
+<<<<<<< HEAD
   return CHAIN_ID.toString()
     .concat("_")
     .concat(INCENTIVE_CAMPAIGN_TYPE)
     .concat("_")
     .concat(incentiveCampaignId);
+=======
+  return CHAIN_ID.toString().concat("_").concat(incentiveCampaignId);
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
 };
 
 export const generateRawIncentiveClaimBalanceId = (
@@ -171,9 +183,12 @@ export function generateIncentiveCampaignTag(
     "0x0e6db09b98369affb3049580936b1c86127ebb52"
   )
     return "UMA_MERKLE_CHEF";
+<<<<<<< HEAD
   else if (
     actionVerifierAddress.toLowerCase() == INCENTRA_AV_ADDRESS.toLowerCase()
   )
     return "BREVIS";
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   else return "";
 }

@@ -11,14 +11,44 @@ sources:
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
+<<<<<<< HEAD
   raw_incentra_av_action_params_reference:
     name: raw_incentra_av_action_params
+=======
+  raw_incentive_campaign_uma_merkle_chef_reference:
+    name: raw_incentive_campaign_uma_merkle_chef
     subgraphs:
       {{#metadata}}
       - name: royco-multiverse-{{network}}
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
+  raw_multiplier_ap_offer_reference:
+    name: raw_multiplier_ap_offer
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_historical_multiplier_state_reference:
+    name: raw_historical_multiplier_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_user_multiplier_state_reference:
+    name: raw_user_multiplier_state
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+<<<<<<< HEAD
   # raw_incentive_campaign_uma_merkle_chef_reference:
   #   name: raw_incentive_campaign_uma_merkle_chef
   #   subgraphs:
@@ -51,6 +81,8 @@ sources:
   #       version: {{version}}
   #     {{/metadata}}
   #   type: subgraph_entity
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   raw_incentive_claim_balance_reference:
     name: raw_incentive_claim_balance
     subgraphs:
@@ -67,6 +99,7 @@ sources:
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
+<<<<<<< HEAD
   # raw_points_program_reference:
   #   name: raw_points_program
   #   subgraphs:
@@ -91,6 +124,32 @@ sources:
   #       version: {{version}}
   #     {{/metadata}}
   #   type: subgraph_entity
+=======
+  raw_points_program_reference:
+    name: raw_points_program
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_whitelisted_ip_reference:
+    name: raw_whitelisted_ip
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_points_program_balance_reference:
+    name: raw_points_program_balance
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   # Note: this throws an error so commenting out for now
   # raw_incentive_emission_rates_reference:
   #   name: raw_incentive_emission_rates
@@ -100,6 +159,7 @@ sources:
   #       version: {{version}}
   #     {{/metadata}}
   #   type: subgraph_entity
+<<<<<<< HEAD
   # raw_uma_merkle_root_assertion_reference:
   #   name: raw_uma_merkle_root_assertion
   #   subgraphs:
@@ -116,6 +176,24 @@ sources:
   #       version: {{version}}
   #     {{/metadata}}
   #   type: subgraph_entity
+=======
+  raw_uma_merkle_root_assertion_reference:
+    name: raw_uma_merkle_root_assertion
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  raw_uma_merkle_root_state_reference:
+    name: raw_uma_merkle_root_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-multiverse-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   raw_global_activity_reference:
     name: raw_global_activity
     subgraphs:
@@ -133,6 +211,7 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_incentive_campaign"
     from: raw_incentive_campaign_reference
+<<<<<<< HEAD
   raw_incentra_av_action_params_postgres:
     type: postgres
     table: raw_incentra_av_action_params
@@ -168,6 +247,36 @@ sinks:
   #   secret_name: NEON_ROYCO
   #   description: "Postgres sink for: raw_user_multiplier_state"
   #   from: raw_user_multiplier_state_reference
+=======
+  raw_incentive_campaign_uma_merkle_chef_postgres:
+    type: postgres
+    table: raw_incentive_campaign_uma_merkle_chef
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_incentive_campaign_uma_merkle_chef"
+    from: raw_incentive_campaign_uma_merkle_chef_reference
+  raw_multiplier_ap_offer_postgres:
+    type: postgres
+    table: raw_multiplier_ap_offer
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_multiplier_ap_offer"
+    from: raw_multiplier_ap_offer_reference
+  raw_historical_multiplier_state_postgres:
+    type: postgres
+    table: raw_historical_multiplier_state
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_historical_multiplier_state"
+    from: raw_historical_multiplier_state_reference
+  raw_user_multiplier_state_postgres:
+    type: postgres
+    table: raw_user_multiplier_state
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_user_multiplier_state"
+    from: raw_user_multiplier_state_reference
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   raw_incentive_claim_balance_postgres:
     type: postgres
     table: raw_incentive_claim_balance
@@ -182,6 +291,7 @@ sinks:
     secret_name: NEON_ROYCO
     description: "Postgres sink for: raw_co_ip"
     from: raw_co_ip_reference
+<<<<<<< HEAD
   # raw_points_program_postgres:
   #   type: postgres
   #   table: raw_points_program
@@ -203,6 +313,29 @@ sinks:
   #   secret_name: NEON_ROYCO
   #   description: "Postgres sink for: raw_points_program_balance"
   #   from: raw_points_program_balance_reference
+=======
+  raw_points_program_postgres:
+    type: postgres
+    table: raw_points_program
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_points_program"
+    from: raw_points_program_reference
+  raw_whitelisted_ip_postgres:
+    type: postgres
+    table: raw_whitelisted_ip
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_whitelisted_ip"
+    from: raw_whitelisted_ip_reference
+  raw_points_program_balance_postgres:
+    type: postgres
+    table: raw_points_program_balance
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_points_program_balance"
+    from: raw_points_program_balance_reference
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   # raw_incentive_emission_rates_postgres:
   #   type: postgres
   #   table: raw_incentive_emission_rates
@@ -210,6 +343,7 @@ sinks:
   #   secret_name: NEON_ROYCO
   #   description: "Postgres sink for: raw_incentive_emission_rates"
   #   from: raw_incentive_emission_rates_reference
+<<<<<<< HEAD
   # raw_uma_merkle_root_assertion_postgres:
   #   type: postgres
   #   table: raw_uma_merkle_root_assertion
@@ -224,6 +358,22 @@ sinks:
   #   secret_name: NEON_ROYCO
   #   description: "Postgres sink for: raw_uma_merkle_root_state"
   #   from: raw_uma_merkle_root_state_reference
+=======
+  raw_uma_merkle_root_assertion_postgres:
+    type: postgres
+    table: raw_uma_merkle_root_assertion
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_uma_merkle_root_assertion"
+    from: raw_uma_merkle_root_assertion_reference
+  raw_uma_merkle_root_state_postgres:
+    type: postgres
+    table: raw_uma_merkle_root_state
+    schema: public
+    secret_name: NEON_ROYCO
+    description: "Postgres sink for: raw_uma_merkle_root_state"
+    from: raw_uma_merkle_root_state_reference
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
   raw_global_activity_postgres:
     type: postgres
     table: raw_global_activity

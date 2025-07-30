@@ -2,7 +2,7 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 
 
-export const CHAIN_ID = BigInt.fromU64(1); // Will be replaced during deployment
+export const CHAIN_ID = BigInt.fromU64(11155111); // Will be replaced during deployment
 
 export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -13,11 +13,14 @@ export enum OFFER_TYPE {
     IP_OFFER
 }
 
+<<<<<<< HEAD
 export const INCENTIVE_CAMPAIGN_TYPE = "2";
 
 export const INCENTRA_AV_ADDRESS = "0x870391a9489f7361cb082e4f523e73ab00067f83";
 
 
+=======
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
 // Multipliers are denominated in BPS, so 100 = 1x multiplier
 export const DEFAULT_MULTIPLIER = BigInt.fromI32(100);
 

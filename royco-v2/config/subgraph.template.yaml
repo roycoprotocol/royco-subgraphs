@@ -75,6 +75,7 @@ dataSources:
         - event: SpendCapsUpdated(indexed address,address[],uint256[])
           handler: handleSpendCapsUpdated
       file: ./src/incentive-locker.ts
+<<<<<<< HEAD
 #  - kind: ethereum
 #    name: UmaMerkleChefAV
 #    network: {{network}}
@@ -148,3 +149,78 @@ dataSources:
 #        - event: OptedInToIncentiveCampaign(indexed bytes32,indexed address)
 #          handler: handleOptedInToIncentiveCampaign
 #      file: ./src/multiplier-market-hub.ts
+=======
+  - kind: ethereum
+    name: UmaMerkleChefAV
+    network: {{network}}
+    source:
+      address: "{{sources.0.umaMerkleChefAVAddress}}"
+      abi: UmaMerkleChefAV
+      startBlock: {{sources.0.umaMerkleChefAVStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - AssertersBlacklisted
+        - AssertersWhitelisted
+        - AssertionLivenessUpdated
+        - BondCurrencyUpdated
+        - IncentiveEmissionRatesUpdated
+        - MerkleRootAsserted
+        - MerkleRootAssertionDisputed
+        - MerkleRootAssertionResolved
+        - UmaMerkleChefAVOwnershipTransferStarted
+        - UmaMerkleChefAVOwnershipTransferred
+      abis:
+        - name: UmaMerkleChefAV
+          file: ./abis/UmaMerkleChefAV.json
+      eventHandlers:
+        - event: AssertersBlacklisted(address[])
+          handler: handleAssertersBlacklisted
+        - event: AssertersWhitelisted(address[])
+          handler: handleAssertersWhitelisted
+        - event: AssertionLivenessUpdated(uint64)
+          handler: handleAssertionLivenessUpdated
+        - event: BondCurrencyUpdated(indexed address)
+          handler: handleBondCurrencyUpdated
+        - event: EmissionRatesUpdated(indexed bytes32,address[],uint256[])
+          handler: handleIncentiveEmissionRatesUpdated
+        - event: MerkleRootAsserted(indexed bytes32,indexed bytes32,indexed address,bytes32)
+          handler: handleMerkleRootAsserted
+        - event: MerkleRootAssertionDisputed(indexed bytes32,bytes32)
+          handler: handleMerkleRootAssertionDisputed
+        - event: MerkleRootAssertionResolved(indexed bytes32,bytes32)
+          handler: handleMerkleRootAssertionResolved
+        - event: OwnershipTransferStarted(indexed address,indexed address)
+          handler: handleOwnershipTransferStarted
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+      file: ./src/uma-merkle-chef-av.ts
+  - kind: ethereum
+    name: MultiplierMarketHub
+    network: {{network}}
+    source:
+      address: "{{sources.0.multiplierMarketHubAddress}}"
+      abi: MultiplierMarketHub
+      startBlock: {{sources.0.multiplierMarketHubStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - APOfferCreated
+        - APOfferFilled
+        - OptedInToIncentiveCampaign
+      abis:
+        - name: MultiplierMarketHub
+          file: ./abis/MultiplierMarketHub.json
+      eventHandlers:
+        - event: APOfferCreated(indexed bytes32,indexed bytes32,indexed address,uint96,uint256)
+          handler: handleAPOfferCreated
+        - event: APOfferFilled(indexed bytes32,indexed bytes32,indexed address,uint96,uint256)
+          handler: handleAPOfferFilled
+        - event: OptedInToIncentiveCampaign(indexed bytes32,indexed address)
+          handler: handleOptedInToIncentiveCampaign
+      file: ./src/multiplier-market-hub.ts
+>>>>>>> 481d67c3a059bb2fd5f4c2f9c95598cd4046d523
