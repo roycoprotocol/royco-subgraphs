@@ -1,0 +1,13 @@
+type UrdCreated @entity(immutable: true) {
+  id: Bytes!
+  urd: Bytes! # address
+  caller: Bytes! # address
+  initialOwner: Bytes! # address
+  initialTimelock: BigInt! # uint256
+  initialRoot: Bytes! # bytes32
+  initialIpfsHash: Bytes! # bytes32
+  salt: Bytes! # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
