@@ -36,26 +36,40 @@ export function handleClaimed(event: ClaimedEvent): void {
 
   // Create a new MerkleClaim entity
 
-  let merkleClaimEntity = new MerkleClaim(
-    CHAIN_ID.toString()
-      .concat("_")
-      .concat(event.address.toHexString())
-      .concat("_")
-      .concat(event.params.account.toHexString())
-  );
-  merkleClaimEntity.merkleContractRefId = CHAIN_ID.toString()
+  let merkleClaimId = CHAIN_ID.toString()
     .concat("_")
-    .concat(event.address.toHexString());
-  merkleClaimEntity.chainId = CHAIN_ID;
-  merkleClaimEntity.contractAddress = event.address.toHexString();
-  merkleClaimEntity.accountAddress = event.params.account.toHexString();
-  merkleClaimEntity.tokenId = generateTokenId(event.params.reward);
-  merkleClaimEntity.tokenAmount = event.params.amount;
+    .concat(event.address.toHexString())
+    .concat("_")
+    .concat(event.params.account.toHexString());
 
-  merkleClaimEntity.blockNumber = event.block.number;
-  merkleClaimEntity.blockTimestamp = event.block.timestamp;
-  merkleClaimEntity.transactionHash = event.transaction.hash.toHexString();
-  merkleClaimEntity.logIndex = event.logIndex;
+  let merkleClaimEntity = MerkleClaim.load(merkleClaimId);
+
+  if (merkleClaimEntity) {
+    merkleClaimEntity.tokenAmount = merkleClaimEntity.tokenAmount.plus(
+      event.params.amount
+    );
+  } else {
+    merkleClaimEntity = new MerkleClaim(
+      CHAIN_ID.toString()
+        .concat("_")
+        .concat(event.address.toHexString())
+        .concat("_")
+        .concat(event.params.account.toHexString())
+    );
+    merkleClaimEntity.merkleContractRefId = CHAIN_ID.toString()
+      .concat("_")
+      .concat(event.address.toHexString());
+    merkleClaimEntity.chainId = CHAIN_ID;
+    merkleClaimEntity.contractAddress = event.address.toHexString();
+    merkleClaimEntity.accountAddress = event.params.account.toHexString();
+    merkleClaimEntity.tokenId = generateTokenId(event.params.reward);
+    merkleClaimEntity.tokenAmount = event.params.amount;
+
+    merkleClaimEntity.blockNumber = event.block.number;
+    merkleClaimEntity.blockTimestamp = event.block.timestamp;
+    merkleClaimEntity.transactionHash = event.transaction.hash.toHexString();
+    merkleClaimEntity.logIndex = event.logIndex;
+  }
 
   merkleClaimEntity.save();
 }

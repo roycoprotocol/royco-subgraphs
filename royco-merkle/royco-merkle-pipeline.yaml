@@ -7,13 +7,13 @@ sources:
     name: merkle_contract
     subgraphs:
       - name: royco-merkle-sepolia
-        version: 1.0.3
+        version: 1.0.4
     type: subgraph_entity
   merkle_claim_reference:
     name: merkle_claim
     subgraphs:
       - name: royco-merkle-sepolia
-        version: 1.0.3
+        version: 1.0.4
     type: subgraph_entity
 transforms: {}
 sinks:
