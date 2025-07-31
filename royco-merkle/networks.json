@@ -1,0 +1,11 @@
+{
+  "optimism-sepolia": {
+    "UrdFactory": {
+      "address": "0x0c09D5640eF37647CBCCCAEbcd9A2Cf2Cd65fa29",
+      "startBlock": 8878160
+    },
+    "UniversalRewardsDistributor": {
+      "address": "0xDE5b3B0Ec05EA99B2D82CD545c2d7353AD3FfC8F"
+    }
+  }
+}
