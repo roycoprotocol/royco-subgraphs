@@ -38,7 +38,6 @@ export function handleCreditIssuerRegistered(
   }
 
   const credit = CreditContract.bind(event.params.credit);
-  const decimalsResult = credit.try_decimals();
   const totalSupplyResult = credit.try_totalSupply();
 
   raw.chainId = CHAIN_ID;
@@ -46,9 +45,8 @@ export function handleCreditIssuerRegistered(
   raw.issuer = event.params.issuer.toHexString();
   raw.name = event.params.name.toString();
   raw.symbol = event.params.symbol.toString();
-  raw.decimals = decimalsResult.reverted
-    ? BigInt.fromI32(18)
-    : BigInt.fromI32(decimalsResult.value);
+  raw.decimals = BigInt.fromI32(2);
+
   raw.totalSupply = totalSupplyResult.reverted
     ? BigInt.zero()
     : totalSupplyResult.value;
