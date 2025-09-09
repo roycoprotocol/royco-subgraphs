@@ -1,0 +1,14 @@
+apiVersion: 3
+name: masa-contracts-pipeline
+status: ACTIVE
+resource_size: s
+sources:
+  masa_contracts_reference:
+    name: masa_contracts
+    subgraphs:
+      - name: masa-contracts-sepolia
+        version: 1.0.0
+    type: subgraph_entity
+transforms: {}
+sinks: {}
+

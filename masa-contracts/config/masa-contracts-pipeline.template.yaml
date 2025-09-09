@@ -1,0 +1,16 @@
+apiVersion: 3
+name: masa-contracts-pipeline
+status: ACTIVE
+resource_size: s
+sources:
+  masa_contracts_reference:
+    name: masa_contracts
+    subgraphs:
+      {{#metadata}}
+      - name: masa-contracts-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks: {}
+
