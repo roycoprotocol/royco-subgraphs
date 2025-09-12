@@ -1,0 +1,207 @@
+type CreditIssuerRegistered @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  name: Bytes!
+  symbol: Bytes!
+  issuer: String! @indexed
+  credit: String! @indexed
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IssuanceCommenced @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  issuanceId: Bytes! @indexed
+  quantityToIssue: BigInt!
+  assetDemanded: String!
+  liquidityDemanded: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CreditsPurchased @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  issuanceId: Bytes! @indexed
+  purchaser: String! @indexed
+  recipient: String! @indexed
+  creditsPurchased: BigInt!
+  liquidityAdded: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CreditsClaimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  issuanceId: Bytes! @indexed
+  claimant: String! @indexed
+  recipient: String! @indexed
+  amountClaimed: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IssuanceLiquidityClaimed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  issuanceId: Bytes! @indexed
+  recipient: String!
+  totalAmountClaimed: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type IssuanceCancelled @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  issuanceId: Bytes! @indexed
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type LiquidityWithdrawn @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  issuanceId: Bytes! @indexed
+  withdrawer: String! @indexed
+  recipient: String!
+  creditsRelinquished: BigInt!
+  liquidityWithdrawn: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type CreditsRedeemed @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  redeemer: String! @indexed
+  redemptionId: Bytes! @indexed
+  amountRedeemed: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type Transfer @entity(immutable: true) {
+  id: String!
+  chainId: BigInt! @indexed
+  credit: String! @indexed
+  from: String! @indexed
+  to: String! @indexed
+  amount: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawCredit @entity(immutable: false) {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>
+  chainId: BigInt! @indexed
+  contractAddress: String! @indexed
+  issuer: String! @indexed
+  name: String!
+  symbol: String!
+  decimals: BigInt!
+  totalSupply: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  rawCreditBalances: [RawCreditBalance!]! @derivedFrom(field: "rawCreditRefId")
+  rawTransfers: [RawTransfer!]! @derivedFrom(field: "rawCreditRefId")
+}
+
+type RawCreditBalance @entity(immutable: false) {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ACCOUNT_ADDRESS>
+  rawCreditRefId: RawCredit! @indexed
+  chainId: BigInt! @indexed
+  contractAddress: String! @indexed
+  accountAddress: String! @indexed
+  amount: BigInt!
+}
+
+type RawTransfer @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TX_HASH>_<LOG_INDEX>
+  rawCreditRefId: RawCredit! @indexed
+  chainId: BigInt! @indexed
+  contractAddress: String! @indexed
+  from: String! @indexed
+  to: String! @indexed
+  amount: BigInt!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawIssuance @entity(immutable: true) {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ISSUANCE_ID>
+  rawCreditRefId: RawCredit! @indexed
+  chainId: BigInt! @indexed
+  contractAddress: String! @indexed
+  issuanceId: String! @indexed
+  isCancelled: Boolean! @indexed
+  isCompleted: Boolean! @indexed
+  quantitySupplied: BigInt! @indexed
+  quantityDemanded: BigInt! @indexed
+  pricePerCreditWAD: BigInt! @indexed
+  assetDemanded: String! @indexed
+  issuerClaimedLiquidity: Boolean! @indexed
+  purchases: [RawIssuanceBalance!]! @indexed
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+}
+
+type RawIssuanceBalance @entity(immutable: true) {
+  id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ISSUANCE_ID>_<ACCOUNT_ADDRESS>
+  rawIssuanceRefId: RawIssuance! @indexed
+  chainId: BigInt! @indexed
+  contractAddress: String! @indexed
+  accountAddress: String! @indexed
+  amount: BigInt!
+}
+
+type RawGlobalActivity @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  chainId: BigInt! # Hardcoded
+  category: String! # Category (e.g. "recipe", "vault", "boring", etc.)
+  subCategory: String! # Sub Category (e.g. "deposit", "withdraw", "claim", etc.)
+  sourceRefId: String! # Source Ref ID
+  contractAddress: String! # Contract Address
+  accountAddress: String! # Account Address
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  tokenAmount: BigInt! # Token Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+}

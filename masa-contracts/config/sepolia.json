@@ -1,0 +1,7 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "creditFactoryAddress": "0x0000000000000000000000000000000000000000",
+  "creditFactoryStartBlock": 0
+}
+

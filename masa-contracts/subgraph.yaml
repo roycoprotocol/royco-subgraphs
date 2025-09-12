@@ -1,0 +1,67 @@
+# prettier-ignore
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: CreditFactory
+    network: sepolia
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: CreditFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - CreditIssuerRegistered
+      abis:
+        - name: CreditFactory
+          file: ./abis/CreditFactory.json
+      eventHandlers:
+        - event: CreditIssuerRegistered(string,string,address,address)
+          handler: handleCreditIssuerRegistered
+      file: ./src/credit-factory.ts
+templates:
+  - name: CreditTemplate
+    kind: ethereum/contract
+    network: sepolia
+    source:
+      abi: Credit
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - IssuanceCommenced
+        - CreditsPurchased
+        - IssuanceLiquidityClaimed
+        - IssuanceCancelled
+        - LiquidityWithdrawn
+        - CreditsRedeemed
+        - Transfer
+        - RawCredit
+        - RawCreditBalance
+        - RawTransfer
+      abis:
+        - name: Credit
+          file: ./abis/Credit.json
+      eventHandlers:
+        - event: IssuanceCommenced(indexed bytes32,uint256,address,uint256)
+          handler: handleIssuanceCommenced
+        - event: CreditsPurchased(indexed bytes32,indexed address,indexed address,uint256,uint256)
+          handler: handleCreditsPurchased
+        - event: IssuanceLiquidityClaimed(indexed bytes32,address,uint256)
+          handler: handleIssuanceLiquidityClaimed
+        - event: IssuanceCancelled(indexed bytes32)
+          handler: handleIssuanceCancelled
+        - event: LiquidityWithdrawn(indexed bytes32,indexed address,address,uint256,uint256)
+          handler: handleLiquidityWithdrawn
+        - event: CreditsRedeemed(indexed address,indexed bytes32,uint256)
+          handler: handleCreditsRedeemed
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: CreditsClaimed(indexed bytes32,indexed address,indexed address,uint256)
+          handler: handleCreditsClaimed
+      file: ./src/credit.ts
