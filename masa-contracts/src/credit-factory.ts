@@ -1,17 +1,13 @@
 import { CreditIssuerRegistered as CreditIssuerRegisteredEvent } from "../generated/CreditFactory/CreditFactory";
 import { CreditIssuerRegistered, RawCredit } from "../generated/schema";
-import { CHAIN_ID } from "./constants";
+import { CHAIN_ID, DECIMALS } from "./constants";
 import { CreditTemplate } from "../generated/templates";
 import { generateId, generateTokenId } from "./utils";
-import { Credit as CreditContract } from "../generated/templates/CreditTemplate/Credit";
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 
 export function handleCreditIssuerRegistered(
   event: CreditIssuerRegisteredEvent
 ): void {
-  // Start indexing the Credit contract
-  CreditTemplate.create(event.params.credit);
-
   // Log the factory event
   let entity = new CreditIssuerRegistered(
     generateId(event.transaction.hash, event.logIndex)
@@ -30,31 +26,24 @@ export function handleCreditIssuerRegistered(
 
   entity.save();
 
-  let rawId = generateTokenId(event.params.credit);
+  // Create new raw credit
+  let rawCredit = new RawCredit(generateTokenId(event.params.credit));
 
-  let raw = RawCredit.load(rawId);
-  if (raw == null) {
-    raw = new RawCredit(rawId);
-  }
+  rawCredit.chainId = CHAIN_ID;
+  rawCredit.contractAddress = event.params.credit.toHexString();
+  rawCredit.issuer = event.params.issuer.toHexString();
+  rawCredit.name = event.params.name.toString();
+  rawCredit.symbol = event.params.symbol.toString();
+  rawCredit.decimals = DECIMALS;
+  rawCredit.totalSupply = BigInt.zero();
+  rawCredit.createdTransactionHash = event.transaction.hash.toHexString();
+  rawCredit.updatedTransactionHash = event.transaction.hash.toHexString();
+  rawCredit.createdAt = event.block.timestamp.toI32();
+  rawCredit.updatedAt = event.block.timestamp.toI32();
 
-  const credit = CreditContract.bind(event.params.credit);
-  const totalSupplyResult = credit.try_totalSupply();
+  rawCredit.save();
 
-  raw.chainId = CHAIN_ID;
-  raw.contractAddress = event.params.credit.toHexString();
-  raw.issuer = event.params.issuer.toHexString();
-  raw.name = event.params.name.toString();
-  raw.symbol = event.params.symbol.toString();
-  raw.decimals = BigInt.fromI32(2);
-
-  raw.totalSupply = totalSupplyResult.reverted
-    ? BigInt.zero()
-    : totalSupplyResult.value;
-
-  raw.blockNumber = event.block.number;
-  raw.blockTimestamp = event.block.timestamp;
-  raw.transactionHash = event.transaction.hash.toHexString();
-  raw.logIndex = event.logIndex;
-
-  raw.save();
+  // Start indexing the Credit contract
+  let childContractAddress = event.params.credit;
+  CreditTemplate.create(childContractAddress);
 }

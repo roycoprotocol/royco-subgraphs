@@ -48,7 +48,7 @@ templates:
         - name: Credit
           file: ./abis/Credit.json
       eventHandlers:
-        - event: IssuanceCommenced(indexed bytes32,uint256,address,uint256)
+        - event: IssuanceCommenced(indexed bytes32,indexed address,uint256,uint256,uint256,address)
           handler: handleIssuanceCommenced
         - event: CreditsPurchased(indexed bytes32,indexed address,indexed address,uint256,uint256)
           handler: handleCreditsPurchased
