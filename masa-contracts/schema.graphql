@@ -128,12 +128,12 @@ type RawCredit @entity(immutable: false) {
   symbol: String!
   decimals: BigInt!
   totalSupply: BigInt!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
+  createdTransactionHash: String!
+  updatedTransactionHash: String!
+  createdAt: Int!
+  updatedAt: Int!
+  # Derived fields
   rawCreditBalances: [RawCreditBalance!]! @derivedFrom(field: "rawCreditRefId")
-  rawTransfers: [RawTransfer!]! @derivedFrom(field: "rawCreditRefId")
 }
 
 type RawCreditBalance @entity(immutable: false) {
@@ -143,56 +143,54 @@ type RawCreditBalance @entity(immutable: false) {
   contractAddress: String! @indexed
   accountAddress: String! @indexed
   amount: BigInt!
+  createdTransactionHash: String!
+  updatedTransactionHash: String!
+  createdAt: Int!
+  updatedAt: Int!
 }
 
-type RawTransfer @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<TX_HASH>_<LOG_INDEX>
-  rawCreditRefId: RawCredit! @indexed
-  chainId: BigInt! @indexed
-  contractAddress: String! @indexed
-  from: String! @indexed
-  to: String! @indexed
-  amount: BigInt!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-}
-
-type RawIssuance @entity(immutable: true) {
+type RawIssuance @entity(immutable: false) {
   id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ISSUANCE_ID>
   rawCreditRefId: RawCredit! @indexed
   chainId: BigInt! @indexed
   contractAddress: String! @indexed
   issuanceId: String! @indexed
+  assetDemandedId: String! @indexed
+  assetDemandedAddress: String! @indexed
+  pricePerCreditWAD: BigInt!
+  quantitySupplied: BigInt!
+  quantityDemanded: BigInt!
+  liquidity: BigInt!
+  issuerClaimedLiquidity: Boolean!
   isCancelled: Boolean! @indexed
   isCompleted: Boolean! @indexed
-  quantitySupplied: BigInt! @indexed
-  quantityDemanded: BigInt! @indexed
-  pricePerCreditWAD: BigInt! @indexed
-  assetDemanded: String! @indexed
-  issuerClaimedLiquidity: Boolean! @indexed
-  purchases: [RawIssuanceBalance!]! @indexed
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
+  createdTransactionHash: String!
+  updatedTransactionHash: String!
+  createdAt: Int!
+  updatedAt: Int!
+  # Derived fields
+  balances: [RawIssuanceBalance!]! @derivedFrom(field: "rawIssuanceRefId")
 }
 
-type RawIssuanceBalance @entity(immutable: true) {
+type RawIssuanceBalance @entity(immutable: false) {
   id: String! # <CHAIN_ID>-<CONTRACT_ADDRESS>_<ISSUANCE_ID>_<ACCOUNT_ADDRESS>
   rawIssuanceRefId: RawIssuance! @indexed
   chainId: BigInt! @indexed
   contractAddress: String! @indexed
   accountAddress: String! @indexed
-  amount: BigInt!
+  creditAmount: BigInt!
+  liquidityAmount: BigInt!
+  createdTransactionHash: String!
+  updatedTransactionHash: String!
+  createdAt: Int!
+  updatedAt: Int!
 }
 
 type RawGlobalActivity @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
   chainId: BigInt! # Hardcoded
-  category: String! # Category (e.g. "recipe", "vault", "boring", etc.)
-  subCategory: String! # Sub Category (e.g. "deposit", "withdraw", "claim", etc.)
+  category: String! # Category ("credit")
+  subCategory: String! # Sub Category (For credit: "mint", "burn", "transfer-in", "transfer-out", "redeem")
   sourceRefId: String! # Source Ref ID
   contractAddress: String! # Contract Address
   accountAddress: String! # Account Address
