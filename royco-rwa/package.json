@@ -1,0 +1,25 @@
+{
+  "name": "royco-rwa",
+  "license": "MIT",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ royco-rwa",
+    "create-local": "graph create --node http://localhost:8020/ royco-rwa",
+    "remove-local": "graph remove --node http://localhost:8020/ royco-rwa",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-rwa",
+    "test": "graph test",
+    "generate:signatures": "ts-node scripts/generate-signatures.ts",
+    "markets:prepare:sepolia": "mustache config/markets/networks/sepolia.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/sepolia.json config/markets/constants/constants.template.ts > src/constants/static.ts",
+    "markets:prepare:pipeline": "mustache config/markets/metadata.json config/markets/pipeline.template.yaml > pipeline.yaml"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.97.1",
+    "@graphprotocol/graph-ts": "0.37.0",
+    "mustache-cli": "^2.3.2"
+  },
+  "devDependencies": {
+    "fs": "^0.0.1-security",
+    "matchstick-as": "0.6.0"
+  }
+}

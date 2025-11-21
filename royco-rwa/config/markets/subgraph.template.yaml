@@ -1,0 +1,33 @@
+# prettier-ignore
+specVersion: 1.3.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: BaseVault
+    network: {{network}}
+    source:
+      address: "{{stakedRoyusdContractAddress}}"
+      abi: BaseVault
+      startBlock: {{stakedRoyusdStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - UnstakingCommenced
+        - AssetsUnstaked
+      abis:
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+        - event: DepositRequest(indexed address,indexed address,indexed uint256,address,uint256)
+          handler: handleDepositRequest
+      file: ./src/vault.ts
