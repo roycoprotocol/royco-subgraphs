@@ -1,52 +1,77 @@
-type RawRoyusdTransfer @entity(immutable: true) {
+type RoyusdTransfer @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
   chainId: BigInt!
-  fromAddress: String!
-  toAddress: String!
-  value: BigInt!
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: String!
-  logIndex: BigInt!
-  createdAt: Timestamp!
+  subCategory: String! # Sub Category ("mint", "burn", "transfer")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  fromAddress: String! # From Address
+  toAddress: String! # To Address
+  rawAmount: BigInt! # Raw Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
 }
 
-type RawRoyusdPosition @entity(immutable: false) {
+type RoyusdPositionLatest @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<ACCOUNT_ADDRESS>
   chainId: BigInt!
   accountAddress: String!
+  prevRawAmount: BigInt!
   rawAmount: BigInt!
-  createdAt: Timestamp!
-  updatedAt: Timestamp!
+  prevBlockTimestamp: BigInt!
+  blockTimestamp: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
 }
 
-type RawMetricHistorical @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>
+type RoyusdPositionHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<ACCOUNT_ADDRESS>
   chainId: BigInt!
-  category: String!
-  value: BigInt!
+  accountAddress: String!
+  prevRawAmount: BigInt!
+  rawAmount: BigInt!
   blockNumber: BigInt!
+  prevBlockTimestamp: BigInt!
   blockTimestamp: BigInt!
   transactionHash: String!
   logIndex: BigInt!
-  createdAt: Timestamp!
+  createdAt: BigInt!
 }
 
-type RawMetricLatest @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<CATEGORY>
+type RoyusdMetricLatest @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<SUB_CATEGORY>
   chainId: BigInt!
-  category: String!
+  name: String!
+  prevValue: BigInt!
   value: BigInt!
-  createdAt: Timestamp!
-  updatedAt: Timestamp!
+  prevBlockTimestamp: BigInt!
+  blockTimestamp: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
 }
 
-type RawGlobalActivity @entity(immutable: true) {
+type RoyusdMetricHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<NAME>
+  chainId: BigInt!
+  name: String!
+  prevValue: BigInt!
+  value: BigInt!
+  blockNumber: BigInt!
+  prevBlockTimestamp: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  createdAt: BigInt!
+}
+
+type GlobalTokenActivity @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
   chainId: BigInt! # Hardcoded
-  category: String! # Category ("royusd")
-  subCategory: String! # Sub Category (For royusd: "mint", "burn", "transfer-in", "transfer-out")
   sourceRefId: String! # Source Ref ID
+  category: String! # Category
+  subCategory: String! # Sub Category (like "mint", "burn", "transfer-in", "transfer-out")
   contractAddress: String! # Contract Address
   accountAddress: String! # Account Address
   tokenIndex: BigInt! # Token Index
@@ -57,5 +82,5 @@ type RawGlobalActivity @entity(immutable: true) {
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction hash
   logIndex: BigInt! # Log Index
-  createdAt: Timestamp! # Created At
+  createdAt: BigInt! # Created At
 }

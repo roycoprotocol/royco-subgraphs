@@ -1,125 +1,94 @@
-type AdminTransferRequested @entity(immutable: true) {
-  id: Bytes!
-  oldAdmin: Bytes! # address
-  newAdmin: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type StakedRoyusdTransfer @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  chainId: BigInt!
+  subCategory: String! # Sub Category ("mint", "burn", "transfer")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  fromAddress: String! # From Address
+  toAddress: String! # To Address
+  rawAmount: BigInt! # Raw Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
 }
 
-type AdminTransferred @entity(immutable: true) {
-  id: Bytes!
-  oldAdmin: Bytes! # address
-  newAdmin: Bytes! # address
-  blockNumber: BigInt!
+type StakedRoyusdPositionLatest @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<ACCOUNT_ADDRESS>
+  chainId: BigInt!
+  accountAddress: String!
+  prevSharesRawAmount: BigInt!
+  sharesRawAmount: BigInt!
+  prevUnstakedAssetsRawAmount: BigInt!
+  unstakedAssetsRawAmount: BigInt!
+  prevAssetsUnlockTimestamp: BigInt!
+  assetsUnlockTimestamp: BigInt!
+  prevBlockTimestamp: BigInt!
   blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  createdAt: BigInt!
+  updatedAt: BigInt!
 }
 
-type Approval @entity(immutable: true) {
-  id: Bytes!
-  owner: Bytes! # address
-  spender: Bytes! # address
-  value: BigInt! # uint256
+type StakedRoyusdPositionHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<ACCOUNT_ADDRESS>
+  chainId: BigInt!
+  accountAddress: String!
+  prevSharesRawAmount: BigInt!
+  sharesRawAmount: BigInt!
+  prevUnstakedAssetsRawAmount: BigInt!
+  unstakedAssetsRawAmount: BigInt!
+  prevAssetsUnlockTimestamp: BigInt!
+  assetsUnlockTimestamp: BigInt!
   blockNumber: BigInt!
+  prevBlockTimestamp: BigInt!
   blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  transactionHash: String!
+  logIndex: BigInt!
+  createdAt: BigInt!
 }
 
-type CooldownDurationUpdated @entity(immutable: true) {
-  id: Bytes!
-  previousDuration: Int! # uint24
-  newDuration: Int! # uint24
-  blockNumber: BigInt!
+type StakedRoyusdMetricLatest @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<SUB_CATEGORY>
+  chainId: BigInt!
+  name: String!
+  prevValue: BigInt!
+  value: BigInt!
+  prevBlockTimestamp: BigInt!
   blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  createdAt: BigInt!
+  updatedAt: BigInt!
 }
 
-type Deposit @entity(immutable: true) {
-  id: Bytes!
-  sender: Bytes! # address
-  owner: Bytes! # address
-  assets: BigInt! # uint256
-  shares: BigInt! # uint256
+type StakedRoyusdMetricHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<NAME>
+  chainId: BigInt!
+  name: String!
+  prevValue: BigInt!
+  value: BigInt!
   blockNumber: BigInt!
+  prevBlockTimestamp: BigInt!
   blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  transactionHash: String!
+  logIndex: BigInt!
+  createdAt: BigInt!
 }
 
-type EIP712DomainChanged @entity(immutable: true) {
-  id: Bytes!
-
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type LockedAmountRedistributed @entity(immutable: true) {
-  id: Bytes!
-  from: Bytes! # address
-  to: Bytes! # address
-  amount: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RewardsReceived @entity(immutable: true) {
-  id: Bytes!
-  amount: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RoleAdminChanged @entity(immutable: true) {
-  id: Bytes!
-  role: Bytes! # bytes32
-  previousAdminRole: Bytes! # bytes32
-  newAdminRole: Bytes! # bytes32
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RoleGranted @entity(immutable: true) {
-  id: Bytes!
-  role: Bytes! # bytes32
-  account: Bytes! # address
-  sender: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RoleRevoked @entity(immutable: true) {
-  id: Bytes!
-  role: Bytes! # bytes32
-  account: Bytes! # address
-  sender: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type Transfer @entity(immutable: true) {
-  id: Bytes!
-  from: Bytes! # address
-  to: Bytes! # address
-  value: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type Withdraw @entity(immutable: true) {
-  id: Bytes!
-  sender: Bytes! # address
-  receiver: Bytes! # address
-  owner: Bytes! # address
-  assets: BigInt! # uint256
-  shares: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type GlobalTokenActivity @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  chainId: BigInt! # Hardcoded
+  sourceRefId: String! # Source Ref ID
+  category: String! # Category
+  subCategory: String! # Sub Category (like "mint", "burn", "transfer-in", "transfer-out")
+  contractAddress: String! # Contract Address
+  accountAddress: String! # Account Address
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  tokenRawAmount: BigInt! # Token Raw Amount
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
 }

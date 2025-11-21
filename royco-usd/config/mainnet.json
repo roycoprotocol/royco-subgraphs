@@ -1,0 +1,6 @@
+{
+  "network": "mainnet",
+  "chainId": 1,
+  "royusdContractAddress": "0x",
+  "royusdStartBlock": 0
+}

@@ -1,0 +1,97 @@
+# prettier-ignore
+apiVersion: 3
+name: royusd-pipeline
+resource_size: s
+sources:
+  royusd_transfer_reference:
+    name: royusd_transfer
+    subgraphs:
+      {{#metadata}}
+      - name: royusd-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royusd_position_latest_reference:
+    name: royusd_position_latest
+    subgraphs:
+      {{#metadata}}
+      - name: royusd-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royusd_position_historical_reference:
+    name: royusd_position_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royusd-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royusd_metric_latest_reference:
+    name: royusd_metric_latest
+    subgraphs:
+      {{#metadata}}
+      - name: royusd-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royusd_metric_historical_reference:
+    name: royusd_metric_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royusd-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  global_token_activity_reference:
+    name: global_token_activity
+    subgraphs:
+      {{#metadata}}
+      - name: royusd-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  royusd_transfer_postgres:
+    type: postgres
+    table: royusd_transfer
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: royusd_transfer"
+    from: royusd_transfer_reference
+  royusd_position_latest_postgres:
+    type: postgres
+    table: royusd_position_latest
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: royusd_position_latest"
+    from: royusd_position_latest_reference
+  royusd_position_historical_postgres:
+    type: postgres
+    table: royusd_position_historical
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: royusd_position_historical"
+    from: royusd_position_historical_reference
+  royusd_metric_latest_postgres:
+    type: postgres
+    table: royusd_metric_latest
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: royusd_metric_latest"
+    from: royusd_metric_latest_reference
+  royusd_metric_historical_postgres:
+    type: postgres
+    table: royusd_metric_historical
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: royusd_metric_historical"
+    from: royusd_metric_historical_reference
+  global_token_activity_postgres:
+    type: postgres
+    table: global_token_activity
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: global_token_activity"
+    from: global_token_activity_reference

@@ -1,0 +1,85 @@
+# prettier-ignore
+apiVersion: 3
+name: staked-royusd-pipeline
+resource_size: s
+sources:
+  staked_royusd_transfer_reference:
+    name: staked_royusd_transfer
+    subgraphs:
+      - name: staked-royusd-sepolia
+        version: 1.0.2
+    type: subgraph_entity
+  staked_royusd_position_latest_reference:
+    name: staked_royusd_position_latest
+    subgraphs:
+      - name: staked-royusd-sepolia
+        version: 1.0.2
+    type: subgraph_entity
+  staked_royusd_position_historical_reference:
+    name: staked_royusd_position_historical
+    subgraphs:
+      - name: staked-royusd-sepolia
+        version: 1.0.2
+    type: subgraph_entity
+  staked_royusd_metric_latest_reference:
+    name: staked_royusd_metric_latest
+    subgraphs:
+      - name: staked-royusd-sepolia
+        version: 1.0.2
+    type: subgraph_entity
+  staked_royusd_metric_historical_reference:
+    name: staked_royusd_metric_historical
+    subgraphs:
+      - name: staked-royusd-sepolia
+        version: 1.0.2
+    type: subgraph_entity
+  global_token_activity_reference:
+    name: global_token_activity
+    subgraphs:
+      - name: staked-royusd-sepolia
+        version: 1.0.2
+    type: subgraph_entity
+transforms: {}
+sinks:
+  staked_royusd_transfer_postgres:
+    type: postgres
+    table: staked_royusd_transfer
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: staked_royusd_transfer"
+    from: staked_royusd_transfer_reference
+  staked_royusd_position_latest_postgres:
+    type: postgres
+    table: staked_royusd_position_latest
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: staked_royusd_position_latest"
+    from: staked_royusd_position_latest_reference
+  staked_royusd_position_historical_postgres:
+    type: postgres
+    table: staked_royusd_position_historical
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: staked_royusd_position_historical"
+    from: staked_royusd_position_historical_reference
+  staked_royusd_metric_latest_postgres:
+    type: postgres
+    table: staked_royusd_metric_latest
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: staked_royusd_metric_latest"
+    from: staked_royusd_metric_latest_reference
+  staked_royusd_metric_historical_postgres:
+    type: postgres
+    table: staked_royusd_metric_historical
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: staked_royusd_metric_historical"
+    from: staked_royusd_metric_historical_reference
+  global_token_activity_postgres:
+    type: postgres
+    table: global_token_activity
+    schema: public
+    secret_name: NEON_ROY
+    description: "Postgres sink for: global_token_activity"
+    from: global_token_activity_reference

@@ -25,13 +25,13 @@ sinks:
     type: postgres
     table: merkle_contract
     schema: public
-    secret_name: NEON_ROYCO
+    secret_name: NEON_ROY
     description: "Postgres sink for: merkle_contract"
     from: merkle_contract_reference
   merkle_claim_postgres:
     type: postgres
     table: merkle_claim
     schema: public
-    secret_name: NEON_ROYCO
+    secret_name: NEON_ROY
     description: "Postgres sink for: merkle_claim"
     from: merkle_claim_reference

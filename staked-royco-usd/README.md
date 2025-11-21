@@ -33,19 +33,19 @@ yarn prepare:<network> && graph codegen && graph build
 ### Deploy
 
 ```bash
-goldsky subgraph deploy royusd-<network>/<version> --path .
+goldsky subgraph deploy staked-royusd-<network>/<version> --path .
 ```
 
 ### Pause
 
 ```bash
-goldsky subgraph pause royusd-<network>/<version>
+goldsky subgraph pause staked-royusd-<network>/<version>
 ```
 
 ### Delete
 
 ```bash
-goldsky subgraph delete royusd-<network>/<version>
+goldsky subgraph delete staked-royusd-<network>/<version>
 ```
 
 ## Pipeline Commands
@@ -53,17 +53,17 @@ goldsky subgraph delete royusd-<network>/<version>
 ### Update
 
 ```bash
-goldsky pipeline apply royusd-pipeline.yaml
+goldsky pipeline apply staked-royusd-pipeline.yaml
 ```
 
 ### Stop
 
 ```bash
-goldsky pipeline stop royusd-pipeline
+goldsky pipeline stop staked-royusd-pipeline
 ```
 
 ### Delete
 
 ```bash
-goldsky pipeline delete royusd-pipeline
+goldsky pipeline delete staked-royusd-pipeline
 ```
