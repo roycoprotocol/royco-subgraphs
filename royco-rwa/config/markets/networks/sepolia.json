@@ -1,0 +1,6 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "stakedRoyusdContractAddress": "0x4ba9946410a0f5e8cbe8e3708ca20b46bf1b2e69",
+  "stakedRoyusdStartBlock": 9321115
+}

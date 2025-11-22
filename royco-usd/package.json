@@ -1,0 +1,24 @@
+{
+  "name": "royco-usd",
+  "license": "UNLICENSED",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ royco-usd",
+    "create-local": "graph create --node http://localhost:8020/ royco-usd",
+    "remove-local": "graph remove --node http://localhost:8020/ royco-usd",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-usd",
+    "test": "graph test",
+    "prepare:sepolia": "mustache config/sepolia.json config/subgraph.template.yaml > subgraph.yaml && mustache config/sepolia.json config/static.constants.template.ts > src/constants/static.ts",
+    "prepare:mainnet": "mustache config/mainnet.json config/subgraph.template.yaml > subgraph.yaml && mustache config/mainnet.json config/static.constants.template.ts > src/constants/static.ts",
+    "prepare:pipeline": "mustache metadata.json config/royusd-pipeline.template.yaml > royusd-pipeline.yaml"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.97.1",
+    "@graphprotocol/graph-ts": "0.37.0",
+    "mustache-cli": "^2.3.2"
+  },
+  "devDependencies": {
+    "matchstick-as": "0.6.0"
+  }
+}

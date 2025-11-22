@@ -1,0 +1,31 @@
+# prettier-ignore
+specVersion: 1.3.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: StakedRoyUSD
+    network: {{network}}
+    source:
+      address: "{{stakedRoyusdContractAddress}}"
+      abi: StakedRoyUSD
+      startBlock: {{stakedRoyusdStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - UnstakingCommenced
+        - AssetsUnstaked
+      abis:
+        - name: StakedRoyUSD
+          file: ./abis/StakedRoyUSD.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: UnstakingCommenced(indexed address,uint256,uint216,uint40)
+          handler: handleUnstakingCommenced
+        - event: AssetsUnstaked(indexed address,uint256)
+          handler: handleAssetsUnstaked
+      file: ./src/staked-royusd.ts

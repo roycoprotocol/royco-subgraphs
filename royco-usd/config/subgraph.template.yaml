@@ -1,0 +1,25 @@
+# prettier-ignore
+specVersion: 1.3.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: RoyUSD
+    network: {{network}}
+    source:
+      address: "{{royusdContractAddress}}"
+      abi: RoyUSD
+      startBlock: {{royusdStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+      abis:
+        - name: RoyUSD
+          file: ./abis/RoyUSD.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/royusd.ts
