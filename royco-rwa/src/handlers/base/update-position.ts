@@ -205,7 +205,6 @@ export function updatePosition(
     positionLatest.tokenId = transfer.tokenId;
     positionLatest.tokenAddress = transfer.tokenAddress;
     positionLatest.value = BigInt.fromI32(0);
-    positionLatest.blockTimestamp = transfer.blockTimestamp;
     positionLatest.createdAt = transfer.blockTimestamp;
   }
 

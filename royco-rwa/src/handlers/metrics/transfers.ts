@@ -24,7 +24,6 @@ export function updateMetricTransfers(
     metricLatest.vaultAddress = transfer.vaultAddress;
     metricLatest.category = METRIC_TRANSFERS;
     metricLatest.value = BigInt.fromI32(0);
-    metricLatest.blockTimestamp = transfer.blockTimestamp;
     metricLatest.createdAt = transfer.blockTimestamp;
   }
   metricLatest.value = metricLatest.value.plus(BigInt.fromI32(1));

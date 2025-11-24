@@ -1,79 +1,103 @@
 # prettier-ignore
 apiVersion: 3
-name: royco-rwa-pipeline
+name: royco-rwa-markets-pipeline
 resource_size: s
 sources:
   royco_rwa_vault_state_reference:
     name: vault_state
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_global_token_transfer_reference:
     name: global_token_transfer
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_global_token_activity_reference:
     name: global_token_activity
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_position_state_reference:
     name: position_state
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_position_latest_reference:
     name: position_latest
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_position_historical_reference:
     name: position_historical
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_position_historical_hourly_reference:
     name: position_historical_hourly
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_position_historical_daily_reference:
     name: position_historical_daily
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_metric_latest_reference:
     name: metric_latest
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_metric_historical_reference:
     name: metric_historical
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_metric_historical_hourly_reference:
     name: metric_historical_hourly
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
   royco_rwa_metric_historical_daily_reference:
     name: metric_historical_daily
     subgraphs:
-      - name: royco-rwa-sepolia
-        version: 1.0.0
+      {{#metadata}}
+      - name: royco-rwa-{{network}}
+        version: {{version}}
+      {{/metadata}}
     type: subgraph_entity
 transforms: {}
 sinks:

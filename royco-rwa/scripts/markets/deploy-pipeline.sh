@@ -1,23 +1,14 @@
 #!/bin/bash
 
-# Function to delete pipeline with confirmation
-delete_pipeline() {
-    local pipeline_name="royco-rwa-markets-pipeline" 
-    
-    echo "Attempting to stop ${pipeline_name}..."
-    goldsky pipeline stop "${pipeline_name}" --force || true 
+pipeline_name="royco-rwa-markets-pipeline"
 
-    echo "Attempting to delete ${pipeline_name}..."
-    goldsky pipeline delete "${pipeline_name}" --force || true 
-}
-
-# Function to prepare and deploy subgraph
+# Function to prepare and deploy pipeline
 prepare_and_deploy() {
-    local pipeline_name="royco-rwa-markets-pipeline"
-    
     echo "Preparing ${pipeline_name}..."
-    npm run prepare:pipeline
-    
+
+    # preparation command
+    mustache config/markets/metadata.json config/markets/pipeline.template.yaml > ${pipeline_name}.yaml
+
     if [ $? -eq 0 ]; then
         goldsky pipeline apply "${pipeline_name}.yaml" --status ACTIVE
     else

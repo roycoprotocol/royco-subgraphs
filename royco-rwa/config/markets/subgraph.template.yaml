@@ -24,10 +24,4 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-        - event: Deposit(indexed address,indexed address,uint256,uint256)
-          handler: handleDeposit
-        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
-          handler: handleWithdraw
-        - event: DepositRequest(indexed address,indexed address,indexed uint256,address,uint256)
-          handler: handleDepositRequest
       file: ./src/vault.ts

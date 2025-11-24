@@ -4,11 +4,12 @@ type MarketState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<MARKET_ID>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID
-  seniorVaultRefId: String # Senior Vault Reference ID
+  ownerAddress: String! # Owner Address
+  seniorVaultId: String # Senior Vault ID
   seniorVaultAddress: String! # Senior Vault Address
-  juniorVaultRefId: String # Junior Vault Reference ID
+  juniorVaultId: String # Junior Vault ID
   juniorVaultAddress: String! # Junior Vault Address
-  protectedLoss: BigInt # Protected Loss
+  coverage: BigInt! # Coverage Wad
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   createdAt: BigInt! # Created At
@@ -21,7 +22,6 @@ type MarketState @entity(immutable: false) {
 
 type VaultState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
-  vaultId: String! # Vault ID
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   marketRefId: String # Optional, Market Reference ID
@@ -31,7 +31,7 @@ type VaultState @entity(immutable: false) {
   transfers: BigInt! # Transfers
   totalSupply: BigInt! # Total Supply
   depositors: BigInt! # Depositors
-  protectedLoss: BigInt # Optional, Protected Loss
+  coverage: BigInt # Optional, Coverage
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   category: String! # Category ("default", "master", "market")

@@ -85,7 +85,6 @@ export function updateMetricDepositors(
     metricLatest.vaultAddress = transfer.vaultAddress;
     metricLatest.category = METRIC_DEPOSITORS;
     metricLatest.value = BigInt.fromI32(0);
-    metricLatest.blockTimestamp = transfer.blockTimestamp;
     metricLatest.createdAt = transfer.blockTimestamp;
   }
   metricLatest.value = metricLatest.value.plus(change);

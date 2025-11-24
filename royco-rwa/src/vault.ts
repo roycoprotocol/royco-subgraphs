@@ -62,7 +62,6 @@ export function handleTransfer(event: TransferEvent): void {
   let vaultState = VaultState.load(transfer.vaultId);
   if (!vaultState) {
     vaultState = new VaultState(transfer.vaultId);
-    vaultState.vaultId = transfer.vaultId;
     vaultState.chainId = transfer.chainId;
     vaultState.vaultAddress = transfer.vaultAddress;
 
@@ -97,7 +96,7 @@ export function handleTransfer(event: TransferEvent): void {
 
     let positionLatest = updatePosition(
       transfer,
-      subCategory, // transfer category
+      subCategory, // transfer category (mint or burn)
       CATEGORY_SHARES, // position category
       UPDATE_TYPE_MULTIPLIER
     );
@@ -175,7 +174,9 @@ export function handleDeposit(event: DepositEvent): void {
     transfer.blockTimestamp
   );
   if (positionState.assetsOwed > BigInt.fromI32(0)) {
-    positionState.assetsOwed = positionState.assetsOwed.minus(transfer.value);
+    positionState.assetsOwed = positionState.assetsOwed.minus(
+      event.params.assets
+    );
 
     if (positionState.assetsOwed < BigInt.fromI32(0)) {
       positionState.assetsOwed = BigInt.fromI32(0);
@@ -208,7 +209,9 @@ export function handleWithdraw(event: WithdrawEvent): void {
     transfer.blockTimestamp
   );
   if (positionState.sharesOwed > BigInt.fromI32(0)) {
-    positionState.sharesOwed = positionState.sharesOwed.minus(transfer.value);
+    positionState.sharesOwed = positionState.sharesOwed.minus(
+      event.params.shares
+    );
 
     if (positionState.sharesOwed < BigInt.fromI32(0)) {
       positionState.sharesOwed = BigInt.fromI32(0);

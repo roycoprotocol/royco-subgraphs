@@ -12,7 +12,9 @@ prepare_and_deploy() {
     local subgraph_name="royco-rwa-markets-${network}/1.0.0" # Note: update version if needed
     
     echo "Preparing and deploying ${subgraph_name}..."
-    npm run prepare:${network} && graph codegen && graph build
+
+    # preparation command
+    mustache config/markets/networks/${network}.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/${network}.json config/markets/constants.template.ts > src/constants/static.ts && graph codegen && graph build
     
     if [ $? -eq 0 ]; then
         goldsky subgraph deploy "${subgraph_name}" --path .
