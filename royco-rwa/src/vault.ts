@@ -75,8 +75,6 @@ export function handleTransfer(event: TransferEvent): void {
     vaultState.depositors = BigInt.fromI32(0);
     vaultState.blockNumber = transfer.blockNumber;
     vaultState.blockTimestamp = transfer.blockTimestamp;
-    vaultState.category = VAULT_CATEGORY_DEFAULT;
-    vaultState.subCategory = VAULT_SUB_CATEGORY_DEFAULT;
     vaultState.createdAt = transfer.blockTimestamp;
   }
 

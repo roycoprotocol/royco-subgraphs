@@ -34,8 +34,8 @@ type VaultState @entity(immutable: false) {
   coverage: BigInt # Optional, Coverage
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
-  category: String! # Category ("default", "master", "market")
-  subCategory: String! # Sub Category ("default", "senior", "junior")
+  category: String # Optional, Category ("master", "market")
+  subCategory: String # Optional, Sub Category ("senior", "junior")
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }
