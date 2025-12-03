@@ -18,6 +18,7 @@ import {
   CHAIN_ID,
   CATEGORY_ASSETS,
   CATEGORY_SHARES,
+  SUB_CATEGORY_DEPOSIT,
   SUB_CATEGORY_WITHDRAW,
   STATUS_PENDING,
   STATUS_CANCELLED,
@@ -25,7 +26,6 @@ import {
   STATUS_CLAIMABLE,
   STATUS_COMPLETED,
   STATUS_UPDATED,
-  SUB_CATEGORY_DEPOSIT,
 } from "./constants";
 import { addRequestActivity } from "./handlers/activities/request";
 import {
