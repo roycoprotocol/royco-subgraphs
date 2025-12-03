@@ -2,11 +2,7 @@ import { BigInt } from "@graphprotocol/graph-ts";
 import { MetricLatest, GlobalTokenTransfer } from "../../../generated/schema";
 import { METRIC_TRANSFERS } from "../../constants";
 import { generateMetricLatestId } from "../../utils";
-import {
-  addMetricHistorical,
-  updateMetricHistoricalDaily,
-  updateMetricHistoricalHourly,
-} from "./update-period";
+import { addMetricHistorical } from "./update-period";
 
 export function updateMetricTransfers(
   transfer: GlobalTokenTransfer
@@ -33,10 +29,6 @@ export function updateMetricTransfers(
 
   // Add historical metric
   let metricHistorical = addMetricHistorical(transfer, metricLatest);
-
-  // Update hourly and daily metrics
-  updateMetricHistoricalHourly(metricHistorical);
-  updateMetricHistoricalDaily(metricHistorical);
 
   return metricLatest;
 }

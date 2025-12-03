@@ -4,25 +4,23 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: Vault
-    network: sepolia
+    name: BaseVault
+    network: {{network}}
     source:
-      address: "0x4ba9946410a0f5e8cbe8e3708ca20b46bf1b2e69"
-      abi: AsyncVaultConcrete
-      startBlock: 9321115
+      address: "{{stakedRoyusdContractAddress}}"
+      abi: BaseVault
+      startBlock: {{stakedRoyusdStartBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
         - Transfer
+        - UnstakingCommenced
+        - AssetsUnstaked
       abis:
         - name: BaseVault
           file: ./abis/BaseVault.json
-        - name: AsyncVaultConcrete
-          file: ./abis/AsyncVaultConcrete.json
-        - name: AsyncVaultRoyco
-          file: ./abis/AsyncVaultRoyco.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer

@@ -1,11 +1,6 @@
 // === GLOBAL ===
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// === POSITION CATEGORIES ===
-export const POSITION_SHARES = "shares";
-export const POSITION_ASSETS_DEPOSIT = "assetsDeposit";
-export const POSITION_SHARES_WITHDRAW = "sharesWithdraw";
-
 // === UPDATE TYPES ===
 export const UPDATE_TYPE_MULTIPLIER = "multiplier";
 export const UPDATE_TYPE_OVERRIDE = "override";
@@ -31,8 +26,11 @@ export const METRIC_TRANSFERS = "transfers";
 // === REQUEST STATUSES ===
 export const STATUS_PENDING = "pending";
 export const STATUS_CANCELLED = "cancelled";
+export const STATUS_UPDATED = "updated";
 export const STATUS_APPROVED = "approved";
-export const STATUS_COMPLETE = "complete";
+export const STATUS_CLAIMABLE = "claimable";
+export const STATUS_CANCEL_CLAIMED = "cancelClaimed";
+export const STATUS_COMPLETED = "completed";
 
 // === VAULT CATEGORIES ===
 export const VAULT_CATEGORY_DEFAULT = "default";

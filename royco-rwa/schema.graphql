@@ -50,7 +50,7 @@ type GlobalTokenTransfer @entity(immutable: true) {
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   category: String! # Category ("shares")
-  subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut")
+  subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
   tokenId: String! # Token ID
   tokenAddress: String! # Token Address
   fromAddress: String! # From Address
@@ -76,7 +76,7 @@ type GlobalTokenActivity @entity(immutable: true) {
   tokenId: String! # Token ID
   tokenAddress: String! # Token Address
   value: BigInt! # Value
-  status: String! # Status ("complete", "pending", "cancelled", "approved")
+  status: String! # Status ("completed", "pending", "cancelled", "approved")
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction hash
@@ -103,10 +103,31 @@ type PositionState @entity(immutable: false) {
   sharesOwed: BigInt! # Shares Owed
   cancelledAssetsOwed: BigInt! # Cancelled Assets Owed
   cancelledSharesOwed: BigInt! # Cancelled Shares Owed
-  earningsShares: BigInt # Earnings (updated outside of subgraphs)
-  earningsAssets: BigInt # Earnings (updated outside of subgraphs)
+  earningAssetsRawAmount: BigInt # Earnings (updated outside of subgraphs)
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
+}
+
+type PositionStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<BLOCK_TIMESTAMP>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  shareTokenId: String! # Share Token ID
+  shareTokenAddress: String! # Share Token Address
+  assetTokenId: String! # Asset Token ID
+  assetTokenAddress: String! # Asset Token Address
+  shares: BigInt! # Shares
+  assetsOwed: BigInt! # Assets Owed
+  sharesOwed: BigInt! # Shares Owed
+  cancelledAssetsOwed: BigInt! # Cancelled Assets Owed
+  cancelledSharesOwed: BigInt! # Cancelled Shares Owed
+  earningAssetsRawAmount: BigInt # Earnings (updated outside of subgraphs)
+  earningAssetsTokenAmountUsd: BigInt # Earnings (updated outside of subgraphs)
+  worthUsd: BigInt # Worth in USD (updated outside of subgraphs)
+  apy: BigInt # APY (updated outside of subgraphs)
+  blockTimestamp: BigInt! # Block Timestamp
 }
 
 type PositionLatest @entity(immutable: false) {
@@ -130,13 +151,13 @@ type PositionRequestLatest @entity(immutable: false) {
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   accountAddress: String! # Account Address
-  category: String! # Category (all position categories)
+  category: String! # Category ("shares", "assets")
   requestId: String! # Request ID
-  requestStatus: String! # Request Status ("pending", "cancelled", "claimable", "claimed")
+  requestStatus: String! # Request Status ("pending", "cancelled", "approved", "completed")
   tokenId: String! # Token ID
   tokenAddress: String! # Token Address
   value: BigInt! # Value of Position
-  sharePrice: BigInt # Optional, only when share price is locked
+  sharePrice: BigInt # Optional, only for async vaults that locks a share price for withdrawals
   unlockTimestamp: BigInt # Optional, only for async vaults that have an unlock timestamp for withdrawals
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
@@ -161,36 +182,6 @@ type PositionHistorical @entity(immutable: true) {
   transactionHash: String! # Transaction Hash
   logIndex: BigInt! # Log Index
   createdAt: BigInt! # Created At
-}
-
-type PositionHistoricalHourly @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<CATEGORY>_<BLOCK_TIMESTAMP>
-  vaultId: String! # Vault ID
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault Address
-  accountAddress: String! # Account Address
-  category: String! # Category ("shares")
-  tokenId: String! # Token ID
-  tokenAddress: String! # Token Address
-  value: BigInt! # Value of Position
-  blockTimestamp: BigInt! # Block Timestamp
-  createdAt: BigInt! # Created At
-  updatedAt: BigInt! # Updated At
-}
-
-type PositionHistoricalDaily @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<CATEGORY>_<BLOCK_TIMESTAMP>
-  vaultId: String! # Vault ID
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault Address
-  accountAddress: String! # Account Address
-  category: String! # Category ("shares")
-  tokenId: String! # Token ID
-  tokenAddress: String! # Token Address
-  value: BigInt! # Value of Position
-  blockTimestamp: BigInt! # Block Timestamp
-  createdAt: BigInt! # Created At
-  updatedAt: BigInt! # Updated At
 }
 
 # xxx POSITIONS xxx
@@ -222,50 +213,31 @@ type MetricHistorical @entity(immutable: true) {
   logIndex: BigInt! # Log Index
 }
 
-type MetricHistoricalHourly @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<CATEGORY>_<BLOCK_TIMESTAMP>
-  vaultId: String! # Vault ID
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault Address
-  category: String! # Category ("totalSupply", "transfers", "depositors")
-  value: BigInt! # Value of Metric
-  blockTimestamp: BigInt! # Block Timestamp
-  createdAt: BigInt! # Created At
-  updatedAt: BigInt! # Updated At
-}
-
-type MetricHistoricalDaily @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<CATEGORY>_<BLOCK_TIMESTAMP>
-  vaultId: String! # Vault ID
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault Address
-  category: String! # Category ("totalSupply", "transfers", "depositors")
-  value: BigInt! # Value of Metric
-  blockTimestamp: BigInt! # Block Timestamp
-  createdAt: BigInt! # Created At
-  updatedAt: BigInt! # Updated At
-}
-
 # xxx METRICS xxx
 
-# === CONCRETE WITHDRAWAL QUEUE ===
+# === CONCRETE WITHDRAWAL ===
 
-type ConcreteWithdrawalQueue @entity(immutable: false) {
+type ConcreteEpoch @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH_ID>
   vaultId: String! # Vault ID
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
-  epochId: String! # Epoch ID
-  assets: BigInt # Assets
-  shares: BigInt # Shares
-  sharePrice: BigInt # Share Price
-  accountAddresses: [String!]! # Account Addresses
-  blockNumber: BigInt! # Block Number
-  blockTimestamp: BigInt! # Block Timestamp
-  transactionHash: String! # Transaction Hash
-  logIndex: BigInt! # Log Index
+  epochId: BigInt! # Epoch ID
+  startIndex: BigInt! # Start Index (inclusive)
+  endIndex: BigInt! # End Index (exclusive)
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }
 
-# xxx CONCRETE WITHDRAWAL QUEUE xxx
+type ConcreteWithdrawal @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<EPOCH_ID>_<ACCOUNT_ADDRESS>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  epochId: BigInt! # Epoch ID
+  accountAddress: String! # Account Address
+  index: BigInt! # Index
+  createdAt: BigInt! # Created At
+}
+
+# xxx CONCRETE WITHDRAWAL xxx

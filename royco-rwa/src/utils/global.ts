@@ -72,10 +72,9 @@ export const generatePositionHistoricalId = (
     .concat(category);
 };
 
-export const generatePositionHistoricalPeriodId = (
+export const generatePositionStateHistoricalId = (
   vaultAddress: string,
   accountAddress: string,
-  category: string,
   blockTimestamp: BigInt
 ): string => {
   return CHAIN_ID.toString()
@@ -83,8 +82,6 @@ export const generatePositionHistoricalPeriodId = (
     .concat(vaultAddress)
     .concat("_")
     .concat(accountAddress)
-    .concat("_")
-    .concat(category)
     .concat("_")
     .concat(blockTimestamp.toString());
 };
@@ -111,28 +108,6 @@ export const generateMetricHistoricalId = (
     .concat(vaultAddress)
     .concat("_")
     .concat(category);
-};
-
-export const getHourlyTimestamp = (blockTimestamp: BigInt): BigInt => {
-  return blockTimestamp.div(BigInt.fromI32(3600)).times(BigInt.fromI32(3600));
-};
-
-export const getDailyTimestamp = (blockTimestamp: BigInt): BigInt => {
-  return blockTimestamp.div(BigInt.fromI32(86400)).times(BigInt.fromI32(86400));
-};
-
-export const generateMetricHistoricalPeriodId = (
-  vaultAddress: string,
-  category: string,
-  blockTimestamp: BigInt
-): string => {
-  return CHAIN_ID.toString()
-    .concat("_")
-    .concat(vaultAddress)
-    .concat("_")
-    .concat(category)
-    .concat("_")
-    .concat(blockTimestamp.toString());
 };
 
 export const generateGlobalTokenActivityId = (

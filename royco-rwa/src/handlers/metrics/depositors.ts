@@ -10,11 +10,7 @@ import {
   METRIC_DEPOSITORS,
 } from "../../constants";
 import { generateMetricLatestId, generatePositionLatestId } from "../../utils";
-import {
-  addMetricHistorical,
-  updateMetricHistoricalDaily,
-  updateMetricHistoricalHourly,
-} from "./update-period";
+import { addMetricHistorical } from "./update-period";
 
 export function updateMetricDepositors(
   transfer: GlobalTokenTransfer
@@ -94,10 +90,6 @@ export function updateMetricDepositors(
 
   // Add historical metric
   let metricHistorical = addMetricHistorical(transfer, metricLatest);
-
-  // Update hourly and daily metrics
-  updateMetricHistoricalHourly(metricHistorical);
-  updateMetricHistoricalDaily(metricHistorical);
 
   return metricLatest;
 }

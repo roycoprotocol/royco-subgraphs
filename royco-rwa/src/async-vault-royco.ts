@@ -1,3 +1,4 @@
+import { BigInt } from "@graphprotocol/graph-ts";
 import {
   RedeemRequest as RedeemRequestEvent,
   DepositRequest as DepositRequestEvent,
@@ -5,32 +6,37 @@ import {
   CancelRedeemRequest as CancelRedeemRequestEvent,
   CancelRedeemClaim as CancelRedeemClaimEvent,
   CancelDepositClaim as CancelDepositClaimEvent,
-} from "../generated/BaseVault/BaseVault";
+  Deposit as DepositEvent,
+  Withdraw as WithdrawEvent,
+} from "../generated/Vault/AsyncVaultRoyco";
 import {
+  ZERO_ADDRESS,
   CATEGORY_ASSETS,
   CATEGORY_SHARES,
-  POSITION_ASSETS_DEPOSIT,
-  POSITION_SHARES_WITHDRAW,
-  STATUS_CANCELLED,
-  STATUS_COMPLETE,
-  STATUS_PENDING,
   SUB_CATEGORY_DEPOSIT,
   SUB_CATEGORY_WITHDRAW,
-  ZERO_ADDRESS,
+  STATUS_PENDING,
+  STATUS_CANCELLED,
+  STATUS_CANCEL_CLAIMED,
 } from "./constants";
 import { addRequestActivity } from "./handlers/activities/request";
+import { addTransferActivity } from "./handlers/activities/transfer";
 import {
   getPositionState,
   getPositionRequestLatest,
+  addPositionStateHistorical,
 } from "./handlers/base/update-position";
+import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
+
+export { handleTransfer } from "./vault";
 
 export function handleDepositRequest(event: DepositRequestEvent): void {
-  const activityCategory = CATEGORY_ASSETS;
-  const activitySubCategory = SUB_CATEGORY_DEPOSIT;
-  const positionRequestCategory = POSITION_ASSETS_DEPOSIT;
   const vaultAddress = event.address.toHexString();
   const accountAddress = event.params.owner.toHexString();
   const value = event.params.assets;
+  const positionRequestCategory = CATEGORY_ASSETS;
+  const activityCategory = CATEGORY_ASSETS;
+  const activitySubCategory = SUB_CATEGORY_DEPOSIT;
   const requestId = event.params.requestId.toString();
   const requestStatus = STATUS_PENDING;
 
@@ -59,6 +65,7 @@ export function handleDepositRequest(event: DepositRequestEvent): void {
     positionRequestLatest.value
   );
   positionState.save();
+  addPositionStateHistorical(positionState, event.block.timestamp);
 
   // Add activity
   addRequestActivity(
@@ -69,12 +76,12 @@ export function handleDepositRequest(event: DepositRequestEvent): void {
 }
 
 export function handleRedeemRequest(event: RedeemRequestEvent): void {
-  const activityCategory = CATEGORY_SHARES;
-  const activitySubCategory = SUB_CATEGORY_WITHDRAW;
-  const positionRequestCategory = POSITION_SHARES_WITHDRAW;
   const vaultAddress = event.address.toHexString();
   const accountAddress = event.params.owner.toHexString();
   const value = event.params.shares;
+  const positionRequestCategory = CATEGORY_SHARES;
+  const activityCategory = CATEGORY_SHARES;
+  const activitySubCategory = SUB_CATEGORY_WITHDRAW;
   const requestId = event.params.requestId.toString();
   const requestStatus = STATUS_PENDING;
 
@@ -103,6 +110,7 @@ export function handleRedeemRequest(event: RedeemRequestEvent): void {
     positionRequestLatest.value
   );
   positionState.save();
+  addPositionStateHistorical(positionState, event.block.timestamp);
 
   // Add activity
   addRequestActivity(
@@ -115,11 +123,11 @@ export function handleRedeemRequest(event: RedeemRequestEvent): void {
 export function handleCancelDepositRequest(
   event: CancelDepositRequestEvent
 ): void {
-  const activityCategory = CATEGORY_ASSETS;
-  const activitySubCategory = SUB_CATEGORY_DEPOSIT;
-  const positionRequestCategory = POSITION_ASSETS_DEPOSIT;
   const vaultAddress = event.address.toHexString();
   const accountAddress = ZERO_ADDRESS;
+  const positionRequestCategory = CATEGORY_ASSETS;
+  const activityCategory = CATEGORY_ASSETS;
+  const activitySubCategory = SUB_CATEGORY_DEPOSIT;
   const requestId = event.params.requestId.toString();
   const requestStatus = STATUS_CANCELLED;
 
@@ -150,6 +158,7 @@ export function handleCancelDepositRequest(
     positionRequestLatest.value
   );
   positionState.save();
+  addPositionStateHistorical(positionState, event.block.timestamp);
 
   // Add activity
   addRequestActivity(
@@ -162,11 +171,11 @@ export function handleCancelDepositRequest(
 export function handleCancelRedeemRequest(
   event: CancelRedeemRequestEvent
 ): void {
-  const activityCategory = CATEGORY_SHARES;
-  const activitySubCategory = SUB_CATEGORY_WITHDRAW;
-  const positionRequestCategory = POSITION_SHARES_WITHDRAW;
   const vaultAddress = event.address.toHexString();
   const accountAddress = ZERO_ADDRESS;
+  const positionRequestCategory = CATEGORY_SHARES;
+  const activityCategory = CATEGORY_SHARES;
+  const activitySubCategory = SUB_CATEGORY_WITHDRAW;
   const requestId = event.params.requestId.toString();
   const requestStatus = STATUS_CANCELLED;
 
@@ -197,6 +206,7 @@ export function handleCancelRedeemRequest(
     positionRequestLatest.value
   );
   positionState.save();
+  addPositionStateHistorical(positionState, event.block.timestamp);
 
   // Add activity
   addRequestActivity(
@@ -207,13 +217,13 @@ export function handleCancelRedeemRequest(
 }
 
 export function handleCancelDepositClaim(event: CancelDepositClaimEvent): void {
-  const activityCategory = CATEGORY_ASSETS;
-  const activitySubCategory = SUB_CATEGORY_DEPOSIT;
-  const positionRequestCategory = POSITION_ASSETS_DEPOSIT;
   const vaultAddress = event.address.toHexString();
   const accountAddress = ZERO_ADDRESS;
+  const positionRequestCategory = CATEGORY_ASSETS;
+  const activityCategory = CATEGORY_ASSETS;
+  const activitySubCategory = SUB_CATEGORY_DEPOSIT;
   const requestId = event.params.requestId.toString();
-  const requestStatus = STATUS_COMPLETE;
+  const requestStatus = STATUS_CANCEL_CLAIMED;
 
   // Update request
   let positionRequestLatest = getPositionRequestLatest(
@@ -239,6 +249,7 @@ export function handleCancelDepositClaim(event: CancelDepositClaimEvent): void {
     positionRequestLatest.value
   );
   positionState.save();
+  addPositionStateHistorical(positionState, event.block.timestamp);
 
   // Add activity
   addRequestActivity(
@@ -249,13 +260,13 @@ export function handleCancelDepositClaim(event: CancelDepositClaimEvent): void {
 }
 
 export function handleCancelRedeemClaim(event: CancelRedeemClaimEvent): void {
-  const activityCategory = CATEGORY_SHARES;
-  const activitySubCategory = SUB_CATEGORY_WITHDRAW;
-  const positionRequestCategory = POSITION_SHARES_WITHDRAW;
   const vaultAddress = event.address.toHexString();
   const accountAddress = ZERO_ADDRESS;
+  const positionRequestCategory = CATEGORY_SHARES;
+  const activityCategory = CATEGORY_SHARES;
+  const activitySubCategory = SUB_CATEGORY_WITHDRAW;
   const requestId = event.params.requestId.toString();
-  const requestStatus = STATUS_COMPLETE;
+  const requestStatus = STATUS_CANCEL_CLAIMED;
 
   // Update request
   let positionRequestLatest = getPositionRequestLatest(
@@ -281,6 +292,7 @@ export function handleCancelRedeemClaim(event: CancelRedeemClaimEvent): void {
     positionRequestLatest.value
   );
   positionState.save();
+  addPositionStateHistorical(positionState, event.block.timestamp);
 
   // Add activity
   addRequestActivity(
@@ -288,4 +300,76 @@ export function handleCancelRedeemClaim(event: CancelRedeemClaimEvent): void {
     activityCategory,
     activitySubCategory
   );
+}
+
+export function handleDeposit(event: DepositEvent): void {
+  let transfer = processGlobalTokenTransfer(
+    event.address.toHexString(),
+    CATEGORY_ASSETS,
+    SUB_CATEGORY_DEPOSIT,
+    event.params.owner.toHexString(),
+    event.address.toHexString(),
+    event.params.assets,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash.toHexString(),
+    event.logIndex,
+    true
+  );
+
+  let positionState = getPositionState(
+    transfer.vaultAddress,
+    transfer.fromAddress,
+    transfer.blockTimestamp
+  );
+  if (positionState.assetsOwed > BigInt.fromI32(0)) {
+    positionState.assetsOwed = positionState.assetsOwed.minus(
+      event.params.assets
+    );
+
+    if (positionState.assetsOwed < BigInt.fromI32(0)) {
+      positionState.assetsOwed = BigInt.fromI32(0);
+    }
+
+    positionState.save();
+    addPositionStateHistorical(positionState, transfer.blockTimestamp);
+  }
+
+  addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
+}
+
+export function handleWithdraw(event: WithdrawEvent): void {
+  let transfer = processGlobalTokenTransfer(
+    event.address.toHexString(),
+    CATEGORY_ASSETS,
+    SUB_CATEGORY_WITHDRAW,
+    event.address.toHexString(),
+    event.params.owner.toHexString(),
+    event.params.assets,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash.toHexString(),
+    event.logIndex,
+    true
+  );
+
+  let positionState = getPositionState(
+    transfer.vaultAddress,
+    transfer.toAddress,
+    transfer.blockTimestamp
+  );
+  if (positionState.sharesOwed > BigInt.fromI32(0)) {
+    positionState.sharesOwed = positionState.sharesOwed.minus(
+      event.params.shares
+    );
+
+    if (positionState.sharesOwed < BigInt.fromI32(0)) {
+      positionState.sharesOwed = BigInt.fromI32(0);
+    }
+
+    positionState.save();
+    addPositionStateHistorical(positionState, transfer.blockTimestamp);
+  }
+
+  addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
 }

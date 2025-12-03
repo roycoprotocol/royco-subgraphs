@@ -6,11 +6,7 @@ import {
   METRIC_TOTAL_SUPPLY,
 } from "../../constants";
 import { generateMetricLatestId, generateVaultId } from "../../utils";
-import {
-  addMetricHistorical,
-  updateMetricHistoricalDaily,
-  updateMetricHistoricalHourly,
-} from "./update-period";
+import { addMetricHistorical } from "./update-period";
 
 export function updateMetricTotalSupply(
   transfer: GlobalTokenTransfer
@@ -44,10 +40,6 @@ export function updateMetricTotalSupply(
 
   // Add historical metric
   let metricHistorical = addMetricHistorical(transfer, metricLatest);
-
-  // Update hourly and daily metrics
-  updateMetricHistoricalHourly(metricHistorical);
-  updateMetricHistoricalDaily(metricHistorical);
 
   return metricLatest;
 }

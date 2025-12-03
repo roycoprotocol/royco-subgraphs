@@ -1,16 +1,9 @@
 import {
   GlobalTokenTransfer,
   MetricHistorical,
-  MetricHistoricalDaily,
-  MetricHistoricalHourly,
   MetricLatest,
 } from "../../../generated/schema";
-import {
-  generateMetricHistoricalId,
-  generateMetricHistoricalPeriodId,
-  getDailyTimestamp,
-  getHourlyTimestamp,
-} from "../../utils";
+import { generateMetricHistoricalId } from "../../utils";
 
 export function addMetricHistorical(
   transfer: GlobalTokenTransfer,
@@ -35,60 +28,4 @@ export function addMetricHistorical(
   metricHistorical.save();
 
   return metricHistorical;
-}
-
-export function updateMetricHistoricalHourly(
-  metricHistorical: MetricHistorical
-): void {
-  let periodTimestamp = getHourlyTimestamp(metricHistorical.blockTimestamp);
-  let metricHistoricalPeriodId = generateMetricHistoricalPeriodId(
-    metricHistorical.vaultAddress,
-    metricHistorical.category,
-    periodTimestamp
-  );
-  let metricHistoricalPeriod = MetricHistoricalHourly.load(
-    metricHistoricalPeriodId
-  );
-  if (!metricHistoricalPeriod) {
-    metricHistoricalPeriod = new MetricHistoricalHourly(
-      metricHistoricalPeriodId
-    );
-    metricHistoricalPeriod.vaultId = metricHistorical.vaultId;
-    metricHistoricalPeriod.chainId = metricHistorical.chainId;
-    metricHistoricalPeriod.vaultAddress = metricHistorical.vaultAddress;
-    metricHistoricalPeriod.category = metricHistorical.category;
-    metricHistoricalPeriod.createdAt = metricHistorical.blockTimestamp;
-  }
-  metricHistoricalPeriod.value = metricHistorical.value;
-  metricHistoricalPeriod.blockTimestamp = periodTimestamp;
-  metricHistoricalPeriod.updatedAt = metricHistorical.blockTimestamp;
-  metricHistoricalPeriod.save();
-}
-
-export function updateMetricHistoricalDaily(
-  metricHistorical: MetricHistorical
-): void {
-  let periodTimestamp = getDailyTimestamp(metricHistorical.blockTimestamp);
-  let metricHistoricalPeriodId = generateMetricHistoricalPeriodId(
-    metricHistorical.vaultAddress,
-    metricHistorical.category,
-    periodTimestamp
-  );
-  let metricHistoricalPeriod = MetricHistoricalDaily.load(
-    metricHistoricalPeriodId
-  );
-  if (!metricHistoricalPeriod) {
-    metricHistoricalPeriod = new MetricHistoricalDaily(
-      metricHistoricalPeriodId
-    );
-    metricHistoricalPeriod.vaultId = metricHistorical.vaultId;
-    metricHistoricalPeriod.chainId = metricHistorical.chainId;
-    metricHistoricalPeriod.vaultAddress = metricHistorical.vaultAddress;
-    metricHistoricalPeriod.category = metricHistorical.category;
-    metricHistoricalPeriod.createdAt = metricHistorical.blockTimestamp;
-  }
-  metricHistoricalPeriod.value = metricHistorical.value;
-  metricHistoricalPeriod.blockTimestamp = periodTimestamp;
-  metricHistoricalPeriod.updatedAt = metricHistorical.blockTimestamp;
-  metricHistoricalPeriod.save();
 }

@@ -12,7 +12,7 @@ import {
   SUB_CATEGORY_DEPOSIT,
   SUB_CATEGORY_WITHDRAW,
   ACTIVITY_TYPE_TRANSFER,
-  STATUS_COMPLETE,
+  STATUS_COMPLETED,
 } from "../../constants";
 import { generateGlobalTokenActivityId } from "../../utils";
 
@@ -56,7 +56,7 @@ export function addTransferActivity(
   activity.tokenId = transfer.tokenId;
   activity.tokenAddress = transfer.vaultAddress;
   activity.value = transfer.value;
-  activity.status = STATUS_COMPLETE;
+  activity.status = STATUS_COMPLETED;
   activity.blockNumber = transfer.blockNumber;
   activity.blockTimestamp = transfer.blockTimestamp;
   activity.transactionHash = transfer.transactionHash;

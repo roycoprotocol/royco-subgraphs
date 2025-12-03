@@ -3,7 +3,7 @@ import {
   Deposit as DepositEvent,
   Withdraw as WithdrawEvent,
   BaseVault,
-} from "../generated/BaseVault/BaseVault";
+} from "../generated/Vault/BaseVault";
 import {
   CATEGORY_ASSETS,
   CATEGORY_SHARES,
@@ -15,13 +15,12 @@ import {
   SUB_CATEGORY_TRANSFER_OUT,
   SUB_CATEGORY_WITHDRAW,
   UPDATE_TYPE_MULTIPLIER,
-  VAULT_CATEGORY_DEFAULT,
-  VAULT_SUB_CATEGORY_DEFAULT,
   ZERO_ADDRESS,
 } from "./constants";
 import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
 import { updateMetricTotalSupply } from "./handlers/metrics/total-supply";
 import {
+  addPositionStateHistorical,
   getPositionState,
   updatePosition,
 } from "./handlers/base/update-position";
@@ -106,6 +105,7 @@ export function handleTransfer(event: TransferEvent): void {
     );
     positionState.shares = positionLatest.value;
     positionState.save();
+    addPositionStateHistorical(positionState, transfer.blockTimestamp);
 
     addTransferActivity(transfer, subCategory);
 
@@ -181,6 +181,7 @@ export function handleDeposit(event: DepositEvent): void {
     }
 
     positionState.save();
+    addPositionStateHistorical(positionState, transfer.blockTimestamp);
   }
 
   addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
@@ -216,6 +217,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
     }
 
     positionState.save();
+    addPositionStateHistorical(positionState, transfer.blockTimestamp);
   }
 
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);

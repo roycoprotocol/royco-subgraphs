@@ -3,11 +3,10 @@ import {
   PositionHistorical,
   PositionLatest,
   GlobalTokenTransfer,
-  PositionHistoricalHourly,
-  PositionHistoricalDaily,
   PositionState,
   VaultState,
   PositionRequestLatest,
+  PositionStateHistorical,
 } from "../../../generated/schema";
 import {
   ZERO_ADDRESS,
@@ -18,20 +17,18 @@ import {
   SUB_CATEGORY_BURN,
   SUB_CATEGORY_TRANSFER_OUT,
   CHAIN_ID,
-  POSITION_ASSETS_DEPOSIT,
+  CATEGORY_ASSETS,
 } from "../../constants";
 import {
   generatePositionLatestId,
   generatePositionHistoricalId,
   generateTokenId,
-  getHourlyTimestamp,
-  getDailyTimestamp,
-  generatePositionHistoricalPeriodId,
   generatePositionStateId,
   generateVaultId,
   generatePositionRequestLatestId,
+  generatePositionStateHistoricalId,
 } from "../../utils";
-import { BaseVault } from "../../../generated/BaseVault/BaseVault";
+import { BaseVault } from "../../../generated/Vault/BaseVault";
 import { Address } from "@graphprotocol/graph-ts";
 
 export function addPositionHistorical(
@@ -62,65 +59,42 @@ export function addPositionHistorical(
   positionHistorical.createdAt = transfer.blockTimestamp;
   positionHistorical.save();
 
-  // Update hourly position
-  let hourlyTimestamp = getHourlyTimestamp(transfer.blockTimestamp);
-  let positionHistoricalHourlyId = generatePositionHistoricalPeriodId(
-    positionHistorical.vaultAddress,
-    positionHistorical.accountAddress,
-    positionHistorical.category,
-    hourlyTimestamp
-  );
-  let positionHistoricalHourly = PositionHistoricalHourly.load(
-    positionHistoricalHourlyId
-  );
-  if (!positionHistoricalHourly) {
-    positionHistoricalHourly = new PositionHistoricalHourly(
-      positionHistoricalHourlyId
-    );
-    positionHistoricalHourly.vaultId = positionHistorical.vaultId;
-    positionHistoricalHourly.chainId = positionHistorical.chainId;
-    positionHistoricalHourly.vaultAddress = positionHistorical.vaultAddress;
-    positionHistoricalHourly.accountAddress = positionHistorical.accountAddress;
-    positionHistoricalHourly.category = positionHistorical.category;
-    positionHistoricalHourly.tokenId = positionHistorical.tokenId;
-    positionHistoricalHourly.tokenAddress = positionHistorical.tokenAddress;
-    positionHistoricalHourly.createdAt = positionHistorical.blockTimestamp;
-  }
-  positionHistoricalHourly.value = positionHistorical.value;
-  positionHistoricalHourly.blockTimestamp = hourlyTimestamp;
-  positionHistoricalHourly.updatedAt = positionHistorical.blockTimestamp;
-  positionHistoricalHourly.save();
-
-  // Update daily position
-  let dailyTimestamp = getDailyTimestamp(transfer.blockTimestamp);
-  let positionHistoricalDailyId = generatePositionHistoricalPeriodId(
-    positionHistorical.vaultAddress,
-    positionHistorical.accountAddress,
-    positionHistorical.category,
-    dailyTimestamp
-  );
-  let positionHistoricalDaily = PositionHistoricalDaily.load(
-    positionHistoricalDailyId
-  );
-  if (!positionHistoricalDaily) {
-    positionHistoricalDaily = new PositionHistoricalDaily(
-      positionHistoricalDailyId
-    );
-    positionHistoricalDaily.vaultId = positionHistorical.vaultId;
-    positionHistoricalDaily.chainId = positionHistorical.chainId;
-    positionHistoricalDaily.vaultAddress = positionHistorical.vaultAddress;
-    positionHistoricalDaily.accountAddress = positionHistorical.accountAddress;
-    positionHistoricalDaily.category = positionHistorical.category;
-    positionHistoricalDaily.tokenId = positionHistorical.tokenId;
-    positionHistoricalDaily.tokenAddress = positionHistorical.tokenAddress;
-    positionHistoricalDaily.createdAt = positionHistorical.blockTimestamp;
-  }
-  positionHistoricalDaily.value = positionHistorical.value;
-  positionHistoricalDaily.blockTimestamp = dailyTimestamp;
-  positionHistoricalDaily.updatedAt = positionHistorical.blockTimestamp;
-  positionHistoricalDaily.save();
-
   return positionHistorical;
+}
+
+export function addPositionStateHistorical(
+  positionState: PositionState,
+  blockTimestamp: BigInt
+): PositionStateHistorical {
+  let positionStateHistoricalId = generatePositionStateHistoricalId(
+    positionState.vaultAddress,
+    positionState.accountAddress,
+    blockTimestamp
+  );
+  let positionStateHistorical = new PositionStateHistorical(
+    positionStateHistoricalId
+  );
+  positionStateHistorical.vaultId = positionState.vaultId;
+  positionStateHistorical.chainId = positionState.chainId;
+  positionStateHistorical.vaultAddress = positionState.vaultAddress;
+  positionStateHistorical.accountAddress = positionState.accountAddress;
+  positionStateHistorical.shareTokenId = positionState.shareTokenId;
+  positionStateHistorical.shareTokenAddress = positionState.shareTokenAddress;
+  positionStateHistorical.assetTokenId = positionState.assetTokenId;
+  positionStateHistorical.assetTokenAddress = positionState.assetTokenAddress;
+  positionStateHistorical.shares = positionState.shares;
+  positionStateHistorical.assetsOwed = positionState.assetsOwed;
+  positionStateHistorical.sharesOwed = positionState.sharesOwed;
+  positionStateHistorical.cancelledAssetsOwed =
+    positionState.cancelledAssetsOwed;
+  positionStateHistorical.cancelledSharesOwed =
+    positionState.cancelledSharesOwed;
+  positionStateHistorical.earningsShares = positionState.earningsShares;
+  positionStateHistorical.earningsAssets = positionState.earningsAssets;
+  positionStateHistorical.blockTimestamp = blockTimestamp;
+  positionStateHistorical.save();
+
+  return positionStateHistorical;
 }
 
 export function getPositionState(
@@ -268,7 +242,7 @@ export function getPositionRequestLatest(
       assetTokenAddress = vaultState.depositTokenAddress;
     }
 
-    if (category == POSITION_ASSETS_DEPOSIT) {
+    if (category == CATEGORY_ASSETS) {
       positionRequestLatest.tokenId = assetTokenId;
       positionRequestLatest.tokenAddress = assetTokenAddress;
     } else {
