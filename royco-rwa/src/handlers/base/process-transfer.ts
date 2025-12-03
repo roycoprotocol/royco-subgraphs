@@ -2,7 +2,7 @@ import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { GlobalTokenTransfer, VaultState } from "../../../generated/schema";
 import { CATEGORY_ASSETS, CATEGORY_SHARES, CHAIN_ID } from "../../constants";
 import { generateId, generateTokenId, generateVaultId } from "../../utils";
-import { BaseVault } from "../../../generated/BaseVault/BaseVault";
+import { BaseVault } from "../../../generated/Vault/BaseVault";
 
 export function processGlobalTokenTransfer(
   vaultAddress: string,

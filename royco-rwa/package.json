@@ -9,11 +9,15 @@
     "remove-local": "graph remove --node http://localhost:8020/ royco-rwa",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-rwa",
     "test": "graph test",
-    "generate:signatures": "ts-node scripts/generate-signatures.ts",
     "deploy:subgraphs:markets": "bash ./scripts/markets/deploy-subgraphs.sh",
     "deploy:pipeline:markets": "bash ./scripts/markets/deploy-pipeline.sh",
     "delete:subgraphs:markets": "bash ./scripts/markets/delete-subgraphs.sh",
-    "delete:pipeline:markets": "bash ./scripts/markets/delete-pipeline.sh"
+    "delete:pipeline:markets": "bash ./scripts/markets/delete-pipeline.sh",
+    "test:prepare:earn:concrete": "mustache config/earn-concrete/networks/mainnet.json config/earn-concrete/subgraph.template.yaml > subgraph.yaml && mustache config/earn-concrete/networks/mainnet.json config/earn-concrete/constants.template.ts > src/constants/static.ts && mustache config/earn-concrete/metadata.json config/earn-concrete/pipeline.template.yaml > pipeline.yaml",
+    "deploy:subgraphs:earn:concrete": "bash ./scripts/earn-concrete/deploy-subgraphs.sh",
+    "deploy:pipeline:earn:concrete": "bash ./scripts/earn-concrete/deploy-pipeline.sh",
+    "delete:subgraphs:earn:concrete": "bash ./scripts/earn-concrete/delete-subgraphs.sh",
+    "delete:pipeline:earn:concrete": "bash ./scripts/earn-concrete/delete-pipeline.sh"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.97.1",

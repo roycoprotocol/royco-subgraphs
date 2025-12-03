@@ -6,82 +6,62 @@ sources:
   royco_rwa_earn_concrete_global_token_transfer_reference:
     name: global_token_transfer
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_token_activity_reference:
     name: global_token_activity
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_vault_state_reference:
     name: vault_state
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_request_latest_reference:
     name: position_request_latest
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_state_reference:
     name: position_state
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_state_historical_reference:
     name: position_state_historical
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_latest_reference:
     name: position_latest
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_historical_reference:
     name: position_historical
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_metric_latest_reference:
     name: metric_latest
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_metric_historical_reference:
     name: metric_historical
     subgraphs:
-      {{#metadata}}
-      - name: royco-rwa-earn-concrete-{{network}}
-        version: {{version}}
-      {{/metadata}}
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
     type: subgraph_entity
 transforms: {}
 sinks:

@@ -88,6 +88,28 @@ type GlobalTokenActivity @entity(immutable: true) {
 
 # === POSITIONS ===
 
+type PositionRequestLatest @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<CATEGORY>_<REQUEST_ID>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  category: String! # Category ("shares", "assets")
+  requestId: String! # Request ID
+  requestStatus: String! # Request Status ("pending", "cancelled", "approved", "completed")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  value: BigInt! # Value of Position
+  sharePrice: BigInt # Optional, only for async vaults that locks a share price for withdrawals
+  unlockTimestamp: BigInt # Optional, only for async vaults that have an unlock timestamp for withdrawals
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
 type PositionState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
   vaultId: String! # Vault ID
@@ -141,28 +163,6 @@ type PositionLatest @entity(immutable: false) {
   tokenAddress: String! # Token Address
   value: BigInt! # Value of Position
   blockTimestamp: BigInt! # Block Timestamp
-  createdAt: BigInt! # Created At
-  updatedAt: BigInt! # Updated At
-}
-
-type PositionRequestLatest @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<CATEGORY>_<REQUEST_ID>
-  vaultId: String! # Vault ID
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault Address
-  accountAddress: String! # Account Address
-  category: String! # Category ("shares", "assets")
-  requestId: String! # Request ID
-  requestStatus: String! # Request Status ("pending", "cancelled", "approved", "completed")
-  tokenId: String! # Token ID
-  tokenAddress: String! # Token Address
-  value: BigInt! # Value of Position
-  sharePrice: BigInt # Optional, only for async vaults that locks a share price for withdrawals
-  unlockTimestamp: BigInt # Optional, only for async vaults that have an unlock timestamp for withdrawals
-  blockNumber: BigInt! # Block Number
-  blockTimestamp: BigInt! # Block Timestamp
-  transactionHash: String! # Transaction Hash
-  logIndex: BigInt! # Log Index
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }

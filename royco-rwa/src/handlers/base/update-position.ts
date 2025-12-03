@@ -89,8 +89,6 @@ export function addPositionStateHistorical(
     positionState.cancelledAssetsOwed;
   positionStateHistorical.cancelledSharesOwed =
     positionState.cancelledSharesOwed;
-  positionStateHistorical.earningsShares = positionState.earningsShares;
-  positionStateHistorical.earningsAssets = positionState.earningsAssets;
   positionStateHistorical.blockTimestamp = blockTimestamp;
   positionStateHistorical.save();
 
