@@ -1,13 +1,13 @@
 #!/bin/bash
 
-pipeline_name="royco-rwa-markets-pipeline"
+pipeline_name="royco-rwa-earn-concrete-pipeline"
 
 # Function to prepare and deploy pipeline
 prepare_and_deploy() {
     echo "Preparing ${pipeline_name}..."
 
     # preparation command
-    mustache config/markets/metadata.json config/markets/pipeline.template.yaml > ${pipeline_name}.yaml
+    mustache config/earn-concrete/metadata.json config/earn-concrete/pipeline.template.yaml > ${pipeline_name}.yaml
 
     if [ $? -eq 0 ]; then
         goldsky pipeline apply "${pipeline_name}.yaml" --status ACTIVE

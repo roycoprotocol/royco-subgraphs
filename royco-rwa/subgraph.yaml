@@ -7,9 +7,9 @@ dataSources:
     name: Vault
     network: mainnet
     source:
-      address: "0x74d1fafa4e0163b2f1035f1b052137f3f9bad5cc"
+      address: "0x0e609b710da5e0aa476224b6c0e5445ccc21251e"
       abi: AsyncVaultConcrete
-      startBlock: 22139798
+      startBlock: 23828295
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9

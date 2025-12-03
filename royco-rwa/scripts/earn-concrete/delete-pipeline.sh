@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pipeline_name="royco-rwa-markets-pipeline"
+pipeline_name="royco-rwa-earn-concrete-pipeline"
 
 # Function to delete pipeline with confirmation
 delete_pipeline() {

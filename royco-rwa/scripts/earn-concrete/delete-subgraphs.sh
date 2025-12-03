@@ -2,13 +2,12 @@
 
 # Array of networks
 networks=(
-    "sepolia"
-    # "mainnet"
+    "mainnet"
 )
 
 # Function to delete pipeline with confirmation
 delete_pipeline() {
-    local pipeline_name="royco-rwa-markets-pipeline" 
+    local pipeline_name="royco-rwa-earn-concrete-pipeline" 
     
     echo "Attempting to stop ${pipeline_name}..."
     goldsky pipeline stop "${pipeline_name}" --force || true 
@@ -22,7 +21,7 @@ delete_subgraph() {
     local network=$1
 
     # Note: update version if needed
-    local subgraph_name="royco-rwa-markets-${network}/1.0.0" 
+    local subgraph_name="royco-rwa-earn-concrete-${network}/1.0.0" 
     
     echo "Attempting to delete ${subgraph_name}..."
     goldsky subgraph delete "${subgraph_name}" --force || true 
