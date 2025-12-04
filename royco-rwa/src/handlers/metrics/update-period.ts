@@ -25,6 +25,7 @@ export function addMetricHistorical(
   metricHistorical.blockTimestamp = transfer.blockTimestamp;
   metricHistorical.transactionHash = transfer.transactionHash;
   metricHistorical.logIndex = transfer.logIndex;
+  metricHistorical.createdAt = transfer.blockTimestamp;
   metricHistorical.save();
 
   return metricHistorical;

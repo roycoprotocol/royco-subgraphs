@@ -10,8 +10,8 @@ type MarketState @entity(immutable: false) {
   juniorVaultId: String # Junior Vault ID
   juniorVaultAddress: String! # Junior Vault Address
   coverage: BigInt! # Coverage Wad
-  blockNumber: BigInt! # Block Number
-  blockTimestamp: BigInt! # Block Timestamp
+  blockNumber: BigInt! # Block Number of when market was created
+  blockTimestamp: BigInt! # Block Timestamp of when market was created
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }
@@ -32,10 +32,8 @@ type VaultState @entity(immutable: false) {
   totalSupply: BigInt! # Total Supply
   depositors: BigInt! # Depositors
   coverage: BigInt # Optional, Coverage
-  blockNumber: BigInt! # Block Number
-  blockTimestamp: BigInt! # Block Timestamp
-  category: String # Optional, Category ("master", "market")
-  subCategory: String # Optional, Sub Category ("senior", "junior")
+  blockNumber: BigInt! # Block Number of when vault was created
+  blockTimestamp: BigInt! # Block Timestamp of when vault was created
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }
@@ -49,7 +47,7 @@ type GlobalTokenTransfer @entity(immutable: true) {
   vaultId: String! # Vault ID
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
-  category: String! # Category ("shares")
+  category: String! # Category ("shares", "assets")
   subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
   tokenId: String! # Token ID
   tokenAddress: String! # Token Address
@@ -76,7 +74,7 @@ type GlobalTokenActivity @entity(immutable: true) {
   tokenId: String! # Token ID
   tokenAddress: String! # Token Address
   value: BigInt! # Value
-  status: String! # Status ("completed", "pending", "cancelled", "approved")
+  status: String! # Status ("pending", "cancelled", "updated", "approved", "claimable", "cancelClaimed", "completed")
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction hash
@@ -96,7 +94,7 @@ type PositionRequestLatest @entity(immutable: false) {
   accountAddress: String! # Account Address
   category: String! # Category ("shares", "assets")
   requestId: String! # Request ID
-  requestStatus: String! # Request Status ("pending", "cancelled", "approved", "completed")
+  requestStatus: String! # Request Status ("pending", "cancelled", "updated", "approved", "claimable", "cancelClaimed", "completed")
   tokenId: String! # Token ID
   tokenAddress: String! # Token Address
   value: BigInt! # Value of Position
@@ -125,9 +123,9 @@ type PositionState @entity(immutable: false) {
   sharesOwed: BigInt! # Shares Owed
   cancelledAssetsOwed: BigInt! # Cancelled Assets Owed
   cancelledSharesOwed: BigInt! # Cancelled Shares Owed
-  earningAssetsRawAmount: BigInt # Earnings (updated outside of subgraphs)
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
+  # earningRawAmount: BigInt # Earnings (updated outside of subgraphs)
 }
 
 type PositionStateHistorical @entity(immutable: true) {
@@ -145,11 +143,12 @@ type PositionStateHistorical @entity(immutable: true) {
   sharesOwed: BigInt! # Shares Owed
   cancelledAssetsOwed: BigInt! # Cancelled Assets Owed
   cancelledSharesOwed: BigInt! # Cancelled Shares Owed
-  earningAssetsRawAmount: BigInt # Earnings (updated outside of subgraphs)
-  earningAssetsTokenAmountUsd: BigInt # Earnings (updated outside of subgraphs)
-  worthUsd: BigInt # Worth in USD (updated outside of subgraphs)
-  apy: BigInt # APY (updated outside of subgraphs)
   blockTimestamp: BigInt! # Block Timestamp
+  # earningRawAmount: BigInt # Earnings (updated outside of subgraphs)
+  # earningTokenAmountUsd: BigInt # Earnings (updated outside of subgraphs)
+  # worthRawAmount: BigInt # Worth (updated outside of subgraphs)
+  # worthTokenAmountUsd: BigInt # Worth in USD (updated outside of subgraphs)
+  # apy: BigInt # APY (updated outside of subgraphs)
 }
 
 type PositionLatest @entity(immutable: false) {
@@ -211,6 +210,7 @@ type MetricHistorical @entity(immutable: true) {
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction Hash
   logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
 }
 
 # xxx METRICS xxx
