@@ -6,26 +6,24 @@ import {
   EpochClosed as EpochClosedEvent,
   EpochProcessed as EpochProcessedEvent,
   RequestClaimed as RequestClaimedEvent,
-  Deposit as DepositEvent,
-  Withdraw as WithdrawEvent,
 } from "../generated/Vault/AsyncVaultConcrete";
 import {
   ConcreteEpoch,
   ConcreteWithdrawal,
   PositionRequestLatest,
+  VaultState,
 } from "../generated/schema";
 import {
   CHAIN_ID,
   CATEGORY_ASSETS,
   CATEGORY_SHARES,
-  SUB_CATEGORY_DEPOSIT,
   SUB_CATEGORY_WITHDRAW,
   STATUS_PENDING,
-  STATUS_CANCELLED,
   STATUS_APPROVED,
   STATUS_CLAIMABLE,
-  STATUS_COMPLETED,
   STATUS_UPDATED,
+  STATUS_CLAIMED,
+  STATUS_CANCEL_CLAIMED,
 } from "./constants";
 import { addRequestActivity } from "./handlers/activities/request";
 import {
@@ -37,7 +35,7 @@ import { generatePositionRequestLatestId, generateVaultId } from "./utils";
 import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
 import { addTransferActivity } from "./handlers/activities/transfer";
 
-export { handleTransfer } from "./vault";
+export { handleTransfer, handleDeposit, handleWithdraw } from "./vault";
 
 export function getConcreteEpoch(
   vaultAddress: string,
@@ -170,7 +168,7 @@ export function handleRequestCancelled(event: RequestCancelledEvent): void {
     accountAddress,
     event.block.timestamp
   );
-  const requestStatus = STATUS_CANCELLED;
+  const requestStatus = STATUS_CANCEL_CLAIMED;
 
   // Update request
   let positionRequestLatest = getPositionRequestLatest(
@@ -329,6 +327,11 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
   const activityCategory = CATEGORY_SHARES;
   const activitySubCategory = SUB_CATEGORY_WITHDRAW;
 
+  let vaultState = VaultState.load(generateVaultId(vaultAddress));
+  if (!vaultState) {
+    return;
+  }
+
   let concreteEpoch = getConcreteEpoch(
     vaultAddress,
     epochId,
@@ -338,6 +341,10 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
   if (!concreteEpoch) {
     return;
   }
+
+  let accountAddresses: string[] = [];
+  let assetsOwed: BigInt[] = [];
+  let sharesOwed: BigInt[] = [];
 
   for (
     let i = concreteEpoch.startIndex;
@@ -362,6 +369,8 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
       positionRequestLatest &&
       positionRequestLatest.requestStatus == STATUS_APPROVED
     ) {
+      const accountAddress = positionRequestLatest.accountAddress;
+
       positionRequestLatest.value = positionRequestLatest.value.times(
         event.params.sharePrice
       );
@@ -369,12 +378,40 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
       positionRequestLatest.requestStatus = STATUS_CLAIMABLE;
       positionRequestLatest.save();
 
+      const newAssetsOwed = positionRequestLatest.value
+        .times(positionRequestLatest.sharePrice)
+        .div(BigInt.fromI32(10).pow(vaultState.decimals));
+
+      const accountIndex = accountAddresses.indexOf(accountAddress);
+      if (accountIndex === -1) {
+        accountAddresses.push(accountAddress);
+        assetsOwed.push(newAssetsOwed);
+        sharesOwed.push(positionRequestLatest.value);
+      } else {
+        assetsOwed[accountIndex] = assetsOwed[accountIndex].plus(newAssetsOwed);
+        sharesOwed[accountIndex] = sharesOwed[accountIndex].plus(
+          positionRequestLatest.value
+        );
+      }
+
       addRequestActivity(
         positionRequestLatest,
         activityCategory,
         activitySubCategory
       );
     }
+  }
+
+  for (let i = 0; i < accountAddresses.length; i++) {
+    const positionState = getPositionState(
+      vaultAddress,
+      accountAddresses[i],
+      event.block.timestamp
+    );
+    positionState.assetsOwed = positionState.assetsOwed.plus(assetsOwed[i]);
+    positionState.sharesOwed = positionState.sharesOwed.minus(sharesOwed[i]);
+    positionState.save();
+    addPositionStateHistorical(positionState, event.block.timestamp);
   }
 }
 
@@ -384,7 +421,12 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
   const activityCategory = CATEGORY_SHARES;
   const activitySubCategory = SUB_CATEGORY_WITHDRAW;
 
-  let sharesPaid = BigInt.fromI32(0);
+  let vaultState = VaultState.load(generateVaultId(vaultAddress));
+  if (!vaultState) {
+    return;
+  }
+
+  let assetsPaid = BigInt.fromI32(0);
 
   for (let i = 0; i < event.params.epochIDs.length; i++) {
     let epochId = event.params.epochIDs[i];
@@ -411,10 +453,14 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
 
     if (positionRequestLatest) {
       // Update request
-      positionRequestLatest.requestStatus = STATUS_COMPLETED;
+      positionRequestLatest.requestStatus = STATUS_CLAIMED;
       positionRequestLatest.save();
 
-      sharesPaid = sharesPaid.plus(positionRequestLatest.value);
+      const newAssetsPaid = positionRequestLatest.value
+        .times(positionRequestLatest.sharePrice!)
+        .div(BigInt.fromI32(10).pow(vaultState.decimals));
+
+      assetsPaid = assetsPaid.plus(newAssetsPaid);
 
       // Add activity
       addRequestActivity(
@@ -431,7 +477,7 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
     event.params.owner.toHexString(),
     event.block.timestamp
   );
-  positionState.sharesOwed = positionState.sharesOwed.minus(sharesPaid);
+  positionState.assetsOwed = positionState.assetsOwed.minus(assetsPaid);
   positionState.save();
   addPositionStateHistorical(positionState, event.block.timestamp);
 
@@ -449,41 +495,5 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
     event.logIndex,
     true
   );
-  addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
-}
-
-export function handleDeposit(event: DepositEvent): void {
-  let transfer = processGlobalTokenTransfer(
-    event.address.toHexString(),
-    CATEGORY_ASSETS,
-    SUB_CATEGORY_DEPOSIT,
-    event.params.owner.toHexString(),
-    event.address.toHexString(),
-    event.params.assets,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash.toHexString(),
-    event.logIndex,
-    true
-  );
-
-  addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
-}
-
-export function handleWithdraw(event: WithdrawEvent): void {
-  let transfer = processGlobalTokenTransfer(
-    event.address.toHexString(),
-    CATEGORY_ASSETS,
-    SUB_CATEGORY_WITHDRAW,
-    event.address.toHexString(),
-    event.params.owner.toHexString(),
-    event.params.assets,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash.toHexString(),
-    event.logIndex,
-    true
-  );
-
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
 }

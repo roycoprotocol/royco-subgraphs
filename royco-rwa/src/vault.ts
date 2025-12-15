@@ -69,6 +69,9 @@ export function handleTransfer(event: TransferEvent): void {
     vaultState.depositTokenId = generateTokenId(depositTokenAddress);
     vaultState.depositTokenAddress = depositTokenAddress;
 
+    const decimals = contract.decimals();
+    vaultState.decimals = decimals;
+
     vaultState.transfers = BigInt.fromI32(0);
     vaultState.totalSupply = BigInt.fromI32(0);
     vaultState.depositors = BigInt.fromI32(0);
@@ -166,24 +169,6 @@ export function handleDeposit(event: DepositEvent): void {
     true
   );
 
-  let positionState = getPositionState(
-    transfer.vaultAddress,
-    transfer.fromAddress,
-    transfer.blockTimestamp
-  );
-  if (positionState.assetsOwed > BigInt.fromI32(0)) {
-    positionState.assetsOwed = positionState.assetsOwed.minus(
-      event.params.assets
-    );
-
-    if (positionState.assetsOwed < BigInt.fromI32(0)) {
-      positionState.assetsOwed = BigInt.fromI32(0);
-    }
-
-    positionState.save();
-    addPositionStateHistorical(positionState, transfer.blockTimestamp);
-  }
-
   addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
 }
 
@@ -201,24 +186,6 @@ export function handleWithdraw(event: WithdrawEvent): void {
     event.logIndex,
     true
   );
-
-  let positionState = getPositionState(
-    transfer.vaultAddress,
-    transfer.toAddress,
-    transfer.blockTimestamp
-  );
-  if (positionState.sharesOwed > BigInt.fromI32(0)) {
-    positionState.sharesOwed = positionState.sharesOwed.minus(
-      event.params.shares
-    );
-
-    if (positionState.sharesOwed < BigInt.fromI32(0)) {
-      positionState.sharesOwed = BigInt.fromI32(0);
-    }
-
-    positionState.save();
-    addPositionStateHistorical(positionState, transfer.blockTimestamp);
-  }
 
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
 }

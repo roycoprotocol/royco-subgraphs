@@ -28,6 +28,7 @@ type VaultState @entity(immutable: false) {
   marketId: String # Optional, Market ID
   depositTokenId: String! # Deposit Token ID
   depositTokenAddress: String! # Deposit Token Address
+  decimals: Int! # Decimals
   transfers: BigInt! # Transfers
   totalSupply: BigInt! # Total Supply
   depositors: BigInt! # Depositors
@@ -93,6 +94,7 @@ type PositionRequestLatest @entity(immutable: false) {
   vaultAddress: String! # Vault Address
   accountAddress: String! # Account Address
   category: String! # Category ("shares", "assets")
+  subCategory: String! # Sub Category ("withdraw", "deposit")
   requestId: String! # Request ID
   requestStatus: String! # Request Status ("pending", "cancelled", "updated", "approved", "claimable", "cancelClaimed", "completed")
   tokenId: String! # Token ID
@@ -125,7 +127,6 @@ type PositionState @entity(immutable: false) {
   cancelledSharesOwed: BigInt! # Cancelled Shares Owed
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
-  # earningRawAmount: BigInt # Earnings (updated outside of subgraphs)
 }
 
 type PositionStateHistorical @entity(immutable: true) {
@@ -144,11 +145,6 @@ type PositionStateHistorical @entity(immutable: true) {
   cancelledAssetsOwed: BigInt! # Cancelled Assets Owed
   cancelledSharesOwed: BigInt! # Cancelled Shares Owed
   blockTimestamp: BigInt! # Block Timestamp
-  # earningRawAmount: BigInt # Earnings (updated outside of subgraphs)
-  # earningTokenAmountUsd: BigInt # Earnings (updated outside of subgraphs)
-  # worthRawAmount: BigInt # Worth (updated outside of subgraphs)
-  # worthTokenAmountUsd: BigInt # Worth in USD (updated outside of subgraphs)
-  # apy: BigInt # APY (updated outside of subgraphs)
 }
 
 type PositionLatest @entity(immutable: false) {

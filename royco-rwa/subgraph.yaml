@@ -49,3 +49,29 @@ dataSources:
         - event: RequestClaimed(indexed address,uint256,uint256[])
           handler: handleRequestClaimed
       file: ./src/async-vault-concrete.ts
+  - kind: ethereum
+    name: Vaults1
+    network: mainnet
+    source:
+      address: "0xb22efff1eea2f3e1843122e671644eac2c71ffe8"
+      abi: BaseVault
+      startBlock: 23836168
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - Deposit
+        - Withdraw
+      abis:
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+      file: ./src/standard-vault-concrete.ts

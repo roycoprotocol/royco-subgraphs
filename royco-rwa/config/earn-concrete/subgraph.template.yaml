@@ -3,7 +3,7 @@ specVersion: 1.3.0
 schema:
   file: ./schema.graphql
 dataSources:
-{{#sources}}
+{{#asyncVaults}}
   - kind: ethereum
     name: Vault{{id}}
     network: {{network}}
@@ -50,4 +50,32 @@ dataSources:
         - event: RequestClaimed(indexed address,uint256,uint256[])
           handler: handleRequestClaimed
       file: ./src/async-vault-concrete.ts
-{{/sources}}
+{{/asyncVaults}}
+{{#standardVaults}}
+  - kind: ethereum
+    name: Vault{{id}}
+    network: {{network}}
+    source:
+      address: "{{vaultAddress}}"
+      abi: BaseVault
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - Deposit
+        - Withdraw
+      abis:
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+      file: ./src/vault.ts
+{{/standardVaults}}

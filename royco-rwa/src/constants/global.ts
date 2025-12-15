@@ -26,10 +26,11 @@ export const METRIC_TRANSFERS = "transfers";
 // === REQUEST STATUSES ===
 export const STATUS_PENDING = "pending";
 export const STATUS_CANCELLED = "cancelled";
+export const STATUS_CANCEL_CLAIMED = "cancelClaimed";
 export const STATUS_UPDATED = "updated";
 export const STATUS_APPROVED = "approved";
 export const STATUS_CLAIMABLE = "claimable";
-export const STATUS_CANCEL_CLAIMED = "cancelClaimed";
+export const STATUS_CLAIMED = "claimed";
 export const STATUS_COMPLETED = "completed";
 
 // === VAULT CATEGORIES ===
