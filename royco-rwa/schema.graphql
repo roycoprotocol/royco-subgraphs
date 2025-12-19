@@ -4,16 +4,31 @@ type MarketState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<MARKET_ID>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID
-  ownerAddress: String! # Owner Address
   seniorVaultId: String # Senior Vault ID
   seniorVaultAddress: String! # Senior Vault Address
   juniorVaultId: String # Junior Vault ID
   juniorVaultAddress: String! # Junior Vault Address
-  coverage: BigInt! # Coverage Wad
+  seniorAssetTokenId: String! # Senior Asset Token ID
+  seniorAssetTokenAddress: String! # Senior Asset Token Address
+  juniorAssetTokenId: String! # Junior Asset Token ID
+  juniorAssetTokenAddress: String! # Junior Asset Token Address
   blockNumber: BigInt! # Block Number of when market was created
   blockTimestamp: BigInt! # Block Timestamp of when market was created
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
+}
+
+type MarketVaultMap @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  majorType: String! # Major Type (market)
+  minorType: String! # Minor Type (senior, junior)
+  partnerVaultId: String! # Partner Vault ID
+  partnerVaultAddress: String! # Partner Vault Address
+  marketRefId: String! # Market Reference ID
+  marketId: String! # Market ID
+  createdAt: BigInt! # Created At
 }
 
 # xxx MARKETS xxx
@@ -24,15 +39,18 @@ type VaultState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
+  majorType: String! # Major Type (earn, market)
+  minorType: String! # Minor Type (concrete, senior, junior)
   marketRefId: String # Optional, Market Reference ID
   marketId: String # Optional, Market ID
+  partnerVaultId: String # Optional, Partner Vault ID
+  partnerVaultAddress: String # Optional, Partner Vault Address
   depositTokenId: String! # Deposit Token ID
   depositTokenAddress: String! # Deposit Token Address
   decimals: Int! # Decimals
   transfers: BigInt! # Transfers
   totalSupply: BigInt! # Total Supply
   depositors: BigInt! # Depositors
-  coverage: BigInt # Optional, Coverage
   blockNumber: BigInt! # Block Number of when vault was created
   blockTimestamp: BigInt! # Block Timestamp of when vault was created
   createdAt: BigInt! # Created At

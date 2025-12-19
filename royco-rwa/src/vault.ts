@@ -28,8 +28,9 @@ import { addTransferActivity } from "./handlers/activities/transfer";
 import { BigInt } from "@graphprotocol/graph-ts";
 import { updateMetricDepositors } from "./handlers/metrics/depositors";
 import { generateTokenId } from "./utils";
-import { VaultState } from "../generated/schema";
+import { MarketVaultMap, VaultState } from "../generated/schema";
 import { updateMetricTransfers } from "./handlers/metrics/transfers";
+import { VAULT_MAJOR_TYPE, VAULT_MINOR_TYPE } from "./constants";
 
 export function handleTransfer(event: TransferEvent): void {
   const fromAddress = event.params.from.toHexString();
@@ -71,6 +72,24 @@ export function handleTransfer(event: TransferEvent): void {
 
     const decimals = contract.decimals();
     vaultState.decimals = decimals;
+
+    if (VAULT_MAJOR_TYPE.length > 0) {
+      vaultState.majorType = VAULT_MAJOR_TYPE;
+    }
+
+    if (VAULT_MINOR_TYPE.length > 0) {
+      vaultState.minorType = VAULT_MINOR_TYPE;
+    }
+
+    const marketVault = MarketVaultMap.load(transfer.vaultId);
+    if (marketVault) {
+      vaultState.marketRefId = marketVault.marketRefId;
+      vaultState.marketId = marketVault.marketId;
+      vaultState.majorType = marketVault.majorType;
+      vaultState.minorType = marketVault.minorType;
+      vaultState.partnerVaultId = marketVault.partnerVaultId;
+      vaultState.partnerVaultAddress = marketVault.partnerVaultAddress;
+    }
 
     vaultState.transfers = BigInt.fromI32(0);
     vaultState.totalSupply = BigInt.fromI32(0);
@@ -117,7 +136,7 @@ export function handleTransfer(event: TransferEvent): void {
   } else {
     let positionLatest1 = updatePosition(
       transfer,
-      SUB_CATEGORY_TRANSFER_IN, // transfer sub category
+      SUB_CATEGORY_TRANSFER_OUT, // transfer sub category
       CATEGORY_SHARES, // position category
       UPDATE_TYPE_MULTIPLIER
     );
@@ -130,11 +149,11 @@ export function handleTransfer(event: TransferEvent): void {
     positionState1.shares = positionLatest1.value;
     positionState1.save();
 
-    addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_IN);
+    addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_OUT);
 
     let positionLatest2 = updatePosition(
       transfer,
-      SUB_CATEGORY_TRANSFER_OUT, // transfer sub category
+      SUB_CATEGORY_TRANSFER_IN, // transfer sub category
       CATEGORY_SHARES, // position category
       UPDATE_TYPE_MULTIPLIER
     );
@@ -147,7 +166,7 @@ export function handleTransfer(event: TransferEvent): void {
     positionState2.shares = positionLatest2.value;
     positionState2.save();
 
-    addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_OUT);
+    addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_IN);
   }
 
   vaultState.updatedAt = transfer.blockTimestamp;

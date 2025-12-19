@@ -25,6 +25,7 @@ dataSources:
         - EpochClosed
         - EpochProcessed
         - RequestClaimed
+        - RoleGranted
       abis:
         - name: BaseVault
           file: ./abis/BaseVault.json
@@ -49,7 +50,9 @@ dataSources:
           handler: handleEpochProcessed
         - event: RequestClaimed(indexed address,uint256,uint256[])
           handler: handleRequestClaimed
-      file: ./src/async-vault-concrete.ts
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+      file: ./src/concrete-async-vault.ts
 {{/asyncVaults}}
 {{#standardVaults}}
   - kind: ethereum

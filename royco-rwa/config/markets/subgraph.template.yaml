@@ -4,24 +4,58 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: BaseVault
+    name: RoycoFactory
     network: {{network}}
     source:
-      address: "{{stakedRoyusdContractAddress}}"
-      abi: BaseVault
-      startBlock: {{stakedRoyusdStartBlock}}
+      address: "{{roycoFactoryContractAddress}}"
+      abi: RoycoFactory
+      startBlock: {{roycoFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - MarketDeployed
+      abis:
+        - name: RoycoFactory
+          file: ./abis/RoycoFactory.json
+      eventHandlers:
+        - event: MarketDeployed((address,address,address,address),(string,string,string,string,address,address,bytes32,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32))
+          handler: handleMarketDeployed
+      file: ./src/royco-factory.ts
+templates:
+  - kind: ethereum/contract
+    name: RoycoVaultTranche
+    network: {{network}}
+    source:
+      abi: RoycoVaultTranche
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
         - Transfer
-        - UnstakingCommenced
-        - AssetsUnstaked
+        - Deposit
+        - Redeem
+        - RedeemRequest
+        - CancelRedeemRequest
+        - CancelRedeemClaim
       abis:
         - name: BaseVault
           file: ./abis/BaseVault.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTranche.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-      file: ./src/vault.ts
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256)
+          handler: handleRedeem
+        - event: RedeemRequest(indexed address,indexed address,indexed uint256,address,uint256)
+          handler: handleRedeemRequest
+        - event: CancelRedeemClaim(indexed address,indexed address,indexed uint256,address,uint256)
+          handler: handleCancelRedeemClaim
+        - event: CancelRedeemRequest(indexed address,indexed uint256,address)
+          handler: handleCancelRedeemRequest
+      file: ./src/royco-vault-tranche.ts

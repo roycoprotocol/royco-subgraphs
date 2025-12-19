@@ -1,6 +1,6 @@
 {
   "network": "mainnet",
   "chainId": 1,
-  "stakedRoyusdContractAddress": "0x",
-  "stakedRoyusdStartBlock": 0
+  "roycoFactoryContractAddress": "0x",
+  "roycoFactoryStartBlock": 0
 }

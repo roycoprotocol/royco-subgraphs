@@ -200,6 +200,7 @@ export function getPositionRequestLatest(
   vaultAddress: string,
   accountAddress: string,
   category: string,
+  subCategory: string,
   requestId: string,
   requestStatus: string,
   blockNumber: BigInt,
@@ -222,6 +223,7 @@ export function getPositionRequestLatest(
     positionRequestLatest.vaultAddress = vaultAddress;
     positionRequestLatest.accountAddress = accountAddress;
     positionRequestLatest.category = category;
+    positionRequestLatest.subCategory = subCategory;
 
     let assetTokenId = "";
     let assetTokenAddress = "";

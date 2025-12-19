@@ -1,0 +1,18 @@
+{
+  "network": "mainnet",
+  "chainId": "1",
+  "asyncVaults": [
+    {
+      "id": "",
+      "vaultAddress": "0x0e609b710da5e0aa476224b6c0e5445ccc21251e",
+      "startBlock": 23828295
+    }
+  ],
+  "standardVaults": [
+    {
+      "id": "s1",
+      "vaultAddress": "0xb22efff1eea2f3e1843122e671644eac2c71ffe8",
+      "startBlock": 23836168
+    }
+  ]
+}

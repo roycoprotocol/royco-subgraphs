@@ -39,9 +39,9 @@ export function addTransferActivity(
   let activityId = generateGlobalTokenActivityId(
     transfer.transactionHash,
     transfer.logIndex,
-    transfer.vaultAddress,
     transfer.category,
     transferSubCategoryToAdd,
+    transfer.vaultAddress,
     BigInt.fromI32(0)
   );
   let activity = new GlobalTokenActivity(activityId);

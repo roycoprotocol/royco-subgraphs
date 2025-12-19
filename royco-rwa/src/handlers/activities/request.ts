@@ -9,16 +9,20 @@ import { ACTIVITY_TYPE_REQUEST } from "../../constants";
 export function addRequestActivity(
   positionRequestLatest: PositionRequestLatest,
   category: string,
-  subCategory: string
+  subCategory: string,
+  tokenIndex: BigInt
 ): GlobalTokenActivity {
   let activityId = generateGlobalTokenActivityId(
     positionRequestLatest.transactionHash,
     positionRequestLatest.logIndex,
-    positionRequestLatest.vaultAddress,
     category,
     subCategory,
-    BigInt.fromI32(0)
-  );
+    positionRequestLatest.vaultAddress,
+    tokenIndex
+  )
+    .concat("_")
+    .concat(positionRequestLatest.requestId);
+
   let activity = new GlobalTokenActivity(activityId);
   activity.vaultId = positionRequestLatest.vaultId;
   activity.chainId = positionRequestLatest.chainId;
@@ -27,7 +31,7 @@ export function addRequestActivity(
   activity.subCategory = subCategory;
   activity.accountAddress = positionRequestLatest.accountAddress;
   activity.type = ACTIVITY_TYPE_REQUEST;
-  activity.tokenIndex = BigInt.fromI32(0);
+  activity.tokenIndex = tokenIndex;
   activity.tokenId = positionRequestLatest.tokenId;
   activity.tokenAddress = positionRequestLatest.tokenAddress;
   activity.value = positionRequestLatest.value;
