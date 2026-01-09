@@ -1,6 +1,6 @@
 {
   "network": "mainnet",
   "chainId": 1,
-  "roycoFactoryContractAddress": "0x",
-  "roycoFactoryStartBlock": 0
+  "roycoFactoryContractAddress": "0x0ea39b87b09b1b953fb90a665ff97d679f5e68b7",
+  "roycoFactoryStartBlock": 24118815
 }

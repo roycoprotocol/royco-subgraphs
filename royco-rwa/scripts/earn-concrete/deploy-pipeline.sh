@@ -10,7 +10,7 @@ prepare_and_deploy() {
     mustache config/earn-concrete/metadata.json config/earn-concrete/pipeline.template.yaml > ${pipeline_name}.yaml
 
     if [ $? -eq 0 ]; then
-        goldsky pipeline apply "${pipeline_name}.yaml" --status ACTIVE
+        goldsky pipeline apply "${pipeline_name}.yaml" --force --status ACTIVE
     else
         echo "Error during preparation of ${pipeline_name}"
         return 1

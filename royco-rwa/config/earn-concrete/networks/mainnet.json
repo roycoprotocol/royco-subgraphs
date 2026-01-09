@@ -4,11 +4,16 @@
   "asyncVaults": [
     {
       "id": "",
+      "vaultAddress": "0xcd9f5907f92818bc06c9ad70217f089e190d2a32",
+      "startBlock": 24176149
+    },
+    {
+      "id": "t0",
       "vaultAddress": "0x250aa9fa13aa01e6a578bd0f8a3591b408f325c4",
       "startBlock": 24033299
     },
     {
-      "id": "e1",
+      "id": "t1",
       "vaultAddress": "0xcae5ec4af7cbca36bde9d4ba91bdc4f394db76f0",
       "startBlock": 24033316
     }

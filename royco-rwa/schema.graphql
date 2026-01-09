@@ -4,16 +4,28 @@ type MarketState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<MARKET_ID>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID
-  seniorVaultId: String # Senior Vault ID
+  kernelAddress: String! # Kernel Address
+  accountantAddress: String! # Accountant Address
+  seniorVaultId: String! # Senior Vault ID
   seniorVaultAddress: String! # Senior Vault Address
-  juniorVaultId: String # Junior Vault ID
-  juniorVaultAddress: String! # Junior Vault Address
+  seniorVaultSymbol: String! # Senior Vault Symbol
+  seniorVaultImplementationAddress: String! # Senior Vault Implementation Address
   seniorAssetTokenId: String! # Senior Asset Token ID
   seniorAssetTokenAddress: String! # Senior Asset Token Address
+  juniorVaultId: String! # Junior Vault ID
+  juniorVaultAddress: String! # Junior Vault Address
+  juniorVaultSymbol: String! # Junior Vault Symbol
+  juniorVaultImplementationAddress: String! # Junior Vault Implementation Address
   juniorAssetTokenId: String! # Junior Asset Token ID
   juniorAssetTokenAddress: String! # Junior Asset Token Address
+  seniorVaultInitializationData: String! # Senior Vault Initialization Data
+  juniorVaultInitializationData: String! # Junior Vault Initialization Data
+  kernelInitializationData: String! # Kernel Initialization Data
+  accountantInitializationData: String! # Accountant Initialization Data
   blockNumber: BigInt! # Block Number of when market was created
   blockTimestamp: BigInt! # Block Timestamp of when market was created
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }

@@ -3,13 +3,7 @@
     "type": "function",
     "name": "DOMAIN_SEPARATOR",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
     "stateMutability": "view"
   },
   {
@@ -17,11 +11,7 @@
     "name": "TRANCHE_TYPE",
     "inputs": [],
     "outputs": [
-      {
-        "name": "",
-        "type": "uint8",
-        "internalType": "enum TrancheType"
-      }
+      { "name": "", "type": "uint8", "internalType": "enum TrancheType" }
     ],
     "stateMutability": "pure"
   },
@@ -29,122 +19,58 @@
     "type": "function",
     "name": "UPGRADE_INTERFACE_VERSION",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "allowance",
     "inputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "owner", "type": "address", "internalType": "address" },
+      { "name": "spender", "type": "address", "internalType": "address" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "approve",
     "inputs": [
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "spender", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "asset",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "authority",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "balanceOf",
     "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "account", "type": "address", "internalType": "address" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "cancelDepositRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -153,16 +79,8 @@
     "type": "function",
     "name": "cancelRedeemRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -171,21 +89,9 @@
     "type": "function",
     "name": "claimCancelDepositRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_receiver", "type": "address", "internalType": "address" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -194,21 +100,9 @@
     "type": "function",
     "name": "claimCancelRedeemRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_owner",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_receiver", "type": "address", "internalType": "address" },
+      { "name": "_owner", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -217,23 +111,11 @@
     "type": "function",
     "name": "claimableCancelDepositRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
+      { "name": "assets", "type": "uint256", "internalType": "TRANCHE_UNIT" }
     ],
     "stateMutability": "view"
   },
@@ -241,23 +123,11 @@
     "type": "function",
     "name": "claimableCancelRedeemRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
     ],
     "stateMutability": "view"
   },
@@ -265,16 +135,8 @@
     "type": "function",
     "name": "claimableDepositRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
       {
@@ -289,16 +151,8 @@
     "type": "function",
     "name": "claimableRedeemRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
       {
@@ -313,11 +167,7 @@
     "type": "function",
     "name": "convertToAssets",
     "inputs": [
-      {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "_shares", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [
       {
@@ -335,11 +185,7 @@
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
+          { "name": "nav", "type": "uint256", "internalType": "NAV_UNIT" }
         ]
       }
     ],
@@ -349,18 +195,10 @@
     "type": "function",
     "name": "convertToShares",
     "inputs": [
-      {
-        "name": "_assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
+      { "name": "_assets", "type": "uint256", "internalType": "TRANCHE_UNIT" }
     ],
     "outputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
     ],
     "stateMutability": "view"
   },
@@ -368,13 +206,7 @@
     "type": "function",
     "name": "decimals",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
     "stateMutability": "view"
   },
   {
@@ -386,23 +218,12 @@
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       },
-      {
-        "name": "_receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_receiver", "type": "address", "internalType": "address" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "metadata", "type": "bytes", "internalType": "bytes" }
     ],
     "stateMutability": "nonpayable"
   },
@@ -411,36 +232,16 @@
     "name": "eip712Domain",
     "inputs": [],
     "outputs": [
-      {
-        "name": "fields",
-        "type": "bytes1",
-        "internalType": "bytes1"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "version",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "chainId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
+      { "name": "fields", "type": "bytes1", "internalType": "bytes1" },
+      { "name": "name", "type": "string", "internalType": "string" },
+      { "name": "version", "type": "string", "internalType": "string" },
+      { "name": "chainId", "type": "uint256", "internalType": "uint256" },
       {
         "name": "verifyingContract",
         "type": "address",
         "internalType": "address"
       },
-      {
-        "name": "salt",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
+      { "name": "salt", "type": "bytes32", "internalType": "bytes32" },
       {
         "name": "extensions",
         "type": "uint256[]",
@@ -454,11 +255,7 @@
     "name": "getRawNAV",
     "inputs": [],
     "outputs": [
-      {
-        "name": "nav",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
+      { "name": "nav", "type": "uint256", "internalType": "NAV_UNIT" }
     ],
     "stateMutability": "view"
   },
@@ -466,81 +263,41 @@
     "type": "function",
     "name": "isConsumingScheduledOp",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bytes4", "internalType": "bytes4" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "isOperator",
     "inputs": [
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_operator",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_controller", "type": "address", "internalType": "address" },
+      { "name": "_operator", "type": "address", "internalType": "address" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "kernel",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "marketId",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "maxDeposit",
     "inputs": [
-      {
-        "name": "_receiver",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_receiver", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
+      { "name": "assets", "type": "uint256", "internalType": "TRANCHE_UNIT" }
     ],
     "stateMutability": "view"
   },
@@ -548,18 +305,10 @@
     "type": "function",
     "name": "maxRedeem",
     "inputs": [
-      {
-        "name": "_owner",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_owner", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
     ],
     "stateMutability": "view"
   },
@@ -601,32 +350,16 @@
     "type": "function",
     "name": "name",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "nonces",
     "inputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "owner", "type": "address", "internalType": "address" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -640,36 +373,18 @@
     "type": "function",
     "name": "paused",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "pendingCancelDepositRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "isPending",
-        "type": "bool",
-        "internalType": "bool"
-      }
+      { "name": "isPending", "type": "bool", "internalType": "bool" }
     ],
     "stateMutability": "view"
   },
@@ -677,23 +392,11 @@
     "type": "function",
     "name": "pendingCancelRedeemRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "isPending",
-        "type": "bool",
-        "internalType": "bool"
-      }
+      { "name": "isPending", "type": "bool", "internalType": "bool" }
     ],
     "stateMutability": "view"
   },
@@ -701,16 +404,8 @@
     "type": "function",
     "name": "pendingDepositRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
       {
@@ -725,16 +420,8 @@
     "type": "function",
     "name": "pendingRedeemRequest",
     "inputs": [
-      {
-        "name": "_requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
       {
@@ -749,41 +436,13 @@
     "type": "function",
     "name": "permit",
     "inputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "v",
-        "type": "uint8",
-        "internalType": "uint8"
-      },
-      {
-        "name": "r",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+      { "name": "owner", "type": "address", "internalType": "address" },
+      { "name": "spender", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" },
+      { "name": "deadline", "type": "uint256", "internalType": "uint256" },
+      { "name": "v", "type": "uint8", "internalType": "uint8" },
+      { "name": "r", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "s", "type": "bytes32", "internalType": "bytes32" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -792,18 +451,10 @@
     "type": "function",
     "name": "previewDeposit",
     "inputs": [
-      {
-        "name": "_assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
+      { "name": "_assets", "type": "uint256", "internalType": "TRANCHE_UNIT" }
     ],
     "outputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "shares", "type": "uint256", "internalType": "uint256" }
     ],
     "stateMutability": "view"
   },
@@ -840,11 +491,7 @@
     "type": "function",
     "name": "previewRedeem",
     "inputs": [
-      {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "_shares", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [
       {
@@ -862,11 +509,7 @@
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
+          { "name": "nav", "type": "uint256", "internalType": "NAV_UNIT" }
         ]
       }
     ],
@@ -876,34 +519,16 @@
     "type": "function",
     "name": "proxiableUUID",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "redeem",
     "inputs": [
-      {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "_receiver", "type": "address", "internalType": "address" },
+      { "name": "_controller", "type": "address", "internalType": "address" }
     ],
     "outputs": [
       {
@@ -921,13 +546,10 @@
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
+          { "name": "nav", "type": "uint256", "internalType": "NAV_UNIT" }
         ]
-      }
+      },
+      { "name": "metadata", "type": "bytes", "internalType": "bytes" }
     ],
     "stateMutability": "nonpayable"
   },
@@ -940,23 +562,12 @@
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_owner",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_controller", "type": "address", "internalType": "address" },
+      { "name": "_owner", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "metadata", "type": "bytes", "internalType": "bytes" }
     ],
     "stateMutability": "nonpayable"
   },
@@ -964,28 +575,13 @@
     "type": "function",
     "name": "requestRedeem",
     "inputs": [
-      {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_controller",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_owner",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "_shares", "type": "uint256", "internalType": "uint256" },
+      { "name": "_controller", "type": "address", "internalType": "address" },
+      { "name": "_owner", "type": "address", "internalType": "address" }
     ],
     "outputs": [
-      {
-        "name": "requestId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "requestId", "type": "uint256", "internalType": "uint256" },
+      { "name": "metadata", "type": "bytes", "internalType": "bytes" }
     ],
     "stateMutability": "nonpayable"
   },
@@ -993,11 +589,7 @@
     "type": "function",
     "name": "setAuthority",
     "inputs": [
-      {
-        "name": "newAuthority",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "newAuthority", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -1006,56 +598,26 @@
     "type": "function",
     "name": "setOperator",
     "inputs": [
-      {
-        "name": "_operator",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_approved",
-        "type": "bool",
-        "internalType": "bool"
-      }
+      { "name": "_operator", "type": "address", "internalType": "address" },
+      { "name": "_approved", "type": "bool", "internalType": "bool" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "supportsInterface",
     "inputs": [
-      {
-        "name": "_interfaceId",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
+      { "name": "_interfaceId", "type": "bytes4", "internalType": "bytes4" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "pure"
   },
   {
     "type": "function",
     "name": "symbol",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
     "stateMutability": "view"
   },
   {
@@ -1078,11 +640,7 @@
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
+          { "name": "nav", "type": "uint256", "internalType": "NAV_UNIT" }
         ]
       }
     ],
@@ -1092,66 +650,28 @@
     "type": "function",
     "name": "totalSupply",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "transfer",
     "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "to", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "transferFrom",
     "inputs": [
-      {
-        "name": "from",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "from", "type": "address", "internalType": "address" },
+      { "name": "to", "type": "address", "internalType": "address" },
+      { "name": "value", "type": "uint256", "internalType": "uint256" }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "nonpayable"
   },
   {
@@ -1170,11 +690,7 @@
         "type": "address",
         "internalType": "address"
       },
-      {
-        "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+      { "name": "data", "type": "bytes", "internalType": "bytes" }
     ],
     "outputs": [],
     "stateMutability": "payable"
@@ -1368,6 +884,12 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "metadata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -1405,6 +927,12 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "TRANCHE_UNIT"
+      },
+      {
+        "name": "metadata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -1523,11 +1051,7 @@
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
+          { "name": "nav", "type": "uint256", "internalType": "NAV_UNIT" }
         ]
       },
       {
@@ -1535,6 +1059,12 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "metadata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -1572,6 +1102,12 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "metadata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -1631,82 +1167,44 @@
     "type": "error",
     "name": "AccessManagedInvalidAuthority",
     "inputs": [
-      {
-        "name": "authority",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "authority", "type": "address", "internalType": "address" }
     ]
   },
   {
     "type": "error",
     "name": "AccessManagedRequiredDelay",
     "inputs": [
-      {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "delay",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
+      { "name": "caller", "type": "address", "internalType": "address" },
+      { "name": "delay", "type": "uint32", "internalType": "uint32" }
     ]
   },
   {
     "type": "error",
     "name": "AccessManagedUnauthorized",
     "inputs": [
-      {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "caller", "type": "address", "internalType": "address" }
     ]
   },
   {
     "type": "error",
     "name": "AddressEmptyCode",
     "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "target", "type": "address", "internalType": "address" }
     ]
   },
-  {
-    "type": "error",
-    "name": "DISABLED",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ECDSAInvalidSignature",
-    "inputs": []
-  },
+  { "type": "error", "name": "DISABLED", "inputs": [] },
+  { "type": "error", "name": "ECDSAInvalidSignature", "inputs": [] },
   {
     "type": "error",
     "name": "ECDSAInvalidSignatureLength",
     "inputs": [
-      {
-        "name": "length",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "length", "type": "uint256", "internalType": "uint256" }
     ]
   },
   {
     "type": "error",
     "name": "ECDSAInvalidSignatureS",
-    "inputs": [
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+    "inputs": [{ "name": "s", "type": "bytes32", "internalType": "bytes32" }]
   },
   {
     "type": "error",
@@ -1719,220 +1217,98 @@
       }
     ]
   },
-  {
-    "type": "error",
-    "name": "ERC1967NonPayable",
-    "inputs": []
-  },
+  { "type": "error", "name": "ERC1967NonPayable", "inputs": [] },
   {
     "type": "error",
     "name": "ERC20InsufficientAllowance",
     "inputs": [
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "allowance",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "needed",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "spender", "type": "address", "internalType": "address" },
+      { "name": "allowance", "type": "uint256", "internalType": "uint256" },
+      { "name": "needed", "type": "uint256", "internalType": "uint256" }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InsufficientBalance",
     "inputs": [
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "balance",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "needed",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "sender", "type": "address", "internalType": "address" },
+      { "name": "balance", "type": "uint256", "internalType": "uint256" },
+      { "name": "needed", "type": "uint256", "internalType": "uint256" }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidApprover",
     "inputs": [
-      {
-        "name": "approver",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "approver", "type": "address", "internalType": "address" }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidReceiver",
     "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "receiver", "type": "address", "internalType": "address" }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidSender",
     "inputs": [
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "sender", "type": "address", "internalType": "address" }
     ]
   },
   {
     "type": "error",
     "name": "ERC20InvalidSpender",
     "inputs": [
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "spender", "type": "address", "internalType": "address" }
     ]
   },
   {
     "type": "error",
     "name": "ERC2612ExpiredSignature",
     "inputs": [
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "deadline", "type": "uint256", "internalType": "uint256" }
     ]
   },
   {
     "type": "error",
     "name": "ERC2612InvalidSigner",
     "inputs": [
-      {
-        "name": "signer",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "signer", "type": "address", "internalType": "address" },
+      { "name": "owner", "type": "address", "internalType": "address" }
     ]
   },
-  {
-    "type": "error",
-    "name": "EnforcedPause",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ExpectedPause",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "FailedCall",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "INVALID_VALUE_ALLOCATED",
-    "inputs": []
-  },
+  { "type": "error", "name": "EnforcedPause", "inputs": [] },
+  { "type": "error", "name": "ExpectedPause", "inputs": [] },
+  { "type": "error", "name": "FailedCall", "inputs": [] },
+  { "type": "error", "name": "INVALID_VALUE_ALLOCATED", "inputs": [] },
   {
     "type": "error",
     "name": "InvalidAccountNonce",
     "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "currentNonce",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+      { "name": "account", "type": "address", "internalType": "address" },
+      { "name": "currentNonce", "type": "uint256", "internalType": "uint256" }
     ]
   },
-  {
-    "type": "error",
-    "name": "InvalidInitialization",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MUST_CLAIM_NON_ZERO_SHARES",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MUST_DEPOSIT_NON_ZERO_ASSETS",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MUST_REQUEST_NON_ZERO_SHARES",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotInitializing",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ONLY_CALLER_OR_OPERATOR",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ONLY_KERNEL",
-    "inputs": []
-  },
+  { "type": "error", "name": "InvalidInitialization", "inputs": [] },
+  { "type": "error", "name": "MUST_CLAIM_NON_ZERO_SHARES", "inputs": [] },
+  { "type": "error", "name": "MUST_DEPOSIT_NON_ZERO_ASSETS", "inputs": [] },
+  { "type": "error", "name": "MUST_REQUEST_NON_ZERO_SHARES", "inputs": [] },
+  { "type": "error", "name": "NotInitializing", "inputs": [] },
+  { "type": "error", "name": "ONLY_CALLER_OR_OPERATOR", "inputs": [] },
+  { "type": "error", "name": "ONLY_KERNEL", "inputs": [] },
   {
     "type": "error",
     "name": "SafeERC20FailedOperation",
     "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "name": "token", "type": "address", "internalType": "address" }
     ]
   },
-  {
-    "type": "error",
-    "name": "UUPSUnauthorizedCallContext",
-    "inputs": []
-  },
+  { "type": "error", "name": "UUPSUnauthorizedCallContext", "inputs": [] },
   {
     "type": "error",
     "name": "UUPSUnsupportedProxiableUUID",
-    "inputs": [
-      {
-        "name": "slot",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+    "inputs": [{ "name": "slot", "type": "bytes32", "internalType": "bytes32" }]
   }
 ]

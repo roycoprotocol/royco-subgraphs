@@ -2,8 +2,7 @@
 
 # Array of networks
 networks=(
-    "sepolia"
-    # "mainnet"
+    "mainnet"
 )
 
 # Function to delete pipeline with confirmation

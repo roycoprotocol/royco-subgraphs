@@ -1,7 +1,12 @@
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { GlobalTokenTransfer, VaultState } from "../../../generated/schema";
 import { CATEGORY_ASSETS, CATEGORY_SHARES, CHAIN_ID } from "../../constants";
-import { generateId, generateTokenId, generateVaultId } from "../../utils";
+import {
+  generateId,
+  generateTokenId,
+  generateTransferId,
+  generateVaultId,
+} from "../../utils";
 import { BaseVault } from "../../../generated/Vault/BaseVault";
 
 export function processGlobalTokenTransfer(
@@ -17,7 +22,9 @@ export function processGlobalTokenTransfer(
   logIndex: BigInt,
   save: boolean
 ): GlobalTokenTransfer {
-  let entity = new GlobalTokenTransfer(generateId(transactionHash, logIndex));
+  let entity = new GlobalTokenTransfer(
+    generateTransferId(transactionHash, logIndex, vaultAddress)
+  );
   entity.vaultId = generateVaultId(vaultAddress);
   entity.chainId = CHAIN_ID;
   entity.vaultAddress = vaultAddress;

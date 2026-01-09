@@ -7,6 +7,55 @@ dataSources:
     name: Vault
     network: mainnet
     source:
+      address: "0xcd9f5907f92818bc06c9ad70217f089e190d2a32"
+      abi: AsyncVaultConcrete
+      startBlock: 24176149
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - Deposit
+        - Withdraw
+        - QueuedWithdrawal
+        - RequestCancelled
+        - RequestMovedToNextEpoch
+        - EpochClosed
+        - EpochProcessed
+        - RequestClaimed
+        - RoleGranted
+      abis:
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+        - name: AsyncVaultConcrete
+          file: ./abis/AsyncVaultConcrete.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+        - event: QueuedWithdrawal(indexed address,indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleQueuedWithdrawal
+        - event: RequestCancelled(indexed address,uint256,uint256)
+          handler: handleRequestCancelled
+        - event: RequestMovedToNextEpoch(indexed address,uint256,uint256,uint256)
+          handler: handleRequestMovedToNextEpoch
+        - event: EpochClosed(uint256)
+          handler: handleEpochClosed
+        - event: EpochProcessed(uint256,uint256,uint256,uint256)
+          handler: handleEpochProcessed
+        - event: RequestClaimed(indexed address,uint256,uint256[])
+          handler: handleRequestClaimed
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+      file: ./src/concrete-async-vault.ts
+  - kind: ethereum
+    name: Vaultt0
+    network: mainnet
+    source:
       address: "0x250aa9fa13aa01e6a578bd0f8a3591b408f325c4"
       abi: AsyncVaultConcrete
       startBlock: 24033299
@@ -53,7 +102,7 @@ dataSources:
           handler: handleRoleGranted
       file: ./src/concrete-async-vault.ts
   - kind: ethereum
-    name: Vaulte1
+    name: Vaultt1
     network: mainnet
     source:
       address: "0xcae5ec4af7cbca36bde9d4ba91bdc4f394db76f0"

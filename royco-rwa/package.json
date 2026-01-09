@@ -9,6 +9,7 @@
     "remove-local": "graph remove --node http://localhost:8020/ royco-rwa",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 royco-rwa",
     "test": "graph test",
+    "test:prepare:markets": "mustache config/markets/networks/mainnet.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/mainnet.json config/markets/constants.template.ts > src/constants/static.ts && mustache config/markets/metadata.json config/markets/pipeline.template.yaml > pipeline.yaml",
     "deploy:subgraphs:markets": "bash ./scripts/markets/deploy-subgraphs.sh",
     "deploy:pipeline:markets": "bash ./scripts/markets/deploy-pipeline.sh",
     "delete:subgraphs:markets": "bash ./scripts/markets/delete-subgraphs.sh",

@@ -15,6 +15,7 @@ import {
   SUB_CATEGORY_TRANSFER_OUT,
   SUB_CATEGORY_WITHDRAW,
   UPDATE_TYPE_MULTIPLIER,
+  VAULT_CATEGORY_MARKET,
   ZERO_ADDRESS,
 } from "./constants";
 import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
@@ -73,23 +74,18 @@ export function handleTransfer(event: TransferEvent): void {
     const decimals = contract.decimals();
     vaultState.decimals = decimals;
 
-    if (VAULT_MAJOR_TYPE.length > 0) {
-      vaultState.majorType = VAULT_MAJOR_TYPE;
-    }
+    vaultState.majorType = VAULT_MAJOR_TYPE;
+    vaultState.minorType = VAULT_MINOR_TYPE;
 
-    if (VAULT_MINOR_TYPE.length > 0) {
-      vaultState.minorType = VAULT_MINOR_TYPE;
-    }
-
-    const marketVault = MarketVaultMap.load(transfer.vaultId);
-    if (marketVault) {
-      vaultState.marketRefId = marketVault.marketRefId;
-      vaultState.marketId = marketVault.marketId;
-      vaultState.majorType = marketVault.majorType;
-      vaultState.minorType = marketVault.minorType;
-      vaultState.partnerVaultId = marketVault.partnerVaultId;
-      vaultState.partnerVaultAddress = marketVault.partnerVaultAddress;
-    }
+    // const marketVault = MarketVaultMap.load(transfer.vaultId);
+    // if (marketVault) {
+    //   vaultState.marketRefId = marketVault.marketRefId;
+    //   vaultState.marketId = marketVault.marketId;
+    //   vaultState.majorType = marketVault.majorType;
+    //   vaultState.minorType = marketVault.minorType;
+    //   vaultState.partnerVaultId = marketVault.partnerVaultId;
+    //   vaultState.partnerVaultAddress = marketVault.partnerVaultAddress;
+    // }
 
     vaultState.transfers = BigInt.fromI32(0);
     vaultState.totalSupply = BigInt.fromI32(0);
@@ -178,7 +174,7 @@ export function handleDeposit(event: DepositEvent): void {
     event.address.toHexString(),
     CATEGORY_ASSETS,
     SUB_CATEGORY_DEPOSIT,
-    event.params.owner.toHexString(),
+    event.params.sender.toHexString(),
     event.address.toHexString(),
     event.params.assets,
     event.block.number,
@@ -197,7 +193,7 @@ export function handleWithdraw(event: WithdrawEvent): void {
     CATEGORY_ASSETS,
     SUB_CATEGORY_WITHDRAW,
     event.address.toHexString(),
-    event.params.owner.toHexString(),
+    event.params.receiver.toHexString(),
     event.params.assets,
     event.block.number,
     event.block.timestamp,

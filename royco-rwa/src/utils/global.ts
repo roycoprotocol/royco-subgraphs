@@ -9,6 +9,20 @@ export function generateId(transactionHash: string, logIndex: BigInt): string {
     .concat(logIndex.toString());
 }
 
+export function generateTransferId(
+  transactionHash: string,
+  logIndex: BigInt,
+  vaultAddress: string
+): string {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(transactionHash)
+    .concat("_")
+    .concat(logIndex.toString())
+    .concat("_")
+    .concat(vaultAddress);
+}
+
 export const generateVaultId = (vaultAddress: string): string => {
   return CHAIN_ID.toString().concat("_").concat(vaultAddress);
 };
