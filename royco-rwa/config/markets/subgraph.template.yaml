@@ -50,9 +50,9 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-        - event: Deposit(indexed address,indexed address,uint256,uint256,bytes)
+        - event: Deposit(indexed address,indexed address,uint256,uint256,uint256,bytes)
           handler: handleDeposit
-        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256,bytes)
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256,uint256,bytes)
           handler: handleRedeem
         - event: RedeemRequest(indexed address,indexed address,indexed uint256,address,uint256,bytes)
           handler: handleRedeemRequest
@@ -60,4 +60,6 @@ templates:
           handler: handleCancelRedeemRequest
         - event: CancelRedeemClaim(indexed address,indexed address,indexed uint256,address,uint256)
           handler: handleCancelRedeemClaim
+        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
+          handler: handleProtocolFeeSharesMinted
       file: ./src/royco-vault-tranche.ts

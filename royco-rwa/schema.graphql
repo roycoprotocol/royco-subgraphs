@@ -241,6 +241,53 @@ type MetricHistorical @entity(immutable: true) {
 
 # xxx METRICS xxx
 
+# === FEES ===
+
+type FeeState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  majorType: String! # Major Type ("management", "performance", "protocol")
+  minorType: String! # Minor Type ("shares", "assets")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  value: BigInt! # Value of Fee
+  rawAmount: BigInt # Raw Amount (computed off-chain)
+  tokenAmount: BigInt # Token Amount (computed off-chain)
+  tokenAmountUsd: BigInt # Token Amount in USD (computed off-chain)
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+type FeeHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  majorType: String! # Major Type ("management", "performance", "protocol")
+  minorType: String! # Minor Type ("shares", "assets")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  value: BigInt! # Value of Fee
+  rawAmount: BigInt # Raw Amount (computed off-chain)
+  tokenAmount: BigInt # Token Amount (computed off-chain)
+  tokenAmountUsd: BigInt # Token Amount in USD (computed off-chain)
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+}
+
+# xxx FEES xxx
+
 # === CONCRETE WITHDRAWAL ===
 
 type ConcreteEpoch @entity(immutable: false) {

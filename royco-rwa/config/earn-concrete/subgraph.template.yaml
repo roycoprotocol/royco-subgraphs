@@ -52,6 +52,10 @@ dataSources:
           handler: handleRequestClaimed
         - event: RoleGranted(indexed bytes32,indexed address,indexed address)
           handler: handleRoleGranted
+        - event: ManagementFeeAccrued(indexed address,uint256,uint256)
+          handler: handleManagementFeeAccrued
+        - event: PerformanceFeeAccrued(indexed address,uint256,uint256)
+          handler: handlePerformanceFeeAccrued
       file: ./src/concrete-async-vault.ts
 {{/asyncVaults}}
 {{#standardVaults}}

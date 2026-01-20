@@ -46,3 +46,12 @@ export const VAULT_SUB_CATEGORY_JUNIOR = "junior";
 // === ACTIVITY TYPES ===
 export const ACTIVITY_TYPE_TRANSFER = "transfer";
 export const ACTIVITY_TYPE_REQUEST = "request";
+
+// === FEES ===
+export const FEES_MAJOR_TYPE_MANAGEMENT = "management";
+export const FEES_MAJOR_TYPE_PERFORMANCE = "performance";
+export const FEES_MAJOR_TYPE_PROTOCOL = "protocol";
+
+// === FEES MINOR TYPES ===
+export const FEES_MINOR_TYPE_SHARES = "shares";
+export const FEES_MINOR_TYPE_ASSETS = "assets";

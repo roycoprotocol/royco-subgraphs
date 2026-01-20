@@ -142,3 +142,39 @@ export const generateGlobalTokenActivityId = (
     .concat("_")
     .concat(tokenIndex.toString());
 };
+
+export const generateFeeStateId = (
+  vaultAddress: string,
+  accountAddress: string,
+  majorType: string,
+  minorType: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(accountAddress)
+    .concat("_")
+    .concat(majorType)
+    .concat("_")
+    .concat(minorType);
+};
+
+export const generateFeeHistoricalId = (
+  transactionHash: string,
+  logIndex: BigInt,
+  vaultAddress: string,
+  accountAddress: string,
+  majorType: string,
+  minorType: string
+): string => {
+  return generateId(transactionHash, logIndex)
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(accountAddress)
+    .concat("_")
+    .concat(majorType)
+    .concat("_")
+    .concat(minorType);
+};
