@@ -1,1230 +1,1252 @@
 [
   {
-    "type": "constructor",
     "inputs": [
-      {
-        "name": "_initialAdmin",
-        "type": "address",
-        "internalType": "address"
-      }
+      { "internalType": "address", "name": "_admin", "type": "address" },
+      { "internalType": "address", "name": "_deployer", "type": "address" }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    "type": "function",
-    "name": "ADMIN_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "CANCEL_DEPOSIT_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "CANCEL_REDEEM_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "DEPOSIT_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "KERNEL_ADMIN_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "PAUSER_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "PUBLIC_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "REDEEM_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "SYNC_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "UPGRADER_ROLE",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "canCall",
     "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "selector", "type": "bytes4", "internalType": "bytes4" }
+      { "internalType": "bytes32", "name": "operationId", "type": "bytes32" }
     ],
-    "outputs": [
-      { "name": "immediate", "type": "bool", "internalType": "bool" },
-      { "name": "delay", "type": "uint32", "internalType": "uint32" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "cancel",
-    "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "data", "type": "bytes", "internalType": "bytes" }
-    ],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "consumeScheduledOp",
-    "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "data", "type": "bytes", "internalType": "bytes" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "deployMarket",
-    "inputs": [
-      {
-        "name": "_params",
-        "type": "tuple",
-        "internalType": "struct MarketDeploymentParams",
-        "components": [
-          {
-            "name": "seniorTrancheName",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "seniorTrancheSymbol",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "juniorTrancheName",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "juniorTrancheSymbol",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "seniorAsset",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "juniorAsset",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "marketId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "seniorTrancheImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "juniorTrancheImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "kernelImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoKernel"
-          },
-          {
-            "name": "accountantImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoAccountant"
-          },
-          {
-            "name": "seniorTrancheInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "juniorTrancheInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "kernelInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "accountantInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "seniorTrancheProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "juniorTrancheProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "kernelProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "accountantProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "roles",
-            "type": "tuple[]",
-            "internalType": "struct RolesConfiguration[]",
-            "components": [
-              {
-                "name": "target",
-                "type": "address",
-                "internalType": "address"
-              },
-              {
-                "name": "selectors",
-                "type": "bytes4[]",
-                "internalType": "bytes4[]"
-              },
-              {
-                "name": "roles",
-                "type": "uint64[]",
-                "internalType": "uint64[]"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "outputs": [
-      {
-        "name": "deployedContracts",
-        "type": "tuple",
-        "internalType": "struct DeployedContracts",
-        "components": [
-          {
-            "name": "seniorTranche",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "juniorTranche",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "accountant",
-            "type": "address",
-            "internalType": "contract IRoycoAccountant"
-          },
-          {
-            "name": "kernel",
-            "type": "address",
-            "internalType": "contract IRoycoKernel"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "execute",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "data", "type": "bytes", "internalType": "bytes" }
-    ],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "expiration",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getAccess",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "account", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [
-      { "name": "since", "type": "uint48", "internalType": "uint48" },
-      { "name": "currentDelay", "type": "uint32", "internalType": "uint32" },
-      { "name": "pendingDelay", "type": "uint32", "internalType": "uint32" },
-      { "name": "effect", "type": "uint48", "internalType": "uint48" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getNonce",
-    "inputs": [{ "name": "id", "type": "bytes32", "internalType": "bytes32" }],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getRoleAdmin",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" }
-    ],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getRoleGrantDelay",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" }
-    ],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getRoleGuardian",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" }
-    ],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getSchedule",
-    "inputs": [{ "name": "id", "type": "bytes32", "internalType": "bytes32" }],
-    "outputs": [{ "name": "", "type": "uint48", "internalType": "uint48" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getTargetAdminDelay",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getTargetFunctionRole",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "selector", "type": "bytes4", "internalType": "bytes4" }
-    ],
-    "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "grantRole",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "account", "type": "address", "internalType": "address" },
-      { "name": "executionDelay", "type": "uint32", "internalType": "uint32" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "hasRole",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "account", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [
-      { "name": "isMember", "type": "bool", "internalType": "bool" },
-      { "name": "executionDelay", "type": "uint32", "internalType": "uint32" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "hashOperation",
-    "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "data", "type": "bytes", "internalType": "bytes" }
-    ],
-    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isTargetClosed",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "labelRole",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "label", "type": "string", "internalType": "string" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "minSetback",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "multicall",
-    "inputs": [
-      { "name": "data", "type": "bytes[]", "internalType": "bytes[]" }
-    ],
-    "outputs": [
-      { "name": "results", "type": "bytes[]", "internalType": "bytes[]" }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "predictERC1967ProxyAddress",
-    "inputs": [
-      {
-        "name": "_implementation",
-        "type": "address",
-        "internalType": "address"
-      },
-      { "name": "_salt", "type": "bytes32", "internalType": "bytes32" }
-    ],
-    "outputs": [
-      { "name": "proxy", "type": "address", "internalType": "address" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "renounceRole",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      {
-        "name": "callerConfirmation",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "revokeRole",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "account", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "schedule",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "data", "type": "bytes", "internalType": "bytes" },
-      { "name": "when", "type": "uint48", "internalType": "uint48" }
-    ],
-    "outputs": [
-      { "name": "operationId", "type": "bytes32", "internalType": "bytes32" },
-      { "name": "nonce", "type": "uint32", "internalType": "uint32" }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setGrantDelay",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "newDelay", "type": "uint32", "internalType": "uint32" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setRoleAdmin",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "admin", "type": "uint64", "internalType": "uint64" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setRoleGuardian",
-    "inputs": [
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" },
-      { "name": "guardian", "type": "uint64", "internalType": "uint64" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setTargetAdminDelay",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "newDelay", "type": "uint32", "internalType": "uint32" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setTargetClosed",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "closed", "type": "bool", "internalType": "bool" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setTargetFunctionRole",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "selectors", "type": "bytes4[]", "internalType": "bytes4[]" },
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "updateAuthority",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "newAuthority", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "event",
-    "name": "MarketDeployed",
-    "inputs": [
-      {
-        "name": "deployedContracts",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct DeployedContracts",
-        "components": [
-          {
-            "name": "seniorTranche",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "juniorTranche",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "accountant",
-            "type": "address",
-            "internalType": "contract IRoycoAccountant"
-          },
-          {
-            "name": "kernel",
-            "type": "address",
-            "internalType": "contract IRoycoKernel"
-          }
-        ]
-      },
-      {
-        "name": "params",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct MarketDeploymentParams",
-        "components": [
-          {
-            "name": "seniorTrancheName",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "seniorTrancheSymbol",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "juniorTrancheName",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "juniorTrancheSymbol",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "seniorAsset",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "juniorAsset",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "marketId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "seniorTrancheImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "juniorTrancheImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoVaultTranche"
-          },
-          {
-            "name": "kernelImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoKernel"
-          },
-          {
-            "name": "accountantImplementation",
-            "type": "address",
-            "internalType": "contract IRoycoAccountant"
-          },
-          {
-            "name": "seniorTrancheInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "juniorTrancheInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "kernelInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "accountantInitializationData",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "seniorTrancheProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "juniorTrancheProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "kernelProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "accountantProxyDeploymentSalt",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "roles",
-            "type": "tuple[]",
-            "internalType": "struct RolesConfiguration[]",
-            "components": [
-              {
-                "name": "target",
-                "type": "address",
-                "internalType": "address"
-              },
-              {
-                "name": "selectors",
-                "type": "bytes4[]",
-                "internalType": "bytes4[]"
-              },
-              {
-                "name": "roles",
-                "type": "uint64[]",
-                "internalType": "uint64[]"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OperationCanceled",
-    "inputs": [
-      {
-        "name": "operationId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "nonce",
-        "type": "uint32",
-        "indexed": true,
-        "internalType": "uint32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OperationExecuted",
-    "inputs": [
-      {
-        "name": "operationId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "nonce",
-        "type": "uint32",
-        "indexed": true,
-        "internalType": "uint32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OperationScheduled",
-    "inputs": [
-      {
-        "name": "operationId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "nonce",
-        "type": "uint32",
-        "indexed": true,
-        "internalType": "uint32"
-      },
-      {
-        "name": "schedule",
-        "type": "uint48",
-        "indexed": false,
-        "internalType": "uint48"
-      },
-      {
-        "name": "caller",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "target",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "data",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleAdminChanged",
-    "inputs": [
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "admin",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleDelaySet",
-    "inputs": [
-      {
-        "name": "role",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      },
-      {
-        "name": "delay",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleGrantDelayChanged",
-    "inputs": [
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "delay",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      },
-      {
-        "name": "since",
-        "type": "uint48",
-        "indexed": false,
-        "internalType": "uint48"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleGranted",
-    "inputs": [
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "account",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "delay",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      },
-      {
-        "name": "since",
-        "type": "uint48",
-        "indexed": false,
-        "internalType": "uint48"
-      },
-      {
-        "name": "newMember",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleGuardianChanged",
-    "inputs": [
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "guardian",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleLabel",
-    "inputs": [
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "label",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoleRevoked",
-    "inputs": [
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "account",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TargetAdminDelayUpdated",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "delay",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      },
-      {
-        "name": "since",
-        "type": "uint48",
-        "indexed": false,
-        "internalType": "uint48"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TargetClosed",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "closed",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TargetFunctionRoleUpdated",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "selector",
-        "type": "bytes4",
-        "indexed": false,
-        "internalType": "bytes4"
-      },
-      {
-        "name": "roleId",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "error",
     "name": "AccessManagerAlreadyScheduled",
-    "inputs": [
-      { "name": "operationId", "type": "bytes32", "internalType": "bytes32" }
-    ]
+    "type": "error"
   },
-  { "type": "error", "name": "AccessManagerBadConfirmation", "inputs": [] },
+  { "inputs": [], "name": "AccessManagerBadConfirmation", "type": "error" },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "bytes32", "name": "operationId", "type": "bytes32" }
+    ],
     "name": "AccessManagerExpired",
-    "inputs": [
-      { "name": "operationId", "type": "bytes32", "internalType": "bytes32" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "initialAdmin", "type": "address" }
+    ],
     "name": "AccessManagerInvalidInitialAdmin",
-    "inputs": [
-      { "name": "initialAdmin", "type": "address", "internalType": "address" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" }
+    ],
     "name": "AccessManagerLockedRole",
-    "inputs": [{ "name": "roleId", "type": "uint64", "internalType": "uint64" }]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "bytes32", "name": "operationId", "type": "bytes32" }
+    ],
     "name": "AccessManagerNotReady",
-    "inputs": [
-      { "name": "operationId", "type": "bytes32", "internalType": "bytes32" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "bytes32", "name": "operationId", "type": "bytes32" }
+    ],
     "name": "AccessManagerNotScheduled",
-    "inputs": [
-      { "name": "operationId", "type": "bytes32", "internalType": "bytes32" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "msgsender", "type": "address" },
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" }
+    ],
     "name": "AccessManagerUnauthorizedAccount",
-    "inputs": [
-      { "name": "msgsender", "type": "address", "internalType": "address" },
-      { "name": "roleId", "type": "uint64", "internalType": "uint64" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes4", "name": "selector", "type": "bytes4" }
+    ],
     "name": "AccessManagerUnauthorizedCall",
-    "inputs": [
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "selector", "type": "bytes4", "internalType": "bytes4" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "msgsender", "type": "address" },
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes4", "name": "selector", "type": "bytes4" }
+    ],
     "name": "AccessManagerUnauthorizedCancel",
-    "inputs": [
-      { "name": "msgsender", "type": "address", "internalType": "address" },
-      { "name": "caller", "type": "address", "internalType": "address" },
-      { "name": "target", "type": "address", "internalType": "address" },
-      { "name": "selector", "type": "bytes4", "internalType": "bytes4" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" }
+    ],
     "name": "AccessManagerUnauthorizedConsume",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" }
+    ],
     "name": "AddressEmptyCode",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" }
-    ]
+    "type": "error"
   },
-  { "type": "error", "name": "Create2EmptyBytecode", "inputs": [] },
+  { "inputs": [], "name": "Create2EmptyBytecode", "type": "error" },
   {
-    "type": "error",
+    "inputs": [{ "internalType": "bytes", "name": "data", "type": "bytes" }],
     "name": "FAILED_TO_INITIALIZE_ACCOUNTANT",
-    "inputs": [{ "name": "data", "type": "bytes", "internalType": "bytes" }]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [{ "internalType": "bytes", "name": "data", "type": "bytes" }],
     "name": "FAILED_TO_INITIALIZE_JUNIOR_TRANCHE",
-    "inputs": [{ "name": "data", "type": "bytes", "internalType": "bytes" }]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [{ "internalType": "bytes", "name": "data", "type": "bytes" }],
     "name": "FAILED_TO_INITIALIZE_KERNEL",
-    "inputs": [{ "name": "data", "type": "bytes", "internalType": "bytes" }]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [{ "internalType": "bytes", "name": "data", "type": "bytes" }],
     "name": "FAILED_TO_INITIALIZE_SENIOR_TRANCHE",
-    "inputs": [{ "name": "data", "type": "bytes", "internalType": "bytes" }]
+    "type": "error"
   },
-  { "type": "error", "name": "FailedCall", "inputs": [] },
-  { "type": "error", "name": "FailedDeployment", "inputs": [] },
-  { "type": "error", "name": "INVALID_ACCESS_MANAGER", "inputs": [] },
+  { "inputs": [], "name": "FailedCall", "type": "error" },
+  { "inputs": [], "name": "FailedDeployment", "type": "error" },
+  { "inputs": [], "name": "INVALID_ACCESS_MANAGER", "type": "error" },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_ACCOUNTANT_IMPLEMENTATION",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_ACCOUNTANT_INITIALIZATION_DATA",
-    "inputs": []
+    "type": "error"
   },
-  { "type": "error", "name": "INVALID_ACCOUNTANT_ON_KERNEL", "inputs": [] },
+  { "inputs": [], "name": "INVALID_ACCOUNTANT_ON_KERNEL", "type": "error" },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_ACCOUNTANT_PROXY_DEPLOYMENT_SALT",
-    "inputs": []
+    "type": "error"
   },
-  { "type": "error", "name": "INVALID_ASSET", "inputs": [] },
+  { "inputs": [], "name": "INVALID_ASSET", "type": "error" },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_JUNIOR_TRANCHE_IMPLEMENTATION",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_JUNIOR_TRANCHE_PROXY_DEPLOYMENT_SALT",
-    "inputs": []
+    "type": "error"
   },
-  { "type": "error", "name": "INVALID_KERNEL_IMPLEMENTATION", "inputs": [] },
+  { "inputs": [], "name": "INVALID_KERNEL_IMPLEMENTATION", "type": "error" },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_KERNEL_INITIALIZATION_DATA",
-    "inputs": []
+    "type": "error"
   },
-  { "type": "error", "name": "INVALID_KERNEL_ON_ACCOUNTANT", "inputs": [] },
+  { "inputs": [], "name": "INVALID_KERNEL_ON_ACCOUNTANT", "type": "error" },
+  { "inputs": [], "name": "INVALID_KERNEL_ON_JUNIOR_TRANCHE", "type": "error" },
+  { "inputs": [], "name": "INVALID_KERNEL_ON_SENIOR_TRANCHE", "type": "error" },
   {
-    "type": "error",
-    "name": "INVALID_KERNEL_ON_JUNIOR_TRANCHE",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "INVALID_KERNEL_ON_SENIOR_TRANCHE",
-    "inputs": []
-  },
-  {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_KERNEL_PROXY_DEPLOYMENT_SALT",
-    "inputs": []
+    "type": "error"
   },
-  { "type": "error", "name": "INVALID_MARKET_ID", "inputs": [] },
-  { "type": "error", "name": "INVALID_NAME", "inputs": [] },
+  { "inputs": [], "name": "INVALID_MARKET_ID", "type": "error" },
+  { "inputs": [], "name": "INVALID_NAME", "type": "error" },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_SENIOR_TRANCHE_IMPLEMENTATION",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_SENIOR_TRANCHE_PROXY_DEPLOYMENT_SALT",
-    "inputs": []
+    "type": "error"
   },
-  { "type": "error", "name": "INVALID_SYMBOL", "inputs": [] },
+  { "inputs": [], "name": "INVALID_SYMBOL", "type": "error" },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" }
+    ],
     "name": "INVALID_TARGET",
-    "inputs": [
-      { "name": "target", "type": "address", "internalType": "address" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [
+      { "internalType": "uint256", "name": "balance", "type": "uint256" },
+      { "internalType": "uint256", "name": "needed", "type": "uint256" }
+    ],
     "name": "InsufficientBalance",
-    "inputs": [
-      { "name": "balance", "type": "uint256", "internalType": "uint256" },
-      { "name": "needed", "type": "uint256", "internalType": "uint256" }
-    ]
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "ROLES_CONFIGURATION_LENGTH_MISMATCH",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "SafeCastOverflowedUintDowncast",
     "inputs": [
-      { "name": "bits", "type": "uint8", "internalType": "uint8" },
-      { "name": "value", "type": "uint256", "internalType": "uint256" }
-    ]
+      { "internalType": "uint8", "name": "bits", "type": "uint8" },
+      { "internalType": "uint256", "name": "value", "type": "uint256" }
+    ],
+    "name": "SafeCastOverflowedUintDowncast",
+    "type": "error"
+  },
+  {
+    "inputs": [{ "internalType": "uint64", "name": "role", "type": "uint64" }],
+    "name": "UnknownRole",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "seniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "juniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoKernel",
+            "name": "kernel",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoAccountant",
+            "name": "accountant",
+            "type": "address"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct RoycoMarket",
+        "name": "roycoMarket",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "seniorTrancheName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "seniorTrancheSymbol",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "juniorTrancheName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "juniorTrancheSymbol",
+            "type": "string"
+          },
+          { "internalType": "bytes32", "name": "marketId", "type": "bytes32" },
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "seniorTrancheImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "juniorTrancheImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoKernel",
+            "name": "kernelImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoAccountant",
+            "name": "accountantImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "seniorTrancheInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "juniorTrancheInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "kernelInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "accountantInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "seniorTrancheProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "juniorTrancheProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "kernelProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "accountantProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "target",
+                "type": "address"
+              },
+              {
+                "internalType": "bytes4[]",
+                "name": "selectors",
+                "type": "bytes4[]"
+              },
+              {
+                "internalType": "uint64[]",
+                "name": "roles",
+                "type": "uint64[]"
+              }
+            ],
+            "internalType": "struct RolesTargetConfiguration[]",
+            "name": "roles",
+            "type": "tuple[]"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct MarketDeploymentParams",
+        "name": "params",
+        "type": "tuple"
+      }
+    ],
+    "name": "MarketDeployed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operationId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "nonce",
+        "type": "uint32"
+      }
+    ],
+    "name": "OperationCanceled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operationId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "nonce",
+        "type": "uint32"
+      }
+    ],
+    "name": "OperationExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "operationId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint32",
+        "name": "nonce",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "schedule",
+        "type": "uint48"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "OperationScheduled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "admin",
+        "type": "uint64"
+      }
+    ],
+    "name": "RoleAdminChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "role",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "delay",
+        "type": "uint256"
+      }
+    ],
+    "name": "RoleDelaySet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "delay",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "since",
+        "type": "uint48"
+      }
+    ],
+    "name": "RoleGrantDelayChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "delay",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "since",
+        "type": "uint48"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "newMember",
+        "type": "bool"
+      }
+    ],
+    "name": "RoleGranted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "guardian",
+        "type": "uint64"
+      }
+    ],
+    "name": "RoleGuardianChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "label",
+        "type": "string"
+      }
+    ],
+    "name": "RoleLabel",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "RoleRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "delay",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "since",
+        "type": "uint48"
+      }
+    ],
+    "name": "TargetAdminDelayUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "closed",
+        "type": "bool"
+      }
+    ],
+    "name": "TargetClosed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes4",
+        "name": "selector",
+        "type": "bytes4"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roleId",
+        "type": "uint64"
+      }
+    ],
+    "name": "TargetFunctionRoleUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_ACCOUNTANT_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_KERNEL_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_ORACLE_QUOTER_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_PAUSER_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_PROTOCOL_FEE_SETTER_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ADMIN_UPGRADER_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "DEPLOYER_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "DEPLOYER_ROLE_ADMIN_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "GUARDIAN_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "LP_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "LP_ROLE_ADMIN_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "PUBLIC_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SYNC_ROLE",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes4", "name": "selector", "type": "bytes4" }
+    ],
+    "name": "canCall",
+    "outputs": [
+      { "internalType": "bool", "name": "immediate", "type": "bool" },
+      { "internalType": "uint32", "name": "delay", "type": "uint32" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" }
+    ],
+    "name": "cancel",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" }
+    ],
+    "name": "consumeScheduledOp",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "seniorTrancheName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "seniorTrancheSymbol",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "juniorTrancheName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "juniorTrancheSymbol",
+            "type": "string"
+          },
+          { "internalType": "bytes32", "name": "marketId", "type": "bytes32" },
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "seniorTrancheImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "juniorTrancheImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoKernel",
+            "name": "kernelImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoAccountant",
+            "name": "accountantImplementation",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "seniorTrancheInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "juniorTrancheInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "kernelInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "accountantInitializationData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "seniorTrancheProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "juniorTrancheProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "kernelProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "accountantProxyDeploymentSalt",
+            "type": "bytes32"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "target",
+                "type": "address"
+              },
+              {
+                "internalType": "bytes4[]",
+                "name": "selectors",
+                "type": "bytes4[]"
+              },
+              {
+                "internalType": "uint64[]",
+                "name": "roles",
+                "type": "uint64[]"
+              }
+            ],
+            "internalType": "struct RolesTargetConfiguration[]",
+            "name": "roles",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct MarketDeploymentParams",
+        "name": "_params",
+        "type": "tuple"
+      }
+    ],
+    "name": "deployMarket",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "seniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoVaultTranche",
+            "name": "juniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoKernel",
+            "name": "kernel",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IRoycoAccountant",
+            "name": "accountant",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct RoycoMarket",
+        "name": "roycoMarket",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" }
+    ],
+    "name": "execute",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "expiration",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "getAccess",
+    "outputs": [
+      { "internalType": "uint48", "name": "since", "type": "uint48" },
+      { "internalType": "uint32", "name": "currentDelay", "type": "uint32" },
+      { "internalType": "uint32", "name": "pendingDelay", "type": "uint32" },
+      { "internalType": "uint48", "name": "effect", "type": "uint48" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "id", "type": "bytes32" }],
+    "name": "getNonce",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" }
+    ],
+    "name": "getRoleAdmin",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint64", "name": "role", "type": "uint64" }],
+    "name": "getRoleConfig",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint64", "name": "adminRole", "type": "uint64" },
+          {
+            "internalType": "uint64",
+            "name": "guardianRole",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "executionDelay",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct RolesConfiguration.RoleConfig",
+        "name": "config",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" }
+    ],
+    "name": "getRoleGrantDelay",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" }
+    ],
+    "name": "getRoleGuardian",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "id", "type": "bytes32" }],
+    "name": "getSchedule",
+    "outputs": [{ "internalType": "uint48", "name": "", "type": "uint48" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" }
+    ],
+    "name": "getTargetAdminDelay",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes4", "name": "selector", "type": "bytes4" }
+    ],
+    "name": "getTargetFunctionRole",
+    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "address", "name": "account", "type": "address" },
+      { "internalType": "uint32", "name": "executionDelay", "type": "uint32" }
+    ],
+    "name": "grantRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "hasRole",
+    "outputs": [
+      { "internalType": "bool", "name": "isMember", "type": "bool" },
+      { "internalType": "uint32", "name": "executionDelay", "type": "uint32" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" }
+    ],
+    "name": "hashOperation",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" }
+    ],
+    "name": "isTargetClosed",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "string", "name": "label", "type": "string" }
+    ],
+    "name": "labelRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minSetback",
+    "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes[]", "name": "data", "type": "bytes[]" }
+    ],
+    "name": "multicall",
+    "outputs": [
+      { "internalType": "bytes[]", "name": "results", "type": "bytes[]" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_implementation",
+        "type": "address"
+      },
+      { "internalType": "bytes32", "name": "_salt", "type": "bytes32" }
+    ],
+    "name": "predictERC1967ProxyAddress",
+    "outputs": [
+      { "internalType": "address", "name": "proxy", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      {
+        "internalType": "address",
+        "name": "callerConfirmation",
+        "type": "address"
+      }
+    ],
+    "name": "renounceRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "revokeRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" },
+      { "internalType": "uint48", "name": "when", "type": "uint48" }
+    ],
+    "name": "schedule",
+    "outputs": [
+      { "internalType": "bytes32", "name": "operationId", "type": "bytes32" },
+      { "internalType": "uint32", "name": "nonce", "type": "uint32" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "uint32", "name": "newDelay", "type": "uint32" }
+    ],
+    "name": "setGrantDelay",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "uint64", "name": "admin", "type": "uint64" }
+    ],
+    "name": "setRoleAdmin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" },
+      { "internalType": "uint64", "name": "guardian", "type": "uint64" }
+    ],
+    "name": "setRoleGuardian",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "uint32", "name": "newDelay", "type": "uint32" }
+    ],
+    "name": "setTargetAdminDelay",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bool", "name": "closed", "type": "bool" }
+    ],
+    "name": "setTargetClosed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "bytes4[]", "name": "selectors", "type": "bytes4[]" },
+      { "internalType": "uint64", "name": "roleId", "type": "uint64" }
+    ],
+    "name": "setTargetFunctionRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "address", "name": "newAuthority", "type": "address" }
+    ],
+    "name": "updateAuthority",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ]

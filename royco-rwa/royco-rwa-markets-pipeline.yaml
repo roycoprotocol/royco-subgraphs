@@ -69,6 +69,18 @@ sources:
       - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
+  royco_rwa_markets_fee_state_reference:
+    name: fee_state
+    subgraphs:
+      - name: royco-rwa-markets-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_markets_fee_historical_reference:
+    name: fee_historical
+    subgraphs:
+      - name: royco-rwa-markets-mainnet
+        version: 1.0.0
+    type: subgraph_entity
 transforms: {}
 sinks:
   royco_rwa_markets_market_state_postgres:
@@ -148,3 +160,17 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: metric_historical"
     from: royco_rwa_markets_metric_historical_reference
+  royco_rwa_markets_fee_state_postgres:
+    type: postgres
+    table: fee_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: fee_state"
+    from: royco_rwa_markets_fee_state_reference
+  royco_rwa_markets_fee_historical_postgres:
+    type: postgres
+    table: fee_historical
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: fee_historical"
+    from: royco_rwa_markets_fee_historical_reference

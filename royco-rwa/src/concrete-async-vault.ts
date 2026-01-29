@@ -88,7 +88,7 @@ export function handleRoleGranted(event: RoleGrantedEvent): void {
 export function getConcreteEpoch(
   vaultAddress: string,
   epochId: BigInt,
-  blockTimestamp: BigInt,
+  blockTimestamp: BigInt
 ): ConcreteEpoch {
   let id = CHAIN_ID.toString()
     .concat("_")
@@ -117,7 +117,7 @@ export function getRequestId(
   vaultAddress: string,
   epochId: BigInt,
   accountAddress: string,
-  blockTimestamp: BigInt,
+  blockTimestamp: BigInt
 ): string {
   let concreteWithdrawalId = CHAIN_ID.toString()
     .concat("_")
@@ -166,7 +166,7 @@ export function handleQueuedWithdrawal(event: QueuedWithdrawalEvent): void {
     vaultAddress,
     event.params.epochID,
     accountAddress,
-    event.block.timestamp,
+    event.block.timestamp
   );
   const requestStatus = STATUS_PENDING;
 
@@ -181,7 +181,7 @@ export function handleQueuedWithdrawal(event: QueuedWithdrawalEvent): void {
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
-    event.logIndex,
+    event.logIndex
   );
   positionRequestLatest.value = positionRequestLatest.value.plus(value);
   positionRequestLatest.save();
@@ -190,7 +190,7 @@ export function handleQueuedWithdrawal(event: QueuedWithdrawalEvent): void {
   let positionState = getPositionState(
     vaultAddress,
     accountAddress,
-    event.block.timestamp,
+    event.block.timestamp
   );
   positionState.sharesOwed = positionState.sharesOwed.plus(value);
   positionState.save();
@@ -201,7 +201,7 @@ export function handleQueuedWithdrawal(event: QueuedWithdrawalEvent): void {
     positionRequestLatest,
     activityCategory,
     activitySubCategory,
-    BigInt.fromI32(0),
+    BigInt.fromI32(0)
   );
 }
 
@@ -217,7 +217,7 @@ export function handleRequestCancelled(event: RequestCancelledEvent): void {
     vaultAddress,
     event.params.epochID,
     accountAddress,
-    event.block.timestamp,
+    event.block.timestamp
   );
   const requestStatus = STATUS_CANCEL_CLAIMED;
 
@@ -232,7 +232,7 @@ export function handleRequestCancelled(event: RequestCancelledEvent): void {
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
-    event.logIndex,
+    event.logIndex
   );
   positionRequestLatest.value = BigInt.fromI32(0);
   positionRequestLatest.save();
@@ -241,7 +241,7 @@ export function handleRequestCancelled(event: RequestCancelledEvent): void {
   let positionState = getPositionState(
     vaultAddress,
     accountAddress,
-    event.block.timestamp,
+    event.block.timestamp
   );
   positionState.sharesOwed = positionState.sharesOwed.minus(value);
   positionState.save();
@@ -252,12 +252,12 @@ export function handleRequestCancelled(event: RequestCancelledEvent): void {
     positionRequestLatest,
     activityCategory,
     activitySubCategory,
-    BigInt.fromI32(0),
+    BigInt.fromI32(0)
   );
 }
 
 export function handleRequestMovedToNextEpoch(
-  event: RequestMovedToNextEpochEvent,
+  event: RequestMovedToNextEpochEvent
 ): void {
   const vaultAddress = event.address.toHexString();
   const accountAddress = event.params.user.toHexString();
@@ -270,13 +270,13 @@ export function handleRequestMovedToNextEpoch(
     vaultAddress,
     event.params.currentEpochID,
     accountAddress,
-    event.block.timestamp,
+    event.block.timestamp
   );
   const newRequestId = getRequestId(
     vaultAddress,
     event.params.nextEpochID,
     accountAddress,
-    event.block.timestamp,
+    event.block.timestamp
   );
 
   // Update prev request
@@ -290,7 +290,7 @@ export function handleRequestMovedToNextEpoch(
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
-    event.logIndex,
+    event.logIndex
   );
   prevPositionRequestLatest.value = BigInt.fromI32(0);
   prevPositionRequestLatest.save();
@@ -306,7 +306,7 @@ export function handleRequestMovedToNextEpoch(
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
-    event.logIndex,
+    event.logIndex
   );
   newPositionRequestLatest.value = newPositionRequestLatest.value.plus(value);
   newPositionRequestLatest.save();
@@ -316,7 +316,7 @@ export function handleRequestMovedToNextEpoch(
     prevPositionRequestLatest,
     activityCategory,
     activitySubCategory,
-    BigInt.fromI32(0),
+    BigInt.fromI32(0)
   );
 
   // Add new activity
@@ -324,7 +324,7 @@ export function handleRequestMovedToNextEpoch(
     newPositionRequestLatest,
     activityCategory,
     activitySubCategory,
-    BigInt.fromI32(1),
+    BigInt.fromI32(1)
   );
 }
 
@@ -338,7 +338,7 @@ export function handleEpochClosed(event: EpochClosedEvent): void {
   let concreteEpoch = getConcreteEpoch(
     vaultAddress,
     epochId,
-    event.block.timestamp,
+    event.block.timestamp
   );
 
   if (!concreteEpoch) {
@@ -358,10 +358,10 @@ export function handleEpochClosed(event: EpochClosedEvent): void {
     let positionRequestLatestId = generatePositionRequestLatestId(
       vaultAddress,
       positionRequestCategory,
-      requestId,
+      requestId
     );
     let positionRequestLatest = PositionRequestLatest.load(
-      positionRequestLatestId,
+      positionRequestLatestId
     );
 
     if (
@@ -381,7 +381,7 @@ export function handleEpochClosed(event: EpochClosedEvent): void {
         positionRequestLatest,
         activityCategory,
         activitySubCategory,
-        BigInt.fromI32(0),
+        BigInt.fromI32(0)
       );
     }
   }
@@ -402,7 +402,7 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
   let concreteEpoch = getConcreteEpoch(
     vaultAddress,
     epochId,
-    event.block.timestamp,
+    event.block.timestamp
   );
 
   if (!concreteEpoch) {
@@ -426,10 +426,10 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
     let positionRequestLatestId = generatePositionRequestLatestId(
       vaultAddress,
       positionRequestCategory,
-      requestId,
+      requestId
     );
     let positionRequestLatest = PositionRequestLatest.load(
-      positionRequestLatestId,
+      positionRequestLatestId
     );
 
     if (
@@ -460,7 +460,7 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
       } else {
         assetsOwed[accountIndex] = assetsOwed[accountIndex].plus(newAssetsOwed);
         sharesOwed[accountIndex] = sharesOwed[accountIndex].plus(
-          positionRequestLatest.value,
+          positionRequestLatest.value
         );
       }
 
@@ -468,7 +468,7 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
         positionRequestLatest,
         activityCategory,
         activitySubCategory,
-        BigInt.fromI32(0),
+        BigInt.fromI32(0)
       );
     }
   }
@@ -477,7 +477,7 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
     const positionState = getPositionState(
       vaultAddress,
       accountAddresses[i],
-      event.block.timestamp,
+      event.block.timestamp
     );
     positionState.assetsOwed = positionState.assetsOwed.plus(assetsOwed[i]);
     positionState.sharesOwed = positionState.sharesOwed.minus(sharesOwed[i]);
@@ -525,10 +525,10 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
     let positionRequestLatestId = generatePositionRequestLatestId(
       vaultAddress,
       positionRequestCategory,
-      requestId,
+      requestId
     );
     let positionRequestLatest = PositionRequestLatest.load(
-      positionRequestLatestId,
+      positionRequestLatestId
     );
 
     if (positionRequestLatest) {
@@ -553,7 +553,7 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
         positionRequestLatest,
         activityCategory,
         activitySubCategory,
-        BigInt.fromI32(0),
+        BigInt.fromI32(0)
       );
     }
   }
@@ -562,7 +562,7 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
   let positionState = getPositionState(
     vaultAddress,
     event.params.owner.toHexString(),
-    event.block.timestamp,
+    event.block.timestamp
   );
   positionState.assetsOwed = positionState.assetsOwed.minus(assetsPaid);
   positionState.save();
@@ -580,13 +580,13 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
     event.block.timestamp,
     event.transaction.hash.toHexString(),
     event.logIndex,
-    true,
+    true
   );
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
 }
 
 export function handleManagementFeeAccrued(
-  event: ManagementFeeAccruedEvent,
+  event: ManagementFeeAccruedEvent
 ): void {
   const vaultAddress = event.address.toHexString();
 
@@ -595,37 +595,43 @@ export function handleManagementFeeAccrued(
     return;
   }
 
-  // Update fees in terms of shares
-  updateFeeState(
-    vaultState.vaultAddress, // vault address
-    event.params.recipient.toHexString(), // account address
-    vaultState.vaultAddress, // token address
-    event.params.shares, // value
-    FEES_MAJOR_TYPE_MANAGEMENT, // major type
-    FEES_MINOR_TYPE_SHARES, // minor type
-    event.block.number, // block number
-    event.block.timestamp, // block timestamp
-    event.transaction.hash.toHexString(), // transaction hash
-    event.logIndex, // log index
-  );
+  if (event.params.shares.gt(BigInt.fromI32(0))) {
+    // Update fees in terms of shares
+    updateFeeState(
+      vaultState.vaultAddress, // vault address
+      event.params.recipient.toHexString(), // account address
+      vaultState.vaultAddress, // token address
+      event.params.shares, // value
+      FEES_MAJOR_TYPE_MANAGEMENT, // major type
+      FEES_MINOR_TYPE_SHARES, // minor type
+      event.block.number, // block number
+      event.block.timestamp, // block timestamp
+      event.transaction.hash.toHexString(), // transaction hash
+      event.logIndex, // log index
+      false
+    );
+  }
 
-  // Update fees in terms of assets
-  updateFeeState(
-    vaultState.vaultAddress, // vault address
-    event.params.recipient.toHexString(), // account address
-    vaultState.depositTokenAddress, // token address
-    event.params.feeAmount, // value
-    FEES_MAJOR_TYPE_MANAGEMENT, // major type
-    FEES_MINOR_TYPE_ASSETS, // minor type
-    event.block.number, // block number
-    event.block.timestamp, // block timestamp
-    event.transaction.hash.toHexString(), // transaction hash
-    event.logIndex, // log index
-  );
+  if (event.params.feeAmount.gt(BigInt.fromI32(0))) {
+    // Update fees in terms of assets
+    updateFeeState(
+      vaultState.vaultAddress, // vault address
+      event.params.recipient.toHexString(), // account address
+      vaultState.depositTokenAddress, // token address
+      event.params.feeAmount, // value
+      FEES_MAJOR_TYPE_MANAGEMENT, // major type
+      FEES_MINOR_TYPE_ASSETS, // minor type
+      event.block.number, // block number
+      event.block.timestamp, // block timestamp
+      event.transaction.hash.toHexString(), // transaction hash
+      event.logIndex, // log index
+      true
+    );
+  }
 }
 
 export function handlePerformanceFeeAccrued(
-  event: PerformanceFeeAccruedEvent,
+  event: PerformanceFeeAccruedEvent
 ): void {
   const vaultAddress = event.address.toHexString();
 
@@ -634,31 +640,37 @@ export function handlePerformanceFeeAccrued(
     return;
   }
 
-  // Update fees in terms of shares
-  updateFeeState(
-    vaultState.vaultAddress, // vault address
-    event.params.recipient.toHexString(), // account address
-    vaultState.vaultAddress, // token address
-    event.params.shares, // value
-    FEES_MAJOR_TYPE_PERFORMANCE, // major type
-    FEES_MINOR_TYPE_SHARES, // minor type
-    event.block.number, // block number
-    event.block.timestamp, // block timestamp
-    event.transaction.hash.toHexString(), // transaction hash
-    event.logIndex, // log index
-  );
+  if (event.params.shares.gt(BigInt.fromI32(0))) {
+    // Update fees in terms of shares
+    updateFeeState(
+      vaultState.vaultAddress, // vault address
+      event.params.recipient.toHexString(), // account address
+      vaultState.vaultAddress, // token address
+      event.params.shares, // value
+      FEES_MAJOR_TYPE_PERFORMANCE, // major type
+      FEES_MINOR_TYPE_SHARES, // minor type
+      event.block.number, // block number
+      event.block.timestamp, // block timestamp
+      event.transaction.hash.toHexString(), // transaction hash
+      event.logIndex, // log index
+      false
+    );
+  }
 
-  // Update fees in terms of assets
-  updateFeeState(
-    vaultState.vaultAddress, // vault address
-    event.params.recipient.toHexString(), // account address
-    vaultState.depositTokenAddress, // token address
-    event.params.feeAmount, // value
-    FEES_MAJOR_TYPE_PERFORMANCE, // major type
-    FEES_MINOR_TYPE_ASSETS, // minor type
-    event.block.number, // block number
-    event.block.timestamp, // block timestamp
-    event.transaction.hash.toHexString(), // transaction hash
-    event.logIndex, // log index
-  );
+  if (event.params.feeAmount.gt(BigInt.fromI32(0))) {
+    // Update fees in terms of assets
+    updateFeeState(
+      vaultState.vaultAddress, // vault address
+      event.params.recipient.toHexString(), // account address
+      vaultState.depositTokenAddress, // token address
+      event.params.feeAmount, // value
+      FEES_MAJOR_TYPE_PERFORMANCE, // major type
+      FEES_MINOR_TYPE_ASSETS, // minor type
+      event.block.number, // block number
+      event.block.timestamp, // block timestamp
+      event.transaction.hash.toHexString(), // transaction hash
+      event.logIndex, // log index
+      true
+    );
+  }
 }

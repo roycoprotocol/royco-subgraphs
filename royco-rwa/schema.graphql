@@ -22,6 +22,14 @@ type MarketState @entity(immutable: false) {
   juniorVaultInitializationData: String! # Junior Vault Initialization Data
   kernelInitializationData: String! # Kernel Initialization Data
   accountantInitializationData: String! # Accountant Initialization Data
+  ydmAddress: String! # YDM Address
+  betaWAD: BigInt! # Beta WAD
+  coverageWAD: BigInt! # Coverage WAD
+  lltvWAD: BigInt! # LLTV WAD
+  dustTolerance: BigInt! # Dust Tolerance
+  fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds
+  seniorVaultProtocolFeeWAD: BigInt! # Senior Vault Protocol Fee WAD
+  juniorVaultProtocolFeeWAD: BigInt! # Junior Vault Protocol Fee WAD
   blockNumber: BigInt! # Block Number of when market was created
   blockTimestamp: BigInt! # Block Timestamp of when market was created
   transactionHash: String! # Transaction Hash
@@ -40,6 +48,14 @@ type MarketVaultMap @entity(immutable: false) {
   partnerVaultAddress: String! # Partner Vault Address
   marketRefId: String! # Market Reference ID
   marketId: String! # Market ID
+  createdAt: BigInt! # Created At
+}
+
+type AccountantMarketMap @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<ACCOUNTANT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  accountantAddress: String! # Accountant Address
+  marketStateId: String! # Market State ID
   createdAt: BigInt! # Created At
 }
 
@@ -257,6 +273,7 @@ type FeeState @entity(immutable: false) {
   rawAmount: BigInt # Raw Amount (computed off-chain)
   tokenAmount: BigInt # Token Amount (computed off-chain)
   tokenAmountUsd: BigInt # Token Amount in USD (computed off-chain)
+  updateOffchain: Boolean! # Update Offchain (whether to update rawAmount, tokenAmount, and tokenAmountUsd off-chain)
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction Hash
@@ -279,6 +296,7 @@ type FeeHistorical @entity(immutable: true) {
   rawAmount: BigInt # Raw Amount (computed off-chain)
   tokenAmount: BigInt # Token Amount (computed off-chain)
   tokenAmountUsd: BigInt # Token Amount in USD (computed off-chain)
+  updateOffchain: Boolean! # Update Offchain (whether to update rawAmount, tokenAmount, and tokenAmountUsd off-chain)
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction Hash

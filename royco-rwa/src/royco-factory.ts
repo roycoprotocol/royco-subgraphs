@@ -6,14 +6,28 @@ import {
   VAULT_SUB_CATEGORY_JUNIOR,
   VAULT_SUB_CATEGORY_SENIOR,
 } from "./constants";
-import { MarketState, VaultState } from "../generated/schema";
-import { generateTokenId, generateVaultId } from "./utils";
-import { BaseVault } from "../generated/Vault/BaseVault";
-import { RoycoVaultTranche } from "../generated/templates";
+import { AccountantMarketMap, MarketState, VaultState } from "../generated/schema";
+import { generateAccountantMarketMapId, generateTokenVaultId, generateVaultId } from "./utils";
+import { RoycoVaultTranche, RoycoAccountant } from "../generated/templates";
+import { RoycoVaultTranche as RoycoVaultTrancheContract } from "../generated/templates/RoycoVaultTranche/RoycoVaultTranche";
+import { RoycoAccountant as RoycoAccountantContract } from "../generated/templates/RoycoAccountant/RoycoAccountant";
 
 export function handleMarketDeployed(event: MarketDeployedEvent): void {
-  RoycoVaultTranche.create(event.params.deployedContracts.seniorTranche);
-  RoycoVaultTranche.create(event.params.deployedContracts.juniorTranche);
+  RoycoVaultTranche.create(event.params.roycoMarket.seniorTranche);
+  RoycoVaultTranche.create(event.params.roycoMarket.juniorTranche);
+  RoycoAccountant.create(event.params.roycoMarket.accountant);
+
+  const seniorContract = RoycoVaultTrancheContract.bind(
+    Address.fromString(event.params.roycoMarket.seniorTranche.toHexString())
+  );
+  const juniorContract = RoycoVaultTrancheContract.bind(
+    Address.fromString(event.params.roycoMarket.juniorTranche.toHexString())
+  );
+  const accountantContract = RoycoAccountantContract.bind(
+    Address.fromString(event.params.roycoMarket.accountant.toHexString())
+  );
+
+  const accountantState = accountantContract.getState();
 
   const marketId = event.params.params.marketId.toHexString();
   const id = CHAIN_ID.toString().concat("_").concat(marketId);
@@ -23,35 +37,38 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
   // Base
   marketState.chainId = CHAIN_ID;
   marketState.marketId = marketId;
-  marketState.kernelAddress =
-    event.params.deployedContracts.kernel.toHexString();
+  marketState.kernelAddress = event.params.roycoMarket.kernel.toHexString();
   marketState.accountantAddress =
-    event.params.deployedContracts.accountant.toHexString();
+    event.params.roycoMarket.accountant.toHexString();
 
   // Senior Tranche
   marketState.seniorVaultAddress =
-    event.params.deployedContracts.seniorTranche.toHexString();
+    event.params.roycoMarket.seniorTranche.toHexString();
   marketState.seniorVaultId = generateVaultId(marketState.seniorVaultAddress);
   marketState.seniorVaultSymbol = event.params.params.seniorTrancheSymbol;
   marketState.seniorVaultImplementationAddress =
     event.params.params.seniorTrancheImplementation.toHexString();
-  marketState.seniorAssetTokenAddress =
-    event.params.params.seniorAsset.toHexString();
-  marketState.seniorAssetTokenId = generateTokenId(
-    marketState.seniorAssetTokenAddress
+
+  const seniorAssetTokenAddress = seniorContract.asset().toHexString();
+  marketState.seniorAssetTokenAddress = seniorAssetTokenAddress;
+  marketState.seniorAssetTokenId = generateTokenVaultId(
+    marketState.seniorAssetTokenAddress,
+    marketState.seniorVaultAddress
   );
 
   // Junior Tranche
   marketState.juniorVaultAddress =
-    event.params.deployedContracts.juniorTranche.toHexString();
+    event.params.roycoMarket.juniorTranche.toHexString();
   marketState.juniorVaultId = generateVaultId(marketState.juniorVaultAddress);
   marketState.juniorVaultSymbol = event.params.params.juniorTrancheSymbol;
   marketState.juniorVaultImplementationAddress =
     event.params.params.juniorTrancheImplementation.toHexString();
-  marketState.juniorAssetTokenAddress =
-    event.params.params.juniorAsset.toHexString();
-  marketState.juniorAssetTokenId = generateTokenId(
-    marketState.juniorAssetTokenAddress
+
+  const juniorAssetTokenAddress = juniorContract.asset().toHexString();
+  marketState.juniorAssetTokenAddress = juniorAssetTokenAddress;
+  marketState.juniorAssetTokenId = generateTokenVaultId(
+    marketState.juniorAssetTokenAddress,
+    marketState.juniorVaultAddress
   );
 
   // Initialization Data
@@ -63,6 +80,18 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
     event.params.params.kernelInitializationData.toHexString();
   marketState.accountantInitializationData =
     event.params.params.accountantInitializationData.toHexString();
+
+  // Constants
+  marketState.ydmAddress = accountantState.ydm.toHexString();
+  marketState.betaWAD = accountantState.betaWAD;
+  marketState.coverageWAD = accountantState.coverageWAD;
+  marketState.lltvWAD = accountantState.lltvWAD;
+  marketState.dustTolerance = accountantState.dustTolerance;
+  marketState.fixedTermDurationSeconds = BigInt.fromI32(
+    accountantState.fixedTermDurationSeconds
+  );
+  marketState.seniorVaultProtocolFeeWAD = accountantState.stProtocolFeeWAD;
+  marketState.juniorVaultProtocolFeeWAD = accountantState.jtProtocolFeeWAD;
 
   // Market Start Data
   marketState.blockNumber = event.block.number;
@@ -76,17 +105,22 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
 
   marketState.save();
 
+  // Accountant Market Map
+  let accountantMarketMap = new AccountantMarketMap(
+    generateAccountantMarketMapId(marketState.accountantAddress)
+  );
+  accountantMarketMap.chainId = CHAIN_ID;
+  accountantMarketMap.accountantAddress = marketState.accountantAddress;
+  accountantMarketMap.marketStateId = marketState.id;
+  accountantMarketMap.createdAt = event.block.timestamp;
+  accountantMarketMap.save();
+
   // Senior Vault State
   let seniorVaultState = new VaultState(marketState.seniorVaultId);
   seniorVaultState.chainId = CHAIN_ID;
   seniorVaultState.vaultAddress = marketState.seniorVaultAddress;
-
-  const seniorContract = BaseVault.bind(
-    Address.fromString(marketState.seniorVaultAddress)
-  );
-  const seniorDepositTokenAddress = seniorContract.asset().toHexString();
-  seniorVaultState.depositTokenId = generateTokenId(seniorDepositTokenAddress);
-  seniorVaultState.depositTokenAddress = seniorDepositTokenAddress;
+  seniorVaultState.depositTokenId = marketState.seniorAssetTokenId;
+  seniorVaultState.depositTokenAddress = marketState.seniorAssetTokenAddress;
 
   const seniorDecimals = seniorContract.decimals();
   seniorVaultState.decimals = seniorDecimals;
@@ -113,12 +147,8 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
   juniorVaultState.chainId = CHAIN_ID;
   juniorVaultState.vaultAddress = marketState.juniorVaultAddress;
 
-  const juniorContract = BaseVault.bind(
-    Address.fromString(marketState.juniorVaultAddress)
-  );
-  const juniorDepositTokenAddress = juniorContract.asset().toHexString();
-  juniorVaultState.depositTokenId = generateTokenId(juniorDepositTokenAddress);
-  juniorVaultState.depositTokenAddress = juniorDepositTokenAddress;
+  juniorVaultState.depositTokenId = marketState.juniorAssetTokenId;
+  juniorVaultState.depositTokenAddress = marketState.juniorAssetTokenAddress;
 
   const juniorDecimals = juniorContract.decimals();
   juniorVaultState.decimals = juniorDecimals;

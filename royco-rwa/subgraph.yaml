@@ -7,9 +7,9 @@ dataSources:
     name: Vault
     network: mainnet
     source:
-      address: "0x0ea39b87b09b1b953fb90a665ff97d679f5e68b7"
+      address: "0xee450ad3887d87aa6e021b99b81678471c5af90f"
       abi: RoycoFactory
-      startBlock: 24118815
+      startBlock: 24321164
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -21,8 +21,12 @@ dataSources:
           file: ./abis/RoycoFactory.json
         - name: BaseVault
           file: ./abis/BaseVault.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTranche.json
+        - name: RoycoAccountant
+          file: ./abis/RoycoAccountant.json
       eventHandlers:
-        - event: MarketDeployed((address,address,address,address),(string,string,string,string,address,address,bytes32,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
+        - event: MarketDeployed((address,address,address,address),(string,string,string,string,bytes32,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
           handler: handleMarketDeployed
       file: ./src/royco-factory.ts
 templates:
@@ -63,3 +67,45 @@ templates:
         - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
           handler: handleProtocolFeeSharesMinted
       file: ./src/royco-vault-tranche.ts
+  - kind: ethereum/contract
+    name: RoycoAccountant
+    network: mainnet
+    source:
+      abi: RoycoAccountant
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - BetaUpdated
+        - CoverageUpdated
+        - DustToleranceUpdated
+        - FixedTermDurationUpdated
+        - JTCoverageImpermanentLossErased
+        - JuniorTrancheProtocolFeeUpdated
+        - LLTVUpdated
+        - SeniorTrancheProtocolFeeUpdated
+        - YDMUpdated
+      abis:
+        - name: RoycoAccountant
+          file: ./abis/RoycoAccountant.json
+      eventHandlers:
+        - event: BetaUpdated(uint96)
+          handler: handleBetaUpdated
+        - event: CoverageUpdated(uint64)
+          handler: handleCoverageUpdated
+        - event: LLTVUpdated(uint64)
+          handler: handleLLTVUpdated
+        - event: YDMUpdated(address)
+          handler: handleYDMUpdated
+        - event: DustToleranceUpdated(uint256)
+          handler: handleDustToleranceUpdated
+        - event: FixedTermDurationUpdated(uint24)
+          handler: handleFixedTermDurationUpdated
+        - event: JuniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleJuniorTrancheProtocolFeeUpdated
+        - event: SeniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleSeniorTrancheProtocolFeeUpdated
+        - event: JTCoverageImpermanentLossErased(uint256)
+          handler: handleJTCoverageImpermanentLossErased
+      file: ./src/royco-accountant.ts

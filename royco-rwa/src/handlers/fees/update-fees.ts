@@ -1,15 +1,6 @@
 import { BigInt } from "@graphprotocol/graph-ts";
-import {
-  FeeState,
-  FeeHistorical,
-  GlobalTokenTransfer,
-} from "../../../generated/schema";
-import {
-  ZERO_ADDRESS,
-  CATEGORY_SHARES,
-  METRIC_DEPOSITORS,
-  CHAIN_ID,
-} from "../../constants";
+import { FeeState, FeeHistorical } from "../../../generated/schema";
+import { CHAIN_ID } from "../../constants";
 import {
   generateFeeStateId,
   generateFeeHistoricalId,
@@ -17,14 +8,17 @@ import {
   generateTokenId,
 } from "../../utils";
 
-export function addFeeHistorical(feeState: FeeState): FeeHistorical {
+export function addFeeHistorical(
+  feeState: FeeState,
+  feeValue: BigInt
+): FeeHistorical {
   let feeHistoricalId = generateFeeHistoricalId(
     feeState.transactionHash,
     feeState.logIndex,
     feeState.vaultAddress,
     feeState.accountAddress,
     feeState.majorType,
-    feeState.minorType,
+    feeState.minorType
   );
 
   let feeHistorical = new FeeHistorical(feeHistoricalId);
@@ -37,7 +31,8 @@ export function addFeeHistorical(feeState: FeeState): FeeHistorical {
   feeHistorical.minorType = feeState.minorType;
   feeHistorical.tokenId = feeState.tokenId;
   feeHistorical.tokenAddress = feeState.tokenAddress;
-  feeHistorical.value = feeState.value;
+  feeHistorical.value = feeValue;
+  feeHistorical.updateOffchain = feeState.updateOffchain;
   feeHistorical.blockNumber = feeState.blockNumber;
   feeHistorical.blockTimestamp = feeState.blockTimestamp;
   feeHistorical.transactionHash = feeState.transactionHash;
@@ -59,12 +54,13 @@ export function updateFeeState(
   blockTimestamp: BigInt,
   transactionHash: string,
   logIndex: BigInt,
+  updateOffchain: boolean
 ): FeeState {
   let feeStateId = generateFeeStateId(
     vaultAddress,
     accountAddress,
     majorType,
-    minorType,
+    minorType
   );
 
   let feeState = FeeState.load(feeStateId);
@@ -84,6 +80,7 @@ export function updateFeeState(
   }
 
   feeState.value = feeState.value.plus(value);
+  feeState.updateOffchain = updateOffchain;
   feeState.blockNumber = blockNumber;
   feeState.blockTimestamp = blockTimestamp;
   feeState.transactionHash = transactionHash;
@@ -91,7 +88,7 @@ export function updateFeeState(
   feeState.updatedAt = blockTimestamp;
   feeState.save();
 
-  addFeeHistorical(feeState);
+  addFeeHistorical(feeState, value);
 
   return feeState;
 }

@@ -5,11 +5,15 @@ import {
   RedeemRequest as RedeemRequestEvent,
   CancelRedeemRequest as CancelRedeemRequestEvent,
   CancelRedeemClaim as CancelRedeemClaimEvent,
+  ProtocolFeeSharesMinted as ProtocolFeeSharesMintedEvent,
 } from "../generated/templates/RoycoVaultTranche/RoycoVaultTranche";
 import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
 import {
   CATEGORY_ASSETS,
   CATEGORY_SHARES,
+  FEES_MAJOR_TYPE_MANAGEMENT,
+  FEES_MAJOR_TYPE_PROTOCOL,
+  FEES_MINOR_TYPE_SHARES,
   STATUS_CANCEL_CLAIMED,
   STATUS_CANCELLED,
   STATUS_CLAIMED,
@@ -17,6 +21,7 @@ import {
   SUB_CATEGORY_DEPOSIT,
   SUB_CATEGORY_WITHDRAW,
   VAULT_SUB_CATEGORY_JUNIOR,
+  ZERO_ADDRESS,
 } from "./constants";
 import { addTransferActivity } from "./handlers/activities/transfer";
 import { generateVaultId } from "./utils";
@@ -28,6 +33,7 @@ import {
 } from "./handlers/base/update-position";
 import { addRequestActivity } from "./handlers/activities/request";
 import { getMetadataTimestamp, getMetadataType } from "./utils/decoder";
+import { updateFeeState } from "./handlers/fees/update-fees";
 
 export { handleTransfer } from "./vault";
 
@@ -127,9 +133,10 @@ export function handleRedeem(event: RedeemEvent): void {
     addPositionStateHistorical(positionState, event.block.timestamp);
 
     // Update request
-    // For now, all requests are assumed
-    // to have request id as "0"
-    const requestId = accountAddress.concat("_").concat("0");
+    const requestId = event.params.redemptionRequestId
+      .toString()
+      .concat("_")
+      .concat(accountAddress);
     const positionRequestCategory = CATEGORY_SHARES;
     const positionRequestSubCategory = SUB_CATEGORY_WITHDRAW;
     const activityCategory = CATEGORY_SHARES;
@@ -175,9 +182,10 @@ export function handleRedeemRequest(event: RedeemRequestEvent): void {
   const positionRequestSubCategory = SUB_CATEGORY_WITHDRAW;
   const activityCategory = CATEGORY_SHARES;
   const activitySubCategory = SUB_CATEGORY_WITHDRAW;
-  const requestId = accountAddress
+  const requestId = event.params.requestId
+    .toString()
     .concat("_")
-    .concat(event.params.requestId.toString());
+    .concat(accountAddress);
   const requestStatus = STATUS_PENDING;
 
   // Update request
@@ -234,9 +242,10 @@ export function handleCancelRedeemRequest(
   const positionRequestSubCategory = SUB_CATEGORY_WITHDRAW;
   const activityCategory = CATEGORY_SHARES;
   const activitySubCategory = SUB_CATEGORY_WITHDRAW;
-  const requestId = accountAddress
+  const requestId = event.params.requestId
+    .toString()
     .concat("_")
-    .concat(event.params.requestId.toString());
+    .concat(accountAddress);
   const requestStatus = STATUS_CANCELLED;
 
   // Update request
@@ -286,9 +295,10 @@ export function handleCancelRedeemClaim(event: CancelRedeemClaimEvent): void {
   const positionRequestSubCategory = SUB_CATEGORY_WITHDRAW;
   const activityCategory = CATEGORY_SHARES;
   const activitySubCategory = SUB_CATEGORY_WITHDRAW;
-  const requestId = accountAddress
+  const requestId = event.params.requestId
+    .toString()
     .concat("_")
-    .concat(event.params.requestId.toString());
+    .concat(accountAddress);
   const requestStatus = STATUS_CANCEL_CLAIMED;
 
   // Update request
@@ -325,4 +335,25 @@ export function handleCancelRedeemClaim(event: CancelRedeemClaimEvent): void {
     activitySubCategory,
     BigInt.fromI32(0)
   );
+}
+
+export function handleProtocolFeeSharesMinted(
+  event: ProtocolFeeSharesMintedEvent
+): void {
+  if (event.params.mintedProtocolFeeShares.gt(BigInt.fromI32(0))) {
+    // Update fees in terms of shares
+    updateFeeState(
+      event.address.toHexString(), // vault address
+      event.params.protocolFeeRecipient.toHexString(), // account address
+      event.address.toHexString(), // token address
+      event.params.mintedProtocolFeeShares, // value
+      FEES_MAJOR_TYPE_PROTOCOL, // major type
+      FEES_MINOR_TYPE_SHARES, // minor type
+      event.block.number, // block number
+      event.block.timestamp, // block timestamp
+      event.transaction.hash.toHexString(), // transaction hash
+      event.logIndex, // log index
+      true
+    );
+  }
 }
