@@ -1,163 +1,176 @@
 # prettier-ignore
 apiVersion: 3
-name: royco-rwa-earn-concrete-pipeline
+name: royco-rwa-markets-pipeline
 resource_size: s
 sources:
-  royco_rwa_earn_concrete_global_token_transfer_reference:
+  royco_rwa_markets_market_state_reference:
+    name: market_state
+    subgraphs:
+      - name: royco-rwa-markets-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_markets_global_token_transfer_reference:
     name: global_token_transfer
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_global_token_activity_reference:
+  royco_rwa_markets_global_token_activity_reference:
     name: global_token_activity
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_vault_state_reference:
+  royco_rwa_markets_vault_state_reference:
     name: vault_state
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_position_request_latest_reference:
+  royco_rwa_markets_position_request_latest_reference:
     name: position_request_latest
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_position_state_reference:
+  royco_rwa_markets_position_state_reference:
     name: position_state
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_position_state_historical_reference:
+  royco_rwa_markets_position_state_historical_reference:
     name: position_state_historical
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_position_latest_reference:
+  royco_rwa_markets_position_latest_reference:
     name: position_latest
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_position_historical_reference:
+  royco_rwa_markets_position_historical_reference:
     name: position_historical
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_metric_latest_reference:
+  royco_rwa_markets_metric_latest_reference:
     name: metric_latest
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_metric_historical_reference:
+  royco_rwa_markets_metric_historical_reference:
     name: metric_historical
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_fee_state_reference:
+  royco_rwa_markets_fee_state_reference:
     name: fee_state
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
-  royco_rwa_earn_concrete_fee_historical_reference:
+  royco_rwa_markets_fee_historical_reference:
     name: fee_historical
     subgraphs:
-      - name: royco-rwa-earn-concrete-mainnet
+      - name: royco-rwa-markets-mainnet
         version: 1.0.0
     type: subgraph_entity
 transforms: {}
 sinks:
-  royco_rwa_earn_concrete_global_token_transfer_postgres:
+  royco_rwa_markets_market_state_postgres:
+    type: postgres
+    table: market_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: market_state"
+    from: royco_rwa_markets_market_state_reference
+  royco_rwa_markets_global_token_transfer_postgres:
     type: postgres
     table: global_token_transfer
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: global_token_transfer"
-    from: royco_rwa_earn_concrete_global_token_transfer_reference
-  royco_rwa_earn_concrete_global_token_activity_postgres:
+    from: royco_rwa_markets_global_token_transfer_reference
+  royco_rwa_markets_global_token_activity_postgres:
     type: postgres
     table: global_token_activity
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: global_token_activity"
-    from: royco_rwa_earn_concrete_global_token_activity_reference
-  royco_rwa_earn_concrete_vault_state_postgres:
+    from: royco_rwa_markets_global_token_activity_reference
+  royco_rwa_markets_vault_state_postgres:
     type: postgres
     table: vault_state
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: vault_state"
-    from: royco_rwa_earn_concrete_vault_state_reference
-  royco_rwa_earn_concrete_position_request_latest_postgres:
+    from: royco_rwa_markets_vault_state_reference
+  royco_rwa_markets_position_request_latest_postgres:
     type: postgres
     table: position_request_latest
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: position_request_latest"
-    from: royco_rwa_earn_concrete_position_request_latest_reference
-  royco_rwa_earn_concrete_position_state_postgres:
+    from: royco_rwa_markets_position_request_latest_reference
+  royco_rwa_markets_position_state_postgres:
     type: postgres
     table: position_state
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: position_state"
-    from: royco_rwa_earn_concrete_position_state_reference
-  royco_rwa_earn_concrete_position_state_historical_postgres:
+    from: royco_rwa_markets_position_state_reference
+  royco_rwa_markets_position_state_historical_postgres:
     type: postgres
     table: position_state_historical
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: position_state_historical"
-    from: royco_rwa_earn_concrete_position_state_historical_reference
-  royco_rwa_earn_concrete_position_latest_postgres:
+    from: royco_rwa_markets_position_state_historical_reference
+  royco_rwa_markets_position_latest_postgres:
     type: postgres
     table: position_latest
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: position_latest"
-    from: royco_rwa_earn_concrete_position_latest_reference
-  royco_rwa_earn_concrete_position_historical_postgres:
+    from: royco_rwa_markets_position_latest_reference
+  royco_rwa_markets_position_historical_postgres:
     type: postgres
     table: position_historical
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: position_historical"
-    from: royco_rwa_earn_concrete_position_historical_reference
-  royco_rwa_earn_concrete_metric_latest_postgres:
+    from: royco_rwa_markets_position_historical_reference
+  royco_rwa_markets_metric_latest_postgres:
     type: postgres
     table: metric_latest
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: metric_latest"
-    from: royco_rwa_earn_concrete_metric_latest_reference
-  royco_rwa_earn_concrete_metric_historical_postgres:
+    from: royco_rwa_markets_metric_latest_reference
+  royco_rwa_markets_metric_historical_postgres:
     type: postgres
     table: metric_historical
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: metric_historical"
-    from: royco_rwa_earn_concrete_metric_historical_reference
-  royco_rwa_earn_concrete_fee_state_postgres:
+    from: royco_rwa_markets_metric_historical_reference
+  royco_rwa_markets_fee_state_postgres:
     type: postgres
     table: fee_state
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: fee_state"
-    from: royco_rwa_earn_concrete_fee_state_reference
-  royco_rwa_earn_concrete_fee_historical_postgres:
+    from: royco_rwa_markets_fee_state_reference
+  royco_rwa_markets_fee_historical_postgres:
     type: postgres
     table: fee_historical
     schema: public
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: fee_historical"
-    from: royco_rwa_earn_concrete_fee_historical_reference
+    from: royco_rwa_markets_fee_historical_reference

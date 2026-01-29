@@ -1,0 +1,1187 @@
+[
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "seniorTranche",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "stAsset", "type": "address" },
+          {
+            "internalType": "address",
+            "name": "juniorTranche",
+            "type": "address"
+          },
+          { "internalType": "address", "name": "jtAsset", "type": "address" }
+        ],
+        "internalType": "struct IRoycoKernel.RoycoKernelConstructionParams",
+        "name": "_params",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "authority", "type": "address" }
+    ],
+    "name": "AccessManagedInvalidAuthority",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" },
+      { "internalType": "uint32", "name": "delay", "type": "uint32" }
+    ],
+    "name": "AccessManagedRequiredDelay",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" }
+    ],
+    "name": "AccessManagedUnauthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" }
+    ],
+    "name": "AddressEmptyCode",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "implementation", "type": "address" }
+    ],
+    "name": "ERC1967InvalidImplementation",
+    "type": "error"
+  },
+  { "inputs": [], "name": "ERC1967NonPayable", "type": "error" },
+  { "inputs": [], "name": "EnforcedPause", "type": "error" },
+  { "inputs": [], "name": "ExpectedPause", "type": "error" },
+  { "inputs": [], "name": "FailedCall", "type": "error" },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "sharesToRedeem",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "redeemableShares",
+        "type": "uint256"
+      }
+    ],
+    "name": "INSUFFICIENT_REDEEMABLE_SHARES",
+    "type": "error"
+  },
+  { "inputs": [], "name": "INVALID_CONVERSION_RATE", "type": "error" },
+  { "inputs": [], "name": "INVALID_IMPLEMENTATION", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "requestId", "type": "uint256" }
+    ],
+    "name": "INVALID_REQUEST_ID",
+    "type": "error"
+  },
+  { "inputs": [], "name": "InvalidInitialization", "type": "error" },
+  {
+    "inputs": [],
+    "name": "JT_DEPOSIT_DISABLED_IN_FIXED_TERM_STATE",
+    "type": "error"
+  },
+  { "inputs": [], "name": "MUST_USE_ADMIN_ORACLE_INPUT", "type": "error" },
+  { "inputs": [], "name": "NONEXISTANT_REQUEST_TO_CANCEL", "type": "error" },
+  { "inputs": [], "name": "NULL_ADDRESS", "type": "error" },
+  { "inputs": [], "name": "NotInitializing", "type": "error" },
+  { "inputs": [], "name": "ONLY_JUNIOR_TRANCHE", "type": "error" },
+  { "inputs": [], "name": "ONLY_SENIOR_TRANCHE", "type": "error" },
+  {
+    "inputs": [],
+    "name": "PREVIEW_REDEEM_DISABLED_FOR_ASYNC_REDEMPTION",
+    "type": "error"
+  },
+  { "inputs": [], "name": "REDEMPTION_REQUEST_CANCELED", "type": "error" },
+  { "inputs": [], "name": "REDEMPTION_REQUEST_NOT_CANCELED", "type": "error" },
+  {
+    "inputs": [],
+    "name": "ST_REDEEM_DISABLED_IN_FIXED_TERM_STATE",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "token", "type": "address" }
+    ],
+    "name": "SafeERC20FailedOperation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TRANCHE_AND_KERNEL_ASSETS_MISMATCH",
+    "type": "error"
+  },
+  { "inputs": [], "name": "TRANCHE_ASSETS_MUST_BE_IDENTICAL", "type": "error" },
+  { "inputs": [], "name": "UUPSUnauthorizedCallContext", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "slot", "type": "bytes32" }
+    ],
+    "name": "UUPSUnsupportedProxiableUUID",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AuthorityUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "_conversionRateRAY",
+        "type": "uint256"
+      }
+    ],
+    "name": "ConversionRateUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint24",
+        "name": "jtRedemptionDelayInSeconds",
+        "type": "uint24"
+      }
+    ],
+    "name": "JuniorTrancheRedemptionDelayUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "protocolFeeRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "ProtocolFeeRecipientUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "Upgraded",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "JT_DEPOSIT_EXECUTION_MODEL",
+    "outputs": [
+      { "internalType": "enum ExecutionModel", "name": "", "type": "uint8" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "JT_REDEEM_EXECUTION_MODEL",
+    "outputs": [
+      { "internalType": "enum ExecutionModel", "name": "", "type": "uint8" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "JT_REQUEST_REDEEM_SHARES_BEHAVIOR",
+    "outputs": [
+      {
+        "internalType": "enum SharesRedemptionModel",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ST_DEPOSIT_EXECUTION_MODEL",
+    "outputs": [
+      { "internalType": "enum ExecutionModel", "name": "", "type": "uint8" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ST_REDEEM_EXECUTION_MODEL",
+    "outputs": [
+      { "internalType": "enum ExecutionModel", "name": "", "type": "uint8" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ST_REQUEST_REDEEM_SHARES_BEHAVIOR",
+    "outputs": [
+      {
+        "internalType": "enum SharesRedemptionModel",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "UPGRADE_INTERFACE_VERSION",
+    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "authority",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentMarketUtilization",
+    "outputs": [
+      { "internalType": "uint256", "name": "utilization", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getState",
+    "outputs": [
+      { "internalType": "address", "name": "seniorTranche", "type": "address" },
+      { "internalType": "address", "name": "stAsset", "type": "address" },
+      { "internalType": "address", "name": "juniorTranche", "type": "address" },
+      { "internalType": "address", "name": "jtAsset", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "protocolFeeRecipient",
+        "type": "address"
+      },
+      { "internalType": "address", "name": "accountant", "type": "address" },
+      {
+        "internalType": "uint24",
+        "name": "jtRedemptionDelayInSeconds",
+        "type": "uint24"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getStoredConversionRateRAY",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTrancheUnitToNAVUnitConversionRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "trancheToNAVUnitConversionRateRAY",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "initialAuthority",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "accountant",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "protocolFeeRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint24",
+            "name": "jtRedemptionDelayInSeconds",
+            "type": "uint24"
+          }
+        ],
+        "internalType": "struct RoycoKernelInitParams",
+        "name": "_params",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_initialConversionRateRAY",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isConsumingScheduledOp",
+    "outputs": [{ "internalType": "bytes4", "name": "", "type": "bytes4" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_requestId", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" }
+    ],
+    "name": "jtCancelRedeemRequest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_requestId", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" }
+    ],
+    "name": "jtClaimCancelRedeemRequest",
+    "outputs": [
+      { "internalType": "uint256", "name": "shares", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_requestId", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" }
+    ],
+    "name": "jtClaimableCancelRedeemRequest",
+    "outputs": [
+      { "internalType": "uint256", "name": "shares", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_requestId", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" }
+    ],
+    "name": "jtClaimableRedeemRequest",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "claimableShares",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "NAV_UNIT", "name": "_nav", "type": "uint256" }
+    ],
+    "name": "jtConvertNAVUnitsToTrancheUnits",
+    "outputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "jtAssets", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "_jtAssets", "type": "uint256" }
+    ],
+    "name": "jtConvertTrancheUnitsToNAVUnits",
+    "outputs": [
+      { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "_assets", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "jtDeposit",
+    "outputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "valueAllocated",
+        "type": "uint256"
+      },
+      { "internalType": "NAV_UNIT", "name": "navToMintAt", "type": "uint256" },
+      { "internalType": "bytes", "name": "", "type": "bytes" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_receiver", "type": "address" }
+    ],
+    "name": "jtMaxDeposit",
+    "outputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_owner", "type": "address" }
+    ],
+    "name": "jtMaxWithdrawable",
+    "outputs": [
+      { "internalType": "NAV_UNIT", "name": "claimOnStNAV", "type": "uint256" },
+      { "internalType": "NAV_UNIT", "name": "claimOnJtNAV", "type": "uint256" },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "stMaxWithdrawableNAV",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "jtMaxWithdrawableNAV",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTrancheSharesAfterMintingFees",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "jtPendingCancelRedeemRequest",
+    "outputs": [
+      { "internalType": "bool", "name": "isPending", "type": "bool" }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_requestId", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" }
+    ],
+    "name": "jtPendingRedeemRequest",
+    "outputs": [
+      { "internalType": "uint256", "name": "pendingShares", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "_jtAssets", "type": "uint256" }
+    ],
+    "name": "jtPreviewDeposit",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          { "internalType": "NAV_UNIT", "name": "stRawNAV", "type": "uint256" },
+          { "internalType": "NAV_UNIT", "name": "jtRawNAV", "type": "uint256" },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtCoverageImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtSelfImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "utilizationWAD",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "ltvWAD", "type": "uint256" },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "stateBeforeDeposit",
+        "type": "tuple"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "valueAllocated",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "jtPreviewRedeem",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "stAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "jtAssets",
+            "type": "uint256"
+          },
+          { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_shares", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" },
+      { "internalType": "address", "name": "_receiver", "type": "address" },
+      { "internalType": "uint256", "name": "_requestId", "type": "uint256" }
+    ],
+    "name": "jtRedeem",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "stAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "jtAssets",
+            "type": "uint256"
+          },
+          { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "userAssetClaims",
+        "type": "tuple"
+      },
+      { "internalType": "bytes", "name": "", "type": "bytes" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "_shares", "type": "uint256" },
+      { "internalType": "address", "name": "_controller", "type": "address" }
+    ],
+    "name": "jtRequestRedeem",
+    "outputs": [
+      { "internalType": "uint256", "name": "requestId", "type": "uint256" },
+      { "internalType": "bytes", "name": "metadata", "type": "bytes" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum TrancheType",
+        "name": "_trancheType",
+        "type": "uint8"
+      }
+    ],
+    "name": "previewSyncTrancheAccounting",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          { "internalType": "NAV_UNIT", "name": "stRawNAV", "type": "uint256" },
+          { "internalType": "NAV_UNIT", "name": "jtRawNAV", "type": "uint256" },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtCoverageImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtSelfImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "utilizationWAD",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "ltvWAD", "type": "uint256" },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "state",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "stAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "jtAssets",
+            "type": "uint256"
+          },
+          { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "claims",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTrancheShares",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proxiableUUID",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "newAuthority", "type": "address" }
+    ],
+    "name": "setAuthority",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_conversionRateRAY",
+        "type": "uint256"
+      }
+    ],
+    "name": "setConversionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint24",
+        "name": "_jtRedemptionDelayInSeconds",
+        "type": "uint24"
+      }
+    ],
+    "name": "setJuniorTrancheRedemptionDelay",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_protocolFeeRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "setProtocolFeeRecipient",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "NAV_UNIT", "name": "_nav", "type": "uint256" }
+    ],
+    "name": "stConvertNAVUnitsToTrancheUnits",
+    "outputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "stAssets", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "_stAssets", "type": "uint256" }
+    ],
+    "name": "stConvertTrancheUnitsToNAVUnits",
+    "outputs": [
+      { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "_assets", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "stDeposit",
+    "outputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "valueAllocated",
+        "type": "uint256"
+      },
+      { "internalType": "NAV_UNIT", "name": "navToMintAt", "type": "uint256" },
+      { "internalType": "bytes", "name": "", "type": "bytes" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_receiver", "type": "address" }
+    ],
+    "name": "stMaxDeposit",
+    "outputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_owner", "type": "address" }
+    ],
+    "name": "stMaxWithdrawable",
+    "outputs": [
+      { "internalType": "NAV_UNIT", "name": "claimOnStNAV", "type": "uint256" },
+      { "internalType": "NAV_UNIT", "name": "claimOnJtNAV", "type": "uint256" },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "stMaxWithdrawableNAV",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "jtMaxWithdrawableNAV",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTrancheSharesAfterMintingFees",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "TRANCHE_UNIT", "name": "_stAssets", "type": "uint256" }
+    ],
+    "name": "stPreviewDeposit",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          { "internalType": "NAV_UNIT", "name": "stRawNAV", "type": "uint256" },
+          { "internalType": "NAV_UNIT", "name": "jtRawNAV", "type": "uint256" },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtCoverageImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtSelfImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "utilizationWAD",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "ltvWAD", "type": "uint256" },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "stateBeforeDeposit",
+        "type": "tuple"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "valueAllocated",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+    ],
+    "name": "stPreviewRedeem",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "stAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "jtAssets",
+            "type": "uint256"
+          },
+          { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "userClaim",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_shares", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "address", "name": "_receiver", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "stRedeem",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "stAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "jtAssets",
+            "type": "uint256"
+          },
+          { "internalType": "NAV_UNIT", "name": "nav", "type": "uint256" }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "userAssetClaims",
+        "type": "tuple"
+      },
+      { "internalType": "bytes", "name": "", "type": "bytes" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "syncTrancheAccounting",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          { "internalType": "NAV_UNIT", "name": "stRawNAV", "type": "uint256" },
+          { "internalType": "NAV_UNIT", "name": "jtRawNAV", "type": "uint256" },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtCoverageImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtSelfImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFeeAccrued",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "utilizationWAD",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "ltvWAD", "type": "uint256" },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "state",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      },
+      { "internalType": "bytes", "name": "data", "type": "bytes" }
+    ],
+    "name": "upgradeToAndCall",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+]

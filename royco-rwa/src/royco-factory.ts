@@ -6,16 +6,32 @@ import {
   VAULT_SUB_CATEGORY_JUNIOR,
   VAULT_SUB_CATEGORY_SENIOR,
 } from "./constants";
-import { AccountantMarketMap, MarketState, VaultState } from "../generated/schema";
-import { generateAccountantMarketMapId, generateTokenVaultId, generateVaultId } from "./utils";
-import { RoycoVaultTranche, RoycoAccountant } from "../generated/templates";
+import {
+  AccountantMarketMap,
+  KernelMarketMap,
+  MarketState,
+  VaultState,
+} from "../generated/schema";
+import {
+  generateAccountantMarketMapId,
+  generateKernelMarketMapId,
+  generateTokenVaultId,
+  generateVaultId,
+} from "./utils";
+import {
+  RoycoVaultTranche,
+  RoycoAccountant,
+  RoycoKernel,
+} from "../generated/templates";
 import { RoycoVaultTranche as RoycoVaultTrancheContract } from "../generated/templates/RoycoVaultTranche/RoycoVaultTranche";
 import { RoycoAccountant as RoycoAccountantContract } from "../generated/templates/RoycoAccountant/RoycoAccountant";
+import { RoycoKernel as RoycoKernelContract } from "../generated/templates/RoycoKernel/RoycoKernel";
 
 export function handleMarketDeployed(event: MarketDeployedEvent): void {
   RoycoVaultTranche.create(event.params.roycoMarket.seniorTranche);
   RoycoVaultTranche.create(event.params.roycoMarket.juniorTranche);
   RoycoAccountant.create(event.params.roycoMarket.accountant);
+  RoycoKernel.create(event.params.roycoMarket.kernel);
 
   const seniorContract = RoycoVaultTrancheContract.bind(
     Address.fromString(event.params.roycoMarket.seniorTranche.toHexString())
@@ -26,8 +42,12 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
   const accountantContract = RoycoAccountantContract.bind(
     Address.fromString(event.params.roycoMarket.accountant.toHexString())
   );
+  const kernelContract = RoycoKernelContract.bind(
+    Address.fromString(event.params.roycoMarket.kernel.toHexString())
+  );
 
   const accountantState = accountantContract.getState();
+  const kernelState = kernelContract.getState();
 
   const marketId = event.params.params.marketId.toHexString();
   const id = CHAIN_ID.toString().concat("_").concat(marketId);
@@ -93,6 +113,14 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
   marketState.seniorVaultProtocolFeeWAD = accountantState.stProtocolFeeWAD;
   marketState.juniorVaultProtocolFeeWAD = accountantState.jtProtocolFeeWAD;
 
+  // Kernel Data
+  marketState.protocolFeeRecipient = kernelState
+    .getProtocolFeeRecipient()
+    .toHexString();
+  marketState.juniorTrancheRedemptionDelay = BigInt.fromI32(
+    kernelState.getJtRedemptionDelayInSeconds()
+  );
+
   // Market Start Data
   marketState.blockNumber = event.block.number;
   marketState.blockTimestamp = event.block.timestamp;
@@ -114,6 +142,16 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
   accountantMarketMap.marketStateId = marketState.id;
   accountantMarketMap.createdAt = event.block.timestamp;
   accountantMarketMap.save();
+
+  // Kernel Market Map
+  let kernelMarketMap = new KernelMarketMap(
+    generateKernelMarketMapId(marketState.kernelAddress)
+  );
+  kernelMarketMap.chainId = CHAIN_ID;
+  kernelMarketMap.kernelAddress = marketState.kernelAddress;
+  kernelMarketMap.marketStateId = marketState.id;
+  kernelMarketMap.createdAt = event.block.timestamp;
+  kernelMarketMap.save();
 
   // Senior Vault State
   let seniorVaultState = new VaultState(marketState.seniorVaultId);

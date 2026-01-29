@@ -30,6 +30,8 @@ type MarketState @entity(immutable: false) {
   fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds
   seniorVaultProtocolFeeWAD: BigInt! # Senior Vault Protocol Fee WAD
   juniorVaultProtocolFeeWAD: BigInt! # Junior Vault Protocol Fee WAD
+  protocolFeeRecipient: String! # Protocol Fee Recipient
+  juniorTrancheRedemptionDelay: BigInt! # Junior Tranche Redemption Delay
   blockNumber: BigInt! # Block Number of when market was created
   blockTimestamp: BigInt! # Block Timestamp of when market was created
   transactionHash: String! # Transaction Hash
@@ -55,6 +57,14 @@ type AccountantMarketMap @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<ACCOUNTANT_ADDRESS>
   chainId: BigInt! # Chain ID
   accountantAddress: String! # Accountant Address
+  marketStateId: String! # Market State ID
+  createdAt: BigInt! # Created At
+}
+
+type KernelMarketMap @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<KERNEL_ADDRESS>
+  chainId: BigInt! # Chain ID
+  kernelAddress: String! # Kernel Address
   marketStateId: String! # Market State ID
   createdAt: BigInt! # Created At
 }

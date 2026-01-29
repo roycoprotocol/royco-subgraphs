@@ -12,7 +12,7 @@ export function generateId(transactionHash: string, logIndex: BigInt): string {
 export function generateTransferId(
   transactionHash: string,
   logIndex: BigInt,
-  vaultAddress: string,
+  vaultAddress: string
 ): string {
   return CHAIN_ID.toString()
     .concat("_")
@@ -33,7 +33,7 @@ export const generateTokenId = (tokenAddress: string): string => {
 
 export const generateTokenVaultId = (
   tokenAddress: string,
-  vaultAddress: string,
+  vaultAddress: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -44,7 +44,7 @@ export const generateTokenVaultId = (
 
 export const generatePositionStateId = (
   vaultAddress: string,
-  accountAddress: string,
+  accountAddress: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -56,7 +56,7 @@ export const generatePositionStateId = (
 export const generatePositionLatestId = (
   vaultAddress: string,
   accountAddress: string,
-  category: string,
+  category: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -70,7 +70,7 @@ export const generatePositionLatestId = (
 export const generatePositionRequestLatestId = (
   vaultAddress: string,
   category: string,
-  requestId: string,
+  requestId: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -86,7 +86,7 @@ export const generatePositionHistoricalId = (
   logIndex: BigInt,
   vaultAddress: string,
   accountAddress: string,
-  category: string,
+  category: string
 ): string => {
   return generateId(transactionHash, logIndex)
     .concat("_")
@@ -100,7 +100,7 @@ export const generatePositionHistoricalId = (
 export const generatePositionStateHistoricalId = (
   vaultAddress: string,
   accountAddress: string,
-  blockTimestamp: BigInt,
+  blockTimestamp: BigInt
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -113,7 +113,7 @@ export const generatePositionStateHistoricalId = (
 
 export const generateMetricLatestId = (
   vaultAddress: string,
-  category: string,
+  category: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -126,7 +126,7 @@ export const generateMetricHistoricalId = (
   transactionHash: string,
   logIndex: BigInt,
   vaultAddress: string,
-  category: string,
+  category: string
 ): string => {
   return generateId(transactionHash, logIndex)
     .concat("_")
@@ -141,7 +141,7 @@ export const generateGlobalTokenActivityId = (
   category: string,
   subCategory: string,
   vaultAddress: string,
-  tokenIndex: BigInt,
+  tokenIndex: BigInt
 ): string => {
   return generateId(transactionHash, logIndex)
     .concat("_")
@@ -158,7 +158,7 @@ export const generateFeeStateId = (
   vaultAddress: string,
   accountAddress: string,
   majorType: string,
-  minorType: string,
+  minorType: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
@@ -177,7 +177,7 @@ export const generateFeeHistoricalId = (
   vaultAddress: string,
   accountAddress: string,
   majorType: string,
-  minorType: string,
+  minorType: string
 ): string => {
   return generateId(transactionHash, logIndex)
     .concat("_")
@@ -191,7 +191,11 @@ export const generateFeeHistoricalId = (
 };
 
 export const generateAccountantMarketMapId = (
-  accountantAddress: string,
+  accountantAddress: string
 ): string => {
   return CHAIN_ID.toString().concat("_").concat(accountantAddress);
+};
+
+export const generateKernelMarketMapId = (kernelAddress: string): string => {
+  return CHAIN_ID.toString().concat("_").concat(kernelAddress);
 };

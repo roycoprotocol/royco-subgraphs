@@ -25,6 +25,8 @@ dataSources:
           file: ./abis/RoycoVaultTranche.json
         - name: RoycoAccountant
           file: ./abis/RoycoAccountant.json
+        - name: RoycoKernel
+          file: ./abis/RoycoKernel.json
       eventHandlers:
         - event: MarketDeployed((address,address,address,address),(string,string,string,string,bytes32,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
           handler: handleMarketDeployed
@@ -109,3 +111,24 @@ templates:
         - event: JTCoverageImpermanentLossErased(uint256)
           handler: handleJTCoverageImpermanentLossErased
       file: ./src/royco-accountant.ts
+  - kind: ethereum/contract
+    name: RoycoKernel
+    network: mainnet
+    source:
+      abi: RoycoKernel
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ProtocolFeeRecipientUpdated
+        - JuniorTrancheRedemptionDelayUpdated
+      abis:
+        - name: RoycoKernel
+          file: ./abis/RoycoKernel.json
+      eventHandlers:
+        - event: ProtocolFeeRecipientUpdated(address)
+          handler: handleProtocolFeeRecipientUpdated
+        - event: JuniorTrancheRedemptionDelayUpdated(uint24)
+          handler: handleJuniorTrancheRedemptionDelayUpdated
+      file: ./src/royco-kernel.ts
