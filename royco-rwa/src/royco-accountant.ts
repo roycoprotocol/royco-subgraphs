@@ -20,6 +20,7 @@ import {
   generateId,
   generateTransferId,
 } from "./utils";
+import { CHAIN_ID } from "./constants";
 
 function getMarketStateByAccountant(
   accountantAddress: string
@@ -167,6 +168,7 @@ export function handleJTCoverageImpermanentLossErased(
   let marketLossErasedHistorical = new MarketLossErasedHistorical(
     marketLossErasedHistoricalId
   );
+  marketLossErasedHistorical.chainId = CHAIN_ID;
   marketLossErasedHistorical.marketId = marketState.marketId;
   marketLossErasedHistorical.marketRefId = marketState.id;
   marketLossErasedHistorical.value =
