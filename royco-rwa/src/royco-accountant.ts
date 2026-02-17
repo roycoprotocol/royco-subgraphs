@@ -4,14 +4,22 @@ import {
   CoverageUpdated as CoverageUpdatedEvent,
   DustToleranceUpdated as DustToleranceUpdatedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
-  JTCoverageImpermanentLossErased as JTCoverageImpermanentLossErasedEvent,
   JuniorTrancheProtocolFeeUpdated as JuniorTrancheProtocolFeeUpdatedEvent,
   LLTVUpdated as LLTVUpdatedEvent,
   SeniorTrancheProtocolFeeUpdated as SeniorTrancheProtocolFeeUpdatedEvent,
   YDMUpdated as YDMUpdatedEvent,
+  JTCoverageImpermanentLossErased as JTCoverageImpermanentLossErasedEvent,
 } from "../generated/templates/RoycoAccountant/RoycoAccountant";
-import { AccountantMarketMap, MarketState } from "../generated/schema";
-import { generateAccountantMarketMapId } from "./utils";
+import {
+  AccountantMarketMap,
+  MarketLossErasedHistorical,
+  MarketState,
+} from "../generated/schema";
+import {
+  generateAccountantMarketMapId,
+  generateId,
+  generateTransferId,
+} from "./utils";
 
 function getMarketStateByAccountant(
   accountantAddress: string
@@ -138,4 +146,36 @@ export function handleSeniorTrancheProtocolFeeUpdated(
   marketState.seniorVaultProtocolFeeWAD = event.params.stProtocolFeeWAD;
   marketState.updatedAt = event.block.timestamp;
   marketState.save();
+}
+
+export function handleJTCoverageImpermanentLossErased(
+  event: JTCoverageImpermanentLossErasedEvent
+): void {
+  const accountantAddress = event.address.toHexString();
+  const marketState = getMarketStateByAccountant(accountantAddress);
+
+  if (!marketState) {
+    return;
+  }
+
+  let marketLossErasedHistoricalId = generateId(
+    event.transaction.hash.toHexString(),
+    event.logIndex
+  )
+    .concat("_")
+    .concat(marketState.marketId);
+  let marketLossErasedHistorical = new MarketLossErasedHistorical(
+    marketLossErasedHistoricalId
+  );
+  marketLossErasedHistorical.marketId = marketState.marketId;
+  marketLossErasedHistorical.marketRefId = marketState.id;
+  marketLossErasedHistorical.value =
+    event.params.jtCoverageImpermanentLossErased;
+  marketLossErasedHistorical.blockNumber = event.block.number;
+  marketLossErasedHistorical.blockTimestamp = event.block.timestamp;
+  marketLossErasedHistorical.transactionHash =
+    event.transaction.hash.toHexString();
+  marketLossErasedHistorical.logIndex = event.logIndex;
+  marketLossErasedHistorical.createdAt = event.block.timestamp;
+  marketLossErasedHistorical.save();
 }

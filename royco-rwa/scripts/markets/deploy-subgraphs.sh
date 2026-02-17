@@ -2,7 +2,8 @@
 
 # Array of networks
 networks=(
-    "mainnet"
+    mainnet
+    avalanche
 )
 
 # Function to prepare and deploy subgraph
@@ -13,7 +14,7 @@ prepare_and_deploy() {
     echo "Preparing and deploying ${subgraph_name}..."
 
     # preparation command
-    mustache config/markets/networks/${network}.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/${network}.json config/markets/constants.template.ts > src/constants/static.ts && graph codegen && graph build
+    mustache config/markets/networks/${network}.json config/markets/subgraph.template.${network}.yaml > subgraph.yaml && mustache config/markets/networks/${network}.json config/markets/constants.template.ts > src/constants/static.ts && graph codegen && graph build
     
     if [ $? -eq 0 ]; then
         goldsky subgraph deploy "${subgraph_name}" --path .

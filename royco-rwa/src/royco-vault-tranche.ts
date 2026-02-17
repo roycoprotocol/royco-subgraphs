@@ -83,7 +83,7 @@ export function handleRedeem(event: RedeemEvent): void {
     SUB_CATEGORY_WITHDRAW,
     seniorVaultAddress, // from
     event.params.receiver.toHexString(), // to
-    event.params.claims.jtAssets,
+    event.params.claims.stAssets,
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
@@ -154,6 +154,7 @@ export function handleRedeem(event: RedeemEvent): void {
       event.transaction.hash.toHexString(),
       event.logIndex
     );
+
     positionRequestLatest.value = positionRequestLatest.value.minus(
       event.params.shares
     );
@@ -164,7 +165,10 @@ export function handleRedeem(event: RedeemEvent): void {
 
     positionRequestLatest.save();
 
-    // Add activity
+    // To show these shares inside activity on UI
+    positionRequestLatest.value = event.params.shares;
+
+    // Add activity first
     addRequestActivity(
       positionRequestLatest,
       activityCategory,
@@ -327,6 +331,9 @@ export function handleCancelRedeemClaim(event: CancelRedeemClaimEvent): void {
     positionState.cancelledSharesOwed.minus(value);
   positionState.save();
   addPositionStateHistorical(positionState, event.block.timestamp);
+
+  // To show these shares inside activity on UI
+  positionRequestLatest.value = value;
 
   // Add activity
   addRequestActivity(

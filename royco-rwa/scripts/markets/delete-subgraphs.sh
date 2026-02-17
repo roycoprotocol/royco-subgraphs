@@ -2,7 +2,8 @@
 
 # Array of networks
 networks=(
-    "mainnet"
+    mainnet
+    avalanche
 )
 
 # Function to delete pipeline with confirmation

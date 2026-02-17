@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: Vault
-    network: avalanche
+    network: {{network}}
     source:
-      address: "0xD567cCbb336Eb71eC2537057E2bCF6DB840bB71d"
+      address: "{{roycoFactoryContractAddress}}"
       abi: RoycoFactory
-      startBlock: 77273727
+      startBlock: {{roycoFactoryStartBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -34,7 +34,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: RoycoVaultTranche
-    network: avalanche
+    network: {{network}}
     source:
       abi: RoycoVaultTranche
     mapping:
@@ -71,7 +71,7 @@ templates:
       file: ./src/royco-vault-tranche.ts
   - kind: ethereum/contract
     name: RoycoAccountant
-    network: avalanche
+    network: {{network}}
     source:
       abi: RoycoAccountant
     mapping:
@@ -113,7 +113,7 @@ templates:
       file: ./src/royco-accountant.ts
   - kind: ethereum/contract
     name: RoycoKernel
-    network: avalanche
+    network: {{network}}
     source:
       abi: RoycoKernel
     mapping:
