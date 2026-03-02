@@ -15,7 +15,6 @@ import {
   SUB_CATEGORY_TRANSFER_OUT,
   SUB_CATEGORY_WITHDRAW,
   UPDATE_TYPE_MULTIPLIER,
-  VAULT_CATEGORY_MARKET,
   ZERO_ADDRESS,
 } from "./constants";
 import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
@@ -29,9 +28,18 @@ import { addTransferActivity } from "./handlers/activities/transfer";
 import { BigInt } from "@graphprotocol/graph-ts";
 import { updateMetricDepositors } from "./handlers/metrics/depositors";
 import { generateTokenId } from "./utils";
-import { MarketVaultMap, VaultState } from "../generated/schema";
+import { VaultState } from "../generated/schema";
 import { updateMetricTransfers } from "./handlers/metrics/transfers";
 import { VAULT_MAJOR_TYPE, VAULT_MINOR_TYPE } from "./constants";
+import { updateGlobalTransactionLog } from "./handlers/global/transaction-log";
+import { updateGlobalVaultTransactionMap } from "./handlers/global/vault-transaction-map";
+import { updateGlobalBlockLog } from "./handlers/global/block-log";
+import { addGlobalEventLog } from "./handlers/global/event-log";
+import { updateGlobalAccountIndex } from "./handlers/global/account-index";
+import {
+  updateGlobalAccountDailyActivity,
+  updateGlobalVaultDailyActivity,
+} from "./handlers/global/daily-activity";
 
 export function handleTransfer(event: TransferEvent): void {
   const fromAddress = event.params.from.toHexString();
@@ -76,16 +84,6 @@ export function handleTransfer(event: TransferEvent): void {
 
     vaultState.majorType = VAULT_MAJOR_TYPE;
     vaultState.minorType = VAULT_MINOR_TYPE;
-
-    // const marketVault = MarketVaultMap.load(transfer.vaultId);
-    // if (marketVault) {
-    //   vaultState.marketRefId = marketVault.marketRefId;
-    //   vaultState.marketId = marketVault.marketId;
-    //   vaultState.majorType = marketVault.majorType;
-    //   vaultState.minorType = marketVault.minorType;
-    //   vaultState.partnerVaultId = marketVault.partnerVaultId;
-    //   vaultState.partnerVaultAddress = marketVault.partnerVaultAddress;
-    // }
 
     vaultState.transfers = BigInt.fromI32(0);
     vaultState.totalSupply = BigInt.fromI32(0);
@@ -144,6 +142,7 @@ export function handleTransfer(event: TransferEvent): void {
     );
     positionState1.shares = positionLatest1.value;
     positionState1.save();
+    addPositionStateHistorical(positionState1, transfer.blockTimestamp);
 
     addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_OUT);
 
@@ -161,15 +160,75 @@ export function handleTransfer(event: TransferEvent): void {
     );
     positionState2.shares = positionLatest2.value;
     positionState2.save();
+    addPositionStateHistorical(positionState2, transfer.blockTimestamp);
 
     addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_IN);
   }
 
   vaultState.updatedAt = transfer.blockTimestamp;
   vaultState.save();
+
+  // Global index handlers
+  updateGlobalTransactionLog(event);
+  updateGlobalVaultTransactionMap(transfer);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
+
+  let isTransferType = subCategory == SUB_CATEGORY_TRANSFER;
+  let transferAssetValue = BigInt.fromI32(0);
+
+  if (fromAddress != ZERO_ADDRESS) {
+    updateGlobalAccountIndex(
+      transfer,
+      fromAddress,
+      true,
+      false,
+      false,
+      transferAssetValue
+    );
+    updateGlobalAccountDailyActivity(
+      transfer,
+      fromAddress,
+      false,
+      false,
+      isTransferType,
+      transferAssetValue
+    );
+  }
+  if (toAddress != ZERO_ADDRESS) {
+    updateGlobalAccountIndex(
+      transfer,
+      toAddress,
+      false,
+      false,
+      false,
+      transferAssetValue
+    );
+    updateGlobalAccountDailyActivity(
+      transfer,
+      toAddress,
+      false,
+      false,
+      isTransferType,
+      transferAssetValue
+    );
+  }
+
+  updateGlobalVaultDailyActivity(
+    transfer,
+    false,
+    false,
+    isTransferType,
+    transferAssetValue
+  );
 }
 
 export function handleDeposit(event: DepositEvent): void {
+  // Global index handlers
+  updateGlobalTransactionLog(event);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
+
   let transfer = processGlobalTokenTransfer(
     event.address.toHexString(),
     CATEGORY_ASSETS,
@@ -185,9 +244,41 @@ export function handleDeposit(event: DepositEvent): void {
   );
 
   addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
+  updateGlobalVaultTransactionMap(transfer);
+
+  let depositAssetValue = event.params.assets;
+  let depositorAddress = transfer.fromAddress;
+  updateGlobalAccountIndex(
+    transfer,
+    depositorAddress,
+    true,
+    true,
+    false,
+    depositAssetValue
+  );
+  updateGlobalAccountDailyActivity(
+    transfer,
+    depositorAddress,
+    true,
+    false,
+    false,
+    depositAssetValue
+  );
+  updateGlobalVaultDailyActivity(
+    transfer,
+    true,
+    false,
+    false,
+    depositAssetValue
+  );
 }
 
 export function handleWithdraw(event: WithdrawEvent): void {
+  // Global index handlers
+  updateGlobalTransactionLog(event);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
+
   let transfer = processGlobalTokenTransfer(
     event.address.toHexString(),
     CATEGORY_ASSETS,
@@ -203,4 +294,31 @@ export function handleWithdraw(event: WithdrawEvent): void {
   );
 
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
+  updateGlobalVaultTransactionMap(transfer);
+
+  let withdrawAssetValue = event.params.assets;
+  let receiverAddress = transfer.toAddress;
+  updateGlobalAccountIndex(
+    transfer,
+    receiverAddress,
+    false,
+    false,
+    true,
+    withdrawAssetValue
+  );
+  updateGlobalAccountDailyActivity(
+    transfer,
+    receiverAddress,
+    false,
+    true,
+    false,
+    withdrawAssetValue
+  );
+  updateGlobalVaultDailyActivity(
+    transfer,
+    false,
+    true,
+    false,
+    withdrawAssetValue
+  );
 }

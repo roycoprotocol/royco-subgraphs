@@ -34,6 +34,15 @@ import {
 import { addRequestActivity } from "./handlers/activities/request";
 import { getMetadataTimestamp, getMetadataType } from "./utils/decoder";
 import { updateFeeState } from "./handlers/fees/update-fees";
+import { updateGlobalTransactionLog } from "./handlers/global/transaction-log";
+import { updateGlobalVaultTransactionMap } from "./handlers/global/vault-transaction-map";
+import { updateGlobalBlockLog } from "./handlers/global/block-log";
+import { addGlobalEventLog } from "./handlers/global/event-log";
+import { updateGlobalAccountIndex } from "./handlers/global/account-index";
+import {
+  updateGlobalAccountDailyActivity,
+  updateGlobalVaultDailyActivity,
+} from "./handlers/global/daily-activity";
 
 export { handleTransfer } from "./vault";
 
@@ -53,6 +62,38 @@ export function handleDeposit(event: DepositEvent): void {
   );
 
   addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
+
+  // Global index handlers
+  updateGlobalTransactionLog(event);
+  updateGlobalVaultTransactionMap(transfer);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
+
+  let depositAssetValue = event.params.assets;
+  let depositorAddress = transfer.fromAddress;
+  updateGlobalAccountIndex(
+    transfer,
+    depositorAddress,
+    true,
+    true,
+    false,
+    depositAssetValue
+  );
+  updateGlobalAccountDailyActivity(
+    transfer,
+    depositorAddress,
+    true,
+    false,
+    false,
+    depositAssetValue
+  );
+  updateGlobalVaultDailyActivity(
+    transfer,
+    true,
+    false,
+    false,
+    depositAssetValue
+  );
 }
 
 export function handleRedeem(event: RedeemEvent): void {
@@ -94,6 +135,7 @@ export function handleRedeem(event: RedeemEvent): void {
   if (seniorTransfer.value.gt(BigInt.fromI32(0))) {
     seniorTransfer.save();
     addTransferActivity(seniorTransfer, SUB_CATEGORY_WITHDRAW);
+    updateGlobalVaultTransactionMap(seniorTransfer);
   }
 
   let juniorTransfer = processGlobalTokenTransfer(
@@ -113,6 +155,68 @@ export function handleRedeem(event: RedeemEvent): void {
   if (juniorTransfer.value.gt(BigInt.fromI32(0))) {
     juniorTransfer.save();
     addTransferActivity(juniorTransfer, SUB_CATEGORY_WITHDRAW);
+    updateGlobalVaultTransactionMap(juniorTransfer);
+  }
+
+  // Global index handlers (per-event, called once)
+  updateGlobalTransactionLog(event);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
+
+  let redeemReceiverAddress = event.params.receiver.toHexString();
+
+  if (seniorTransfer.value.gt(BigInt.fromI32(0))) {
+    updateGlobalVaultTransactionMap(seniorTransfer);
+    updateGlobalAccountIndex(
+      seniorTransfer,
+      redeemReceiverAddress,
+      false,
+      false,
+      true,
+      seniorTransfer.value
+    );
+    updateGlobalAccountDailyActivity(
+      seniorTransfer,
+      redeemReceiverAddress,
+      false,
+      true,
+      false,
+      seniorTransfer.value
+    );
+    updateGlobalVaultDailyActivity(
+      seniorTransfer,
+      false,
+      true,
+      false,
+      seniorTransfer.value
+    );
+  }
+
+  if (juniorTransfer.value.gt(BigInt.fromI32(0))) {
+    updateGlobalVaultTransactionMap(juniorTransfer);
+    updateGlobalAccountIndex(
+      juniorTransfer,
+      redeemReceiverAddress,
+      false,
+      false,
+      true,
+      juniorTransfer.value
+    );
+    updateGlobalAccountDailyActivity(
+      juniorTransfer,
+      redeemReceiverAddress,
+      false,
+      true,
+      false,
+      juniorTransfer.value
+    );
+    updateGlobalVaultDailyActivity(
+      juniorTransfer,
+      false,
+      true,
+      false,
+      juniorTransfer.value
+    );
   }
 
   const vaultAddress = event.address.toHexString();

@@ -3,18 +3,18 @@
 # Array of networks
 networks=(
     mainnet
-    avalanche
+    # avalanche
 )
 
 # Function to prepare and deploy subgraph
 prepare_and_deploy() {
     local network=$1
-    local subgraph_name="royco-rwa-markets-${network}/2.0.0" # Note: update version if needed
+    local subgraph_name="royco-rwa-markets-v2-${network}/1.0.0" # Note: update version if needed
     
     echo "Preparing and deploying ${subgraph_name}..."
 
     # preparation command
-    mustache config/markets/networks/${network}.json config/markets/subgraph.template.${network}.yaml > subgraph.yaml && mustache config/markets/networks/${network}.json config/markets/constants.template.ts > src/constants/static.ts && graph codegen && graph build
+    mustache config/markets-v2/networks/${network}.json config/markets-v2/subgraph.template.${network}.yaml > subgraph.yaml && mustache config/markets-v2/networks/${network}.json config/markets-v2/constants.template.ts > src/constants/static.ts && graph codegen && graph build
     
     if [ $? -eq 0 ]; then
         goldsky subgraph deploy "${subgraph_name}" --path .

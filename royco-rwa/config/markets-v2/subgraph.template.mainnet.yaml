@@ -1,0 +1,132 @@
+# prettier-ignore
+specVersion: 1.3.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Vault
+    network: {{network}}
+    source:
+      address: "{{roycoFactoryContractAddressTest}}"
+      abi: RoycoFactory
+      startBlock: {{roycoFactoryStartBlockTest}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - MarketDeployed
+      abis:
+        - name: RoycoFactory
+          file: ./abis/RoycoFactoryV2.json
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTrancheV2.json
+        - name: RoycoAccountant
+          file: ./abis/RoycoAccountantV2.json
+        - name: RoycoKernel
+          file: ./abis/RoycoKernelV2.json
+      eventHandlers:
+        - event: MarketDeployed((address,address,address,address),(string,string,string,string,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
+          handler: handleMarketDeployed
+      file: ./src/royco-factory-v2.ts
+templates:
+  - kind: ethereum/contract
+    name: RoycoVaultTranche
+    network: {{network}}
+    source:
+      abi: RoycoVaultTranche
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - Deposit
+        - Redeem
+        - ProtocolFeeSharesMinted
+      abis:
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTrancheV2.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256)
+          handler: handleRedeem
+        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
+          handler: handleProtocolFeeSharesMinted
+      file: ./src/royco-vault-tranche-v2.ts
+  - kind: ethereum/contract
+    name: RoycoAccountant
+    network: {{network}}
+    source:
+      abi: RoycoAccountant
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - BetaUpdated
+        - CoverageUpdated
+        - FixedTermDurationUpdated
+        - JTImpermanentLossReset
+        - JuniorTrancheDustToleranceUpdated
+        - JuniorTrancheProtocolFeeUpdated
+        - LLTVUpdated
+        - SeniorTrancheDustToleranceUpdated
+        - SeniorTrancheProtocolFeeUpdated
+        - YDMUpdated
+        - YieldShareProtocolFeeUpdated
+      abis:
+        - name: RoycoAccountant
+          file: ./abis/RoycoAccountantV2.json
+      eventHandlers:
+        - event: BetaUpdated(uint96)
+          handler: handleBetaUpdated
+        - event: CoverageUpdated(uint64)
+          handler: handleCoverageUpdated
+        - event: FixedTermDurationUpdated(uint24)
+          handler: handleFixedTermDurationUpdated
+        - event: JTImpermanentLossReset(uint256)
+          handler: handleJTImpermanentLossReset
+        - event: JuniorTrancheDustToleranceUpdated(uint256)
+          handler: handleJuniorTrancheDustToleranceUpdated
+        - event: JuniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleJuniorTrancheProtocolFeeUpdated
+        - event: LLTVUpdated(uint64)
+          handler: handleLLTVUpdated
+        - event: SeniorTrancheDustToleranceUpdated(uint256)
+          handler: handleSeniorTrancheDustToleranceUpdated
+        - event: SeniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleSeniorTrancheProtocolFeeUpdated
+        - event: YDMUpdated(address)
+          handler: handleYDMUpdated
+        - event: YieldShareProtocolFeeUpdated(uint64)
+          handler: handleYieldShareProtocolFeeUpdated
+      file: ./src/royco-accountant-v2.ts
+  - kind: ethereum/contract
+    name: RoycoKernel
+    network: {{network}}
+    source:
+      abi: RoycoKernel
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ProtocolFeeRecipientUpdated
+        - SeniorTrancheSelfLiquidationBonusUpdated
+      abis:
+        - name: RoycoKernel
+          file: ./abis/RoycoKernelV2.json
+      eventHandlers:
+        - event: ProtocolFeeRecipientUpdated(address)
+          handler: handleProtocolFeeRecipientUpdated
+        - event: SeniorTrancheSelfLiquidationBonusUpdated(uint64)
+          handler: handleSeniorTrancheSelfLiquidationBonusUpdated
+      file: ./src/royco-kernel-v2.ts

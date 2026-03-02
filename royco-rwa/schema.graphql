@@ -1,9 +1,9 @@
 # === MARKETS ===
 
 type MarketState @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>
+  id: String! # <CHAIN_ID>_<MARKET_ID> (V1) // <CHAIN_ID>_<KERNEL_ADDRESS> (V2)
   chainId: BigInt! # Chain ID
-  marketId: String! # Market ID
+  marketId: String! # Market ID // Same as Kernel Address in V2
   kernelAddress: String! # Kernel Address
   accountantAddress: String! # Accountant Address
   seniorVaultId: String! # Senior Vault ID
@@ -26,12 +26,16 @@ type MarketState @entity(immutable: false) {
   betaWAD: BigInt! # Beta WAD
   coverageWAD: BigInt! # Coverage WAD
   lltvWAD: BigInt! # LLTV WAD
-  dustTolerance: BigInt! # Dust Tolerance
+  dustTolerance: BigInt # Dust Tolerance (Removed in V2)
+  seniorVaultDustTolerance: BigInt # Senior Vault Dust Tolerance (Added in V2)
+  juniorVaultDustTolerance: BigInt # Junior Vault Dust Tolerance (Added in V2)
   fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds
+  yieldShareProtocolFeeWAD: BigInt # Yield Share Protocol Fee WAD (Added in V2)
   seniorVaultProtocolFeeWAD: BigInt! # Senior Vault Protocol Fee WAD
   juniorVaultProtocolFeeWAD: BigInt! # Junior Vault Protocol Fee WAD
+  seniorSelfLiquidationBonusWAD: BigInt # Senior Self Liquidation Bonus WAD (Added in V2)
   protocolFeeRecipient: String! # Protocol Fee Recipient
-  juniorTrancheRedemptionDelay: BigInt! # Junior Tranche Redemption Delay
+  juniorTrancheRedemptionDelay: BigInt # Junior Tranche Redemption Delay (Removed in V2)
   blockNumber: BigInt! # Block Number of when market was created
   blockTimestamp: BigInt! # Block Timestamp of when market was created
   transactionHash: String! # Transaction Hash
@@ -355,3 +359,191 @@ type ConcreteWithdrawal @entity(immutable: true) {
 }
 
 # xxx CONCRETE WITHDRAWAL xxx
+
+# === TRANSACTION INDEX ===
+
+type GlobalTransactionLog @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>
+  chainId: BigInt! # Chain ID
+  # Transaction fields (event.transaction)
+  transactionHash: String! # Transaction Hash
+  transactionIndex: BigInt! # Transaction Index in Block
+  fromAddress: String! # From Address (sender)
+  toAddress: String # To Address (recipient, null for contract creation)
+  value: BigInt! # Value (native token transferred in wei)
+  gasLimit: BigInt! # Gas Limit (gas provided by sender)
+  gasPrice: BigInt! # Gas Price (in wei)
+  nonce: BigInt! # Nonce (sender's transaction count)
+  input: Bytes! # Input Data (calldata)
+  functionSelector: String # Function Selector as hex (e.g., "0xa9059cbb", nullable for plain ETH transfers)
+  # Block fields (event.block)
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  blockHash: String! # Block Hash
+  parentHash: String! # Parent Block Hash
+  unclesHash: String! # Uncles Hash
+  author: String! # Miner/Validator Address
+  stateRoot: String! # State Trie Root
+  transactionsRoot: String! # Transactions Trie Root
+  receiptsRoot: String! # Receipts Trie Root
+  blockGasUsed: BigInt! # Block Gas Used
+  blockGasLimit: BigInt! # Block Gas Limit
+  difficulty: BigInt! # Block Difficulty
+  totalDifficulty: BigInt! # Total Chain Difficulty
+  blockSize: BigInt # Block Size (nullable)
+  baseFeePerGas: BigInt # EIP-1559 Base Fee Per Gas (nullable, pre-EIP-1559 blocks)
+  # Receipt fields (event.receipt — requires receipt: true in manifest)
+  gasUsed: BigInt! # Gas Used (actual gas consumed by transaction)
+  cumulativeGasUsed: BigInt! # Cumulative Gas Used in Block
+  contractAddress: String # Deployed Contract Address (only for contract creation txs)
+  logsBloom: Bytes! # Bloom Filter for Logs
+  # Computed fee fields (requires gasUsed from receipt)
+  transactionFee: BigInt! # Transaction Fee in wei (gasUsed * gasPrice)
+  priorityFee: BigInt # Priority Fee in wei (gasUsed * (gasPrice - baseFeePerGas), EIP-1559 only)
+  burnedAmount: BigInt # Burned Amount in wei (gasUsed * baseFeePerGas, EIP-1559 only)
+  # Metadata
+  createdAt: BigInt! # Created At
+}
+
+# xxx TRANSACTION INDEX xxx
+
+# === VAULT TRANSACTION MAP ===
+
+type GlobalVaultTransactionMap @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<TRANSACTION_HASH>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  transactionHash: String! # Transaction Hash
+  transactionIndexId: String! # Reference to TransactionIndex
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  createdAt: BigInt! # Created At
+}
+
+# xxx VAULT TRANSACTION MAP xxx
+
+# === BLOCK INDEX ===
+
+type GlobalBlockLog @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<BLOCK_NUMBER>
+  chainId: BigInt! # Chain ID
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  blockHash: String! # Block Hash
+  parentHash: String! # Parent Block Hash
+  unclesHash: String! # Uncles Hash
+  author: String! # Miner/Validator Address
+  stateRoot: String! # State Trie Root
+  transactionsRoot: String! # Transactions Trie Root
+  receiptsRoot: String! # Receipts Trie Root
+  gasUsed: BigInt! # Block Gas Used
+  gasLimit: BigInt! # Block Gas Limit
+  difficulty: BigInt! # Block Difficulty
+  totalDifficulty: BigInt! # Total Chain Difficulty
+  size: BigInt # Block Size (nullable)
+  baseFeePerGas: BigInt # EIP-1559 Base Fee Per Gas (nullable)
+  transactionCount: BigInt! # Number of Transactions in Block
+  eventCount: BigInt! # Number of Events Observed in Block
+  createdAt: BigInt! # Created At
+}
+
+# xxx BLOCK INDEX xxx
+
+# === EVENT LOG INDEX ===
+
+type GlobalEventLog @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  chainId: BigInt! # Chain ID
+  transactionHash: String! # Transaction Hash
+  transactionIndex: BigInt! # Transaction Index in Block
+  logIndex: BigInt! # Log Index within the Block
+  transactionLogIndex: BigInt! # Log Index within the Transaction
+  logType: String # Log Type (nullable)
+  contractAddress: String! # Contract Address that Emitted the Event
+  eventSignature: String # Event Signature (topic0, nullable)
+  topic0: Bytes # Topic 0 (event signature hash)
+  topic1: Bytes # Topic 1 (first indexed param)
+  topic2: Bytes # Topic 2 (second indexed param)
+  topic3: Bytes # Topic 3 (third indexed param)
+  data: Bytes! # Non-indexed Event Data
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  createdAt: BigInt! # Created At
+}
+
+# xxx EVENT LOG INDEX xxx
+
+# === ACCOUNT INDEX ===
+
+type GlobalAccountIndex @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  accountAddress: String! # Account Address
+  isContract: Boolean! # Whether the Account is a Contract
+  transactionCount: BigInt! # Total Transactions Involving this Account
+  sentCount: BigInt! # Transactions Sent by this Account
+  receivedCount: BigInt! # Transactions Received by this Account
+  depositCount: BigInt! # Number of Deposits
+  withdrawCount: BigInt! # Number of Withdrawals
+  totalDeposited: BigInt! # Cumulative Assets Deposited
+  totalWithdrawn: BigInt! # Cumulative Assets Withdrawn
+  firstSeenBlock: BigInt! # First Seen Block Number
+  firstSeenTimestamp: BigInt! # First Seen Block Timestamp
+  firstTransactionHash: String! # First Transaction Hash
+  lastSeenBlock: BigInt! # Last Seen Block Number
+  lastSeenTimestamp: BigInt! # Last Seen Block Timestamp
+  lastTransactionHash: String! # Last Transaction Hash
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+# xxx ACCOUNT INDEX xxx
+
+# === ACCOUNT DAILY ACTIVITY ===
+
+type GlobalAccountDailyActivity @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<DAY_TIMESTAMP>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  accountAddress: String! # Account Address
+  dayTimestamp: BigInt! # Start of Day (blockTimestamp / 86400 * 86400)
+  depositCount: BigInt! # Number of Deposits
+  withdrawCount: BigInt! # Number of Withdrawals
+  transferCount: BigInt! # Number of Share Transfers (sent + received)
+  totalCount: BigInt! # Total Activity Count (intensity value for heatmap)
+  totalDeposited: BigInt! # Assets Deposited that Day
+  totalWithdrawn: BigInt! # Assets Withdrawn that Day
+  cumulativeDeposited: BigInt! # Cumulative Assets Deposited (running total)
+  cumulativeWithdrawn: BigInt! # Cumulative Assets Withdrawn (running total)
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+# xxx ACCOUNT DAILY ACTIVITY xxx
+
+# === VAULT DAILY ACTIVITY ===
+
+type GlobalVaultDailyActivity @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<DAY_TIMESTAMP>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  dayTimestamp: BigInt! # Start of Day (blockTimestamp / 86400 * 86400)
+  depositCount: BigInt! # Number of Deposits
+  withdrawCount: BigInt! # Number of Withdrawals
+  transferCount: BigInt! # Number of Share Transfers
+  totalCount: BigInt! # Total Activity Count (intensity value for heatmap)
+  totalDeposited: BigInt! # Assets Deposited that Day
+  totalWithdrawn: BigInt! # Assets Withdrawn that Day
+  cumulativeDeposited: BigInt! # Cumulative Assets Deposited (running total)
+  cumulativeWithdrawn: BigInt! # Cumulative Assets Withdrawn (running total)
+  uniqueAccounts: BigInt! # Unique Accounts Active that Day
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+# xxx VAULT DAILY ACTIVITY xxx

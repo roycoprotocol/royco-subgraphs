@@ -199,3 +199,73 @@ export const generateAccountantMarketMapId = (
 export const generateKernelMarketMapId = (kernelAddress: string): string => {
   return CHAIN_ID.toString().concat("_").concat(kernelAddress);
 };
+
+// === GLOBAL INDEX ID GENERATORS ===
+
+export const generateGlobalTransactionLogId = (
+  transactionHash: string
+): string => {
+  return CHAIN_ID.toString().concat("_").concat(transactionHash);
+};
+
+export const generateGlobalVaultTransactionMapId = (
+  vaultAddress: string,
+  transactionHash: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(transactionHash);
+};
+
+export const generateGlobalBlockLogId = (blockNumber: BigInt): string => {
+  return CHAIN_ID.toString().concat("_").concat(blockNumber.toString());
+};
+
+export const generateGlobalEventLogId = (
+  transactionHash: string,
+  logIndex: BigInt
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(transactionHash)
+    .concat("_")
+    .concat(logIndex.toString());
+};
+
+export const generateGlobalAccountIndexId = (
+  vaultAddress: string,
+  accountAddress: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(accountAddress);
+};
+
+export const generateGlobalAccountDailyActivityId = (
+  vaultAddress: string,
+  accountAddress: string,
+  dayTimestamp: BigInt
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(accountAddress)
+    .concat("_")
+    .concat(dayTimestamp.toString());
+};
+
+export const generateGlobalVaultDailyActivityId = (
+  vaultAddress: string,
+  dayTimestamp: BigInt
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(dayTimestamp.toString());
+};
