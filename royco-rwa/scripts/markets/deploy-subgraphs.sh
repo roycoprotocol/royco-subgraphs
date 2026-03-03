@@ -9,7 +9,7 @@ networks=(
 # Function to prepare and deploy subgraph
 prepare_and_deploy() {
     local network=$1
-    local subgraph_name="royco-rwa-markets-${network}/2.0.0" # Note: update version if needed
+    local subgraph_name="royco-rwa-markets-${network}/1.0.0" # Note: update version if needed
     
     echo "Preparing and deploying ${subgraph_name}..."
 

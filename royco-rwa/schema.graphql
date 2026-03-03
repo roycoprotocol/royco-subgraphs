@@ -356,12 +356,12 @@ type GlobalTransactionLog @entity(immutable: true) {
   transactionHash: String! # Transaction Hash
   transactionIndex: BigInt! # Transaction Index in Block
   fromAddress: String! # From Address (sender)
-  toAddress: String # To Address (recipient, null for contract creation)
+  toAddress: String! # To Address (recipient)
   value: BigInt! # Value (native token transferred in wei)
   gasLimit: BigInt! # Gas Limit (gas provided by sender)
   gasPrice: BigInt! # Gas Price (in wei)
   nonce: BigInt! # Nonce (sender's transaction count)
-  input: Bytes! # Input Data (calldata)
+  input: String! # Input Data (calldata, hex encoded)
   functionSelector: String # Function Selector as hex (e.g., "0xa9059cbb", nullable for plain ETH transfers)
   # Block fields (event.block)
   blockNumber: BigInt! # Block Number
@@ -370,15 +370,15 @@ type GlobalTransactionLog @entity(immutable: true) {
   blockGasUsed: BigInt! # Block Gas Used
   blockGasLimit: BigInt! # Block Gas Limit
   blockSize: BigInt # Block Size (nullable)
-  baseFeePerGas: BigInt # EIP-1559 Base Fee Per Gas (nullable, pre-EIP-1559 blocks)
+  baseFeePerGas: BigInt! # EIP-1559 Base Fee Per Gas
   # Receipt fields (event.receipt — requires receipt: true in manifest)
   gasUsed: BigInt! # Gas Used (actual gas consumed by transaction)
   cumulativeGasUsed: BigInt! # Cumulative Gas Used in Block
-  logsBloom: Bytes! # Bloom Filter for Logs
+  logsBloom: String! # Bloom Filter for Logs (hex encoded)
   # Computed fee fields (requires gasUsed from receipt)
   transactionFee: BigInt! # Transaction Fee in wei (gasUsed * gasPrice)
-  priorityFee: BigInt # Priority Fee in wei (gasUsed * (gasPrice - baseFeePerGas), EIP-1559 only)
-  burnedAmount: BigInt # Burned Amount in wei (gasUsed * baseFeePerGas, EIP-1559 only)
+  priorityFee: BigInt! # Priority Fee in wei (gasUsed * (gasPrice - baseFeePerGas))
+  burnedAmount: BigInt! # Burned Amount in wei (gasUsed * baseFeePerGas)
   # Metadata
   createdAt: BigInt! # Created At
 }
@@ -412,7 +412,7 @@ type GlobalBlockLog @entity(immutable: false) {
   gasUsed: BigInt! # Block Gas Used
   gasLimit: BigInt! # Block Gas Limit
   size: BigInt # Block Size (nullable)
-  baseFeePerGas: BigInt # EIP-1559 Base Fee Per Gas (nullable)
+  baseFeePerGas: BigInt! # EIP-1559 Base Fee Per Gas
   transactionCount: BigInt! # Number of Transactions in Block
   eventCount: BigInt! # Number of Events Observed in Block
   createdAt: BigInt! # Created At
@@ -431,11 +431,11 @@ type GlobalEventLog @entity(immutable: true) {
   transactionLogIndex: BigInt! # Log Index within the Transaction
   contractAddress: String! # Contract Address that Emitted the Event
   eventSignature: String # Event Signature (topic0, nullable)
-  topic0: Bytes # Topic 0 (event signature hash)
-  topic1: Bytes # Topic 1 (first indexed param)
-  topic2: Bytes # Topic 2 (second indexed param)
-  topic3: Bytes # Topic 3 (third indexed param)
-  data: Bytes! # Non-indexed Event Data
+  topic0: String # Topic 0 (event signature hash, hex encoded)
+  topic1: String # Topic 1 (first indexed param, hex encoded)
+  topic2: String # Topic 2 (second indexed param, hex encoded)
+  topic3: String # Topic 3 (third indexed param, hex encoded)
+  data: String! # Non-indexed Event Data (hex encoded)
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   createdAt: BigInt! # Created At

@@ -1,4 +1,4 @@
-import { Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { ethereum } from "@graphprotocol/graph-ts";
 import { GlobalEventLog } from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
 import { generateGlobalEventLogId } from "../../utils";
@@ -17,7 +17,7 @@ export function addGlobalEventLog(event: ethereum.Event): GlobalEventLog {
   entity.transactionLogIndex = event.transactionLogIndex;
   entity.contractAddress = event.address.toHexString();
   entity.eventSignature = null;
-  entity.data = Bytes.empty();
+  entity.data = "0x";
 
   // Topics from receipt logs
   let receipt = event.receipt;
@@ -27,11 +27,11 @@ export function addGlobalEventLog(event: ethereum.Event): GlobalEventLog {
       if (logs[i].logIndex.equals(event.logIndex)) {
         let log = logs[i];
         let topics = log.topics;
-        entity.topic0 = topics.length > 0 ? topics[0] : null;
-        entity.topic1 = topics.length > 1 ? topics[1] : null;
-        entity.topic2 = topics.length > 2 ? topics[2] : null;
-        entity.topic3 = topics.length > 3 ? topics[3] : null;
-        entity.data = log.data;
+        entity.topic0 = topics.length > 0 ? topics[0].toHexString() : null;
+        entity.topic1 = topics.length > 1 ? topics[1].toHexString() : null;
+        entity.topic2 = topics.length > 2 ? topics[2].toHexString() : null;
+        entity.topic3 = topics.length > 3 ? topics[3].toHexString() : null;
+        entity.data = log.data.toHexString();
         if (topics.length > 0) {
           entity.eventSignature = topics[0].toHexString();
         }

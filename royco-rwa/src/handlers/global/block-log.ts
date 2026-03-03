@@ -16,7 +16,7 @@ export function updateGlobalBlockLog(event: ethereum.Event): GlobalBlockLog {
     entity.gasUsed = event.block.gasUsed;
     entity.gasLimit = event.block.gasLimit;
     entity.size = event.block.size;
-    entity.baseFeePerGas = event.block.baseFeePerGas;
+    entity.baseFeePerGas = event.block.baseFeePerGas!;
     entity.transactionCount = BigInt.fromI32(0);
     entity.eventCount = BigInt.fromI32(0);
     entity.createdAt = event.block.timestamp;

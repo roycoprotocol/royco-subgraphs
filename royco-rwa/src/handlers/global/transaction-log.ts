@@ -14,6 +14,11 @@ export function updateGlobalTransactionLog(
     return entity;
   }
 
+  // Skip contract creation transactions (no toAddress)
+  if (!event.transaction.to) {
+    return null;
+  }
+
   entity = new GlobalTransactionLog(id);
   entity.chainId = CHAIN_ID;
 
@@ -21,14 +26,12 @@ export function updateGlobalTransactionLog(
   entity.transactionHash = transactionHash;
   entity.transactionIndex = event.transaction.index;
   entity.fromAddress = event.transaction.from.toHexString();
-  entity.toAddress = event.transaction.to
-    ? event.transaction.to!.toHexString()
-    : null;
+  entity.toAddress = event.transaction.to!.toHexString();
   entity.value = event.transaction.value;
   entity.gasLimit = event.transaction.gasLimit;
   entity.gasPrice = event.transaction.gasPrice;
   entity.nonce = event.transaction.nonce;
-  entity.input = event.transaction.input;
+  entity.input = event.transaction.input.toHexString();
 
   // Function selector (first 4 bytes of input)
   let input = event.transaction.input;
@@ -37,7 +40,7 @@ export function updateGlobalTransactionLog(
     for (let i = 0; i < 4; i++) {
       selectorBytes[i] = input[i];
     }
-    entity.functionSelector = "0x".concat(selectorBytes.toHexString().slice(2));
+    entity.functionSelector = selectorBytes.toHexString();
   } else {
     entity.functionSelector = null;
   }
@@ -49,34 +52,28 @@ export function updateGlobalTransactionLog(
   entity.blockGasUsed = event.block.gasUsed;
   entity.blockGasLimit = event.block.gasLimit;
   entity.blockSize = event.block.size;
-  entity.baseFeePerGas = event.block.baseFeePerGas;
+  entity.baseFeePerGas = event.block.baseFeePerGas!;
 
   // Receipt fields
   let receipt = event.receipt;
+  let baseFee = event.block.baseFeePerGas!;
   if (receipt) {
     entity.gasUsed = receipt.gasUsed;
     entity.cumulativeGasUsed = receipt.cumulativeGasUsed;
-    entity.logsBloom = receipt.logsBloom;
+    entity.logsBloom = receipt.logsBloom.toHexString();
 
     // Computed fee fields
     entity.transactionFee = receipt.gasUsed.times(event.transaction.gasPrice);
-
-    if (event.block.baseFeePerGas) {
-      let baseFee = event.block.baseFeePerGas!;
-      let priorityFeePerGas = event.transaction.gasPrice.minus(baseFee);
-      entity.priorityFee = receipt.gasUsed.times(priorityFeePerGas);
-      entity.burnedAmount = receipt.gasUsed.times(baseFee);
-    } else {
-      entity.priorityFee = null;
-      entity.burnedAmount = null;
-    }
+    let priorityFeePerGas = event.transaction.gasPrice.minus(baseFee);
+    entity.priorityFee = receipt.gasUsed.times(priorityFeePerGas);
+    entity.burnedAmount = receipt.gasUsed.times(baseFee);
   } else {
     entity.gasUsed = BigInt.fromI32(0);
     entity.cumulativeGasUsed = BigInt.fromI32(0);
-    entity.logsBloom = Bytes.empty();
+    entity.logsBloom = "0x";
     entity.transactionFee = BigInt.fromI32(0);
-    entity.priorityFee = null;
-    entity.burnedAmount = null;
+    entity.priorityFee = BigInt.fromI32(0);
+    entity.burnedAmount = BigInt.fromI32(0);
   }
 
   // Metadata
