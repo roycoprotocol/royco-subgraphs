@@ -15,7 +15,6 @@ export function addGlobalEventLog(event: ethereum.Event): GlobalEventLog {
   entity.transactionIndex = event.transaction.index;
   entity.logIndex = event.logIndex;
   entity.transactionLogIndex = event.transactionLogIndex;
-  entity.logType = event.logType;
   entity.contractAddress = event.address.toHexString();
   entity.eventSignature = null;
   entity.data = Bytes.empty();

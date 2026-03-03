@@ -7,115 +7,115 @@ sources:
     name: global_token_transfer
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_token_activity_reference:
     name: global_token_activity
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_vault_state_reference:
     name: vault_state
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_request_latest_reference:
     name: position_request_latest
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_state_reference:
     name: position_state
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_state_historical_reference:
     name: position_state_historical
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_latest_reference:
     name: position_latest
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_position_historical_reference:
     name: position_historical
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_metric_latest_reference:
     name: metric_latest
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_metric_historical_reference:
     name: metric_historical
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_fee_state_reference:
     name: fee_state
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_fee_historical_reference:
     name: fee_historical
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_vault_daily_activity_reference:
     name: global_vault_daily_activity
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_account_daily_activity_reference:
     name: global_account_daily_activity
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_account_index_reference:
     name: global_account_index
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_event_log_reference:
     name: global_event_log
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_block_log_reference:
     name: global_block_log
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_vault_transaction_map_reference:
     name: global_vault_transaction_map
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
   royco_rwa_earn_concrete_global_transaction_log_reference:
     name: global_transaction_log
     subgraphs:
       - name: royco-rwa-earn-concrete-mainnet
-        version: 1.0.0
+        version: 2.0.0
     type: subgraph_entity
 transforms: {}
 sinks:

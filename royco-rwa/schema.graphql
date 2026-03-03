@@ -429,7 +429,6 @@ type GlobalEventLog @entity(immutable: true) {
   transactionIndex: BigInt! # Transaction Index in Block
   logIndex: BigInt! # Log Index within the Block
   transactionLogIndex: BigInt! # Log Index within the Transaction
-  logType: String # Log Type (nullable)
   contractAddress: String! # Contract Address that Emitted the Event
   eventSignature: String # Event Signature (topic0, nullable)
   topic0: Bytes # Topic 0 (event signature hash)
