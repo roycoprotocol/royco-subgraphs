@@ -1,17 +1,22 @@
-import { GlobalTokenTransfer, GlobalVaultTransactionMap } from "../../../generated/schema";
+import { BigInt } from "@graphprotocol/graph-ts";
+import {
+  GlobalTokenTransfer,
+  GlobalVaultTransactionMap,
+} from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
 import {
   generateGlobalTransactionLogId,
   generateGlobalVaultTransactionMapId,
+  generateVaultId,
 } from "../../utils";
 
 export function updateGlobalVaultTransactionMap(
-  transfer: GlobalTokenTransfer
+  vaultAddress: string,
+  transactionHash: string,
+  blockNumber: BigInt,
+  blockTimestamp: BigInt
 ): GlobalVaultTransactionMap | null {
-  let id = generateGlobalVaultTransactionMapId(
-    transfer.vaultAddress,
-    transfer.transactionHash
-  );
+  let id = generateGlobalVaultTransactionMapId(vaultAddress, transactionHash);
 
   let entity = GlobalVaultTransactionMap.load(id);
   if (entity) {
@@ -20,15 +25,13 @@ export function updateGlobalVaultTransactionMap(
 
   entity = new GlobalVaultTransactionMap(id);
   entity.chainId = CHAIN_ID;
-  entity.vaultAddress = transfer.vaultAddress;
-  entity.vaultId = transfer.vaultId;
-  entity.transactionHash = transfer.transactionHash;
-  entity.transactionIndexId = generateGlobalTransactionLogId(
-    transfer.transactionHash
-  );
-  entity.blockNumber = transfer.blockNumber;
-  entity.blockTimestamp = transfer.blockTimestamp;
-  entity.createdAt = transfer.blockTimestamp;
+  entity.vaultAddress = vaultAddress;
+  entity.vaultId = generateVaultId(vaultAddress);
+  entity.transactionHash = transactionHash;
+  entity.transactionIndexId = generateGlobalTransactionLogId(transactionHash);
+  entity.blockNumber = blockNumber;
+  entity.blockTimestamp = blockTimestamp;
+  entity.createdAt = blockTimestamp;
 
   entity.save();
   return entity;

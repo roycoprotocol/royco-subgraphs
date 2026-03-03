@@ -1,4 +1,4 @@
-import { BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { GlobalTransactionLog } from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
 import { generateGlobalTransactionLogId } from "../../utils";
@@ -46,16 +46,8 @@ export function updateGlobalTransactionLog(
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
   entity.blockHash = event.block.hash.toHexString();
-  entity.parentHash = event.block.parentHash.toHexString();
-  entity.unclesHash = event.block.unclesHash.toHexString();
-  entity.author = event.block.author.toHexString();
-  entity.stateRoot = event.block.stateRoot.toHexString();
-  entity.transactionsRoot = event.block.transactionsRoot.toHexString();
-  entity.receiptsRoot = event.block.receiptsRoot.toHexString();
   entity.blockGasUsed = event.block.gasUsed;
   entity.blockGasLimit = event.block.gasLimit;
-  entity.difficulty = event.block.difficulty;
-  entity.totalDifficulty = event.block.totalDifficulty;
   entity.blockSize = event.block.size;
   entity.baseFeePerGas = event.block.baseFeePerGas;
 
@@ -64,10 +56,6 @@ export function updateGlobalTransactionLog(
   if (receipt) {
     entity.gasUsed = receipt.gasUsed;
     entity.cumulativeGasUsed = receipt.cumulativeGasUsed;
-    entity.contractAddress = receipt.contractAddress.toHexString() !=
-      "0x0000000000000000000000000000000000000000"
-      ? receipt.contractAddress.toHexString()
-      : null;
     entity.logsBloom = receipt.logsBloom;
 
     // Computed fee fields
@@ -85,7 +73,6 @@ export function updateGlobalTransactionLog(
   } else {
     entity.gasUsed = BigInt.fromI32(0);
     entity.cumulativeGasUsed = BigInt.fromI32(0);
-    entity.contractAddress = null;
     entity.logsBloom = Bytes.empty();
     entity.transactionFee = BigInt.fromI32(0);
     entity.priorityFee = null;

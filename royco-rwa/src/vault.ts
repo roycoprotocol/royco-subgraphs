@@ -170,7 +170,12 @@ export function handleTransfer(event: TransferEvent): void {
 
   // Global index handlers
   updateGlobalTransactionLog(event);
-  updateGlobalVaultTransactionMap(transfer);
+  updateGlobalVaultTransactionMap(
+    transfer.vaultAddress,
+    transfer.transactionHash,
+    transfer.blockNumber,
+    transfer.blockTimestamp
+  );
   updateGlobalBlockLog(event);
   addGlobalEventLog(event);
 
@@ -225,6 +230,12 @@ export function handleTransfer(event: TransferEvent): void {
 
 export function handleDeposit(event: DepositEvent): void {
   // Global index handlers
+  updateGlobalVaultTransactionMap(
+    event.address.toHexString(),
+    event.transaction.hash.toHexString(),
+    event.block.number,
+    event.block.timestamp
+  );
   updateGlobalTransactionLog(event);
   updateGlobalBlockLog(event);
   addGlobalEventLog(event);
@@ -244,7 +255,6 @@ export function handleDeposit(event: DepositEvent): void {
   );
 
   addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
-  updateGlobalVaultTransactionMap(transfer);
 
   let depositAssetValue = event.params.assets;
   let depositorAddress = transfer.fromAddress;
@@ -275,6 +285,12 @@ export function handleDeposit(event: DepositEvent): void {
 
 export function handleWithdraw(event: WithdrawEvent): void {
   // Global index handlers
+  updateGlobalVaultTransactionMap(
+    event.address.toHexString(),
+    event.transaction.hash.toHexString(),
+    event.block.number,
+    event.block.timestamp
+  );
   updateGlobalTransactionLog(event);
   updateGlobalBlockLog(event);
   addGlobalEventLog(event);
@@ -292,10 +308,9 @@ export function handleWithdraw(event: WithdrawEvent): void {
     event.logIndex,
     true
   );
-
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
-  updateGlobalVaultTransactionMap(transfer);
 
+  // Update global index handlers
   let withdrawAssetValue = event.params.assets;
   let receiverAddress = transfer.toAddress;
   updateGlobalAccountIndex(

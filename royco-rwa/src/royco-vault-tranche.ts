@@ -11,7 +11,6 @@ import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
 import {
   CATEGORY_ASSETS,
   CATEGORY_SHARES,
-  FEES_MAJOR_TYPE_MANAGEMENT,
   FEES_MAJOR_TYPE_PROTOCOL,
   FEES_MINOR_TYPE_SHARES,
   STATUS_CANCEL_CLAIMED,
@@ -21,7 +20,6 @@ import {
   SUB_CATEGORY_DEPOSIT,
   SUB_CATEGORY_WITHDRAW,
   VAULT_SUB_CATEGORY_JUNIOR,
-  ZERO_ADDRESS,
 } from "./constants";
 import { addTransferActivity } from "./handlers/activities/transfer";
 import { generateVaultId } from "./utils";
@@ -64,8 +62,13 @@ export function handleDeposit(event: DepositEvent): void {
   addTransferActivity(transfer, SUB_CATEGORY_DEPOSIT);
 
   // Global index handlers
+  updateGlobalVaultTransactionMap(
+    transfer.vaultAddress,
+    transfer.transactionHash,
+    transfer.blockNumber,
+    transfer.blockTimestamp
+  );
   updateGlobalTransactionLog(event);
-  updateGlobalVaultTransactionMap(transfer);
   updateGlobalBlockLog(event);
   addGlobalEventLog(event);
 
@@ -100,10 +103,16 @@ export function handleRedeem(event: RedeemEvent): void {
   let currVaultAddress = event.address.toHexString();
   let currVaultId = generateVaultId(currVaultAddress);
   let currVaultState = VaultState.load(currVaultId);
+  let redeemReceiverAddress = event.params.receiver.toHexString();
 
   if (!currVaultState || !currVaultState.partnerVaultAddress) {
     return;
   }
+
+  // Global index handlers (per-event, called once)
+  updateGlobalTransactionLog(event);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
 
   // Assume currVault is "Senior"
   let seniorVaultAddress = currVaultAddress;
@@ -135,38 +144,13 @@ export function handleRedeem(event: RedeemEvent): void {
   if (seniorTransfer.value.gt(BigInt.fromI32(0))) {
     seniorTransfer.save();
     addTransferActivity(seniorTransfer, SUB_CATEGORY_WITHDRAW);
-    updateGlobalVaultTransactionMap(seniorTransfer);
-  }
+    updateGlobalVaultTransactionMap(
+      seniorTransfer.vaultAddress,
+      seniorTransfer.transactionHash,
+      seniorTransfer.blockNumber,
+      seniorTransfer.blockTimestamp
+    );
 
-  let juniorTransfer = processGlobalTokenTransfer(
-    juniorVaultAddress, // vault
-    CATEGORY_ASSETS,
-    SUB_CATEGORY_WITHDRAW,
-    juniorVaultAddress, // from
-    event.params.receiver.toHexString(), // to
-    event.params.claims.jtAssets,
-    event.block.number,
-    event.block.timestamp,
-    event.transaction.hash.toHexString(),
-    event.logIndex,
-    false
-  );
-
-  if (juniorTransfer.value.gt(BigInt.fromI32(0))) {
-    juniorTransfer.save();
-    addTransferActivity(juniorTransfer, SUB_CATEGORY_WITHDRAW);
-    updateGlobalVaultTransactionMap(juniorTransfer);
-  }
-
-  // Global index handlers (per-event, called once)
-  updateGlobalTransactionLog(event);
-  updateGlobalBlockLog(event);
-  addGlobalEventLog(event);
-
-  let redeemReceiverAddress = event.params.receiver.toHexString();
-
-  if (seniorTransfer.value.gt(BigInt.fromI32(0))) {
-    updateGlobalVaultTransactionMap(seniorTransfer);
     updateGlobalAccountIndex(
       seniorTransfer,
       redeemReceiverAddress,
@@ -192,8 +176,30 @@ export function handleRedeem(event: RedeemEvent): void {
     );
   }
 
+  let juniorTransfer = processGlobalTokenTransfer(
+    juniorVaultAddress, // vault
+    CATEGORY_ASSETS,
+    SUB_CATEGORY_WITHDRAW,
+    juniorVaultAddress, // from
+    redeemReceiverAddress, // to
+    event.params.claims.jtAssets,
+    event.block.number,
+    event.block.timestamp,
+    event.transaction.hash.toHexString(),
+    event.logIndex,
+    false
+  );
+
   if (juniorTransfer.value.gt(BigInt.fromI32(0))) {
-    updateGlobalVaultTransactionMap(juniorTransfer);
+    juniorTransfer.save();
+    addTransferActivity(juniorTransfer, SUB_CATEGORY_WITHDRAW);
+    updateGlobalVaultTransactionMap(
+      juniorTransfer.vaultAddress,
+      juniorTransfer.transactionHash,
+      juniorTransfer.blockNumber,
+      juniorTransfer.blockTimestamp
+    );
+
     updateGlobalAccountIndex(
       juniorTransfer,
       redeemReceiverAddress,

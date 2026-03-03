@@ -34,28 +34,40 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
+          receipt: true
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+          receipt: true
         - event: QueuedWithdrawal(indexed address,indexed address,indexed address,uint256,uint256,uint256)
           handler: handleQueuedWithdrawal
+          receipt: true
         - event: RequestCancelled(indexed address,uint256,uint256)
           handler: handleRequestCancelled
+          receipt: true
         - event: RequestMovedToNextEpoch(indexed address,uint256,uint256,uint256)
           handler: handleRequestMovedToNextEpoch
+          receipt: true
         - event: EpochClosed(uint256)
           handler: handleEpochClosed
+          receipt: true
         - event: EpochProcessed(uint256,uint256,uint256,uint256)
           handler: handleEpochProcessed
+          receipt: true
         - event: RequestClaimed(indexed address,uint256,uint256[])
           handler: handleRequestClaimed
+          receipt: true
         - event: RoleGranted(indexed bytes32,indexed address,indexed address)
           handler: handleRoleGranted
+          receipt: true
         - event: ManagementFeeAccrued(indexed address,uint256,uint256)
           handler: handleManagementFeeAccrued
+          receipt: true
         - event: PerformanceFeeAccrued(indexed address,uint256,uint256)
           handler: handlePerformanceFeeAccrued
+          receipt: true
       file: ./src/concrete-async-vault.ts
 {{/asyncVaults}}
 {{#standardVaults}}
@@ -80,9 +92,12 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
+          receipt: true
         - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleWithdraw
+          receipt: true
       file: ./src/vault.ts
 {{/standardVaults}}

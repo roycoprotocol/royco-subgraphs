@@ -110,7 +110,6 @@ export function updateGlobalVaultDailyActivity(
     entity.totalWithdrawn = BigInt.fromI32(0);
     entity.cumulativeDeposited = BigInt.fromI32(0);
     entity.cumulativeWithdrawn = BigInt.fromI32(0);
-    entity.uniqueAccounts = BigInt.fromI32(0);
     entity.createdAt = transfer.blockTimestamp;
   }
 

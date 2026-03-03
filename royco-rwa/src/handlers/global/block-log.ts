@@ -13,16 +13,8 @@ export function updateGlobalBlockLog(event: ethereum.Event): GlobalBlockLog {
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.blockHash = event.block.hash.toHexString();
-    entity.parentHash = event.block.parentHash.toHexString();
-    entity.unclesHash = event.block.unclesHash.toHexString();
-    entity.author = event.block.author.toHexString();
-    entity.stateRoot = event.block.stateRoot.toHexString();
-    entity.transactionsRoot = event.block.transactionsRoot.toHexString();
-    entity.receiptsRoot = event.block.receiptsRoot.toHexString();
     entity.gasUsed = event.block.gasUsed;
     entity.gasLimit = event.block.gasLimit;
-    entity.difficulty = event.block.difficulty;
-    entity.totalDifficulty = event.block.totalDifficulty;
     entity.size = event.block.size;
     entity.baseFeePerGas = event.block.baseFeePerGas;
     entity.transactionCount = BigInt.fromI32(0);

@@ -49,6 +49,15 @@ import { processGlobalTokenTransfer } from "./handlers/base/process-transfer";
 import { addTransferActivity } from "./handlers/activities/transfer";
 import { BaseVault } from "../generated/Vault/BaseVault";
 import { updateFeeState } from "./handlers/fees/update-fees";
+import { updateGlobalTransactionLog } from "./handlers/global/transaction-log";
+import { updateGlobalVaultTransactionMap } from "./handlers/global/vault-transaction-map";
+import { updateGlobalBlockLog } from "./handlers/global/block-log";
+import { addGlobalEventLog } from "./handlers/global/event-log";
+import { updateGlobalAccountIndex } from "./handlers/global/account-index";
+import {
+  updateGlobalAccountDailyActivity,
+  updateGlobalVaultDailyActivity,
+} from "./handlers/global/daily-activity";
 
 export { handleTransfer, handleDeposit, handleWithdraw } from "./vault";
 
@@ -487,6 +496,17 @@ export function handleEpochProcessed(event: EpochProcessedEvent): void {
 }
 
 export function handleRequestClaimed(event: RequestClaimedEvent): void {
+  // Global index handlers
+  updateGlobalVaultTransactionMap(
+    event.address.toHexString(),
+    event.transaction.hash.toHexString(),
+    event.block.number,
+    event.block.timestamp
+  );
+  updateGlobalTransactionLog(event);
+  updateGlobalBlockLog(event);
+  addGlobalEventLog(event);
+
   const accountAddress = event.params.owner.toHexString();
   const vaultAddress = event.address.toHexString();
   const positionRequestCategory = CATEGORY_SHARES;
@@ -583,6 +603,33 @@ export function handleRequestClaimed(event: RequestClaimedEvent): void {
     true
   );
   addTransferActivity(transfer, SUB_CATEGORY_WITHDRAW);
+
+  // Update global index handlers
+  let withdrawAssetValue = event.params.assets;
+  let receiverAddress = transfer.toAddress;
+  updateGlobalAccountIndex(
+    transfer,
+    receiverAddress,
+    false,
+    false,
+    true,
+    withdrawAssetValue
+  );
+  updateGlobalAccountDailyActivity(
+    transfer,
+    receiverAddress,
+    false,
+    true,
+    false,
+    withdrawAssetValue
+  );
+  updateGlobalVaultDailyActivity(
+    transfer,
+    false,
+    true,
+    false,
+    withdrawAssetValue
+  );
 }
 
 export function handleManagementFeeAccrued(

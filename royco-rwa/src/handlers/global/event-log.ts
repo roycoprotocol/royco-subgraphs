@@ -17,7 +17,8 @@ export function addGlobalEventLog(event: ethereum.Event): GlobalEventLog {
   entity.transactionLogIndex = event.transactionLogIndex;
   entity.logType = event.logType;
   entity.contractAddress = event.address.toHexString();
-  entity.eventSignature = event.parameters.length > 0 ? null : null;
+  entity.eventSignature = null;
+  entity.data = Bytes.empty();
 
   // Topics from receipt logs
   let receipt = event.receipt;
@@ -38,10 +39,6 @@ export function addGlobalEventLog(event: ethereum.Event): GlobalEventLog {
         break;
       }
     }
-  }
-
-  if (!entity.data) {
-    entity.data = Bytes.empty();
   }
 
   entity.blockNumber = event.block.number;

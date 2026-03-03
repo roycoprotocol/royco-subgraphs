@@ -5,38 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: Vault
-    network: avalanche
+    network: mainnet
     source:
-      address: "0xD567cCbb336Eb71eC2537057E2bCF6DB840bB71d"
-      abi: RoycoFactory
-      startBlock: 77273727
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - MarketDeployed
-      abis:
-        - name: RoycoFactory
-          file: ./abis/RoycoFactory.json
-        - name: BaseVault
-          file: ./abis/BaseVault.json
-        - name: RoycoVaultTranche
-          file: ./abis/RoycoVaultTranche.json
-        - name: RoycoAccountant
-          file: ./abis/RoycoAccountant.json
-        - name: RoycoKernel
-          file: ./abis/RoycoKernel.json
-      eventHandlers:
-        - event: MarketDeployed((address,address,address,address),(string,string,string,string,bytes32,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
-          handler: handleMarketDeployed
-      file: ./src/royco-factory.ts
-templates:
-  - kind: ethereum/contract
-    name: RoycoVaultTranche
-    network: avalanche
-    source:
-      abi: RoycoVaultTranche
+      address: "0xcd9f5907f92818bc06c9ad70217f089e190d2a32"
+      abi: AsyncVaultConcrete
+      startBlock: 24176149
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -44,91 +17,184 @@ templates:
       entities:
         - Transfer
         - Deposit
-        - Redeem
-        - RedeemRequest
-        - CancelRedeemRequest
-        - CancelRedeemClaim
+        - Withdraw
+        - QueuedWithdrawal
+        - RequestCancelled
+        - RequestMovedToNextEpoch
+        - EpochClosed
+        - EpochProcessed
+        - RequestClaimed
+        - RoleGranted
       abis:
         - name: BaseVault
           file: ./abis/BaseVault.json
-        - name: RoycoVaultTranche
-          file: ./abis/RoycoVaultTranche.json
+        - name: AsyncVaultConcrete
+          file: ./abis/AsyncVaultConcrete.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
-        - event: Deposit(indexed address,indexed address,uint256,uint256,uint256,bytes)
+          receipt: true
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
-        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256,uint256,bytes)
-          handler: handleRedeem
-        - event: RedeemRequest(indexed address,indexed address,indexed uint256,address,uint256,bytes)
-          handler: handleRedeemRequest
-        - event: CancelRedeemRequest(indexed address,indexed uint256,address)
-          handler: handleCancelRedeemRequest
-        - event: CancelRedeemClaim(indexed address,indexed address,indexed uint256,address,uint256)
-          handler: handleCancelRedeemClaim
-        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
-          handler: handleProtocolFeeSharesMinted
-      file: ./src/royco-vault-tranche.ts
-  - kind: ethereum/contract
-    name: RoycoAccountant
-    network: avalanche
+          receipt: true
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+          receipt: true
+        - event: QueuedWithdrawal(indexed address,indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleQueuedWithdrawal
+          receipt: true
+        - event: RequestCancelled(indexed address,uint256,uint256)
+          handler: handleRequestCancelled
+          receipt: true
+        - event: RequestMovedToNextEpoch(indexed address,uint256,uint256,uint256)
+          handler: handleRequestMovedToNextEpoch
+          receipt: true
+        - event: EpochClosed(uint256)
+          handler: handleEpochClosed
+          receipt: true
+        - event: EpochProcessed(uint256,uint256,uint256,uint256)
+          handler: handleEpochProcessed
+          receipt: true
+        - event: RequestClaimed(indexed address,uint256,uint256[])
+          handler: handleRequestClaimed
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+          receipt: true
+        - event: ManagementFeeAccrued(indexed address,uint256,uint256)
+          handler: handleManagementFeeAccrued
+          receipt: true
+        - event: PerformanceFeeAccrued(indexed address,uint256,uint256)
+          handler: handlePerformanceFeeAccrued
+          receipt: true
+      file: ./src/concrete-async-vault.ts
+  - kind: ethereum
+    name: Vaultt0
+    network: mainnet
     source:
-      abi: RoycoAccountant
+      address: "0x250aa9fa13aa01e6a578bd0f8a3591b408f325c4"
+      abi: AsyncVaultConcrete
+      startBlock: 24033299
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - BetaUpdated
-        - CoverageUpdated
-        - DustToleranceUpdated
-        - FixedTermDurationUpdated
-        - JuniorTrancheProtocolFeeUpdated
-        - LLTVUpdated
-        - SeniorTrancheProtocolFeeUpdated
-        - YDMUpdated
-        - JTCoverageImpermanentLossErased
+        - Transfer
+        - Deposit
+        - Withdraw
+        - QueuedWithdrawal
+        - RequestCancelled
+        - RequestMovedToNextEpoch
+        - EpochClosed
+        - EpochProcessed
+        - RequestClaimed
+        - RoleGranted
       abis:
-        - name: RoycoAccountant
-          file: ./abis/RoycoAccountant.json
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+        - name: AsyncVaultConcrete
+          file: ./abis/AsyncVaultConcrete.json
       eventHandlers:
-        - event: BetaUpdated(uint96)
-          handler: handleBetaUpdated
-        - event: CoverageUpdated(uint64)
-          handler: handleCoverageUpdated
-        - event: LLTVUpdated(uint64)
-          handler: handleLLTVUpdated
-        - event: YDMUpdated(address)
-          handler: handleYDMUpdated
-        - event: DustToleranceUpdated(uint256)
-          handler: handleDustToleranceUpdated
-        - event: FixedTermDurationUpdated(uint24)
-          handler: handleFixedTermDurationUpdated
-        - event: JuniorTrancheProtocolFeeUpdated(uint64)
-          handler: handleJuniorTrancheProtocolFeeUpdated
-        - event: SeniorTrancheProtocolFeeUpdated(uint64)
-          handler: handleSeniorTrancheProtocolFeeUpdated
-        - event: JTCoverageImpermanentLossErased(uint256)
-          handler: handleJTCoverageImpermanentLossErased
-      file: ./src/royco-accountant.ts
-  - kind: ethereum/contract
-    name: RoycoKernel
-    network: avalanche
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+          receipt: true
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+          receipt: true
+        - event: QueuedWithdrawal(indexed address,indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleQueuedWithdrawal
+          receipt: true
+        - event: RequestCancelled(indexed address,uint256,uint256)
+          handler: handleRequestCancelled
+          receipt: true
+        - event: RequestMovedToNextEpoch(indexed address,uint256,uint256,uint256)
+          handler: handleRequestMovedToNextEpoch
+          receipt: true
+        - event: EpochClosed(uint256)
+          handler: handleEpochClosed
+          receipt: true
+        - event: EpochProcessed(uint256,uint256,uint256,uint256)
+          handler: handleEpochProcessed
+          receipt: true
+        - event: RequestClaimed(indexed address,uint256,uint256[])
+          handler: handleRequestClaimed
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+          receipt: true
+        - event: ManagementFeeAccrued(indexed address,uint256,uint256)
+          handler: handleManagementFeeAccrued
+          receipt: true
+        - event: PerformanceFeeAccrued(indexed address,uint256,uint256)
+          handler: handlePerformanceFeeAccrued
+          receipt: true
+      file: ./src/concrete-async-vault.ts
+  - kind: ethereum
+    name: Vaultt1
+    network: mainnet
     source:
-      abi: RoycoKernel
+      address: "0xcae5ec4af7cbca36bde9d4ba91bdc4f394db76f0"
+      abi: AsyncVaultConcrete
+      startBlock: 24033316
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - ProtocolFeeRecipientUpdated
-        - JuniorTrancheRedemptionDelayUpdated
+        - Transfer
+        - Deposit
+        - Withdraw
+        - QueuedWithdrawal
+        - RequestCancelled
+        - RequestMovedToNextEpoch
+        - EpochClosed
+        - EpochProcessed
+        - RequestClaimed
+        - RoleGranted
       abis:
-        - name: RoycoKernel
-          file: ./abis/RoycoKernel.json
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+        - name: AsyncVaultConcrete
+          file: ./abis/AsyncVaultConcrete.json
       eventHandlers:
-        - event: ProtocolFeeRecipientUpdated(address)
-          handler: handleProtocolFeeRecipientUpdated
-        - event: JuniorTrancheRedemptionDelayUpdated(uint24)
-          handler: handleJuniorTrancheRedemptionDelayUpdated
-      file: ./src/royco-kernel.ts
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+          receipt: true
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Withdraw(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleWithdraw
+          receipt: true
+        - event: QueuedWithdrawal(indexed address,indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleQueuedWithdrawal
+          receipt: true
+        - event: RequestCancelled(indexed address,uint256,uint256)
+          handler: handleRequestCancelled
+          receipt: true
+        - event: RequestMovedToNextEpoch(indexed address,uint256,uint256,uint256)
+          handler: handleRequestMovedToNextEpoch
+          receipt: true
+        - event: EpochClosed(uint256)
+          handler: handleEpochClosed
+          receipt: true
+        - event: EpochProcessed(uint256,uint256,uint256,uint256)
+          handler: handleEpochProcessed
+          receipt: true
+        - event: RequestClaimed(indexed address,uint256,uint256[])
+          handler: handleRequestClaimed
+          receipt: true
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+          receipt: true
+        - event: ManagementFeeAccrued(indexed address,uint256,uint256)
+          handler: handleManagementFeeAccrued
+          receipt: true
+        - event: PerformanceFeeAccrued(indexed address,uint256,uint256)
+          handler: handlePerformanceFeeAccrued
+          receipt: true
+      file: ./src/concrete-async-vault.ts

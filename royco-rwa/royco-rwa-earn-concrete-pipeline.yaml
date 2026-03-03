@@ -75,6 +75,48 @@ sources:
       - name: royco-rwa-earn-concrete-mainnet
         version: 1.0.0
     type: subgraph_entity
+  royco_rwa_earn_concrete_global_vault_daily_activity_reference:
+    name: global_vault_daily_activity
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_earn_concrete_global_account_daily_activity_reference:
+    name: global_account_daily_activity
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_earn_concrete_global_account_index_reference:
+    name: global_account_index
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_earn_concrete_global_event_log_reference:
+    name: global_event_log
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_earn_concrete_global_block_log_reference:
+    name: global_block_log
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_earn_concrete_global_vault_transaction_map_reference:
+    name: global_vault_transaction_map
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
+  royco_rwa_earn_concrete_global_transaction_log_reference:
+    name: global_transaction_log
+    subgraphs:
+      - name: royco-rwa-earn-concrete-mainnet
+        version: 1.0.0
+    type: subgraph_entity
 transforms: {}
 sinks:
   royco_rwa_earn_concrete_global_token_transfer_postgres:
@@ -161,3 +203,52 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: fee_historical"
     from: royco_rwa_earn_concrete_fee_historical_reference
+  royco_rwa_earn_concrete_global_vault_daily_activity_postgres:
+    type: postgres
+    table: global_vault_daily_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_vault_daily_activity"
+    from: royco_rwa_earn_concrete_global_vault_daily_activity_reference
+  royco_rwa_earn_concrete_global_account_daily_activity_postgres:
+    type: postgres
+    table: global_account_daily_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_account_daily_activity"
+    from: royco_rwa_earn_concrete_global_account_daily_activity_reference
+  royco_rwa_earn_concrete_global_account_index_postgres:
+    type: postgres
+    table: global_account_index
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_account_index"
+    from: royco_rwa_earn_concrete_global_account_index_reference
+  royco_rwa_earn_concrete_global_event_log_postgres:
+    type: postgres
+    table: global_event_log
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_event_log"
+    from: royco_rwa_earn_concrete_global_event_log_reference
+  royco_rwa_earn_concrete_global_block_log_postgres:
+    type: postgres
+    table: global_block_log
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_block_log"
+    from: royco_rwa_earn_concrete_global_block_log_reference
+  royco_rwa_earn_concrete_global_vault_transaction_map_postgres:
+    type: postgres
+    table: global_vault_transaction_map
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_vault_transaction_map"
+    from: royco_rwa_earn_concrete_global_vault_transaction_map_reference
+  royco_rwa_earn_concrete_global_transaction_log_postgres:
+    type: postgres
+    table: global_transaction_log
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_transaction_log"
+    from: royco_rwa_earn_concrete_global_transaction_log_reference

@@ -57,19 +57,6 @@ type MarketLossErasedHistorical @entity(immutable: true) {
   createdAt: BigInt! # Created At
 }
 
-type MarketVaultMap @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
-  chainId: BigInt! # Chain ID
-  vaultAddress: String! # Vault Address
-  majorType: String! # Major Type (market)
-  minorType: String! # Minor Type (senior, junior)
-  partnerVaultId: String! # Partner Vault ID
-  partnerVaultAddress: String! # Partner Vault Address
-  marketRefId: String! # Market Reference ID
-  marketId: String! # Market ID
-  createdAt: BigInt! # Created At
-}
-
 type AccountantMarketMap @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<ACCOUNTANT_ADDRESS>
   chainId: BigInt! # Chain ID
@@ -380,22 +367,13 @@ type GlobalTransactionLog @entity(immutable: true) {
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   blockHash: String! # Block Hash
-  parentHash: String! # Parent Block Hash
-  unclesHash: String! # Uncles Hash
-  author: String! # Miner/Validator Address
-  stateRoot: String! # State Trie Root
-  transactionsRoot: String! # Transactions Trie Root
-  receiptsRoot: String! # Receipts Trie Root
   blockGasUsed: BigInt! # Block Gas Used
   blockGasLimit: BigInt! # Block Gas Limit
-  difficulty: BigInt! # Block Difficulty
-  totalDifficulty: BigInt! # Total Chain Difficulty
   blockSize: BigInt # Block Size (nullable)
   baseFeePerGas: BigInt # EIP-1559 Base Fee Per Gas (nullable, pre-EIP-1559 blocks)
   # Receipt fields (event.receipt — requires receipt: true in manifest)
   gasUsed: BigInt! # Gas Used (actual gas consumed by transaction)
   cumulativeGasUsed: BigInt! # Cumulative Gas Used in Block
-  contractAddress: String # Deployed Contract Address (only for contract creation txs)
   logsBloom: Bytes! # Bloom Filter for Logs
   # Computed fee fields (requires gasUsed from receipt)
   transactionFee: BigInt! # Transaction Fee in wei (gasUsed * gasPrice)
@@ -431,16 +409,8 @@ type GlobalBlockLog @entity(immutable: false) {
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   blockHash: String! # Block Hash
-  parentHash: String! # Parent Block Hash
-  unclesHash: String! # Uncles Hash
-  author: String! # Miner/Validator Address
-  stateRoot: String! # State Trie Root
-  transactionsRoot: String! # Transactions Trie Root
-  receiptsRoot: String! # Receipts Trie Root
   gasUsed: BigInt! # Block Gas Used
   gasLimit: BigInt! # Block Gas Limit
-  difficulty: BigInt! # Block Difficulty
-  totalDifficulty: BigInt! # Total Chain Difficulty
   size: BigInt # Block Size (nullable)
   baseFeePerGas: BigInt # EIP-1559 Base Fee Per Gas (nullable)
   transactionCount: BigInt! # Number of Transactions in Block
@@ -541,7 +511,6 @@ type GlobalVaultDailyActivity @entity(immutable: false) {
   totalWithdrawn: BigInt! # Assets Withdrawn that Day
   cumulativeDeposited: BigInt! # Cumulative Assets Deposited (running total)
   cumulativeWithdrawn: BigInt! # Cumulative Assets Withdrawn (running total)
-  uniqueAccounts: BigInt! # Unique Accounts Active that Day
   createdAt: BigInt! # Created At
   updatedAt: BigInt! # Updated At
 }

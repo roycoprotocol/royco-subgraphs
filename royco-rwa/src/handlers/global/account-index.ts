@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import { GlobalAccountIndex, GlobalTokenTransfer } from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
 import { generateGlobalAccountIndexId, generateVaultId } from "../../utils";
@@ -20,7 +20,8 @@ export function updateGlobalAccountIndex(
     entity.vaultAddress = transfer.vaultAddress;
     entity.vaultId = transfer.vaultId;
     entity.accountAddress = accountAddress;
-    entity.isContract = false;
+    let hasCode = ethereum.hasCode(Address.fromString(accountAddress));
+    entity.isContract = hasCode.inner == 1;
     entity.transactionCount = BigInt.fromI32(0);
     entity.sentCount = BigInt.fromI32(0);
     entity.receivedCount = BigInt.fromI32(0);

@@ -72,7 +72,12 @@ export function handleRedeem(event: RedeemEvent): void {
   if (seniorTransfer.value.gt(BigInt.fromI32(0))) {
     seniorTransfer.save();
     addTransferActivity(seniorTransfer, SUB_CATEGORY_WITHDRAW);
-    updateGlobalVaultTransactionMap(seniorTransfer);
+    updateGlobalVaultTransactionMap(
+      seniorTransfer.vaultAddress,
+      seniorTransfer.transactionHash,
+      seniorTransfer.blockNumber,
+      seniorTransfer.blockTimestamp
+    );
 
     updateGlobalAccountIndex(
       seniorTransfer,
@@ -116,7 +121,12 @@ export function handleRedeem(event: RedeemEvent): void {
   if (juniorTransfer.value.gt(BigInt.fromI32(0))) {
     juniorTransfer.save();
     addTransferActivity(juniorTransfer, SUB_CATEGORY_WITHDRAW);
-    updateGlobalVaultTransactionMap(juniorTransfer);
+    updateGlobalVaultTransactionMap(
+      juniorTransfer.vaultAddress,
+      juniorTransfer.transactionHash,
+      juniorTransfer.blockNumber,
+      juniorTransfer.blockTimestamp
+    );
 
     updateGlobalAccountIndex(
       juniorTransfer,

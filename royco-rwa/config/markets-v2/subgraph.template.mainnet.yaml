@@ -30,6 +30,7 @@ dataSources:
       eventHandlers:
         - event: MarketDeployed((address,address,address,address),(string,string,string,string,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
           handler: handleMarketDeployed
+          receipt: true
       file: ./src/royco-factory-v2.ts
 templates:
   - kind: ethereum/contract
@@ -54,12 +55,16 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+          receipt: true
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
+          receipt: true
         - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256)
           handler: handleRedeem
+          receipt: true
         - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
           handler: handleProtocolFeeSharesMinted
+          receipt: true
       file: ./src/royco-vault-tranche-v2.ts
   - kind: ethereum/contract
     name: RoycoAccountant
@@ -88,26 +93,37 @@ templates:
       eventHandlers:
         - event: BetaUpdated(uint96)
           handler: handleBetaUpdated
+          receipt: true
         - event: CoverageUpdated(uint64)
           handler: handleCoverageUpdated
+          receipt: true
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
+          receipt: true
         - event: JTImpermanentLossReset(uint256)
           handler: handleJTImpermanentLossReset
+          receipt: true
         - event: JuniorTrancheDustToleranceUpdated(uint256)
           handler: handleJuniorTrancheDustToleranceUpdated
+          receipt: true
         - event: JuniorTrancheProtocolFeeUpdated(uint64)
           handler: handleJuniorTrancheProtocolFeeUpdated
+          receipt: true
         - event: LLTVUpdated(uint64)
           handler: handleLLTVUpdated
+          receipt: true
         - event: SeniorTrancheDustToleranceUpdated(uint256)
           handler: handleSeniorTrancheDustToleranceUpdated
+          receipt: true
         - event: SeniorTrancheProtocolFeeUpdated(uint64)
           handler: handleSeniorTrancheProtocolFeeUpdated
+          receipt: true
         - event: YDMUpdated(address)
           handler: handleYDMUpdated
+          receipt: true
         - event: YieldShareProtocolFeeUpdated(uint64)
           handler: handleYieldShareProtocolFeeUpdated
+          receipt: true
       file: ./src/royco-accountant-v2.ts
   - kind: ethereum/contract
     name: RoycoKernel
@@ -127,6 +143,8 @@ templates:
       eventHandlers:
         - event: ProtocolFeeRecipientUpdated(address)
           handler: handleProtocolFeeRecipientUpdated
+          receipt: true
         - event: SeniorTrancheSelfLiquidationBonusUpdated(uint64)
           handler: handleSeniorTrancheSelfLiquidationBonusUpdated
+          receipt: true
       file: ./src/royco-kernel-v2.ts
