@@ -105,7 +105,6 @@ export function handleMarketDeployed(event: MarketDeployedEvent): void {
   marketState.ydmAddress = accountantState.ydm.toHexString();
   marketState.betaWAD = accountantState.betaWAD;
   marketState.coverageWAD = accountantState.coverageWAD;
-  marketState.lltvWAD = accountantState.lltvWAD;
   marketState.seniorVaultDustTolerance = accountantState.stNAVDustTolerance;
   marketState.juniorVaultDustTolerance = accountantState.jtNAVDustTolerance;
   marketState.fixedTermDurationSeconds = BigInt.fromI32(

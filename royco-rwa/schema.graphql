@@ -25,7 +25,7 @@ type MarketState @entity(immutable: false) {
   ydmAddress: String! # YDM Address
   betaWAD: BigInt! # Beta WAD
   coverageWAD: BigInt! # Coverage WAD
-  lltvWAD: BigInt! # LLTV WAD
+  lltvWAD: BigInt # LLTV WAD (Removed in V2)
   dustTolerance: BigInt # Dust Tolerance (Removed in V2)
   seniorVaultDustTolerance: BigInt # Senior Vault Dust Tolerance (Added in V2)
   juniorVaultDustTolerance: BigInt # Junior Vault Dust Tolerance (Added in V2)
@@ -70,6 +70,78 @@ type KernelMarketMap @entity(immutable: true) {
   chainId: BigInt! # Chain ID
   kernelAddress: String! # Kernel Address
   marketStateId: String! # Market State ID
+  createdAt: BigInt! # Created At
+}
+
+type TrancheAccountingState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID
+  marketState: Int! # Market State
+  stRawNAV: BigInt! # Senior Tranche Raw NAV
+  jtRawNAV: BigInt! # Junior Tranche Raw NAV
+  stEffectiveNAV: BigInt! # Senior Tranche Effective NAV
+  jtEffectiveNAV: BigInt! # Junior Tranche Effective NAV
+  stImpermanentLoss: BigInt! # Senior Tranche Impermanent Loss
+  jtImpermanentLoss: BigInt! # Junior Tranche Impermanent Loss
+  stProtocolFeeAccrued: BigInt! # Senior Tranche Protocol Fee Accrued
+  jtProtocolFeeAccrued: BigInt! # Junior Tranche Protocol Fee Accrued
+  utilizationWAD: BigInt! # Utilization WAD
+  fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+type TrancheAccountingStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<TRANSACTION_HASH>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID
+  marketState: Int! # Market State
+  stRawNAV: BigInt! # Senior Tranche Raw NAV
+  jtRawNAV: BigInt! # Junior Tranche Raw NAV
+  stEffectiveNAV: BigInt! # Senior Tranche Effective NAV
+  jtEffectiveNAV: BigInt! # Junior Tranche Effective NAV
+  stImpermanentLoss: BigInt! # Senior Tranche Impermanent Loss
+  jtImpermanentLoss: BigInt! # Junior Tranche Impermanent Loss
+  stProtocolFeeAccrued: BigInt! # Senior Tranche Protocol Fee Accrued
+  jtProtocolFeeAccrued: BigInt! # Junior Tranche Protocol Fee Accrued
+  utilizationWAD: BigInt! # Utilization WAD
+  fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+}
+
+type SharePriceIndexedState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  value: BigInt! # Value (scaled by WAD)
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+type SharePriceIndexedStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<TRANSACTION_HASH>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  value: BigInt! # Value (scaled by WAD)
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
   createdAt: BigInt! # Created At
 }
 

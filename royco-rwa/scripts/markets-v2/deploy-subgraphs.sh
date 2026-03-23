@@ -3,13 +3,14 @@
 # Array of networks
 networks=(
     mainnet
-    # avalanche
+    avalanche
+    arbitrum-one
 )
 
 # Function to prepare and deploy subgraph
 prepare_and_deploy() {
     local network=$1
-    local subgraph_name="royco-rwa-markets-v2-${network}/1.0.0" # Note: update version if needed
+    local subgraph_name="royco-rwa-markets-v2-${network}/2.0.0" # Note: update version if needed
     
     echo "Preparing and deploying ${subgraph_name}..."
 

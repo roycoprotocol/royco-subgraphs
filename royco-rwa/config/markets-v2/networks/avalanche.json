@@ -1,6 +1,6 @@
 {
-  "network": "mainnet",
-  "chainId": 1,
+  "network": "avalanche",
+  "chainId": 43114,
   "roycoFactoryContractAddress": "0x7cc6fb28ec7b5e7afc3cb3986141797ffc27253c",
-  "roycoFactoryStartBlock": 24650849
+  "roycoFactoryStartBlock": 80312789
 }

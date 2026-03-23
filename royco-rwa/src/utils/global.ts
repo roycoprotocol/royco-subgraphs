@@ -200,6 +200,40 @@ export const generateKernelMarketMapId = (kernelAddress: string): string => {
   return CHAIN_ID.toString().concat("_").concat(kernelAddress);
 };
 
+export const generateTrancheAccountingStateId = (
+  marketId: string
+): string => {
+  return CHAIN_ID.toString().concat("_").concat(marketId);
+};
+
+export const generateTrancheAccountingStateHistoricalId = (
+  marketId: string,
+  transactionHash: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(marketId)
+    .concat("_")
+    .concat(transactionHash);
+};
+
+export const generateSharePriceIndexedStateId = (
+  vaultAddress: string
+): string => {
+  return CHAIN_ID.toString().concat("_").concat(vaultAddress);
+};
+
+export const generateSharePriceIndexedStateHistoricalId = (
+  vaultAddress: string,
+  transactionHash: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(transactionHash);
+};
+
 // === GLOBAL INDEX ID GENERATORS ===
 
 export const generateGlobalTransactionLogId = (

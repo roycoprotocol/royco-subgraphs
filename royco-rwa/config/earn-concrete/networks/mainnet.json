@@ -8,14 +8,24 @@
       "startBlock": 24176149
     },
     {
-      "id": "t0",
+      "id": "testjunior",
       "vaultAddress": "0x250aa9fa13aa01e6a578bd0f8a3591b408f325c4",
       "startBlock": 24033299
     },
     {
-      "id": "t1",
+      "id": "testsenior",
       "vaultAddress": "0xcae5ec4af7cbca36bde9d4ba91bdc4f394db76f0",
       "startBlock": 24033316
+    },
+    {
+      "id": "wsteth",
+      "vaultAddress": "0x41ce72e04d349eb957bdc373baa9c69207032c56",
+      "startBlock": 24585152
+    },
+    {
+      "id": "sroywsteth",
+      "vaultAddress": "0xc678159179eea877608df50c26c048551a3b6a90",
+      "startBlock": 24627336
     }
   ],
   "standardVaults": []

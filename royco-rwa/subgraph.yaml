@@ -5,11 +5,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: Vault
-    network: mainnet
+    network: arbitrum-one
     source:
-      address: "0xDE3d20682597E1AF06341Dc41c8ABAB6FC8F57f6"
+      address: "0x7cc6fb28ec7b5e7afc3cb3986141797ffc27253c"
       abi: RoycoFactory
-      startBlock: 24551968
+      startBlock: 441493793
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -35,7 +35,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: RoycoVaultTranche
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: RoycoVaultTranche
     mapping:
@@ -68,7 +68,7 @@ templates:
       file: ./src/royco-vault-tranche-v2.ts
   - kind: ethereum/contract
     name: RoycoAccountant
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: RoycoAccountant
     mapping:
@@ -82,11 +82,11 @@ templates:
         - JTImpermanentLossReset
         - JuniorTrancheDustToleranceUpdated
         - JuniorTrancheProtocolFeeUpdated
-        - LLTVUpdated
         - SeniorTrancheDustToleranceUpdated
         - SeniorTrancheProtocolFeeUpdated
         - YDMUpdated
         - YieldShareProtocolFeeUpdated
+        - TrancheAccountingSynced
       abis:
         - name: RoycoAccountant
           file: ./abis/RoycoAccountantV2.json
@@ -109,9 +109,6 @@ templates:
         - event: JuniorTrancheProtocolFeeUpdated(uint64)
           handler: handleJuniorTrancheProtocolFeeUpdated
           receipt: true
-        - event: LLTVUpdated(uint64)
-          handler: handleLLTVUpdated
-          receipt: true
         - event: SeniorTrancheDustToleranceUpdated(uint256)
           handler: handleSeniorTrancheDustToleranceUpdated
           receipt: true
@@ -124,10 +121,13 @@ templates:
         - event: YieldShareProtocolFeeUpdated(uint64)
           handler: handleYieldShareProtocolFeeUpdated
           receipt: true
+        - event: TrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
+          handler: handleTrancheAccountingSynced
+          receipt: true
       file: ./src/royco-accountant-v2.ts
   - kind: ethereum/contract
     name: RoycoKernel
-    network: mainnet
+    network: arbitrum-one
     source:
       abi: RoycoKernel
     mapping:
