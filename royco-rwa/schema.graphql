@@ -118,26 +118,30 @@ type TrancheAccountingStateHistorical @entity(immutable: true) {
   createdAt: BigInt! # Created At
 }
 
-type SharePriceIndexedState @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
+type SharePriceMarketHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<TRANSACTION_HASH>
   vaultId: String! # Vault ID
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
-  value: BigInt! # Value (scaled by WAD)
+  marketId: String! # Market ID
+  stAssets: BigInt! # Senior Tranche Assets
+  jtAssets: BigInt! # Junior Tranche Assets
+  nav: BigInt! # NAV
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction Hash
   logIndex: BigInt! # Log Index
   createdAt: BigInt! # Created At
-  updatedAt: BigInt! # Updated At
 }
 
-type SharePriceIndexedStateHistorical @entity(immutable: true) {
+type SharePriceUnderlyingHistorical @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<TRANSACTION_HASH>
   vaultId: String! # Vault ID
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
-  value: BigInt! # Value (scaled by WAD)
+  underlyingAddress: String! # Underlying Address
+  marketId: String! # Market ID
+  nav: BigInt! # NAV
   blockNumber: BigInt! # Block Number
   blockTimestamp: BigInt! # Block Timestamp
   transactionHash: String! # Transaction Hash

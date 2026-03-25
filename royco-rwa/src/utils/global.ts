@@ -234,6 +234,28 @@ export const generateSharePriceIndexedStateHistoricalId = (
     .concat(transactionHash);
 };
 
+export const generateSharePriceMarketHistoricalId = (
+  vaultAddress: string,
+  transactionHash: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(transactionHash);
+};
+
+export const generateSharePriceUnderlyingHistoricalId = (
+  vaultAddress: string,
+  transactionHash: string
+): string => {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(transactionHash);
+};
+
 // === GLOBAL INDEX ID GENERATORS ===
 
 export const generateGlobalTransactionLogId = (

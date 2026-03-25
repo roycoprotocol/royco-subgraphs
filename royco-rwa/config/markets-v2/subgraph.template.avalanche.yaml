@@ -90,6 +90,10 @@ templates:
       abis:
         - name: RoycoAccountant
           file: ./abis/RoycoAccountantV2.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTrancheV2.json
+        - name: RoycoKernel
+          file: ./abis/RoycoKernelV2.json
       eventHandlers:
         - event: BetaUpdated(uint96)
           handler: handleBetaUpdated

@@ -179,16 +179,16 @@ sources:
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
-  royco_rwa_markets_v2_share_price_indexed_state_reference:
-    name: share_price_indexed_state
+  royco_rwa_markets_v2_share_price_market_historical_reference:
+    name: share_price_market_historical
     subgraphs:
       {{#metadata}}
       - name: royco-rwa-markets-v2-{{network}}
         version: {{version}}
       {{/metadata}}
     type: subgraph_entity
-  royco_rwa_markets_v2_share_price_indexed_state_historical_reference:
-    name: share_price_indexed_state_historical
+  royco_rwa_markets_v2_share_price_underlying_historical_reference:
+    name: share_price_underlying_historical
     subgraphs:
       {{#metadata}}
       - name: royco-rwa-markets-v2-{{network}}
@@ -351,17 +351,17 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: tranche_accounting_state_historical"
     from: royco_rwa_markets_v2_tranche_accounting_state_historical_reference
-  royco_rwa_markets_v2_share_price_indexed_state_postgres:
+  royco_rwa_markets_v2_share_price_market_historical_postgres:
     type: postgres
-    table: share_price_indexed_state
+    table: share_price_market_historical
     schema: public
     secret_name: NEON_ROYCO_ESTATE
-    description: "Postgres sink for: share_price_indexed_state"
-    from: royco_rwa_markets_v2_share_price_indexed_state_reference
-  royco_rwa_markets_v2_share_price_indexed_state_historical_postgres:
+    description: "Postgres sink for: share_price_market_historical"
+    from: royco_rwa_markets_v2_share_price_market_historical_reference
+  royco_rwa_markets_v2_share_price_underlying_historical_postgres:
     type: postgres
-    table: share_price_indexed_state_historical
+    table: share_price_underlying_historical
     schema: public
     secret_name: NEON_ROYCO_ESTATE
-    description: "Postgres sink for: share_price_indexed_state_historical"
-    from: royco_rwa_markets_v2_share_price_indexed_state_historical_reference
+    description: "Postgres sink for: share_price_underlying_historical"
+    from: royco_rwa_markets_v2_share_price_underlying_historical_reference

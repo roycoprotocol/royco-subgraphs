@@ -1,4 +1,4 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 import {
   YDMUpdated as YDMUpdatedEvent,
   BetaUpdated as BetaUpdatedEvent,
@@ -12,14 +12,16 @@ import {
   YieldShareProtocolFeeUpdated as YieldShareProtocolFeeUpdatedEvent,
   TrancheAccountingSynced as TrancheAccountingSyncedEvent,
 } from "../generated/templates/RoycoAccountant/RoycoAccountant";
+import { RoycoKernel } from "../generated/templates/RoycoKernel/RoycoKernel";
+import { RoycoVaultTranche } from "../generated/templates/RoycoVaultTranche/RoycoVaultTranche";
 import {
   AccountantMarketMap,
   MarketLossErasedHistorical,
   MarketState,
   TrancheAccountingState,
   TrancheAccountingStateHistorical,
-  SharePriceIndexedState,
-  SharePriceIndexedStateHistorical,
+  SharePriceMarketHistorical,
+  SharePriceUnderlyingHistorical,
   VaultState,
 } from "../generated/schema";
 import {
@@ -27,8 +29,8 @@ import {
   generateId,
   generateTrancheAccountingStateId,
   generateTrancheAccountingStateHistoricalId,
-  generateSharePriceIndexedStateId,
-  generateSharePriceIndexedStateHistoricalId,
+  generateSharePriceMarketHistoricalId,
+  generateSharePriceUnderlyingHistoricalId,
   generateVaultId,
 } from "./utils";
 import { CHAIN_ID } from "./constants";
@@ -220,7 +222,6 @@ export function handleTrancheAccountingSynced(
   }
 
   const state = event.params.resultingState;
-  const WAD = BigInt.fromI32(10).pow(18);
 
   // === Check if TrancheAccountingStateHistorical exists ===
   const trancheAccountingStateHistoricalIdCheck =
@@ -305,115 +306,144 @@ export function handleTrancheAccountingSynced(
   trancheAccountingStateHistorical.createdAt = event.block.timestamp;
   trancheAccountingStateHistorical.save();
 
-  // === Calculate and store share prices ===
-
-  // Senior vault share price
+  // === Create SharePriceMarketHistorical via vault tranche convertToAssets ===
   const seniorVaultId = marketState.seniorVaultId;
   const seniorVaultState = VaultState.load(seniorVaultId);
-  if (seniorVaultState && seniorVaultState.totalSupply.gt(BigInt.zero())) {
-    const seniorSharePrice = state.stEffectiveNAV
-      .times(WAD)
-      .div(seniorVaultState.totalSupply);
-
-    // Update SharePriceIndexedState (mutable)
-    const seniorSharePriceStateId = generateSharePriceIndexedStateId(
-      marketState.seniorVaultAddress
+  if (seniorVaultState) {
+    const seniorOneUnit = BigInt.fromI32(10).pow(
+      u8(seniorVaultState.decimals)
     );
-    let seniorSharePriceState = SharePriceIndexedState.load(
-      seniorSharePriceStateId
+    const seniorTranche = RoycoVaultTranche.bind(
+      Address.fromString(marketState.seniorVaultAddress)
     );
-    if (!seniorSharePriceState) {
-      seniorSharePriceState = new SharePriceIndexedState(
-        seniorSharePriceStateId
-      );
-      seniorSharePriceState.vaultId = seniorVaultId;
-      seniorSharePriceState.chainId = CHAIN_ID;
-      seniorSharePriceState.vaultAddress = marketState.seniorVaultAddress;
-      seniorSharePriceState.createdAt = event.block.timestamp;
-    }
-    seniorSharePriceState.value = seniorSharePrice;
-    seniorSharePriceState.blockNumber = event.block.number;
-    seniorSharePriceState.blockTimestamp = event.block.timestamp;
-    seniorSharePriceState.transactionHash =
-      event.transaction.hash.toHexString();
-    seniorSharePriceState.logIndex = event.logIndex;
-    seniorSharePriceState.updatedAt = event.block.timestamp;
-    seniorSharePriceState.save();
-
-    // Create SharePriceIndexedStateHistorical (immutable)
-    const seniorSharePriceHistoricalId =
-      generateSharePriceIndexedStateHistoricalId(
+    const stConvertResult = seniorTranche.try_convertToAssets(seniorOneUnit);
+    if (!stConvertResult.reverted) {
+      const stMarketHistoricalId = generateSharePriceMarketHistoricalId(
         marketState.seniorVaultAddress,
         event.transaction.hash.toHexString()
       );
-    const seniorSharePriceHistorical = new SharePriceIndexedStateHistorical(
-      seniorSharePriceHistoricalId
-    );
-    seniorSharePriceHistorical.vaultId = seniorVaultId;
-    seniorSharePriceHistorical.chainId = CHAIN_ID;
-    seniorSharePriceHistorical.vaultAddress = marketState.seniorVaultAddress;
-    seniorSharePriceHistorical.value = seniorSharePrice;
-    seniorSharePriceHistorical.blockNumber = event.block.number;
-    seniorSharePriceHistorical.blockTimestamp = event.block.timestamp;
-    seniorSharePriceHistorical.transactionHash =
-      event.transaction.hash.toHexString();
-    seniorSharePriceHistorical.logIndex = event.logIndex;
-    seniorSharePriceHistorical.createdAt = event.block.timestamp;
-    seniorSharePriceHistorical.save();
+      const stMarketHistorical = new SharePriceMarketHistorical(
+        stMarketHistoricalId
+      );
+      stMarketHistorical.vaultId = seniorVaultId;
+      stMarketHistorical.chainId = CHAIN_ID;
+      stMarketHistorical.vaultAddress = marketState.seniorVaultAddress;
+      stMarketHistorical.marketId = marketState.marketId;
+      stMarketHistorical.stAssets = stConvertResult.value.stAssets;
+      stMarketHistorical.jtAssets = stConvertResult.value.jtAssets;
+      stMarketHistorical.nav = stConvertResult.value.nav;
+      stMarketHistorical.blockNumber = event.block.number;
+      stMarketHistorical.blockTimestamp = event.block.timestamp;
+      stMarketHistorical.transactionHash =
+        event.transaction.hash.toHexString();
+      stMarketHistorical.logIndex = event.logIndex;
+      stMarketHistorical.createdAt = event.block.timestamp;
+      stMarketHistorical.save();
+    }
   }
 
-  // Junior vault share price
   const juniorVaultId = marketState.juniorVaultId;
   const juniorVaultState = VaultState.load(juniorVaultId);
-  if (juniorVaultState && juniorVaultState.totalSupply.gt(BigInt.zero())) {
-    const juniorSharePrice = state.jtEffectiveNAV
-      .times(WAD)
-      .div(juniorVaultState.totalSupply);
-
-    // Update SharePriceIndexedState (mutable)
-    const juniorSharePriceStateId = generateSharePriceIndexedStateId(
-      marketState.juniorVaultAddress
+  if (juniorVaultState) {
+    const juniorOneUnit = BigInt.fromI32(10).pow(
+      u8(juniorVaultState.decimals)
     );
-    let juniorSharePriceState = SharePriceIndexedState.load(
-      juniorSharePriceStateId
+    const juniorTranche = RoycoVaultTranche.bind(
+      Address.fromString(marketState.juniorVaultAddress)
     );
-    if (!juniorSharePriceState) {
-      juniorSharePriceState = new SharePriceIndexedState(
-        juniorSharePriceStateId
-      );
-      juniorSharePriceState.vaultId = juniorVaultId;
-      juniorSharePriceState.chainId = CHAIN_ID;
-      juniorSharePriceState.vaultAddress = marketState.juniorVaultAddress;
-      juniorSharePriceState.createdAt = event.block.timestamp;
-    }
-    juniorSharePriceState.value = juniorSharePrice;
-    juniorSharePriceState.blockNumber = event.block.number;
-    juniorSharePriceState.blockTimestamp = event.block.timestamp;
-    juniorSharePriceState.transactionHash =
-      event.transaction.hash.toHexString();
-    juniorSharePriceState.logIndex = event.logIndex;
-    juniorSharePriceState.updatedAt = event.block.timestamp;
-    juniorSharePriceState.save();
-
-    // Create SharePriceIndexedStateHistorical (immutable)
-    const juniorSharePriceHistoricalId =
-      generateSharePriceIndexedStateHistoricalId(
+    const jtConvertResult = juniorTranche.try_convertToAssets(juniorOneUnit);
+    if (!jtConvertResult.reverted) {
+      const jtMarketHistoricalId = generateSharePriceMarketHistoricalId(
         marketState.juniorVaultAddress,
         event.transaction.hash.toHexString()
       );
-    const juniorSharePriceHistorical = new SharePriceIndexedStateHistorical(
-      juniorSharePriceHistoricalId
-    );
-    juniorSharePriceHistorical.vaultId = juniorVaultId;
-    juniorSharePriceHistorical.chainId = CHAIN_ID;
-    juniorSharePriceHistorical.vaultAddress = marketState.juniorVaultAddress;
-    juniorSharePriceHistorical.value = juniorSharePrice;
-    juniorSharePriceHistorical.blockNumber = event.block.number;
-    juniorSharePriceHistorical.blockTimestamp = event.block.timestamp;
-    juniorSharePriceHistorical.transactionHash =
-      event.transaction.hash.toHexString();
-    juniorSharePriceHistorical.logIndex = event.logIndex;
-    juniorSharePriceHistorical.createdAt = event.block.timestamp;
-    juniorSharePriceHistorical.save();
+      const jtMarketHistorical = new SharePriceMarketHistorical(
+        jtMarketHistoricalId
+      );
+      jtMarketHistorical.vaultId = juniorVaultId;
+      jtMarketHistorical.chainId = CHAIN_ID;
+      jtMarketHistorical.vaultAddress = marketState.juniorVaultAddress;
+      jtMarketHistorical.marketId = marketState.marketId;
+      jtMarketHistorical.stAssets = jtConvertResult.value.stAssets;
+      jtMarketHistorical.jtAssets = jtConvertResult.value.jtAssets;
+      jtMarketHistorical.nav = jtConvertResult.value.nav;
+      jtMarketHistorical.blockNumber = event.block.number;
+      jtMarketHistorical.blockTimestamp = event.block.timestamp;
+      jtMarketHistorical.transactionHash =
+        event.transaction.hash.toHexString();
+      jtMarketHistorical.logIndex = event.logIndex;
+      jtMarketHistorical.createdAt = event.block.timestamp;
+      jtMarketHistorical.save();
+    }
+  }
+
+  // === Create SharePriceUnderlyingHistorical via kernel convertTrancheUnitsToNAVUnits ===
+  const kernelContract = RoycoKernel.bind(
+    Address.fromString(marketState.kernelAddress)
+  );
+  const WAD_UNIT = BigInt.fromI32(10).pow(18);
+
+  // Senior underlying
+  if (seniorVaultState) {
+    const stUnderlyingResult =
+      kernelContract.try_stConvertTrancheUnitsToNAVUnits(WAD_UNIT);
+    if (!stUnderlyingResult.reverted) {
+      const seniorCompositeAddress = seniorVaultState.depositTokenAddress
+        .concat("_")
+        .concat(marketState.seniorVaultAddress);
+      const stUnderlyingHistoricalId = generateSharePriceUnderlyingHistoricalId(
+        seniorCompositeAddress,
+        event.transaction.hash.toHexString()
+      );
+      const stUnderlyingHistorical = new SharePriceUnderlyingHistorical(
+        stUnderlyingHistoricalId
+      );
+      stUnderlyingHistorical.vaultId = marketState.seniorVaultId;
+      stUnderlyingHistorical.chainId = CHAIN_ID;
+      stUnderlyingHistorical.vaultAddress = seniorCompositeAddress;
+      stUnderlyingHistorical.underlyingAddress =
+        seniorVaultState.depositTokenAddress;
+      stUnderlyingHistorical.marketId = marketState.marketId;
+      stUnderlyingHistorical.nav = stUnderlyingResult.value;
+      stUnderlyingHistorical.blockNumber = event.block.number;
+      stUnderlyingHistorical.blockTimestamp = event.block.timestamp;
+      stUnderlyingHistorical.transactionHash =
+        event.transaction.hash.toHexString();
+      stUnderlyingHistorical.logIndex = event.logIndex;
+      stUnderlyingHistorical.createdAt = event.block.timestamp;
+      stUnderlyingHistorical.save();
+    }
+  }
+
+  // Junior underlying
+  if (juniorVaultState) {
+    const jtUnderlyingResult =
+      kernelContract.try_jtConvertTrancheUnitsToNAVUnits(WAD_UNIT);
+    if (!jtUnderlyingResult.reverted) {
+      const juniorCompositeAddress = juniorVaultState.depositTokenAddress
+        .concat("_")
+        .concat(marketState.juniorVaultAddress);
+      const jtUnderlyingHistoricalId = generateSharePriceUnderlyingHistoricalId(
+        juniorCompositeAddress,
+        event.transaction.hash.toHexString()
+      );
+      const jtUnderlyingHistorical = new SharePriceUnderlyingHistorical(
+        jtUnderlyingHistoricalId
+      );
+      jtUnderlyingHistorical.vaultId = marketState.juniorVaultId;
+      jtUnderlyingHistorical.chainId = CHAIN_ID;
+      jtUnderlyingHistorical.vaultAddress = juniorCompositeAddress;
+      jtUnderlyingHistorical.underlyingAddress =
+        juniorVaultState.depositTokenAddress;
+      jtUnderlyingHistorical.marketId = marketState.marketId;
+      jtUnderlyingHistorical.nav = jtUnderlyingResult.value;
+      jtUnderlyingHistorical.blockNumber = event.block.number;
+      jtUnderlyingHistorical.blockTimestamp = event.block.timestamp;
+      jtUnderlyingHistorical.transactionHash =
+        event.transaction.hash.toHexString();
+      jtUnderlyingHistorical.logIndex = event.logIndex;
+      jtUnderlyingHistorical.createdAt = event.block.timestamp;
+      jtUnderlyingHistorical.save();
+    }
   }
 }
