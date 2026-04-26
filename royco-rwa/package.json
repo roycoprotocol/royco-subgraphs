@@ -23,7 +23,17 @@
     "deploy:subgraphs:markets-v2": "bash ./scripts/markets-v2/deploy-subgraphs.sh",
     "deploy:pipeline:markets-v2": "bash ./scripts/markets-v2/deploy-pipeline.sh",
     "delete:subgraphs:markets-v2": "bash ./scripts/markets-v2/delete-subgraphs.sh",
-    "delete:pipeline:markets-v2": "bash ./scripts/markets-v2/delete-pipeline.sh"
+    "delete:pipeline:markets-v2": "bash ./scripts/markets-v2/delete-pipeline.sh",
+    "test:prepare:markets-v2-test:arbitrum-one": "mustache config/markets-v2-test/networks/arbitrum-one.json config/markets-v2-test/subgraph.template.arbitrum-one.yaml > subgraph.yaml && mustache config/markets-v2-test/networks/arbitrum-one.json config/markets-v2-test/constants.template.ts > src/constants/static.ts && mustache config/markets-v2-test/metadata.json config/markets-v2-test/pipeline.template.yaml > pipeline.yaml",
+    "deploy:subgraphs:markets-v2-test": "bash ./scripts/markets-v2-test/deploy-subgraphs.sh",
+    "deploy:pipeline:markets-v2-test": "bash ./scripts/markets-v2-test/deploy-pipeline.sh",
+    "delete:subgraphs:markets-v2-test": "bash ./scripts/markets-v2-test/delete-subgraphs.sh",
+    "delete:pipeline:markets-v2-test": "bash ./scripts/markets-v2-test/delete-pipeline.sh",
+    "test:prepare:entry-point:arbitrum-one": "mustache config/entry-point/networks/arbitrum-one.json config/entry-point/subgraph.template.yaml > subgraph.yaml && mustache config/entry-point/networks/arbitrum-one.json config/entry-point/constants.template.ts > src/constants/static.ts && mustache config/entry-point/metadata.json config/entry-point/pipeline.template.yaml > pipeline.yaml",
+    "deploy:subgraphs:entry-point": "bash ./scripts/entry-point/deploy-subgraphs.sh",
+    "deploy:pipeline:entry-point": "bash ./scripts/entry-point/deploy-pipeline.sh",
+    "delete:subgraphs:entry-point": "bash ./scripts/entry-point/delete-subgraphs.sh",
+    "delete:pipeline:entry-point": "bash ./scripts/entry-point/delete-pipeline.sh"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.97.1",

@@ -591,3 +591,67 @@ type GlobalVaultDailyActivity @entity(immutable: false) {
 }
 
 # xxx VAULT DAILY ACTIVITY xxx
+
+# === ENTRY POINT ===
+
+type EntryPointState @entity(immutable: false) {
+  id: String! # <VERSION>_<CHAIN_ID>_<VAULT_ADDRESS>
+  version: BigInt! # Version
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  depositTokenAddress: String! # Deposit Token Address
+  depositTokenId: String! # Deposit Token ID
+  shareTokenAddress: String! # Share Token Address
+  shareTokenId: String! # Share Token ID
+  isEnabled: Boolean! # Whether the Entry Point is Enabled for the Vault
+  yieldRecipient: String! # Yield Recipient ("protocol", "lp", "vault")
+  depositDelaySeconds: BigInt! # Deposit Delay Seconds
+  redemptionDelaySeconds: BigInt! # Redemption Delay Seconds
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+type EntryPointRequest @entity(immutable: false) {
+  id: String! # <VERSION>_<CHAIN_ID>_<NONCE>
+  version: BigInt! # Version
+  chainId: BigInt! # Chain ID
+  nonce: BigInt! # Nonce
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  accountAddress: String! # Account Address
+  category: String! # Category ("assets", "shares")
+  subCategory: String! # Sub Category ("deposit", "withdraw")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  currValue: BigInt! # Current Value
+  initValue: BigInt! # Initial Value
+  status: String! # Status ("pending", "cancelled", "completed")
+  executableAtTimestamp: BigInt! # Executable At Timestamp
+  executorBonusWAD: BigInt! # Executor Bonus WAD
+  # === Deposits ===
+  assetsDeposited: BigInt! # Deposited Assets (only for deposits)
+  assetsBonus: BigInt! # Bonus Assets (only for deposits)
+  sharesMinted: BigInt! # Shares Minted (only for deposits)
+  # xxx Deposits xxx
+  # === Withdrawals ===
+  sharesRedeemed: BigInt! # Shares Redeemed (only for withdrawals)
+  sharesForfeited: BigInt! # Shares Forfeited (only for withdrawals)
+  stAssetsUserClaims: BigInt! # Senior Assets User Claims (only for withdrawals)
+  jtAssetsUserClaims: BigInt! # Junior Assets User Claims (only for withdrawals)
+  stAssetsBonusClaims: BigInt! # Senior Assets Bonus Claims (only for withdrawals)
+  jtAssetsBonusClaims: BigInt! # Junior Assets Bonus Claims (only for withdrawals)
+  # xxx Withdrawals xxx
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtLogIndex: BigInt! # Created At Log Index
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtLogIndex: BigInt! # Updated At Log Index
+  createdAt: BigInt! # Created At
+  updatedAt: BigInt! # Updated At
+}
+
+# xxx ENTRY POINT xxx

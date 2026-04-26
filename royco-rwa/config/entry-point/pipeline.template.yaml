@@ -1,0 +1,82 @@
+# prettier-ignore
+apiVersion: 3
+name: royco-rwa-entry-point-pipeline
+resource_size: s
+sources:
+  royco_rwa_entry_point_entry_point_state_reference:
+    name: entry_point_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-rwa-entry-point-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_rwa_entry_point_entry_point_request_reference:
+    name: entry_point_request
+    subgraphs:
+      {{#metadata}}
+      - name: royco-rwa-entry-point-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_rwa_entry_point_global_token_activity_reference:
+    name: global_token_activity
+    subgraphs:
+      {{#metadata}}
+      - name: royco-rwa-entry-point-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_rwa_entry_point_fee_state_reference:
+    name: fee_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-rwa-entry-point-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_rwa_entry_point_fee_historical_reference:
+    name: fee_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royco-rwa-entry-point-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  royco_rwa_entry_point_entry_point_state_postgres:
+    type: postgres
+    table: entry_point_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: entry_point_state"
+    from: royco_rwa_entry_point_entry_point_state_reference
+  royco_rwa_entry_point_entry_point_request_postgres:
+    type: postgres
+    table: entry_point_request
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: entry_point_request"
+    from: royco_rwa_entry_point_entry_point_request_reference
+  royco_rwa_entry_point_global_token_activity_postgres:
+    type: postgres
+    table: global_token_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_token_activity"
+    from: royco_rwa_entry_point_global_token_activity_reference
+  royco_rwa_entry_point_fee_state_postgres:
+    type: postgres
+    table: fee_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: fee_state"
+    from: royco_rwa_entry_point_fee_state_reference
+  royco_rwa_entry_point_fee_historical_postgres:
+    type: postgres
+    table: fee_historical
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: fee_historical"
+    from: royco_rwa_entry_point_fee_historical_reference

@@ -1,0 +1,12 @@
+{
+  "network": "arbitrum-one",
+  "chainId": 42161,
+  "entryPoints": [
+    {
+      "id": "",
+      "version": 1,
+      "address": "0xe72b67389e6c8919961b4eb2b9563b9359ba30b6",
+      "startBlock": 452152545
+    }
+  ]
+}

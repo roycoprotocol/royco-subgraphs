@@ -1,0 +1,6 @@
+{
+  "network": "arbitrum-one",
+  "chainId": 42161,
+  "roycoFactoryContractAddress": "0xd5df65cfa3fab54470cecc22b776cd54ac718a1c",
+  "roycoFactoryStartBlock": 442458944
+}
