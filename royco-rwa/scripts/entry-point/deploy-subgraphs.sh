@@ -3,7 +3,7 @@
 # Array of networks
 networks=(
     # mainnet
-    # avalanche
+    avalanche
     arbitrum-one
 )
 

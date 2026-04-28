@@ -7,6 +7,12 @@
       "version": 1,
       "address": "0xe72b67389e6c8919961b4eb2b9563b9359ba30b6",
       "startBlock": 452152545
+    },
+    {
+      "id": "prod1",
+      "version": 2,
+      "address": "0x63da1229be88fb4d20210147954a1a3e05f2581b",
+      "startBlock": 456997762
     }
   ]
 }

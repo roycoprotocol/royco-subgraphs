@@ -54,3 +54,54 @@ dataSources:
           handler: handleTrancheConfigUpdated
           receipt: true
       file: ./src/royco-entrypoint.ts
+  - kind: ethereum
+    name: Vaultprod1
+    network: arbitrum-one
+    source:
+      address: "0x63da1229be88fb4d20210147954a1a3e05f2581b"
+      abi: RoycoEntryPoint
+      startBlock: 456997762
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DepositRequested
+        - DepositExecuted
+        - DepositRequestCancelled
+        - RedemptionRequested
+        - RedemptionExecuted
+        - RedemptionRequestCancelled
+        - ProtocolFeeSharesAccrued
+        - TrancheConfigUpdated
+      abis:
+        - name: RoycoEntryPoint
+          file: ./abis/RoycoEntryPoint.json
+        - name: BaseVault
+          file: ./abis/BaseVault.json
+      eventHandlers:
+        - event: DepositRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
+          handler: handleDepositRequested
+          receipt: true
+        - event: DepositExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,uint256)
+          handler: handleDepositExecuted
+          receipt: true
+        - event: DepositRequestCancelled(indexed address,indexed uint256,address,uint256)
+          handler: handleDepositRequestCancelled
+          receipt: true
+        - event: RedemptionRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
+          handler: handleRedemptionRequested
+          receipt: true
+        - event: RedemptionExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,(uint256,uint256,uint256),(uint256,uint256,uint256))
+          handler: handleRedemptionExecuted
+          receipt: true
+        - event: RedemptionRequestCancelled(indexed address,indexed uint256,address,uint256)
+          handler: handleRedemptionRequestCancelled
+          receipt: true
+        - event: ProtocolFeeSharesAccrued(indexed address,uint256)
+          handler: handleProtocolFeeSharesAccrued
+          receipt: true
+        - event: TrancheConfigUpdated(indexed address,(bool,uint8,uint24,uint24))
+          handler: handleTrancheConfigUpdated
+          receipt: true
+      file: ./src/royco-entrypoint.ts

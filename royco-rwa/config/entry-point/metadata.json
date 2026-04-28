@@ -1,7 +1,15 @@
 {
   "metadata": [
     {
+      "network": "mainnet",
+      "version": "1.0.0"
+    },
+    {
       "network": "arbitrum-one",
+      "version": "1.0.0"
+    },
+    {
+      "network": "avalanche",
       "version": "1.0.0"
     }
   ]
