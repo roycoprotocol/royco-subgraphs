@@ -5,103 +5,150 @@ schema:
 dataSources:
   - kind: ethereum
     name: Vault
-    network: arbitrum-one
+    network: mainnet
     source:
-      address: "0xe72b67389e6c8919961b4eb2b9563b9359ba30b6"
-      abi: RoycoEntryPoint
-      startBlock: 452152545
+      address: "0x7cc6fb28ec7b5e7afc3cb3986141797ffc27253c"
+      abi: RoycoFactory
+      startBlock: 24650849
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - DepositRequested
-        - DepositExecuted
-        - DepositRequestCancelled
-        - RedemptionRequested
-        - RedemptionExecuted
-        - RedemptionRequestCancelled
-        - ProtocolFeeSharesAccrued
-        - TrancheConfigUpdated
+        - MarketDeployed
       abis:
-        - name: RoycoEntryPoint
-          file: ./abis/RoycoEntryPoint.json
+        - name: RoycoFactory
+          file: ./abis/RoycoFactoryV2.json
         - name: BaseVault
           file: ./abis/BaseVault.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTrancheV2.json
+        - name: RoycoAccountant
+          file: ./abis/RoycoAccountantV2.json
+        - name: RoycoKernel
+          file: ./abis/RoycoKernelV2.json
       eventHandlers:
-        - event: DepositRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
-          handler: handleDepositRequested
+        - event: MarketDeployed((address,address,address,address),(string,string,string,string,address,address,address,address,bytes,bytes,bytes,bytes,bytes32,bytes32,bytes32,bytes32,(address,bytes4[],uint64[])[]))
+          handler: handleMarketDeployed
           receipt: true
-        - event: DepositExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,uint256)
-          handler: handleDepositExecuted
-          receipt: true
-        - event: DepositRequestCancelled(indexed address,indexed uint256,address,uint256)
-          handler: handleDepositRequestCancelled
-          receipt: true
-        - event: RedemptionRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
-          handler: handleRedemptionRequested
-          receipt: true
-        - event: RedemptionExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,(uint256,uint256,uint256),(uint256,uint256,uint256))
-          handler: handleRedemptionExecuted
-          receipt: true
-        - event: RedemptionRequestCancelled(indexed address,indexed uint256,address,uint256)
-          handler: handleRedemptionRequestCancelled
-          receipt: true
-        - event: ProtocolFeeSharesAccrued(indexed address,uint256)
-          handler: handleProtocolFeeSharesAccrued
-          receipt: true
-        - event: TrancheConfigUpdated(indexed address,(bool,uint8,uint24,uint24))
-          handler: handleTrancheConfigUpdated
-          receipt: true
-      file: ./src/royco-entrypoint.ts
-  - kind: ethereum
-    name: Vaultprod1
-    network: arbitrum-one
+      file: ./src/royco-factory-v2.ts
+templates:
+  - kind: ethereum/contract
+    name: RoycoVaultTranche
+    network: mainnet
     source:
-      address: "0x63da1229be88fb4d20210147954a1a3e05f2581b"
-      abi: RoycoEntryPoint
-      startBlock: 456997762
+      abi: RoycoVaultTranche
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - DepositRequested
-        - DepositExecuted
-        - DepositRequestCancelled
-        - RedemptionRequested
-        - RedemptionExecuted
-        - RedemptionRequestCancelled
-        - ProtocolFeeSharesAccrued
-        - TrancheConfigUpdated
+        - Transfer
+        - Deposit
+        - Redeem
+        - ProtocolFeeSharesMinted
       abis:
-        - name: RoycoEntryPoint
-          file: ./abis/RoycoEntryPoint.json
         - name: BaseVault
           file: ./abis/BaseVault.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTrancheV2.json
       eventHandlers:
-        - event: DepositRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
-          handler: handleDepositRequested
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
           receipt: true
-        - event: DepositExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,uint256)
-          handler: handleDepositExecuted
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
           receipt: true
-        - event: DepositRequestCancelled(indexed address,indexed uint256,address,uint256)
-          handler: handleDepositRequestCancelled
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256),uint256)
+          handler: handleRedeem
           receipt: true
-        - event: RedemptionRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
-          handler: handleRedemptionRequested
+        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
+          handler: handleProtocolFeeSharesMinted
           receipt: true
-        - event: RedemptionExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,(uint256,uint256,uint256),(uint256,uint256,uint256))
-          handler: handleRedemptionExecuted
+      file: ./src/royco-vault-tranche-v2.ts
+  - kind: ethereum/contract
+    name: RoycoAccountant
+    network: mainnet
+    source:
+      abi: RoycoAccountant
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - BetaUpdated
+        - CoverageUpdated
+        - FixedTermDurationUpdated
+        - JTImpermanentLossReset
+        - JuniorTrancheDustToleranceUpdated
+        - JuniorTrancheProtocolFeeUpdated
+        - SeniorTrancheDustToleranceUpdated
+        - SeniorTrancheProtocolFeeUpdated
+        - YDMUpdated
+        - YieldShareProtocolFeeUpdated
+        - TrancheAccountingSynced
+      abis:
+        - name: RoycoAccountant
+          file: ./abis/RoycoAccountantV2.json
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTrancheV2.json
+        - name: RoycoKernel
+          file: ./abis/RoycoKernelV2.json
+      eventHandlers:
+        - event: BetaUpdated(uint96)
+          handler: handleBetaUpdated
           receipt: true
-        - event: RedemptionRequestCancelled(indexed address,indexed uint256,address,uint256)
-          handler: handleRedemptionRequestCancelled
+        - event: CoverageUpdated(uint64)
+          handler: handleCoverageUpdated
           receipt: true
-        - event: ProtocolFeeSharesAccrued(indexed address,uint256)
-          handler: handleProtocolFeeSharesAccrued
+        - event: FixedTermDurationUpdated(uint24)
+          handler: handleFixedTermDurationUpdated
           receipt: true
-        - event: TrancheConfigUpdated(indexed address,(bool,uint8,uint24,uint24))
-          handler: handleTrancheConfigUpdated
+        - event: JTImpermanentLossReset(uint256)
+          handler: handleJTImpermanentLossReset
           receipt: true
-      file: ./src/royco-entrypoint.ts
+        - event: JuniorTrancheDustToleranceUpdated(uint256)
+          handler: handleJuniorTrancheDustToleranceUpdated
+          receipt: true
+        - event: JuniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleJuniorTrancheProtocolFeeUpdated
+          receipt: true
+        - event: SeniorTrancheDustToleranceUpdated(uint256)
+          handler: handleSeniorTrancheDustToleranceUpdated
+          receipt: true
+        - event: SeniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleSeniorTrancheProtocolFeeUpdated
+          receipt: true
+        - event: YDMUpdated(address)
+          handler: handleYDMUpdated
+          receipt: true
+        - event: YieldShareProtocolFeeUpdated(uint64)
+          handler: handleYieldShareProtocolFeeUpdated
+          receipt: true
+        - event: TrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
+          handler: handleTrancheAccountingSynced
+          receipt: true
+      file: ./src/royco-accountant-v2.ts
+  - kind: ethereum/contract
+    name: RoycoKernel
+    network: mainnet
+    source:
+      abi: RoycoKernel
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ProtocolFeeRecipientUpdated
+        - SeniorTrancheSelfLiquidationBonusUpdated
+      abis:
+        - name: RoycoKernel
+          file: ./abis/RoycoKernelV2.json
+      eventHandlers:
+        - event: ProtocolFeeRecipientUpdated(address)
+          handler: handleProtocolFeeRecipientUpdated
+          receipt: true
+        - event: SeniorTrancheSelfLiquidationBonusUpdated(uint64)
+          handler: handleSeniorTrancheSelfLiquidationBonusUpdated
+          receipt: true
+      file: ./src/royco-kernel-v2.ts
