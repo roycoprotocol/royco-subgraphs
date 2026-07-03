@@ -3,8 +3,9 @@
 # Array of networks
 networks=(
     # mainnet
-    avalanche
-    arbitrum-one
+    # avalanche
+    # arbitrum-one
+    base
 )
 
 # Function to prepare and deploy subgraph

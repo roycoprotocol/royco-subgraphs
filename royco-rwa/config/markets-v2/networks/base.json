@@ -1,0 +1,6 @@
+{
+  "network": "base",
+  "chainId": 8453,
+  "roycoFactoryContractAddress": "0x568c9709daa2f7b7cc66abc3e41da0f0a339551a",
+  "roycoFactoryStartBlock": 48111449
+}

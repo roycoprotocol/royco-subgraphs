@@ -11,6 +11,10 @@
     {
       "network": "avalanche",
       "version": "1.0.0"
+    },
+    {
+      "network": "base",
+      "version": "1.0.0"
     }
   ]
 }

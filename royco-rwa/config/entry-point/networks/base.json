@@ -1,0 +1,12 @@
+{
+  "network": "base",
+  "chainId": 8453,
+  "entryPoints": [
+    {
+      "id": "",
+      "version": 1,
+      "address": "0x63da1229be88fb4d20210147954a1a3e05f2581b",
+      "startBlock": 48112641
+    }
+  ]
+}

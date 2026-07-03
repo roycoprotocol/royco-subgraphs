@@ -12,6 +12,8 @@ sources:
         version: 1.0.0
       - name: royco-rwa-entry-point-avalanche
         version: 1.0.0
+      - name: royco-rwa-entry-point-base
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_entry_point_entry_point_request_reference:
     name: entry_point_request
@@ -21,6 +23,8 @@ sources:
       - name: royco-rwa-entry-point-arbitrum-one
         version: 1.0.0
       - name: royco-rwa-entry-point-avalanche
+        version: 1.0.0
+      - name: royco-rwa-entry-point-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_entry_point_global_token_activity_reference:
@@ -32,6 +36,8 @@ sources:
         version: 1.0.0
       - name: royco-rwa-entry-point-avalanche
         version: 1.0.0
+      - name: royco-rwa-entry-point-base
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_entry_point_fee_state_reference:
     name: fee_state
@@ -42,6 +48,8 @@ sources:
         version: 1.0.0
       - name: royco-rwa-entry-point-avalanche
         version: 1.0.0
+      - name: royco-rwa-entry-point-base
+        version: 1.0.0
     type: subgraph_entity
   royco_rwa_entry_point_fee_historical_reference:
     name: fee_historical
@@ -51,6 +59,8 @@ sources:
       - name: royco-rwa-entry-point-arbitrum-one
         version: 1.0.0
       - name: royco-rwa-entry-point-avalanche
+        version: 1.0.0
+      - name: royco-rwa-entry-point-base
         version: 1.0.0
     type: subgraph_entity
 transforms: {}
