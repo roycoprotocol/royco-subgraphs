@@ -1,0 +1,289 @@
+# prettier-ignore
+# =============================================================================
+# Source template for subgraph.yaml.
+#
+# EDIT THIS FILE — never subgraph.yaml, which is rendered from this by
+#   npm run prepare:markets:<network>
+# and is gitignored. A hand-edit to subgraph.yaml appears to work, builds, and
+# indexes — right up until the next prepare silently reverts it. See CLAUDE.md §2.
+#
+# One template serves every network: mustache fills {{network}},
+# {{roycoFactoryContractAddress}} and {{roycoFactoryStartBlock}} from
+# config/markets/networks/<network>.json. (royco-rwa keeps a near-duplicate
+# template per network; there's no need — the values are the only difference.)
+#
+# Event signatures here are NOT hand-written. They are copied from
+# tests/generated/abi-signatures.ts, which derives them from abis/*.json using
+# graph-cli's own algorithm. A wrong signature yields a topic0 that matches
+# nothing: zero rows, zero errors. Ask the abi-oracle subagent, or read the
+# generated file — never transcribe tuple components by eye.
+# =============================================================================
+specVersion: 1.3.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: RoycoFactory
+    network: {{network}}
+    source:
+      address: "{{roycoFactoryContractAddress}}"
+      abi: RoycoFactory
+      startBlock: {{roycoFactoryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayMarketState
+        - DayVaultState
+      abis:
+        - name: RoycoFactory
+          file: ./abis/RoycoFactory.json
+        - name: RoycoDayKernel
+          file: ./abis/RoycoDayKernel.json
+        - name: RoycoDayAccountant
+          file: ./abis/RoycoDayAccountant.json
+        - name: RoycoSeniorTranche
+          file: ./abis/RoycoSeniorTranche.json
+        - name: RoycoJuniorTranche
+          file: ./abis/RoycoJuniorTranche.json
+        - name: RoycoLiquidityTranche
+          file: ./abis/RoycoLiquidityTranche.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: MarketDeploymentCompleted(indexed address,indexed address,(address,address,address,address,address,address,address,bytes))
+          handler: handleMarketDeploymentCompleted
+          receipt: true
+      file: ./src/royco-factory.ts
+templates:
+  # ---------------------------------------------------------------------------
+  # The three tranches are separate contracts with separate ABIs, so each needs
+  # its own template even where the event shapes are identical (Transfer,
+  # Deposit, Redeem, ProtocolFeeSharesMinted). codegen emits a distinct class per
+  # template, so shared handler logic is written once in src/handlers/ and
+  # re-exported from each entry file. See CLAUDE.md §10.
+  # ---------------------------------------------------------------------------
+  - kind: ethereum/contract
+    name: RoycoSeniorTranche
+    network: {{network}}
+    source:
+      abi: RoycoSeniorTranche
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayVaultState
+        - DayVaultStateHistorical
+        - DayPositionState
+        - DayPositionStateHistorical
+        - DayFeeState
+        - DayFeeStateHistorical
+        - GlobalTokenTransfer
+        - GlobalTokenActivity
+      abis:
+        - name: RoycoSeniorTranche
+          file: ./abis/RoycoSeniorTranche.json
+        - name: RoycoDayKernel
+          file: ./abis/RoycoDayKernel.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+          receipt: true
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256,uint256),uint256)
+          handler: handleRedeem
+          receipt: true
+        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
+          handler: handleProtocolFeeSharesMinted
+          receipt: true
+        # Senior-only: Junior and Liquidity do not emit this.
+        - event: LiquidityPremiumSharesMinted(indexed address,uint256,uint256)
+          handler: handleLiquidityPremiumSharesMinted
+          receipt: true
+      file: ./src/royco-senior-tranche.ts
+  - kind: ethereum/contract
+    name: RoycoJuniorTranche
+    network: {{network}}
+    source:
+      abi: RoycoJuniorTranche
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayVaultState
+        - DayVaultStateHistorical
+        - DayPositionState
+        - DayPositionStateHistorical
+        - DayFeeState
+        - DayFeeStateHistorical
+        - GlobalTokenTransfer
+        - GlobalTokenActivity
+      abis:
+        - name: RoycoJuniorTranche
+          file: ./abis/RoycoJuniorTranche.json
+        - name: RoycoDayKernel
+          file: ./abis/RoycoDayKernel.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+          receipt: true
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256,uint256),uint256)
+          handler: handleRedeem
+          receipt: true
+        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
+          handler: handleProtocolFeeSharesMinted
+          receipt: true
+      file: ./src/royco-junior-tranche.ts
+  - kind: ethereum/contract
+    name: RoycoLiquidityTranche
+    network: {{network}}
+    source:
+      abi: RoycoLiquidityTranche
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayVaultState
+        - DayVaultStateHistorical
+        - DayPositionState
+        - DayPositionStateHistorical
+        - DayFeeState
+        - DayFeeStateHistorical
+        - GlobalTokenTransfer
+        - GlobalTokenActivity
+      abis:
+        - name: RoycoLiquidityTranche
+          file: ./abis/RoycoLiquidityTranche.json
+        - name: RoycoDayKernel
+          file: ./abis/RoycoDayKernel.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+          receipt: true
+        - event: Deposit(indexed address,indexed address,uint256,uint256)
+          handler: handleDeposit
+          receipt: true
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256,uint256),uint256)
+          handler: handleRedeem
+          receipt: true
+        - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
+          handler: handleProtocolFeeSharesMinted
+          receipt: true
+        # Liquidity-only. Prefer these events over calling the multi-asset
+        # previews: they carry the same numbers for free, as the exact post-state
+        # at this log index. (The previews ARE callable — nonpayable functions do
+        # get bindings, contrary to popular belief — but they're not pure reads.
+        # See CLAUDE.md §5.)
+        - event: MultiAssetDeposit(indexed address,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleMultiAssetDeposit
+          receipt: true
+        - event: MultiAssetRedeem(indexed address,indexed address,indexed address,uint256,(uint256,uint256,uint256,uint256,uint256),uint256)
+          handler: handleMultiAssetRedeem
+          receipt: true
+      file: ./src/royco-liquidity-tranche.ts
+  - kind: ethereum/contract
+    name: RoycoDayAccountant
+    network: {{network}}
+    source:
+      abi: RoycoDayAccountant
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayMarketState
+      abis:
+        - name: RoycoDayAccountant
+          file: ./abis/RoycoDayAccountant.json
+        - name: RoycoDayKernel
+          file: ./abis/RoycoDayKernel.json
+      eventHandlers:
+        # Carries the full 18-field TrancheState as its only payload — prefer this
+        # over calling previewSyncTrancheAccounting: it's free, and it's the
+        # post-state at this exact log index.
+        - event: TrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,bool,uint256,uint256))
+          handler: handleTrancheAccountingSynced
+          receipt: true
+        - event: MaxYieldSharesUpdated(uint64,uint64)
+          handler: handleMaxYieldSharesUpdated
+          receipt: true
+        - event: FixedTermCommenced(uint32)
+          handler: handleFixedTermCommenced
+          receipt: true
+        - event: FixedTermEnded()
+          handler: handleFixedTermEnded
+          receipt: true
+        - event: FixedTermDurationUpdated(uint24)
+          handler: handleFixedTermDurationUpdated
+          receipt: true
+        - event: CoverageUpdated(uint64)
+          handler: handleCoverageUpdated
+          receipt: true
+        - event: LiquidityUpdated(uint64)
+          handler: handleLiquidityUpdated
+          receipt: true
+        - event: LiquidationCoverageUtilizationUpdated(uint256)
+          handler: handleLiquidationCoverageUtilizationUpdated
+          receipt: true
+        - event: SeniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleSeniorTrancheProtocolFeeUpdated
+          receipt: true
+        - event: JuniorTrancheProtocolFeeUpdated(uint64)
+          handler: handleJuniorTrancheProtocolFeeUpdated
+          receipt: true
+        - event: JuniorTrancheYieldShareProtocolFeeUpdated(uint64)
+          handler: handleJuniorTrancheYieldShareProtocolFeeUpdated
+          receipt: true
+        - event: LiquidityTrancheYieldShareProtocolFeeUpdated(uint64)
+          handler: handleLiquidityTrancheYieldShareProtocolFeeUpdated
+          receipt: true
+        - event: SeniorTrancheDustToleranceUpdated(uint256)
+          handler: handleSeniorTrancheDustToleranceUpdated
+          receipt: true
+        - event: JuniorTrancheDustToleranceUpdated(uint256)
+          handler: handleJuniorTrancheDustToleranceUpdated
+          receipt: true
+        - event: JuniorTrancheYDMUpdated(address)
+          handler: handleJuniorTrancheYDMUpdated
+          receipt: true
+        - event: LiquidityTrancheYDMUpdated(address)
+          handler: handleLiquidityTrancheYDMUpdated
+          receipt: true
+      file: ./src/royco-day-accountant.ts
+  - kind: ethereum/contract
+    name: RoycoDayKernel
+    network: {{network}}
+    source:
+      abi: RoycoDayKernel
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayMarketState
+      abis:
+        - name: RoycoDayKernel
+          file: ./abis/RoycoDayKernel.json
+      eventHandlers:
+        - event: ProtocolFeeRecipientUpdated(address)
+          handler: handleProtocolFeeRecipientUpdated
+          receipt: true
+        - event: SeniorTrancheSelfLiquidationBonusUpdated(uint64)
+          handler: handleSeniorTrancheSelfLiquidationBonusUpdated
+          receipt: true
+      file: ./src/royco-day-kernel.ts

@@ -1,0 +1,9 @@
+{
+  "pipelineName": "royco-rwa-markets-v2-schema-v2-pipeline",
+  "metadata": [
+    {
+      "network": "base",
+      "version": "1.0.0"
+    }
+  ]
+}

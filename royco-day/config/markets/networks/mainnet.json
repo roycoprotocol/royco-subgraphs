@@ -1,0 +1,8 @@
+{
+  "_comment": "TODO: the Royco Day factory is not deployed yet. Fill in roycoFactoryContractAddress + roycoFactoryStartBlock before the first real deploy. The placeholders below let the package prepare/codegen/build/test green in the meantime.",
+
+  "network": "mainnet",
+  "chainId": 1,
+  "roycoFactoryContractAddress": "0x0000000000000000000000000000000000000000",
+  "roycoFactoryStartBlock": 0
+}

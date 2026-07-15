@@ -1,13 +1,17 @@
 #!/bin/bash
 
-pipeline_name="royco-rwa-markets-v2-pipeline"
+# Usage: deploy-pipeline.sh [pipeline_name] [metadata_file]
+# Defaults target the 3-chain (matching schema) pipeline.
+pipeline_name="${1:-royco-rwa-markets-v2-pipeline}"
+metadata_file="${2:-config/markets-v2/metadata.json}"
+template_file="config/markets-v2/pipeline.template.yaml"
 
 # Function to prepare and deploy pipeline
 prepare_and_deploy() {
-    echo "Preparing ${pipeline_name}..."
+    echo "Preparing ${pipeline_name} (from ${metadata_file})..."
 
     # preparation command
-    mustache config/markets-v2/metadata.json config/markets-v2/pipeline.template.yaml > ${pipeline_name}.yaml
+    mustache "${metadata_file}" "${template_file}" > "${pipeline_name}.yaml"
 
     if [ $? -eq 0 ]; then
         goldsky pipeline apply "${pipeline_name}.yaml" --status ACTIVE

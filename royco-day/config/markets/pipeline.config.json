@@ -1,0 +1,11 @@
+{
+  "_comment": "Input to scripts/generate-pipeline-template.mjs. Edit this + schema.graphql, then run `npm run generate`. Never hand-edit the generated pipeline.template.yaml.",
+
+  "prefix": "royco_day_markets",
+  "subgraphNamePrefix": "royco-day-markets",
+  "secretName": "NEON_ROYCO_ESTATE",
+  "resourceSize": "m",
+
+  "_exclude_comment": "Entities deliberately NOT sunk to Postgres. Every entry needs a reason. Omitting an entity from the pipeline is otherwise INVISIBLE: it indexes fine, deploys fine, and silently never reaches Neon. royco-rwa declares 31 entities and wires 24, with no record of which 7 gaps are intentional — this list exists so that can't happen here.",
+  "exclude": []
+}

@@ -12,8 +12,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_token_transfer_reference:
     name: global_token_transfer
@@ -23,8 +21,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_token_activity_reference:
@@ -36,8 +32,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_vault_state_reference:
     name: vault_state
@@ -47,8 +41,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_position_state_reference:
@@ -60,8 +52,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_position_state_historical_reference:
     name: position_state_historical
@@ -71,8 +61,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_position_latest_reference:
@@ -84,8 +72,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_position_historical_reference:
     name: position_historical
@@ -95,8 +81,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_metric_latest_reference:
@@ -108,8 +92,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_metric_historical_reference:
     name: metric_historical
@@ -119,8 +101,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_fee_state_reference:
@@ -132,8 +112,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_fee_historical_reference:
     name: fee_historical
@@ -143,8 +121,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_market_loss_erased_historical_reference:
@@ -156,8 +132,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_vault_daily_activity_reference:
     name: global_vault_daily_activity
@@ -167,8 +141,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_account_daily_activity_reference:
@@ -180,8 +152,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_account_index_reference:
     name: global_account_index
@@ -191,8 +161,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_event_log_reference:
@@ -204,8 +172,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_block_log_reference:
     name: global_block_log
@@ -215,8 +181,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_vault_transaction_map_reference:
@@ -228,8 +192,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_global_transaction_log_reference:
     name: global_transaction_log
@@ -239,8 +201,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_tranche_accounting_state_reference:
@@ -252,8 +212,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_tranche_accounting_state_historical_reference:
     name: tranche_accounting_state_historical
@@ -263,8 +221,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_share_price_market_historical_reference:
@@ -276,8 +232,6 @@ sources:
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
         version: 1.0.0
-      - name: royco-rwa-markets-v2-base
-        version: 1.0.0
     type: subgraph_entity
   royco_rwa_markets_v2_share_price_underlying_historical_reference:
     name: share_price_underlying_historical
@@ -287,8 +241,6 @@ sources:
       - name: royco-rwa-markets-v2-avalanche
         version: 1.0.0
       - name: royco-rwa-markets-v2-arbitrum-one
-        version: 1.0.0
-      - name: royco-rwa-markets-v2-base
         version: 1.0.0
     type: subgraph_entity
 transforms: {}

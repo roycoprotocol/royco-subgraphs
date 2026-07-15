@@ -1,0 +1,50 @@
+# Graph CLI generated artifacts.
+# Leading slash anchors these to the package root ON PURPOSE: an unanchored
+# `generated/` also matches tests/generated/, which is a generated-but-COMMITTED
+# artifact. Without the anchor, `git add tests/generated/abi-signatures.ts` is
+# silently refused and the drift check has no baseline.
+/build/
+/generated/
+
+# matchstick compiles each *.test.ts to wasm here
+/tests/.bin/
+
+# Derived by `npm run prepare:markets:<network>` — pure functions of
+# config/markets/networks/<network>.json. Deliberately NOT committed: they are
+# whichever flavor/network was prepared last, so a committed copy tells you
+# nothing about what you're building and lies about CHAIN_ID.
+# (royco-rwa commits these; we don't. See CLAUDE.md §2.)
+subgraph.yaml
+src/constants/static.ts
+
+# Committed on purpose (do NOT add here):
+#   config/markets/pipeline.template.yaml   <- generated, but reviewable
+#   royco-day-markets-pipeline.yaml         <- rendered, deployed artifact
+#   tests/generated/abi-signatures.ts       <- generated, but reviewable
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# dotenv environment variables file
+.env
+
+# Testing
+coverage
+coverage.json
+
+# Temp files
+temp/

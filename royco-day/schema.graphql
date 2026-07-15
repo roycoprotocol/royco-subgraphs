@@ -1,0 +1,358 @@
+# =============================================================================
+# royco-day schema
+#
+# Ported from day-draft/day.schema.graphql. Field names are preserved from the
+# draft; where a name differs from the ABI member it is read from, the field
+# carries a "<- ABI:" annotation so handler authors never have to guess. The
+# full mapping table lives in CLAUDE.md §7.
+#
+# Entity + field names become Postgres table + column names (snake_case) via the
+# Goldsky pipeline. A rename here is a column migration in Neon. See CLAUDE.md §9.
+# =============================================================================
+
+# === GLOBAL ===
+#
+# !! FROZEN CROSS-PACKAGE CONTRACT — DO NOT CHANGE THESE TWO ENTITIES !!
+#
+# GlobalTokenTransfer and GlobalTokenActivity are byte-identical to the same
+# entities in royco-rwa/schema.graphql. That is deliberate: royco-rwa (5
+# pipelines), royco-usd, and staked-royco-usd ALL sink these entities into the
+# SAME shared Neon tables — public.global_token_transfer and
+# public.global_token_activity, secret NEON_ROYCO_ESTATE. royco-day joins that
+# union.
+#
+# Rows do not collide (ids are chain + tx + log scoped), but the column set is
+# now a contract shared with those packages. Adding, removing, or renaming a
+# field here breaks their pipelines, not just ours. Before touching either
+# entity, diff against royco-rwa/schema.graphql and coordinate the change across
+# every package listed above.
+
+type GlobalTokenTransfer @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  category: String! # Category ("shares", "assets")
+  subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  fromAddress: String! # From Address
+  toAddress: String! # To Address
+  value: BigInt! # Value
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+}
+
+type GlobalTokenActivity @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<VAULT_ADDRESS>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  category: String! # Category ("shares", "assets")
+  subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
+  accountAddress: String! # Account Address
+  type: String! # Type ("transfer")
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  value: BigInt! # Value
+  status: String! # Status ("completed")
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+}
+
+# xxx GLOBAL xxx
+
+# === MARKETS ===
+
+type DayMarketState @entity(immutable: false) {
+  # ======
+  # => data from "event MarketDeploymentCompleted" in "RoycoFactory" (abis/RoycoFactory.json)
+  #    Signature (all 8 tuple components, in order):
+  #    MarketDeploymentCompleted(indexed address,indexed address,(address,address,address,address,address,address,address,bytes))
+  id: String! # <CHAIN_ID>_<MARKET_ID> where "marketId" is "kernelAddress"
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID (is "kernelAddress")
+  templateAddress: String! # Template Address
+  deployerAddress: String! # Deployer Address
+  seniorTrancheAddress: String! # Senior Tranche Address
+  juniorTrancheAddress: String! # Junior Tranche Address
+  liquidityTrancheAddress: String! # Liquidity Tranche Address
+  seniorTrancheId: String! # Senior Tranche ID: <CHAIN_ID>_<SENIOR_TRANCHE_ADDRESS>
+  juniorTrancheId: String! # Junior Tranche ID: <CHAIN_ID>_<JUNIOR_TRANCHE_ADDRESS>
+  liquidityTrancheId: String! # Liquidity Tranche ID: <CHAIN_ID>_<LIQUIDITY_TRANCHE_ADDRESS>
+  kernelAddress: String! # Kernel Address
+  accountantAddress: String! # Accountant Address
+  juniorTrancheYdmAddress: String! # Junior Tranche YDM Address <- ABI: result.ydm (NOT result.ltYdm)
+  liquidityTrancheYdmAddress: String! # Liquidity Tranche YDM Address <- ABI: result.ltYdm
+  creationEncodedData: String! # Creation Encoded Data (bytes of "extras" in event, stored as hex string)
+  # ======
+  # ======
+  # => data from "RoycoDayAccountant.getState()" (27-member struct)
+  seniorTrancheProtocolFeeWAD: BigInt! # Senior Tranche Protocol Fee WAD <- ABI: stProtocolFeeWAD
+  juniorTrancheProtocolFeeWAD: BigInt! # Junior Tranche Protocol Fee WAD <- ABI: jtProtocolFeeWAD
+  juniorTrancheYieldShareProtocolFeeWAD: BigInt! # Junior Tranche Yield Share Protocol Fee WAD <- ABI: jtYieldShareProtocolFeeWAD
+  liquidityTrancheYieldShareProtocolFeeWAD: BigInt! # Liquidity Tranche Yield Share Protocol Fee WAD <- ABI: ltYieldShareProtocolFeeWAD
+  minCoverageWAD: BigInt! # Min Coverage WAD <- ABI: minCoverageWAD
+  minLiquidityWAD: BigInt! # Min Liquidity WAD <- ABI: minLiquidityWAD
+  marketState: String! # Market State (Enum: "fixed" -> "0" in Contract.MarketState, "perpetual" -> "1" in Contract.MarketState)
+  # ^ <- ABI: lastMarketState (uint8 -> i32). NOTE: this is the LAST SYNCED state.
+  #   The LIVE state is previewSyncTrancheAccounting().state.marketState. They
+  #   disagree between syncs — this field is deliberately the stored one.
+  fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds <- ABI: fixedTermDurationSeconds (uint24 -> i32! needs BigInt.fromI32)
+  fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp <- ABI: fixedTermEndTimestamp (uint32 -> BigInt, direct)
+  lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp <- ABI: lastYieldShareAccrualTimestamp
+  lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp <- ABI: lastPremiumPaymentTimestamp
+  timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD
+  maxJuniorTrancheYieldShareAccruedWAD: BigInt! # Max Junior Tranche Yield Share WAD <- ABI: maxJTYieldShareWAD
+  # ^ NOTE: this is a CONFIGURED CAP (set via setMaxYieldShares / MaxYieldSharesUpdated),
+  #   NOT an accrual — despite the "Accrued" in the field name. The real accrual is
+  #   timeWeightedJuniorTrancheYieldShareAccruedWAD directly above. Do not average them.
+  timeWeightedLiquidityTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Liquidity Tranche Yield Share Accrued WAD <- ABI: twLTYieldShareAccruedWAD
+  maxLiquidityTrancheYieldShareAccruedWAD: BigInt! # Max Liquidity Tranche Yield Share WAD <- ABI: maxLTYieldShareWAD (also a CAP, see above)
+  coverageLiquidationUtilizationWAD: BigInt! # Coverage Liquidation Utilization WAD <- ABI: coverageLiquidationUtilizationWAD
+  seniorTrancheDustTolerance: BigInt! # Senior Tranche Dust Tolerance <- ABI: stNAVDustTolerance
+  juniorTrancheDustTolerance: BigInt! # Junior Tranche Dust Tolerance <- ABI: jtNAVDustTolerance
+  effectiveNAVDustTolerance: BigInt! # Effective NAV Dust Tolerance <- ABI: effectiveNAVDustTolerance
+  # ======
+  # ======
+  # => data from "RoycoDayKernel.getState()" (7-member struct)
+  protocolFeeRecipientAddress: String! # Protocol Fee Recipient Address <- ABI: protocolFeeRecipient
+  seniorTrancheSelfLiquidationBonusWAD: BigInt! # Senior Tranche Self Liquidation Bonus WAD <- ABI: stSelfLiquidationBonusWAD
+  seniorTrancheOwnedYieldBearingAssets: BigInt! # Senior Tranche Owned Yield Bearing Assets in asset token units <- ABI: stOwnedYieldBearingAssets
+  juniorTrancheOwnedYieldBearingAssets: BigInt! # Junior Tranche Owned Yield Bearing Assets in asset token units <- ABI: jtOwnedYieldBearingAssets
+  liquidityTrancheOwnedYieldBearingAssets: BigInt! # Liquidity Tranche Owned Yield Bearing Assets in asset token units <- ABI: ltOwnedYieldBearingAssets
+  liquidityTrancheOwnedSeniorTrancheShares: BigInt! # Liquidity Tranche Owned Senior Tranche Shares <- ABI: ltOwnedSeniorTrancheShares
+  # NOTE: Kernel.getState() also returns `roycoBlacklist` (address), which this
+  # schema deliberately does not capture. RoycoBlacklistUpdated(address) is
+  # likewise unindexed. Add both together if it is ever needed.
+  # ======
+  # ======
+  # => data from "RoycoDayKernel.previewSyncTrancheAccounting(_trancheType)"
+  #
+  #    !! Use the KERNEL overload, not the Accountant's !!
+  #    Kernel:     previewSyncTrancheAccounting(uint8 _trancheType)
+  #                  -> (TrancheState state, Claims claims, uint256 totalTrancheShares)   [view]
+  #    Accountant: previewSyncTrancheAccounting(uint256 _stRawNAV, uint256 _jtRawNAV)
+  #                  -> (TrancheState state)                                              [view]
+  #    The Accountant overload requires you to supply the very NAVs you are
+  #    trying to read — circular. The Kernel derives them itself, and only the
+  #    Kernel returns `claims` (which DayVaultState's five asset fields need).
+  #
+  #    The fields below all come from `state`, which is TRANCHE-INDEPENDENT — so
+  #    any _trancheType works for this market-level entity. DayVaultState, which
+  #    consumes `claims`, must pass that tranche's own TRANCHE_TYPE() instead.
+  seniorTrancheRawNAV: BigInt! # Senior Tranche Raw NAV <- ABI: state.stRawNAV
+  juniorTrancheRawNAV: BigInt! # Junior Tranche Raw NAV <- ABI: state.jtRawNAV
+  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV <- ABI: state.ltRawNAV
+  seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV <- ABI: state.stEffectiveNAV
+  juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV <- ABI: state.jtEffectiveNAV
+  juniorTrancheCoverageImpermanentLoss: BigInt! # Junior Tranche Coverage Impermanent Loss <- ABI: state.jtCoverageImpermanentLoss
+  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium <- ABI: state.ltLiquidityPremium
+  coverageUtilizationWAD: BigInt! # Coverage Utilization WAD <- ABI: state.coverageUtilizationWAD
+  liquidityUtilizationWAD: BigInt! # Liquidity Utilization WAD <- ABI: state.liquidityUtilizationWAD
+  isJuniorTrancheCoinvested: Boolean! # Is Junior Tranche Coinvested <- ABI: state.jtCoinvested
+  # ======
+  # ======
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+# xxx MARKETS xxx
+
+# === TRANCHES ===
+
+type DayVaultState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  majorType: String! # Major Type ("day")
+  minorType: String! # Minor Type ("senior", "junior", "liquidity")
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  assetTokenId: String! # Asset Token ID
+  assetTokenAddress: String! # Asset Token Address
+  assetTokenDecimals: Int! # Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
+  shareTokenId: String! # Share Token ID
+  shareTokenAddress: String! # Share Token Address
+  shareTokenDecimals: Int! # Share Token Decimals (tranche.decimals() -> uint8 -> i32)
+  sharesTotalSupply: BigInt! # Shares Total Supply
+  # The next 5 fields are the "Claims" struct from convertToAssets(sharesTotalSupply).
+  # Claims = (stAssets, jtAssets, ltAssets, stShares, nav). See CLAUDE.md §6.
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets <- ABI: claims.stAssets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets <- ABI: claims.jtAssets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets <- ABI: claims.ltAssets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares <- ABI: claims.stShares
+  nav: BigInt! # NAV <- ABI: claims.nav
+  # The next 5 are the SAME Claims struct from convertToAssets(10 ** shareTokenDecimals).
+  sharePriceSeniorTrancheAssets: BigInt! # Share Price Senior Tranche Assets <- ABI: claims.stAssets
+  sharePriceJuniorTrancheAssets: BigInt! # Share Price Junior Tranche Assets <- ABI: claims.jtAssets
+  sharePriceLiquidityTrancheAssets: BigInt! # Share Price Liquidity Tranche Assets <- ABI: claims.ltAssets
+  sharePriceSeniorTrancheShares: BigInt! # Share Price Senior Tranche Shares <- ABI: claims.stShares
+  sharePriceNAV: BigInt! # Share Price NAV <- ABI: claims.nav
+  lastHistoricalEntryIndex: BigInt! # Cursor for DayVaultStateHistorical. See "ENTRY INDEX CURSOR" below.
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+# =============================================================================
+# ENTRY INDEX CURSOR — read this before writing any *Historical entity.
+#
+# Every immutable *Historical entity is keyed by a dense, per-parent counter
+# owned by its mutable *State parent as `lastHistoricalEntryIndex`.
+#
+#   - The creation snapshot is entry 0, and sets lastHistoricalEntryIndex = 0.
+#   - Each later snapshot writes lastHistoricalEntryIndex + 1, then stores it.
+#   - Total snapshots for a parent == lastHistoricalEntryIndex + 1.
+#
+# WHY, and why not the alternatives:
+#   - An @entity(immutable: true) is WRITE-ONCE. A second save() on the same id
+#     is a fatal "entity already exists" at INDEX time — it passes `graph build`
+#     and dies in production. So every historical id needs a per-write
+#     discriminator.
+#   - Do NOT use <BLOCK_TIMESTAMP> (royco-rwa's PositionStateHistorical does):
+#     two snapshots in one block collide. Same bug, just rarer.
+#   - Do NOT use <TX_HASH>_<LOG_INDEX>: unique, but gives no O(1) cursor, forces
+#     a sort for "latest N", and can't express snapshots not tied to a log.
+# =============================================================================
+
+type DayVaultStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  entryIndex: BigInt! # Entry Index
+  majorType: String! # Major Type ("day")
+  minorType: String! # Minor Type ("senior", "junior", "liquidity")
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  sharesTotalSupply: BigInt! # Shares Total Supply
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares
+  nav: BigInt! # NAV
+  sharePriceSeniorTrancheAssets: BigInt! # Share Price Senior Tranche Assets
+  sharePriceJuniorTrancheAssets: BigInt! # Share Price Junior Tranche Assets
+  sharePriceLiquidityTrancheAssets: BigInt! # Share Price Liquidity Tranche Assets
+  sharePriceSeniorTrancheShares: BigInt! # Share Price Senior Tranche Shares
+  sharePriceNAV: BigInt! # Share Price NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx TRANCHES xxx
+
+# === POSITIONS ===
+
+type DayPositionState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  shares: BigInt! # Shares
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets <- ABI: claims.stAssets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets <- ABI: claims.jtAssets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets <- ABI: claims.ltAssets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares <- ABI: claims.stShares
+  nav: BigInt! # NAV <- ABI: claims.nav
+  lastHistoricalEntryIndex: BigInt! # Cursor for DayPositionStateHistorical. See "ENTRY INDEX CURSOR" above.
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+type DayPositionStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<ENTRY_INDEX>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  entryIndex: BigInt! # Entry Index
+  shares: BigInt! # Shares
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares
+  nav: BigInt! # NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx POSITIONS xxx
+
+# === FEES ===
+#
+# majorType/minorType are part of the id because a single (vault, account) pair
+# can accrue fees from MORE THAN ONE source. RoycoSeniorTranche emits both
+# ProtocolFeeSharesMinted(protocolFeeRecipient, ...) and
+# LiquidityPremiumSharesMinted(holder, ...) — if the protocol fee recipient is
+# also an LP holder, the two would collide into one row without the type
+# discriminators. royco-rwa's generateFeeStateId does the same for this reason.
+
+type DayFeeState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  accountAddress: String! # Account Address
+  majorType: String! # Major Type ("protocol", "liquidityPremium")
+  minorType: String! # Minor Type ("shares", "assets")
+  shares: BigInt! # Shares (total minted shares so far + newly minted shares)
+  nav: BigInt! # NAV (running total of convertToAssets(newly minted shares).nav)
+  lastHistoricalEntryIndex: BigInt! # Cursor for DayFeeStateHistorical. See "ENTRY INDEX CURSOR" above.
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+type DayFeeStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  accountAddress: String! # Account Address
+  majorType: String! # Major Type ("protocol", "liquidityPremium")
+  minorType: String! # Minor Type ("shares", "assets")
+  entryIndex: BigInt! # Entry Index
+  shares: BigInt! # Shares (total minted shares so far + newly minted shares)
+  nav: BigInt! # NAV (running total of convertToAssets(newly minted shares).nav)
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx FEES xxx

@@ -1,4 +1,5 @@
 {
+  "pipelineName": "royco-rwa-markets-v2-pipeline",
   "metadata": [
     {
       "network": "mainnet",
@@ -10,10 +11,6 @@
     },
     {
       "network": "arbitrum-one",
-      "version": "1.0.0"
-    },
-    {
-      "network": "base",
       "version": "1.0.0"
     }
   ]

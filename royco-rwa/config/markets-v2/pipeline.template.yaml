@@ -1,6 +1,6 @@
 # prettier-ignore
 apiVersion: 3
-name: royco-rwa-markets-v2-pipeline
+name: {{pipelineName}}
 resource_size: m
 sources:
   royco_rwa_markets_v2_market_state_reference:

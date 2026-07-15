@@ -1,6 +1,8 @@
 #!/bin/bash
 
-pipeline_name="royco-rwa-markets-v2-pipeline"
+# Usage: delete-pipeline.sh [pipeline_name]
+# Defaults target the 3-chain (matching schema) pipeline.
+pipeline_name="${1:-royco-rwa-markets-v2-pipeline}"
 
 # Function to delete pipeline with confirmation
 delete_pipeline() {

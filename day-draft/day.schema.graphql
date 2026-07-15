@@ -1,0 +1,384 @@
+# === GLOBAL ===
+
+type GlobalTokenTransfer @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  category: String! # Category ("shares", "assets")
+  subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  fromAddress: String! # From Address
+  toAddress: String! # To Address
+  value: BigInt! # Value
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction Hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+}
+
+type GlobalTokenActivity @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<VAULT_ADDRESS>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  category: String! # Category ("shares", "assets")
+  subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
+  accountAddress: String! # Account Address
+  type: String! # Type ("transfer")
+  tokenIndex: BigInt! # Token Index
+  tokenId: String! # Token ID
+  tokenAddress: String! # Token Address
+  value: BigInt! # Value
+  status: String! # Status ("completed")
+  blockNumber: BigInt! # Block Number
+  blockTimestamp: BigInt! # Block Timestamp
+  transactionHash: String! # Transaction hash
+  logIndex: BigInt! # Log Index
+  createdAt: BigInt! # Created At
+}
+
+# xxx GLOBAL xxx
+
+# === MARKETS ===
+
+type DayMarketState @entity(immutable: false) {
+  # ======
+  # => data from "event MarketDeploymentCompleted" in "RoycoDayFactory"
+  id: String! # <CHAIN_ID>_<MARKET_ID> where "marketId" is "kernelAddress"
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID (is "kernelAddress")
+  templateAddress: String! # Template Address
+  deployerAddress: String! # Deployer Address
+  seniorTrancheAddress: String! # Senior Tranche Address
+  juniorTrancheAddress: String! # Junior Tranche Address
+  liqudityTrancheAddress: String! # Liqudity Tranche Address
+  seniorTrancheId: String! # Senior Tranche ID: <CHAIN_ID>_<SENIOR_TRANCHE_ADDRESS>
+  juniorTrancheId: String! # Junior Tranche ID: <CHAIN_ID>_<JUNIOR_TRANCHE_ADDRESS>
+  liquidityTrancheId: String! # Liquidity Tranche ID: <CHAIN_ID>_<LIQUIDITY_TRANCHE_ADDRESS>
+  kernelAddress: String! # Kernel Address
+  accountantAddress: String! # Accountant Address
+  juniorTrancheYdmAddress: String! # Junior Tranche YDM Address
+  liquidityTrancheYdmAddress: String! # Liquidity Tranche YDM Address
+  creationEncodedData: String! # Creation Encoded Data (bytes of "extras" in event, stored as hex string)
+  # ======
+  # ======
+  # => data from "RoycoDayAccountant.getState()"
+  minCoverageWAD: BigInt! # Min Coverage WAD
+  minLiquidityWAD: BigInt! # Min Liquidity WAD
+  seniorTrancheProtocolFeeWAD: BigInt! # Senior Tranche Protocol Fee WAD
+  juniorTrancheProtocolFeeWAD: BigInt! # Junior Tranche Protocol Fee WAD
+  juniorTrancheYieldShareProtocolFeeWAD: BigInt! # Junior Tranche Yield Share Protocol Fee WAD
+  liquidityTrancheYieldShareProtocolFeeWAD: BigInt! # Liquidity Tranche Yield Share Protocol Fee WAD
+  marketState: String! # Market State (Enum: "fixed" -> "0" in Contract.MarketState, "perpetual" -> "1" in Contract.MarketState)
+  fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds
+  fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp
+  lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp
+  lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp
+  timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Yield Share Accrued WAD
+  maxJuniorTrancheYieldShareAccruedWAD: BigInt! # Max Junior Tranche Yield Share Accrued WAD
+  timeWeightedLiquidityTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Liquidity Tranche Yield Share Accrued WAD
+  maxLiquidityTrancheYieldShareAccruedWAD: BigInt! # Max Liquidity Tranche Yield Share Accrued WAD
+  coverageLiquidationUtilizationWAD: BigInt! # Coverage Liquidation Utilization WAD
+  seniorTrancheDustTolerance: BigInt! # Senior Tranche Dust Tolerance
+  juniorTrancheDustTolerance: BigInt! # Junior Tranche Dust Tolerance
+  effectiveNAVDustTolerance: BigInt! # Effective NAV Dust Tolerance
+  # ======
+  # ======
+  # => data from "RoycoDayKernel.getState()"
+  protocolFeeRecipientAddress: String! # Protocol Fee Recipient Address
+  seniorTrancheSelfLiquidationBonusWAD: BigInt! # Senior Tranche Self Liquidation Bonus WAD
+  seniorTrancheOwnedYieldBearingAssets: BigInt! # Senior Tranche Owned Yield Bearing Assets in asset token units
+  juniorTrancheOwnedYieldBearingAssets: BigInt! # Junior Tranche Owned Yield Bearing Assets in asset token units
+  liquidityTrancheOwnedYieldBearingAssets: BigInt! # Liquidity Tranche Owned Yield Bearing Assets in asset token units
+  liquidityTrancheOwnedSeniorTrancheShares: BigInt! # Liquidity Tranche Owned Senior Tranche Shares
+  # ======
+  # ======
+  # => data from "RoycoDayKernel.previewSyncTrancheAccounting(0)"
+  seniorTrancheRawNAV: BigInt! # Senior Tranche Raw NAV
+  juniorTrancheRawNAV: BigInt! # Junior Tranche Raw NAV
+  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV
+  seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV
+  juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV
+  juniorTrancheCoverageImpermanentLoss: BigInt! # Junior Tranche Coverage Impermanent Loss
+  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium
+  coverageUtilizationWAD: BigInt! # Coverage Utilization WAD
+  liquidityUtilizationWAD: BigInt! # Liquidity Utilization WAD
+  isJuniorTrancheCoinvested: Boolean! # Is Junior Tranche Coinvested
+  # ======
+  # ======
+  # => records
+  countFixedTermEntries: BigInt! # Count of Fixed Terms So Far (count of fixed terms created so far, also the entry index of the last fixed term)
+  countJuniorTrancheYieldSharesAccruedEntries: BigInt! # Count of Junior Tranche Yield Shares Accrued So Far (count of junior tranche yield shares accrued created so far, also the entry index of the last junior tranche yield share accrued)
+  countLiquidityTrancheYieldSharesAccruedEntries: BigInt! # Count of Liquidity Tranche Yield Shares Accrued So Far (count of liquidity tranche yield shares accrued created so far, also the entry index of the last liquidity tranche yield share accrued)
+  countLiquidityPremiumSharesMintedEntries: BigInt! # Count of Liquidity Premium Shares Minted So Far (count of liquidity premium shares minted created so far, also the entry index of the last liquidity premium share minted)
+  countLiquidityPremiumReinvestedEntries: BigInt! # Count of Liquidity Premium Reinvested So Far (count of liquidity premium reinvested created so far, also the entry index of the last liquidity premium reinvested)
+  countLiquidityPremiumReinvestmentFailedEntries: BigInt! # Count of Liquidity Premium Reinvestment Failed So Far (count of liquidity premium reinvestment failed created so far, also the entry index of the last liquidity premium reinvestment failed)
+  # ======
+  # ======
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+# xxx MARKETS xxx
+
+# === TRANCHES ===
+
+type DayVaultState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  majorType: String! # Major Type ("day")
+  minorType: String! # Minor Type ("senior", "junior", "liquidity")
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  assetTokenId: String! # Asset Token ID
+  assetTokenAddress: String! # Asset Token Address
+  assetTokenDecimals: Int! # Asset Token Decimals
+  shareTokenId: String! # Share Token ID
+  shareTokenAddress: String! # Share Token Address
+  shareTokenDecimals: Int! # Share Token Decimals
+  sharesTotalSupply: BigInt! # Shares Total Supply
+  # => convertToAssets(sharesTotalSupply)
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares
+  nav: BigInt! # NAV
+  # => convertTrancheUnitsToNAVUnits(10 ** assetTokenDecimals)
+  assetPriceNAV: BigInt! # Asset Price NAV
+  # => convertToAssets(10 ** shareTokenDecimals)
+  sharePriceSeniorTrancheAssets: BigInt! # Share Price Senior Tranche Assets
+  sharePriceJuniorTrancheAssets: BigInt! # Share Price Junior Tranche Assets
+  sharePriceLiquidityTrancheAssets: BigInt! # Share Price Liquidity Tranche Assets
+  sharePriceSeniorTrancheShares: BigInt! # Share Price Senior Tranche Shares
+  sharePriceNAV: BigInt! # Share Price NAV
+  lastHistoricalEntryIndex: BigInt! # Last Historical Entry Index
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+type DayVaultStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  entryIndex: BigInt! # Entry Index
+  majorType: String! # Major Type ("day")
+  minorType: String! # Minor Type ("senior", "junior", "liquidity")
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  sharesTotalSupply: BigInt! # Shares Total Supply
+  # => convertToAssets(sharesTotalSupply)
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares
+  nav: BigInt! # NAV
+  # => convertTrancheUnitsToNAVUnits(10 ** assetTokenDecimals)
+  assetPriceNAV: BigInt! # Asset Price NAV
+  # => convertToAssets(10 ** shareTokenDecimals)
+  sharePriceSeniorTrancheAssets: BigInt! # Share Price Senior Tranche Assets
+  sharePriceJuniorTrancheAssets: BigInt! # Share Price Junior Tranche Assets
+  sharePriceLiquidityTrancheAssets: BigInt! # Share Price Liquidity Tranche Assets
+  sharePriceSeniorTrancheShares: BigInt! # Share Price Senior Tranche Shares
+  sharePriceNAV: BigInt! # Share Price NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx TRANCHES xxx
+
+# === RECORDS ===
+
+type DayFixedTermHistory @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index
+  startBlockTimestamp: BigInt! # Start Block Timestamp
+  endBlockTimestamp: BigInt! # End Block Timestamp (if not ended, it's 0)
+  juniorTrancheCoverageImpermanentLossNAV: BigInt! # Junior Coverage Impermanent Loss NAV (0 if not ended, or no loss)
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+type DayJuniorTrancheYieldSharesAccruedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index
+  yieldShareWAD: BigInt! # Yield Share WAD
+  timeWeightedYieldShareAccruedWAD: BigInt! # Time Weighted Yield Share Accrued WAD
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+type DayLiquidityTrancheYieldSharesAccruedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index
+  yieldShareWAD: BigInt! # Yield Share WAD
+  timeWeightedYieldShareAccruedWAD: BigInt! # Time Weighted Yield Share Accrued WAD
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+type DayLiquidityPremiumSharesMintedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index
+  accountAddress: String! # Account Address
+  shares: BigInt! # Shares
+  sharesTotalSupply: BigInt! # Shares Total Supply
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+type DayLiquidityPremiumReinvestedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index
+  shares: BigInt! # Shares (stSharesReinvested)
+  assets: BigInt! # Assets (ltAssetsMinted)
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+type DayLiquidityPremiumReinvestmentFailedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index
+  shares: BigInt! # Shares (stSharesToReinvest)
+  assets: BigInt! # Assets (minLTAssetsOut)
+  revertData: String! # Revert Data (bytes converted to hex string)
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx RECORDS xxx
+
+# === POSITIONS ===
+
+type DayPositionState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  shares: BigInt! # Shares
+  # => convertToAssets(shares)
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares
+  nav: BigInt! # NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+type DayPositionStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  vaultId: String! # Vault ID
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  accountAddress: String! # Account Address
+  shares: BigInt! # Shares
+  # => convertToAssets(shares)
+  seniorTrancheAssets: BigInt! # Senior Tranche Assets
+  juniorTrancheAssets: BigInt! # Junior Tranche Assets
+  liquidityTrancheAssets: BigInt! # Liquidity Tranche Assets
+  seniorTrancheShares: BigInt! # Senior Tranche Shares
+  nav: BigInt! # NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx POSITIONS xxx
+
+# === FEES ===
+
+type DayFeeState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  accountAddress: String! # Account Address
+  shares: BigInt! # Shares (total minted shares so far + newly minted shares)
+  # => running total of convertToAssets(newly minted shares)
+  nav: BigInt! # NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+type DayFeeStateHistorical @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>
+  chainId: BigInt! # Chain ID
+  vaultAddress: String! # Vault Address
+  vaultId: String! # Vault ID
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  accountAddress: String! # Account Address
+  shares: BigInt! # Shares (total minted shares so far + newly minted shares)
+  # => running total of convertToAssets(newly minted shares)
+  nav: BigInt! # NAV
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# xxx FEES xxx

@@ -1,0 +1,59 @@
+# =============================================================================
+# The FIRST CI workflow in this monorepo — nothing has ever run here before.
+#
+# Deliberately path-scoped to royco-day/** so it cannot affect the other 16
+# packages. If other packages adopt CI later, this is the pattern to copy.
+# =============================================================================
+name: royco-day
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "royco-day/**"
+      - ".github/workflows/royco-day.yml"
+  pull_request:
+    paths:
+      - "royco-day/**"
+      - ".github/workflows/royco-day.yml"
+
+defaults:
+  run:
+    working-directory: royco-day
+
+jobs:
+  test:
+    # PINNED, not ubuntu-latest. graph-cli's getPlatform (dist/commands/test.js)
+    # only maps Linux major version 22 or 24 to a matchstick binary; anything
+    # else throws "Unsupported platform". ubuntu-latest moving to 26 would break
+    # this with an error that looks nothing like the real cause.
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: royco-day/package-lock.json
+
+      - run: npm ci
+
+      # Order matters: the two checks that need no matchstick binary run first,
+      # so a toolchain problem can never mask a real drift failure.
+      - name: Check generated artifacts are in sync
+        run: npm run check:drift
+
+      - name: Node checks (schema, pipeline, snake_case)
+        run: npm run test:node
+
+      - name: Build (prepare -> codegen -> build)
+        run: npm run build
+
+      # `graph test` downloads the matchstick binary on first run. -v 0.6.0 is
+      # pinned in package.json: it skips an unauthenticated GitHub API call for
+      # "latest" (IP-rate-limited from GHA runners, hence flaky) and stops a
+      # future release from silently changing what CI runs.
+      - name: Matchstick tests
+        run: npm run test:only

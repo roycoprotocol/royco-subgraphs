@@ -1,0 +1,155 @@
+# prettier-ignore
+# =============================================================================
+# GENERATED FILE — DO NOT EDIT.
+#
+# Produced by scripts/generate-pipeline-template.mjs from:
+#   - schema.graphql               (the entity list)
+#   - config/markets/pipeline.config.json  (prefix, secret, exclude list)
+#
+# To change it, edit one of those and run `npm run generate`.
+# A hand-edit here is reverted by the next generate and caught by
+# `npm run check:drift`.
+#
+# Entities wired: 9
+# =============================================================================
+apiVersion: 3
+name: {{pipelineName}}
+resource_size: m
+sources:
+  royco_day_markets_global_token_transfer_reference:
+    name: global_token_transfer
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_global_token_activity_reference:
+    name: global_token_activity
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_market_state_reference:
+    name: day_market_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_vault_state_reference:
+    name: day_vault_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_vault_state_historical_reference:
+    name: day_vault_state_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_position_state_reference:
+    name: day_position_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_position_state_historical_reference:
+    name: day_position_state_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_fee_state_reference:
+    name: day_fee_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_fee_state_historical_reference:
+    name: day_fee_state_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  royco_day_markets_global_token_transfer_postgres:
+    type: postgres
+    table: global_token_transfer
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_token_transfer"
+    from: royco_day_markets_global_token_transfer_reference
+  royco_day_markets_global_token_activity_postgres:
+    type: postgres
+    table: global_token_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_token_activity"
+    from: royco_day_markets_global_token_activity_reference
+  royco_day_markets_day_market_state_postgres:
+    type: postgres
+    table: day_market_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_market_state"
+    from: royco_day_markets_day_market_state_reference
+  royco_day_markets_day_vault_state_postgres:
+    type: postgres
+    table: day_vault_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_vault_state"
+    from: royco_day_markets_day_vault_state_reference
+  royco_day_markets_day_vault_state_historical_postgres:
+    type: postgres
+    table: day_vault_state_historical
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_vault_state_historical"
+    from: royco_day_markets_day_vault_state_historical_reference
+  royco_day_markets_day_position_state_postgres:
+    type: postgres
+    table: day_position_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_position_state"
+    from: royco_day_markets_day_position_state_reference
+  royco_day_markets_day_position_state_historical_postgres:
+    type: postgres
+    table: day_position_state_historical
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_position_state_historical"
+    from: royco_day_markets_day_position_state_historical_reference
+  royco_day_markets_day_fee_state_postgres:
+    type: postgres
+    table: day_fee_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_fee_state"
+    from: royco_day_markets_day_fee_state_reference
+  royco_day_markets_day_fee_state_historical_postgres:
+    type: postgres
+    table: day_fee_state_historical
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_fee_state_historical"
+    from: royco_day_markets_day_fee_state_historical_reference

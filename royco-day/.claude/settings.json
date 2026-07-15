@@ -1,0 +1,76 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run prepare:markets:mainnet)",
+      "Bash(npm run codegen)",
+      "Bash(npm run build)",
+      "Bash(npm run generate)",
+      "Bash(npm run test)",
+      "Bash(npm run test:node)",
+      "Bash(npm run test:unit)",
+      "Bash(npm run test:only)",
+      "Bash(npm run check)",
+      "Bash(npm run check:drift)",
+
+      "Bash(npx graph codegen:*)",
+      "Bash(npx graph build:*)",
+      "Bash(npx graph test:*)",
+      "Bash(npx mustache:*)",
+      "Bash(node scripts/generate.mjs:*)",
+      "Bash(node scripts/generate-pipeline-template.mjs:*)",
+      "Bash(node scripts/generate-abi-signatures.mjs:*)",
+      "Bash(node --test:*)",
+
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git blame:*)",
+
+      "Bash(jq:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(diff:*)"
+    ],
+
+    "deny": [
+      "Bash(goldsky:*)",
+      "Bash(npx goldsky:*)",
+
+      "Bash(npm run deploy:*)",
+      "Bash(npm run delete:*)",
+      "Bash(bash ./scripts/markets/deploy-subgraphs.sh:*)",
+      "Bash(bash ./scripts/markets/deploy-pipeline.sh:*)",
+      "Bash(bash ./scripts/markets/delete-subgraphs.sh:*)",
+      "Bash(bash ./scripts/markets/delete-pipeline.sh:*)",
+      "Bash(./scripts/markets/deploy-subgraphs.sh:*)",
+      "Bash(./scripts/markets/deploy-pipeline.sh:*)",
+      "Bash(./scripts/markets/delete-subgraphs.sh:*)",
+      "Bash(./scripts/markets/delete-pipeline.sh:*)",
+
+      "Bash(graph deploy:*)",
+      "Bash(npx graph deploy:*)",
+      "Bash(graph remove:*)",
+      "Bash(npx graph remove:*)",
+
+      "Bash(git push:*)",
+
+      "Read(./.env)",
+      "Read(./.env.*)",
+
+      "Edit(./subgraph.yaml)",
+      "Edit(./src/constants/static.ts)",
+      "Edit(./royco-day-markets-pipeline.yaml)",
+      "Edit(./config/markets/pipeline.template.yaml)",
+      "Edit(./tests/generated/**)",
+      "Edit(./generated/**)",
+      "Edit(./build/**)"
+    ]
+  }
+}

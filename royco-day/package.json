@@ -1,0 +1,29 @@
+{
+  "name": "royco-day",
+  "license": "UNLICENSED",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "prepare:markets:mainnet": "mustache config/markets/networks/mainnet.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/mainnet.json config/markets/constants.template.ts > src/constants/static.ts && mustache config/markets/metadata.json config/markets/pipeline.template.yaml > royco-day-markets-pipeline.yaml",
+    "codegen": "graph codegen",
+    "build": "npm run prepare:markets:mainnet && npm run codegen && graph build",
+    "test": "npm run test:node && npm run test:unit",
+    "test:node": "node --test \"scripts/checks/*.test.mjs\"",
+    "test:unit": "npm run prepare:markets:mainnet && npm run codegen && graph test -v 0.6.0",
+    "test:only": "graph test -v 0.6.0",
+    "test:watch": "graph test -v 0.6.0 -r",
+    "check:drift": "node scripts/check-drift.mjs",
+    "check": "npm run check:drift && npm run test",
+    "deploy:subgraphs:markets": "bash ./scripts/markets/deploy-subgraphs.sh",
+    "deploy:pipeline:markets": "bash ./scripts/markets/deploy-pipeline.sh",
+    "delete:subgraphs:markets": "bash ./scripts/markets/delete-subgraphs.sh",
+    "delete:pipeline:markets": "bash ./scripts/markets/delete-pipeline.sh"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.97.1",
+    "@graphprotocol/graph-ts": "0.37.0",
+    "mustache-cli": "^2.3.2"
+  },
+  "devDependencies": {
+    "matchstick-as": "0.6.0"
+  }
+}
