@@ -10,7 +10,7 @@
 # A hand-edit here is reverted by the next generate and caught by
 # `npm run check:drift`.
 #
-# Entities wired: 9
+# Entities wired: 17
 # =============================================================================
 apiVersion: 3
 name: {{pipelineName}}
@@ -50,6 +50,70 @@ sources:
     type: subgraph_entity
   royco_day_markets_day_vault_state_historical_reference:
     name: day_vault_state_historical
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_fixed_term_history_reference:
+    name: day_fixed_term_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_junior_tranche_yield_shares_accrued_history_reference:
+    name: day_junior_tranche_yield_shares_accrued_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference:
+    name: day_liquidity_tranche_yield_shares_accrued_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_liquidity_premium_shares_minted_history_reference:
+    name: day_liquidity_premium_shares_minted_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_liquidity_premium_reinvested_history_reference:
+    name: day_liquidity_premium_reinvested_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_liquidity_premium_reinvestment_failed_history_reference:
+    name: day_liquidity_premium_reinvestment_failed_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_multi_asset_deposit_activity_reference:
+    name: day_multi_asset_deposit_activity
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_multi_asset_redeem_activity_reference:
+    name: day_multi_asset_redeem_activity
     subgraphs:
       {{#metadata}}
       - name: royco-day-markets-{{network}}
@@ -125,6 +189,62 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_vault_state_historical"
     from: royco_day_markets_day_vault_state_historical_reference
+  royco_day_markets_day_fixed_term_history_postgres:
+    type: postgres
+    table: day_fixed_term_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_fixed_term_history"
+    from: royco_day_markets_day_fixed_term_history_reference
+  royco_day_markets_day_junior_tranche_yield_shares_accrued_history_postgres:
+    type: postgres
+    table: day_junior_tranche_yield_shares_accrued_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_junior_tranche_yield_shares_accrued_history"
+    from: royco_day_markets_day_junior_tranche_yield_shares_accrued_history_reference
+  royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_postgres:
+    type: postgres
+    table: day_liquidity_tranche_yield_shares_accrued_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_liquidity_tranche_yield_shares_accrued_history"
+    from: royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference
+  royco_day_markets_day_liquidity_premium_shares_minted_history_postgres:
+    type: postgres
+    table: day_liquidity_premium_shares_minted_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_liquidity_premium_shares_minted_history"
+    from: royco_day_markets_day_liquidity_premium_shares_minted_history_reference
+  royco_day_markets_day_liquidity_premium_reinvested_history_postgres:
+    type: postgres
+    table: day_liquidity_premium_reinvested_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_liquidity_premium_reinvested_history"
+    from: royco_day_markets_day_liquidity_premium_reinvested_history_reference
+  royco_day_markets_day_liquidity_premium_reinvestment_failed_history_postgres:
+    type: postgres
+    table: day_liquidity_premium_reinvestment_failed_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_liquidity_premium_reinvestment_failed_history"
+    from: royco_day_markets_day_liquidity_premium_reinvestment_failed_history_reference
+  royco_day_markets_day_multi_asset_deposit_activity_postgres:
+    type: postgres
+    table: day_multi_asset_deposit_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_multi_asset_deposit_activity"
+    from: royco_day_markets_day_multi_asset_deposit_activity_reference
+  royco_day_markets_day_multi_asset_redeem_activity_postgres:
+    type: postgres
+    table: day_multi_asset_redeem_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_multi_asset_redeem_activity"
+    from: royco_day_markets_day_multi_asset_redeem_activity_reference
   royco_day_markets_day_position_state_postgres:
     type: postgres
     table: day_position_state

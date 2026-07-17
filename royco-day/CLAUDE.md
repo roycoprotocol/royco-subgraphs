@@ -109,7 +109,7 @@ Confirmed in this package's own generated code:
 | `Accountant.getState()` member | Solidity | AS |
 |---|---|---|
 | `fixedTermDurationSeconds` | `uint24` | **`i32`** → needs `BigInt.fromI32()` |
-| `lastMarketState` | `uint8` enum | **`i32`** → map `0`→`"fixed"`, `1`→`"perpetual"` |
+| `lastMarketState` | `uint8` enum | **`i32`** → map `0`→`"perpetual"`, `1`→`"fixed"` |
 | `fixedTermEndTimestamp` | `uint32` | `BigInt` → direct |
 | `lastYieldShareAccrualTimestamp` | `uint32` | `BigInt` → direct |
 | `twJTYieldShareAccruedWAD` | `uint192` | `BigInt` → direct |
@@ -118,6 +118,41 @@ Confirmed in this package's own generated code:
 Never `BigInt.fromI32()` into an `Int!`.
 
 Don't memorise this — ask the **abi-oracle** subagent.
+
+### The ABI is not the spec. `contracts/` is.
+
+`contracts/` holds the full Solidity source for everything this subgraph indexes.
+Read it. The ABI gives you types and nothing else: **no enum member names, no
+provenance for same-named struct members, no revert conditions.** Every one of
+those gaps has already produced a real bug here, and each was invisible in the
+ABI and obvious in the source:
+
+| Bug | What the ABI said | What `contracts/` said |
+|---|---|---|
+| `marketState` mapped backwards in the schema, CLAUDE.md, `src/`, and both fixtures | `lastMarketState: uint8` | `libraries/Types.sol`: `enum MarketState { PERPETUAL, FIXED_TERM }` — **0 is perpetual** |
+| `minCoverageWAD`/`minLiquidityWAD` read from the live preview, not the stored state | both structs have a `minCoverageWAD` | `accountant/`: one is stored config, one is recomputed per sync — they diverge |
+
+So, before writing a handler:
+
+- **Enum → string?** Find the `enum` in `libraries/Types.sol`. The ordering is
+  never in the ABI, and it is not guessable — `MarketState` reads backwards.
+- **Two structs with the same member name?** Read both. `Accountant.getState()`
+  and `previewSyncTrancheAccounting().state` overlap on several names with
+  *different* meanings and widths. §6's divergence trap is this, and picking the
+  wrong one compiles, indexes, and is wrong forever.
+- **Choosing raw vs `try_` (§5)?** The Solidity is the only place that tells you
+  whether a call reverts. Don't infer it from `view`.
+- **A field the event doesn't carry?** Grep the emitting function: the value is
+  often erased into a local before the event fires (see
+  `DayFixedTermHistory.juniorTrancheCoverageImpermanentLossNAV` in
+  `schema.graphql`).
+
+`abis/` stays the source of truth for **signatures** — `tests/generated/abi-signatures.ts`
+is generated from it, and hand-transcribing a tuple is how you get a topic0 that
+matches nothing. Use `contracts/` for *meaning*, `abis/` for *shape*.
+
+Nothing builds from `contracts/` — no solc, no forge, not in any glob. It is
+reference material, and it is not optional reading.
 
 ## 5. Contract calls
 
@@ -191,22 +226,42 @@ royco-rwa's `AccountantMarketMap`). Kernel handlers can look up directly.
 **These are not ERC-4626 vaults.** On all three tranches:
 
 ```
-convertToAssets(uint256) -> Claims      // NOT uint256
-totalAssets()            -> Claims      // NOT uint256
-previewRedeem(uint256)   -> Claims      // NOT uint256
-previewDeposit(uint256)  -> uint256     // this one IS a scalar
+convertToAssets(uint256) -> AssetClaims  // NOT uint256
+totalAssets()            -> AssetClaims  // NOT uint256
+previewRedeem(uint256)   -> AssetClaims  // NOT uint256
+previewDeposit(uint256)  -> uint256      // this one IS a scalar
 ```
 
-`Claims = (stAssets, jtAssets, ltAssets, stShares, nav)`. That struct is *why*
-six entities repeat the same five fields. The mapping is fixed:
+`AssetClaims = (stAssets, jtAssets, ltAssets, stShares, nav)` (`libraries/Types.sol`
+— the struct is `AssetClaims`; `claims` is only the variable name). That struct is
+*why* six entities repeat the same five fields. The mapping is fixed:
 
-| `Claims` | schema field |
+| `AssetClaims` | schema field |
 |---|---|
-| `.stAssets` | `seniorTrancheAssets` |
-| `.jtAssets` | `juniorTrancheAssets` |
-| `.ltAssets` | `liquidityTrancheAssets` |
-| `.stShares` | `seniorTrancheShares` |
-| `.nav` | `nav` |
+| `.stAssets` | `claimsSeniorTrancheAssets` |
+| `.jtAssets` | `claimsJuniorTrancheAssets` |
+| `.ltAssets` | `claimsLiquidityTrancheAssets` |
+| `.stShares` | `claimsSeniorTrancheShares` |
+| `.nav` | `claimsNAV` |
+
+The `claims` prefix is load-bearing, not decoration: it separates the claim's
+`claimsSeniorTrancheShares` from the row's own `shares` / `sharesTotalSupply`,
+which are unrelated and sit right beside it. `DayVaultState`'s second quintuple
+(`sharePrice*`) is the same struct at a different input and keeps its own prefix.
+
+**`convertToAssets` is NOT `previewRedeem`.** Different call, different kernel path
+(`stPreviewRedeem`/`jt`/`lt`). `convertToAssets` is the pro-rata accounting claim —
+what the shares represent — not the redemption proceeds. Never name or describe it
+as "redeemable".
+
+**Liquidity-tranche asymmetry.** `RoycoVaultTranche.convertToAssets` rewrites the
+struct on the LT and only the LT: `stShares` → `0`, `nav` → `state.ltRawNAV`, before
+pro-rata scaling. Idle un-reinvested ST shares are excluded so LT's share price can't
+tick down on reinvestment slippage. So `claimsSeniorTrancheShares == 0` on an LT row
+is correct, not missing data. `claimsNAV` is `NAV_UNIT` and means the same thing on
+every tranche — the total NAV of the claim; the LT claim just contains no ST shares.
+All three tranches declare byte-identical `convertToAssets` signatures, so this is
+invisible from the ABI (§4).
 
 It also arrives via events: `Redeem(sender, receiver, claims, shares)` (claims at
 index **2**) and LT's `MultiAssetRedeem(caller, receiver, owner, shares,
@@ -304,7 +359,7 @@ including creation (where they're equal). Immutable entities carry only
 
 `schema.graphql` → Goldsky subgraph → Pipeline → Neon. Entity/field names become
 table/column names in snake_case (`DayVaultStateHistorical` →
-`day_vault_state_historical`; `seniorTrancheAssets` → `senior_tranche_assets`).
+`day_vault_state_historical`; `claimsSeniorTrancheAssets` → `claims_senior_tranche_assets`).
 
 1. **A field rename is a Postgres column migration** — regenerate, re-apply the
    pipeline, backfill, and break every downstream consumer. Names are frozen

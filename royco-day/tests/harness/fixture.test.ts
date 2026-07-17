@@ -94,7 +94,7 @@ describe("DayMarketFixture.standard()", () => {
     // The intended usage pattern for handler tests.
     const m = DayMarketFixture.standard();
     m.trancheState.jtCoinvested = true;
-    m.accountantState.lastMarketState = 1; // "perpetual"
+    m.accountantState.lastMarketState = 1; // "fixed"
     mockDayMarket(m);
 
     const kernel = RoycoDayKernel.bind(m.kernel);

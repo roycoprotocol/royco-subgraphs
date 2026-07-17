@@ -10,19 +10,33 @@ failing the whole suite.
 
 1. **`clearStore()` in `beforeEach`, never `afterAll`.** `afterAll` leaks state
    between `describe` blocks in the same file.
-2. **Mock every view the handler touches, before calling it.** An unmocked call
+2. **Build the fixture INSIDE each `test()` body — never in a `describe`-scope
+   `let`.** A test callback that reads an outer variable is a closure, and
+   AssemblyScript has none: it fails to compile with `ERROR AS100: Not
+   implemented: Closures` (CLAUDE.md §3). Module-level `const`s are fine — those
+   are globals, not captures. Factor the shared setup into a module-level
+   function and call it from each test; see `royco-factory.test.ts`.
+3. **Mock every view the handler touches, before calling it.** An unmocked call
    aborts the handler and matchstick reports it as a failed assertion — which
    reads like a logic bug and sends you hunting in the wrong place.
    `mockDayMarket(DayMarketFixture.standard())` covers the whole market surface.
-3. **Start from `DayMarketFixture.standard()`** and mutate only the field under
+4. **Never let a test's meaning depend on a call being UNMOCKED.** matchstick-as
+   0.6.0 has `clearStore()` but no `clearMockedFunctions` — mocks registered by
+   *other tests* survive `beforeEach`, keyed by (address, fn, signature, args).
+   So "the handler would abort on the wrong input" is not a real assertion: some
+   earlier test probably mocked that input already, and the wrong call quietly
+   succeeds. Assert a **sentinel value that only this test registers** instead.
+   `royco-factory.test.ts`'s decimals test shows the pattern — and a mutation
+   escaped it until it was written that way.
+5. **Start from `DayMarketFixture.standard()`** and mutate only the field under
    test. An all-zeros market hides division-by-zero and "is it just defaulting?"
    bugs.
-4. **Never hardcode an entity id.** Build it with the `src/utils` generator. A
+6. **Never hardcode an entity id.** Build it with the `src/utils` generator. A
    hardcoded id that drifts from the generator passes while production breaks.
-5. **Give every field a distinct value.** Shared values hide transpositions —
+7. **Give every field a distinct value.** Shared values hide transpositions —
    this is the single most important rule in this harness (see
    `tests/harness/` for why).
-6. **Assert `createdAt*` is NOT re-stamped on update.** Re-stamping builds fine,
+8. **Assert `createdAt*` is NOT re-stamped on update.** Re-stamping builds fine,
    indexes fine, and silently destroys every cohort query in Neon. Test 2 below
    exists for exactly this.
 
@@ -50,15 +64,13 @@ import {
 import { generateVaultId } from "../../src/utils";
 
 describe("handle<EVENT>", () => {
-  let market: DayMarketFixture;
-
   beforeEach(() => {
     clearStore();
-    market = DayMarketFixture.standard();
-    mockDayMarket(market);
   });
 
   test("creates <ENTITY> on the first event", () => {
+    mockDayMarket(DayMarketFixture.standard());
+
     const c = ctx();
     c.emitter = ADDR_SENIOR; // the emitting contract drives the handler's lookup
 

@@ -8,6 +8,9 @@
 
 # matchstick compiles each *.test.ts to wasm here
 /tests/.bin/
+# matchstick's own run marker — a version + a timestamp, so it re-dirties the tree
+# on every `graph test`. Nothing reads it but matchstick.
+/tests/.latest.json
 
 # Derived by `npm run prepare:markets:<network>` — pure functions of
 # config/markets/networks/<network>.json. Deliberately NOT committed: they are

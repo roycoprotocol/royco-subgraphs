@@ -14,12 +14,17 @@ import {
 import {
   CATEGORY_SHARES,
   CHAIN_ID,
-  FEES_MAJOR_TYPE_LIQUIDITY_PREMIUM,
-  FEES_MAJOR_TYPE_PROTOCOL,
-  FEES_MINOR_TYPE_SHARES,
   SUB_CATEGORY_MINT,
+  TRANCHE_TYPE_JUNIOR,
+  TRANCHE_TYPE_SENIOR,
+  VAULT_MAJOR_TYPE,
 } from "../../src/constants";
-import { ADDR_ALICE, ADDR_KERNEL, ADDR_SENIOR, TX_HASH } from "../helpers/constants";
+import {
+  ADDR_ALICE,
+  ADDR_KERNEL,
+  ADDR_SENIOR,
+  TX_HASH,
+} from "../helpers/constants";
 
 // =============================================================================
 // ID generator tests.
@@ -89,24 +94,26 @@ describe("immutable ids carry a per-write discriminator", () => {
   });
 
   test("DayFeeStateHistorical differs per entryIndex and from its parent", () => {
+    // The fee id is MARKET-scoped: the leading discriminator is the kernel, not the
+    // vault, and minorType separates the tranche stream.
     const parent = generateFeeStateId(
-      SENIOR,
+      KERNEL,
       ALICE,
-      FEES_MAJOR_TYPE_PROTOCOL,
-      FEES_MINOR_TYPE_SHARES
+      VAULT_MAJOR_TYPE,
+      TRANCHE_TYPE_SENIOR
     );
     const e0 = generateFeeStateHistoricalId(
-      SENIOR,
+      KERNEL,
       ALICE,
-      FEES_MAJOR_TYPE_PROTOCOL,
-      FEES_MINOR_TYPE_SHARES,
+      VAULT_MAJOR_TYPE,
+      TRANCHE_TYPE_SENIOR,
       BigInt.fromI32(0)
     );
     const e1 = generateFeeStateHistoricalId(
-      SENIOR,
+      KERNEL,
       ALICE,
-      FEES_MAJOR_TYPE_PROTOCOL,
-      FEES_MINOR_TYPE_SHARES,
+      VAULT_MAJOR_TYPE,
+      TRANCHE_TYPE_SENIOR,
       BigInt.fromI32(1)
     );
     assert.assertTrue(e0 != e1);
@@ -134,30 +141,76 @@ describe("immutable ids carry a per-write discriminator", () => {
       BigInt.fromI32(1)
     );
     assert.assertTrue(a != b);
-    assert.assertTrue(a.startsWith(generateGlobalTokenTransferId(TX, BigInt.fromI32(1))));
+  });
+
+  test("GlobalTokenTransfer ids differ per token within one log", () => {
+    // One Redeem log pays out up to three different asset ERC20s. Without the
+    // trailing tokenIndex the second leg is a fatal "entity already exists" on an
+    // immutable entity — at index time, after `graph build` goes green.
+    const senior = generateGlobalTokenTransferId(
+      TX,
+      BigInt.fromI32(1),
+      BigInt.fromI32(0)
+    );
+    const junior = generateGlobalTokenTransferId(
+      TX,
+      BigInt.fromI32(1),
+      BigInt.fromI32(1)
+    );
+    const liquidity = generateGlobalTokenTransferId(
+      TX,
+      BigInt.fromI32(1),
+      BigInt.fromI32(2)
+    );
+    assert.assertTrue(senior != junior);
+    assert.assertTrue(junior != liquidity);
+    assert.assertTrue(senior != liquidity);
+  });
+
+  test("a transfer and its activity share the log prefix", () => {
+    // Both ids start <CHAIN>_<TX>_<LOG>; they diverge only in what follows. Keeps
+    // the two tables joinable on the log even though the suffixes differ.
+    const prefix = CHAIN_ID.toString().concat("_").concat(TX).concat("_1");
+    assert.assertTrue(
+      generateGlobalTokenTransferId(
+        TX,
+        BigInt.fromI32(1),
+        BigInt.fromI32(0)
+      ).startsWith(prefix)
+    );
+    assert.assertTrue(
+      generateGlobalTokenActivityId(
+        TX,
+        BigInt.fromI32(1),
+        SENIOR,
+        CATEGORY_SHARES,
+        SUB_CATEGORY_MINT,
+        BigInt.fromI32(0)
+      ).startsWith(prefix)
+    );
   });
 });
 
-describe("DayFeeState id separates the two fee sources", () => {
-  test("same (vault, account) but different majorType => different ids", () => {
-    // The reason majorType is in the id at all: RoycoSeniorTranche emits BOTH
-    // ProtocolFeeSharesMinted(protocolFeeRecipient, ...) and
-    // LiquidityPremiumSharesMinted(holder, ...). When the fee recipient is also
-    // an LP holder, both resolve to the same (vault, account) — and without
-    // majorType they'd overwrite each other's running totals.
-    const protocolFee = generateFeeStateId(
-      SENIOR,
+describe("DayFeeState id is market-scoped, tranche-separated", () => {
+  test("minorType is load-bearing: same market + account, different tranche => distinct rows", () => {
+    // The fee id keys on the KERNEL (the market), shared by all three tranches, so
+    // the SAME market and account produce the SAME leading id — and it is minorType
+    // that separates the senior fee stream from the junior one. This is exactly why
+    // minorType is load-bearing here (unlike a vaultAddress-keyed id, where the
+    // vault already implied the tranche). Both use KERNEL, not the vault.
+    const seniorFee = generateFeeStateId(
+      KERNEL,
       ALICE,
-      FEES_MAJOR_TYPE_PROTOCOL,
-      FEES_MINOR_TYPE_SHARES
+      VAULT_MAJOR_TYPE,
+      TRANCHE_TYPE_SENIOR
     );
-    const liquidityPremium = generateFeeStateId(
-      SENIOR,
+    const juniorFee = generateFeeStateId(
+      KERNEL,
       ALICE,
-      FEES_MAJOR_TYPE_LIQUIDITY_PREMIUM,
-      FEES_MINOR_TYPE_SHARES
+      VAULT_MAJOR_TYPE,
+      TRANCHE_TYPE_JUNIOR
     );
-    assert.assertTrue(protocolFee != liquidityPremium);
+    assert.assertTrue(seniorFee != juniorFee);
   });
 });
 
@@ -169,7 +222,11 @@ describe("id format", () => {
     assert.assertTrue(generateVaultId(SENIOR).startsWith(prefix));
     assert.assertTrue(generateMarketId(KERNEL).startsWith(prefix));
     assert.assertTrue(generatePositionStateId(SENIOR, ALICE).startsWith(prefix));
-    assert.assertTrue(generateGlobalTokenTransferId(TX, BigInt.fromI32(1)).startsWith(prefix));
+    assert.assertTrue(
+      generateGlobalTokenTransferId(TX, BigInt.fromI32(1), BigInt.fromI32(0)).startsWith(
+        prefix
+      )
+    );
   });
 
   test("addresses go in as lowercase hex with 0x", () => {

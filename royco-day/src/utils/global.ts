@@ -38,6 +38,31 @@ export const generateMarketId = (kernelAddress: string): string => {
   return CHAIN_ID.toString().concat("_").concat(kernelAddress);
 };
 
+// === RECORDS ===
+
+/**
+ * The shared id shape for EVERY market-keyed record stream:
+ *   <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+ * DayFixedTermHistory, DayLiquidityPremiumSharesMintedHistory, and the yield-share
+ * accrual streams all key on it. One generator so the format lives in one place
+ * (§8) — a stream that needs a different shape gets its own, not a tweak to this.
+ *
+ * The entryIndex comes from that stream's DayMarketState.count*Entries cursor,
+ * which is a COUNT and not a last-index: read it, use it, THEN increment (the
+ * inverse of lastHistoricalEntryIndex). The record streams are born empty, so the
+ * first entry is 0 and the count becomes 1. See "ENTRY INDEX CURSOR" in schema.graphql.
+ *
+ * `marketId` here is the bare KERNEL ADDRESS, not the composite <CHAIN>_<KERNEL>
+ * — passing DayMarketState.id by mistake yields "1_1_0xkernel_0", which builds,
+ * indexes, and silently forks the stream. Pass market.marketId, never market.id.
+ */
+export const generateMarketRecordId = (
+  marketId: string,
+  entryIndex: BigInt
+): string => {
+  return generateMarketId(marketId).concat("_").concat(entryIndex.toString());
+};
+
 // === TOKENS / VAULTS ===
 
 /** <CHAIN_ID>_<TOKEN_ADDRESS> */
@@ -94,21 +119,25 @@ export const generatePositionStateHistoricalId = (
 
 /**
  * DayFeeState.id
- *   = <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>
+ *   = <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>
  *
- * majorType/minorType are in the id because one (vault, account) pair can accrue
- * fees from more than one source — Senior emits both ProtocolFeeSharesMinted and
- * LiquidityPremiumSharesMinted, and the recipient may be the same address.
+ * MARKET-scoped, NOT vault-scoped: the leading discriminator is marketId (the bare
+ * kernel address), so a market's three tranche-fee streams sort adjacently. That
+ * makes `minorType` LOAD-BEARING here — (marketId, minorType) resolves the vault,
+ * whereas a vaultAddress key made minorType redundant. majorType is still the
+ * constant "day". Pass the bare kernel address (vault.marketId), NOT the composite
+ * DayMarketState.id / marketRefId. The liquidity premium is NOT a fee (see
+ * schema.graphql's "=== FEES ===" block).
  */
 export const generateFeeStateId = (
-  vaultAddress: string,
+  marketId: string,
   accountAddress: string,
   majorType: string,
   minorType: string
 ): string => {
   return CHAIN_ID.toString()
     .concat("_")
-    .concat(vaultAddress)
+    .concat(marketId)
     .concat("_")
     .concat(accountAddress)
     .concat("_")
@@ -119,28 +148,50 @@ export const generateFeeStateId = (
 
 /**
  * DayFeeStateHistorical.id
- *   = <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<ENTRY_INDEX>
+ *   = <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<ENTRY_INDEX>
  */
 export const generateFeeStateHistoricalId = (
-  vaultAddress: string,
+  marketId: string,
   accountAddress: string,
   majorType: string,
   minorType: string,
   entryIndex: BigInt
 ): string => {
-  return generateFeeStateId(vaultAddress, accountAddress, majorType, minorType)
+  return generateFeeStateId(marketId, accountAddress, majorType, minorType)
     .concat("_")
     .concat(entryIndex.toString());
 };
 
 // === GLOBAL (shared Neon tables — see the banner in schema.graphql) ===
 
-/** GlobalTokenTransfer.id = <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX> */
+/**
+ * GlobalTokenTransfer.id = <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>_<TOKEN_INDEX>
+ *
+ * The trailing tokenIndex exists because ONE log can move SEVERAL tokens: a
+ * Redeem carries an AssetClaims quintuple and pays out up to three different
+ * asset ERC20s in a single event. Without a discriminator the second leg is a
+ * fatal "entity already exists" at index time on this immutable entity.
+ *
+ * Single-token logs (a share Transfer, a Deposit) pass TOKEN_INDEX_SINGLE.
+ *
+ * !! CROSS-PACKAGE NOTE — public.global_token_transfer is shared with royco-rwa,
+ *    royco-usd and staked-royco-usd, so this column already holds more than one
+ *    shape. royco-rwa's schema comment documents the 3-part <CHAIN>_<TX>_<LOG>
+ *    form but its generateTransferId actually appends _<VAULT_ADDRESS> — its own
+ *    comment is wrong about the ids it writes. Rows still cannot collide across
+ *    packages (tx hashes are disjoint), but do NOT write a consumer that parses
+ *    this column positionally. Do not "harmonise" by copying rwa's vaultAddress
+ *    arg: it carries no category, so an stAssets leg and an stShares leg on one
+ *    vault would collide — rwa escapes only because it never records stShares.
+ */
 export const generateGlobalTokenTransferId = (
   transactionHash: string,
-  logIndex: BigInt
+  logIndex: BigInt,
+  tokenIndex: BigInt
 ): string => {
-  return generateId(transactionHash, logIndex);
+  return generateId(transactionHash, logIndex)
+    .concat("_")
+    .concat(tokenIndex.toString());
 };
 
 /**

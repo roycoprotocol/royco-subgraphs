@@ -36,6 +36,7 @@ dataSources:
       entities:
         - DayMarketState
         - DayVaultState
+        - DayVaultStateHistorical
       abis:
         - name: RoycoFactory
           file: ./abis/RoycoFactory.json
@@ -74,12 +75,15 @@ templates:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
+        - DayMarketState
         - DayVaultState
         - DayVaultStateHistorical
         - DayPositionState
         - DayPositionStateHistorical
         - DayFeeState
         - DayFeeStateHistorical
+        # Senior-only: only the senior tranche emits LiquidityPremiumSharesMinted.
+        - DayLiquidityPremiumSharesMintedHistory
         - GlobalTokenTransfer
         - GlobalTokenActivity
       abis:
@@ -117,6 +121,7 @@ templates:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
+        - DayMarketState
         - DayVaultState
         - DayVaultStateHistorical
         - DayPositionState
@@ -128,6 +133,17 @@ templates:
       abis:
         - name: RoycoJuniorTranche
           file: ./abis/RoycoJuniorTranche.json
+        # RoycoSeniorTranche is listed even though this is the Junior template, and it is
+        # NOT redundant. src/handlers/ shares ONE implementation of Transfer/Deposit/
+        # Redeem across all three tranches and binds RoycoSeniorTranche for its
+        # convertToAssets calls — the three ABIs are byte-identical, guarded by
+        # scripts/checks/abi.test.mjs. `bind()` bakes the contract NAME, and graph-node
+        # resolves that name against THIS data source's abis: list at eth_call time; the
+        # import path means nothing to it. Without this entry every Junior Transfer fails
+        # its eth_call and stalls the subgraph — and `graph build` passes either way.
+        # See CLAUDE.md §10.4.
+        - name: RoycoSeniorTranche
+          file: ./abis/RoycoSeniorTranche.json
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json
         - name: ERC20
@@ -156,17 +172,32 @@ templates:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
+        - DayMarketState
         - DayVaultState
         - DayVaultStateHistorical
         - DayPositionState
         - DayPositionStateHistorical
         - DayFeeState
         - DayFeeStateHistorical
+        # Liquidity-only: only the liquidity tranche emits MultiAssetDeposit/Redeem.
+        - DayMultiAssetDepositActivity
+        - DayMultiAssetRedeemActivity
         - GlobalTokenTransfer
         - GlobalTokenActivity
       abis:
         - name: RoycoLiquidityTranche
           file: ./abis/RoycoLiquidityTranche.json
+        # RoycoSeniorTranche is listed even though this is the Liquidity template, and it is
+        # NOT redundant. src/handlers/ shares ONE implementation of Transfer/Deposit/
+        # Redeem across all three tranches and binds RoycoSeniorTranche for its
+        # convertToAssets calls — the three ABIs are byte-identical, guarded by
+        # scripts/checks/abi.test.mjs. `bind()` bakes the contract NAME, and graph-node
+        # resolves that name against THIS data source's abis: list at eth_call time; the
+        # import path means nothing to it. Without this entry every Liquidity Transfer fails
+        # its eth_call and stalls the subgraph — and `graph build` passes either way.
+        # See CLAUDE.md §10.4.
+        - name: RoycoSeniorTranche
+          file: ./abis/RoycoSeniorTranche.json
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json
         - name: ERC20
@@ -207,6 +238,13 @@ templates:
       language: wasm/assemblyscript
       entities:
         - DayMarketState
+        # handleFixedTermCommenced creates these and handleFixedTermEnded /
+        # handleFixedTermDurationUpdated(0) close them (§10.3).
+        - DayFixedTermHistory
+        # handleJunior/LiquidityTrancheYieldShareAccrued append these + advance the
+        # DayMarketState.timeWeighted*YieldShareAccruedWAD fields (§10.3).
+        - DayJuniorTrancheYieldSharesAccruedHistory
+        - DayLiquidityTrancheYieldSharesAccruedHistory
       abis:
         - name: RoycoDayAccountant
           file: ./abis/RoycoDayAccountant.json
@@ -227,6 +265,15 @@ templates:
           receipt: true
         - event: FixedTermEnded()
           handler: handleFixedTermEnded
+          receipt: true
+        # The ONLY witness to the JT coverage impermanent loss that a term end
+        # erases: the Accountant copies it into a local and zeroes storage BEFORE
+        # marshalling state, so by the time FixedTermEnded fires both the preview
+        # and getState() already read 0. Fills
+        # DayFixedTermHistory.juniorTrancheCoverageImpermanentLossNAV, which is
+        # permanently 0 without this.
+        - event: JuniorTrancheCoverageImpermanentLossReset(uint256)
+          handler: handleJuniorTrancheCoverageImpermanentLossReset
           receipt: true
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
@@ -264,6 +311,12 @@ templates:
         - event: LiquidityTrancheYDMUpdated(address)
           handler: handleLiquidityTrancheYDMUpdated
           receipt: true
+        - event: JuniorTrancheYieldShareAccrued(uint256,uint256)
+          handler: handleJuniorTrancheYieldShareAccrued
+          receipt: true
+        - event: LiquidityTrancheYieldShareAccrued(uint256,uint256)
+          handler: handleLiquidityTrancheYieldShareAccrued
+          receipt: true
       file: ./src/royco-day-accountant.ts
   - kind: ethereum/contract
     name: RoycoDayKernel
@@ -276,6 +329,10 @@ templates:
       language: wasm/assemblyscript
       entities:
         - DayMarketState
+        # handleLiquidityPremiumReinvested / handleLiquidityPremiumReinvestmentFailed
+        # append these record streams (§10.3).
+        - DayLiquidityPremiumReinvestedHistory
+        - DayLiquidityPremiumReinvestmentFailedHistory
       abis:
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json
@@ -285,5 +342,11 @@ templates:
           receipt: true
         - event: SeniorTrancheSelfLiquidationBonusUpdated(uint64)
           handler: handleSeniorTrancheSelfLiquidationBonusUpdated
+          receipt: true
+        - event: LiquidityPremiumReinvested(uint256,uint256)
+          handler: handleLiquidityPremiumReinvested
+          receipt: true
+        - event: LiquidityPremiumReinvestmentFailed(uint256,uint256,bytes)
+          handler: handleLiquidityPremiumReinvestmentFailed
           receipt: true
       file: ./src/royco-day-kernel.ts

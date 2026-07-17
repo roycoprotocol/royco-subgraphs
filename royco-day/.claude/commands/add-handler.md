@@ -36,7 +36,8 @@ TODO, not indexing logic, unless explicitly asked for the logic too.
 6. **Report**: files touched, the signature used, and the entities the TODO says
    this event should eventually write.
 
-If the event carries a `Claims` tuple, note the fixed mapping in the stub comment:
-`stAssets→seniorTrancheAssets, jtAssets→juniorTrancheAssets,
-ltAssets→liquidityTrancheAssets, stShares→seniorTrancheShares, nav→nav`.
+If the event carries an `AssetClaims` tuple, note the fixed mapping in the stub
+comment: `stAssets→claimsSeniorTrancheAssets, jtAssets→claimsJuniorTrancheAssets,
+ltAssets→claimsLiquidityTrancheAssets, stShares→claimsSeniorTrancheShares,
+nav→claimsNAV`.
 Check the index — `Redeem` has claims at position 2, `MultiAssetRedeem` at 4.

@@ -30,6 +30,31 @@ export const SUB_CATEGORY_TRANSFER_OUT = "transferOut";
 export const SUB_CATEGORY_DEPOSIT = "deposit";
 export const SUB_CATEGORY_WITHDRAW = "withdraw";
 
+// === MARKET STATES ===
+// DayMarketState.marketState.
+//
+// The on-chain enum is `MarketState { PERPETUAL, FIXED_TERM }`
+// (contracts/libraries/Types.sol), so 0 is PERPETUAL. That reads backwards to
+// anyone who assumes "fixed" comes first, and it was wrong across this repo's
+// docs and fixtures until it was checked against the source. The ABI cannot tell
+// you — it carries the enum's TYPE name but none of its member names (§4).
+export const MARKET_STATE_PERPETUAL = "perpetual"; // enum 0
+export const MARKET_STATE_FIXED = "fixed"; // enum 1
+
+// === TOKEN INDICES ===
+// The trailing discriminator on GlobalTokenTransfer.id and GlobalTokenActivity.id.
+// One log can move several tokens, so the index identifies WHICH leg a row is.
+//
+// These are POSITIONAL and fixed per leg — never a running counter over the
+// non-zero legs. A counter makes tokenIndex 1 mean "junior assets" in one row and
+// "liquidity assets" in another, and the leg is then unrecoverable from Neon:
+// tokenAddress is the only other clue, and the shipped identical-ST/JT kernel
+// gives the senior and junior legs the SAME asset token.
+export const TOKEN_INDEX_SINGLE: i32 = 0; // logs that move exactly one token
+export const REDEEM_TOKEN_INDEX_SENIOR_TRANCHE_ASSETS: i32 = 0;
+export const REDEEM_TOKEN_INDEX_JUNIOR_TRANCHE_ASSETS: i32 = 1;
+export const REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS: i32 = 2;
+
 // === ACTIVITY TYPES ===
 // GlobalTokenActivity.type
 export const ACTIVITY_TYPE_TRANSFER = "transfer";
@@ -52,13 +77,14 @@ export const TRANCHE_TYPE_JUNIOR = "junior";
 export const TRANCHE_TYPE_LIQUIDITY = "liquidity";
 
 // === FEES ===
-// DayFeeState.majorType — the fee's source. Part of the entity id, because a
-// single (vault, account) pair can accrue from more than one source: Senior
-// emits BOTH ProtocolFeeSharesMinted and LiquidityPremiumSharesMinted.
-export const FEES_MAJOR_TYPE_PROTOCOL = "protocol";
-export const FEES_MAJOR_TYPE_LIQUIDITY_PREMIUM = "liquidityPremium";
-
-// === FEES MINOR TYPES ===
-// DayFeeState.minorType — the unit the fee is denominated in.
-export const FEES_MINOR_TYPE_SHARES = "shares";
-export const FEES_MINOR_TYPE_ASSETS = "assets";
+// DayFeeState needs NO fee-specific constants. The only fee is the protocol fee,
+// always minted as shares, so its majorType/minorType mirror DayVaultState:
+//   majorType = VAULT_MAJOR_TYPE  ("day")            — the product
+//   minorType = the vault's own minorType (TRANCHE_TYPE_SENIOR/JUNIOR/LIQUIDITY)
+// The handler reads both off the loaded DayVaultState; nothing to define here.
+//
+// The LIQUIDITY PREMIUM is NOT a fee — it is minted into the market's own
+// accounting, not taken from a holder — so it has no DayFeeState row at all. It
+// lives in DayLiquidityPremiumSharesMintedHistory (a RECORDS entity). The old
+// "protocol"/"liquidityPremium" majorType and "shares"/"assets" minorType
+// constants were removed with that reclassification.
