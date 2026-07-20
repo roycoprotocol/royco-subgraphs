@@ -1,0 +1,24 @@
+{
+  "name": "royco-day-entrypoint",
+  "license": "UNLICENSED",
+  "scripts": {
+    "prepare:entrypoint:mainnet": "mustache config/entrypoint/networks/mainnet.json config/entrypoint/subgraph.template.yaml > subgraph.yaml && mustache config/entrypoint/networks/mainnet.json config/entrypoint/constants.template.ts > src/constants/static.ts && mustache config/entrypoint/metadata.json config/entrypoint/pipeline.template.yaml > royco-day-entrypoint-pipeline.yaml",
+    "codegen": "graph codegen",
+    "build": "npm run prepare:entrypoint:mainnet && npm run codegen && graph build",
+    "test": "npm run prepare:entrypoint:mainnet && npm run codegen && graph test -v 0.6.0",
+    "test:only": "graph test -v 0.6.0",
+    "test:watch": "graph test -v 0.6.0 -r",
+    "deploy:subgraphs:entrypoint": "bash ./scripts/entrypoint/deploy-subgraphs.sh",
+    "deploy:pipeline:entrypoint": "bash ./scripts/entrypoint/deploy-pipeline.sh",
+    "delete:subgraphs:entrypoint": "bash ./scripts/entrypoint/delete-subgraphs.sh",
+    "delete:pipeline:entrypoint": "bash ./scripts/entrypoint/delete-pipeline.sh"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.98.1",
+    "@graphprotocol/graph-ts": "0.38.2",
+    "mustache-cli": "^2.3.2"
+  },
+  "devDependencies": {
+    "matchstick-as": "0.6.0"
+  }
+}
