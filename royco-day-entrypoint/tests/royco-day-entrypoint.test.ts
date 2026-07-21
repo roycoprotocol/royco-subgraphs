@@ -26,7 +26,11 @@ import {
   handleRedemptionRequestCancelled,
   handleTrancheConfigUpdated,
 } from "../src/royco-day-entrypoint";
-import { generateEntryPointRequestId, generateExecutionId } from "../src/utils";
+import {
+  generateEntryPointRequestId,
+  generateExecutionId,
+  generateGlobalTokenActivityId,
+} from "../src/utils";
 
 const ENTITY = "DayEntryPointRequest";
 
@@ -172,22 +176,33 @@ describe("deposit lifecycle", () => {
 
   test("requestDeposit escrows the full assets as pending", () => {
     mockAsset();
-    handleDepositRequested(depositRequested(1000));
+    const rq = at(depositRequested(1000), 0);
+    handleDepositRequested(rq);
     const id = reqId(N1);
     assert.fieldEquals(ENTITY, id, "status", "pending");
     assert.fieldEquals(ENTITY, id, "subCategory", "deposit");
     assert.fieldEquals(ENTITY, id, "initValue", "1000");
     assert.fieldEquals(ENTITY, id, "currValue", "1000");
     assert.fieldEquals(ENTITY, id, "selfExecutionOnly", "false");
+    // creation appended one pending row to the shared activity feed
+    assert.entityCount("GlobalTokenActivity", 1);
+    const actId = generateGlobalTokenActivityId(
+      rq.transaction.hash.toHexString(), rq.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", actId, "type", "request");
+    assert.fieldEquals("GlobalTokenActivity", actId, "status", "pending");
+    assert.fieldEquals("GlobalTokenActivity", actId, "value", "1000");
+    assert.fieldEquals("GlobalTokenActivity", actId, "accountAddress", ALICE.toHexString());
   });
 
   test("partial then full execution follows the SUM rule (assetsDeposited + bonusAssets)", () => {
     mockAsset();
-    handleDepositRequested(depositRequested(100));
+    handleDepositRequested(at(depositRequested(100), 0));
     const id = reqId(N1);
 
     // 38 deposited + 2 bonus consumes 40, leaving 60.
-    handleDepositExecuted(at(depositExecuted(38, 40, 2, 2), 1));
+    const fill1 = at(depositExecuted(38, 40, 2, 2), 1);
+    handleDepositExecuted(fill1);
     assert.fieldEquals(ENTITY, id, "currValue", "60");
     assert.fieldEquals(ENTITY, id, "status", "partiallyFilled");
     assert.fieldEquals(ENTITY, id, "protocolFeeShares", "2");
@@ -209,24 +224,45 @@ describe("deposit lifecycle", () => {
     assert.fieldEquals("DayEntryPointExecution", exec2, "assetsDeposited", "58");
     assert.fieldEquals("DayEntryPointExecution", exec2, "assetsBonus", "2");
     assert.fieldEquals("DayEntryPointExecution", exec2, "executorAddress", BOB.toHexString());
+    // activity feed: 1 pending (create) + partial fill (updated) + final fill (completed)
+    assert.entityCount("GlobalTokenActivity", 3);
+    const act1 = generateGlobalTokenActivityId(
+      fill1.transaction.hash.toHexString(), fill1.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", act1, "status", "updated"); // partial fill, request not done
+    assert.fieldEquals("GlobalTokenActivity", act1, "value", "38");
+    const act2 = generateGlobalTokenActivityId(
+      fill2.transaction.hash.toHexString(), fill2.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", act2, "status", "completed"); // final fill completes the request
+    assert.fieldEquals("GlobalTokenActivity", act2, "value", "58");
   });
 
   test("cancellation marks cancelled and zeroes the escrow", () => {
     mockAsset();
-    handleDepositRequested(depositRequested(1000));
-    handleDepositRequestCancelled(
+    handleDepositRequested(at(depositRequested(1000), 0));
+    const cancelEv = at(
       mock(changetype<DepositRequestCancelled>(newMockEvent()), [
         param("user", ethereum.Value.fromAddress(ALICE)),
         param("nonce", uint(N1)),
         param("receiver", ethereum.Value.fromAddress(ALICE)),
         param("assets", uint(BigInt.fromI32(1000))),
-      ])
+      ]),
+      1
     );
+    handleDepositRequestCancelled(cancelEv);
     const id = reqId(N1);
     assert.fieldEquals(ENTITY, id, "status", "cancelled");
     assert.fieldEquals(ENTITY, id, "currValue", "0");
     assert.fieldEquals(ENTITY, id, "cancelReceiverAddress", ALICE.toHexString());
     assert.fieldEquals(ENTITY, id, "cancelledAmount", "1000");
+    // activity feed: 1 pending (create) + 1 cancelled
+    assert.entityCount("GlobalTokenActivity", 2);
+    const cancelActId = generateGlobalTokenActivityId(
+      cancelEv.transaction.hash.toHexString(), cancelEv.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", cancelActId, "status", "cancelled");
+    assert.fieldEquals("GlobalTokenActivity", cancelActId, "value", "1000");
   });
 });
 
@@ -235,7 +271,7 @@ describe("redemption lifecycle", () => {
 
   test("execution follows the SUM rule and accumulates every claim lane", () => {
     mockAsset();
-    handleRedemptionRequested(redemptionRequested(1000));
+    handleRedemptionRequested(at(redemptionRequested(1000), 0));
     // 600 redeemed + 100 forfeited consumes 700, leaving 300.
     const ev = at(redemptionExecuted(600, 100, claims(11, 12, 13, 14, 15), 7, claims(1, 2, 3, 4, 5), 1), 3);
     handleRedemptionExecuted(ev);
@@ -262,23 +298,35 @@ describe("redemption lifecycle", () => {
     assert.fieldEquals("DayEntryPointExecution", execId, "sharesRedeemed", "600");
     assert.fieldEquals("DayEntryPointExecution", execId, "ltAssetsUserClaims", "13");
     assert.fieldEquals("DayEntryPointExecution", execId, "requestId", id);
+    // activity feed: 1 pending (create) + 1 updated (partial fill, request not done)
+    assert.entityCount("GlobalTokenActivity", 2);
+    const redActId = generateGlobalTokenActivityId(
+      ev.transaction.hash.toHexString(), ev.logIndex, TRANCHE.toHexString(), "shares", "withdraw", BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", redActId, "status", "updated");
+    assert.fieldEquals("GlobalTokenActivity", redActId, "value", "600");
   });
 
   test("cancellation records the receiver and returned shares", () => {
     mockAsset();
-    handleRedemptionRequested(redemptionRequested(1000));
+    handleRedemptionRequested(at(redemptionRequested(1000), 0));
     handleRedemptionRequestCancelled(
-      mock(changetype<RedemptionRequestCancelled>(newMockEvent()), [
-        param("user", ethereum.Value.fromAddress(ALICE)),
-        param("nonce", uint(N1)),
-        param("receiver", ethereum.Value.fromAddress(BOB)), // may differ from the payout receiver
-        param("shares", uint(BigInt.fromI32(1000))),
-      ])
+      at(
+        mock(changetype<RedemptionRequestCancelled>(newMockEvent()), [
+          param("user", ethereum.Value.fromAddress(ALICE)),
+          param("nonce", uint(N1)),
+          param("receiver", ethereum.Value.fromAddress(BOB)), // may differ from the payout receiver
+          param("shares", uint(BigInt.fromI32(1000))),
+        ]),
+        1
+      )
     );
     const id = reqId(N1);
     assert.fieldEquals(ENTITY, id, "status", "cancelled");
     assert.fieldEquals(ENTITY, id, "currValue", "0");
     assert.fieldEquals(ENTITY, id, "cancelReceiverAddress", BOB.toHexString());
     assert.fieldEquals(ENTITY, id, "cancelledAmount", "1000");
+    // activity feed: 1 pending (create) + 1 cancelled
+    assert.entityCount("GlobalTokenActivity", 2);
   });
 });

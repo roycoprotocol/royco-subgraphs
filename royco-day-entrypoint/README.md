@@ -18,7 +18,7 @@ npm test        # prepare → codegen → matchstick
 
 | Path | What |
 | --- | --- |
-| `schema.graphql` | `DayEntryPointState`, `DayEntryPointRequest`, `DayEntryPointExecution` (per-fill) |
+| `schema.graphql` | `DayEntryPointState`, `DayEntryPointRequest`, `DayEntryPointExecution` (per-fill), `GlobalTokenActivity` (shared feed) |
 | `abis/` | `RoycoDayEntryPoint`, `RoycoVaultTranche` (for `asset()`), `ERC20` |
 | `config/entrypoint/` | mustache templates + per-network values (edit here, not the rendered output) |
 | `src/royco-day-entrypoint.ts` | the handlers (one entry file — singleton data source) |

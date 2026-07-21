@@ -20,6 +20,32 @@ export function generateExecutionId(transactionHash: string, logIndex: BigInt): 
   return CHAIN_ID.toString().concat("_").concat(transactionHash).concat("_").concat(logIndex.toString());
 }
 
+// GlobalTokenActivity.id — the shared cross-package format
+// (<CHAIN>_<TX>_<LOG>_<VAULT>_<CATEGORY>_<SUB_CATEGORY>_<TOKEN_INDEX>), copied
+// from royco-day markets so entry-point rows share the format of the union feed.
+export function generateGlobalTokenActivityId(
+  transactionHash: string,
+  logIndex: BigInt,
+  vaultAddress: string,
+  category: string,
+  subCategory: string,
+  tokenIndex: BigInt
+): string {
+  return CHAIN_ID.toString()
+    .concat("_")
+    .concat(transactionHash)
+    .concat("_")
+    .concat(logIndex.toString())
+    .concat("_")
+    .concat(vaultAddress)
+    .concat("_")
+    .concat(category)
+    .concat("_")
+    .concat(subCategory)
+    .concat("_")
+    .concat(tokenIndex.toString());
+}
+
 // <CHAIN_ID>_<VAULT_ADDRESS> (the tranche is its own share token).
 export function generateVaultId(vaultAddress: string): string {
   return CHAIN_ID.toString().concat("_").concat(vaultAddress);

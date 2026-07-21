@@ -29,6 +29,7 @@ dataSources:
         - DayEntryPointState
         - DayEntryPointRequest
         - DayEntryPointExecution
+        - GlobalTokenActivity
       abis:
         - name: RoycoDayEntryPoint
           file: ./abis/RoycoDayEntryPoint.json

@@ -1,6 +1,6 @@
 # royco-day-entrypoint
 
-Subgraph indexing the **RoycoDayEntryPoint** — the async deposit/redemption queue for Royco Day 3-tranche markets (senior / junior / liquidity). Goldsky → Neon Postgres, into fresh Day-prefixed tables `day_entry_point_state` / `day_entry_point_request` / `day_entry_point_execution` (per-fill history). Companion to `../royco-day` (markets, which has no async lifecycle); the domain model mirrors `../royco-rwa`'s entry-point subgraph, extended for Day's 3-tranche redemption claims.
+Subgraph indexing the **RoycoDayEntryPoint** — the async deposit/redemption queue for Royco Day 3-tranche markets (senior / junior / liquidity). Goldsky → Neon Postgres, into fresh Day-prefixed tables `day_entry_point_state` / `day_entry_point_request` / `day_entry_point_execution` (per-fill history), plus rows on the shared `global_token_activity` feed. Companion to `../royco-day` (markets, which has no async lifecycle); the domain model mirrors `../royco-rwa`'s entry-point subgraph, extended for Day's 3-tranche redemption claims.
 
 ## Build
 
@@ -17,6 +17,7 @@ npm test        # prepare → codegen → matchstick
 - **Every handler bails when `getEntryPointVersion(event.address)` is 0** (an address this subgraph isn't configured for). The EntryPoint is a per-chain singleton, so there are no templates and no per-market discovery.
 - **`config/entrypoint/pipeline.template.yaml` is hand-maintained.** Add a source+sink pair when you add a schema entity, or it silently never reaches Neon.
 - **Schema entity/field names become Neon columns, frozen after first deploy.** Add a field, never rename one (a rename is a column migration).
+- **`GlobalTokenActivity` is a frozen SHARED table.** Its field set is byte-identical to royco-rwa / royco-day markets and it sinks into the shared `global_token_activity` (not Day-prefixed) — the union activity feed. Editing the field set breaks those packages' pipelines. The handler writes one row per request lifecycle event (create → pending, partial fill → updated, final fill → completed, cancel → cancelled; `type: "request"`). "completed" means the whole request finished — consumers rely on that, so partial fills are "updated".
 - **AssemblyScript, not TypeScript:** no closures or try/catch; use `.plus()`/`.minus()` on `BigInt` and `.toHexString()` for addresses; `uint8`–`uint24` decode to `i32` (need `BigInt.fromI32`), `uint32`+ to `BigInt` direct.
 
 ## Deploys — human-gated

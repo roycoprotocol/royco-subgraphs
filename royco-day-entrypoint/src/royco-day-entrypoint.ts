@@ -13,6 +13,7 @@ import {
   DayEntryPointExecution,
   DayEntryPointRequest,
   DayEntryPointState,
+  GlobalTokenActivity,
 } from "../generated/schema";
 import {
   CHAIN_ID,
@@ -26,12 +27,15 @@ import {
   STATUS_PARTIALLY_FILLED,
   STATUS_CANCELLED,
   STATUS_COMPLETED,
+  STATUS_UPDATED,
   SELF_EXECUTION_ONLY_SENTINEL,
+  ACTIVITY_TYPE_REQUEST,
 } from "./constants";
 import {
   generateEntryPointStateId,
   generateEntryPointRequestId,
   generateExecutionId,
+  generateGlobalTokenActivityId,
   generateVaultId,
   generateTokenId,
   generateTokenVaultId,
@@ -180,6 +184,15 @@ function applyExecution(request: DayEntryPointRequest, consumed: BigInt): void {
   request.status = request.currValue.isZero() ? STATUS_COMPLETED : STATUS_PARTIALLY_FILLED;
 }
 
+// Activity status for a fill: a fill that empties the request completes it,
+// otherwise it's an update. Call AFTER applyExecution. Kept distinct from the
+// request's own status ("partiallyFilled") because the shared activity feed's
+// vocabulary is pending/updated/completed/cancelled and consumers read
+// "completed" as the whole request finishing.
+function fillActivityStatus(request: DayEntryPointRequest): string {
+  return request.status == STATUS_COMPLETED ? STATUS_COMPLETED : STATUS_UPDATED;
+}
+
 // One immutable per-fill row. Common fields + zeroed legs; the caller fills the
 // deposit or redemption legs. Call AFTER applyExecution so remainingAfter/statusAfter
 // reflect the post-fill request.
@@ -234,6 +247,46 @@ function newExecution(
   return e;
 }
 
+// Append a row to the SHARED global_token_activity feed (the union across all
+// markets). Mirrors royco-rwa's entry-point: one row per lifecycle event —
+// create (pending), each fill (completed, value = this fill's primary amount),
+// cancel (cancelled). `value` is passed in because it differs per event.
+function addActivity(
+  request: DayEntryPointRequest,
+  value: BigInt,
+  status: string,
+  event: ethereum.Event
+): void {
+  const activity = new GlobalTokenActivity(
+    generateGlobalTokenActivityId(
+      event.transaction.hash.toHexString(),
+      event.logIndex,
+      request.vaultAddress,
+      request.category,
+      request.subCategory,
+      BigInt.zero()
+    )
+  );
+  activity.vaultId = request.vaultId;
+  activity.chainId = CHAIN_ID;
+  activity.vaultAddress = request.vaultAddress;
+  activity.category = request.category;
+  activity.subCategory = request.subCategory;
+  activity.accountAddress = request.accountAddress;
+  activity.type = ACTIVITY_TYPE_REQUEST;
+  activity.tokenIndex = BigInt.zero();
+  activity.tokenId = request.tokenId;
+  activity.tokenAddress = request.tokenAddress;
+  activity.value = value;
+  activity.status = status;
+  activity.blockNumber = event.block.number;
+  activity.blockTimestamp = event.block.timestamp;
+  activity.transactionHash = event.transaction.hash.toHexString();
+  activity.logIndex = event.logIndex;
+  activity.createdAt = event.block.timestamp;
+  activity.save();
+}
+
 export function handleTrancheConfigUpdated(event: TrancheConfigUpdatedEvent): void {
   const version = getEntryPointVersion(event.address.toHexString());
   if (version.isZero()) return;
@@ -270,7 +323,7 @@ export function handleDepositRequested(event: DepositRequestedEvent): void {
   );
   if (state.depositTokenAddress == ZERO_ADDRESS) return;
 
-  initRequest(
+  const request = initRequest(
     version,
     event.address.toHexString(),
     event.params.nonce,
@@ -286,7 +339,9 @@ export function handleDepositRequested(event: DepositRequestedEvent): void {
     event.block.timestamp,
     event.transaction.hash.toHexString(),
     event.logIndex
-  ).save();
+  );
+  request.save();
+  addActivity(request, request.initValue, STATUS_PENDING, event);
 }
 
 export function handleDepositExecuted(event: DepositExecutedEvent): void {
@@ -314,6 +369,8 @@ export function handleDepositExecuted(event: DepositExecutedEvent): void {
   exec.assetsBonus = event.params.bonusAssets;
   exec.sharesMinted = event.params.sharesMinted;
   exec.save();
+
+  addActivity(request, event.params.assetsDeposited, fillActivityStatus(request), event);
 }
 
 export function handleDepositRequestCancelled(event: DepositRequestCancelledEvent): void {
@@ -331,6 +388,7 @@ export function handleDepositRequestCancelled(event: DepositRequestCancelledEven
   request.status = STATUS_CANCELLED;
   request.currValue = BigInt.zero();
   request.save();
+  addActivity(request, event.params.assets, STATUS_CANCELLED, event);
 }
 
 export function handleRedemptionRequested(event: RedemptionRequestedEvent): void {
@@ -346,7 +404,7 @@ export function handleRedemptionRequested(event: RedemptionRequestedEvent): void
   );
   if (state.depositTokenAddress == ZERO_ADDRESS) return;
 
-  initRequest(
+  const request = initRequest(
     version,
     event.address.toHexString(),
     event.params.nonce,
@@ -362,7 +420,9 @@ export function handleRedemptionRequested(event: RedemptionRequestedEvent): void
     event.block.timestamp,
     event.transaction.hash.toHexString(),
     event.logIndex
-  ).save();
+  );
+  request.save();
+  addActivity(request, request.initValue, STATUS_PENDING, event);
 }
 
 export function handleRedemptionExecuted(event: RedemptionExecutedEvent): void {
@@ -413,6 +473,8 @@ export function handleRedemptionExecuted(event: RedemptionExecutedEvent): void {
   exec.navBonusClaims = bonusClaims.nav;
   exec.quoteAssetsBonusClaims = event.params.bonusQuoteAssets;
   exec.save();
+
+  addActivity(request, event.params.sharesRedeemed, fillActivityStatus(request), event);
 }
 
 export function handleRedemptionRequestCancelled(event: RedemptionRequestCancelledEvent): void {
@@ -430,4 +492,5 @@ export function handleRedemptionRequestCancelled(event: RedemptionRequestCancell
   request.status = STATUS_CANCELLED;
   request.currValue = BigInt.zero();
   request.save();
+  addActivity(request, event.params.shares, STATUS_CANCELLED, event);
 }

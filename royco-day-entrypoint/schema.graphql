@@ -8,6 +8,34 @@
 # shape with additive lt/stShares/nav/quote fields. Names become snake_case Neon
 # columns — frozen after first deploy; add a field, never rename one.
 
+# !! FROZEN SHARED-TABLE CONTRACT — DO NOT EDIT THE FIELD SET !!
+# GlobalTokenActivity is byte-identical to royco-rwa / royco-day markets and sinks
+# into the SHARED public.global_token_activity table (secret NEON_ROYCO_ESTATE),
+# the union feed for "user activity across all markets". Changing a field here
+# breaks those pipelines. This subgraph writes one row per request lifecycle event
+# (create -> pending, partial fill -> updated, final fill -> completed, cancel ->
+# cancelled), type "request". "completed" means the whole request finished.
+type GlobalTokenActivity @entity(immutable: true) {
+  id: String!
+  vaultId: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  category: String!
+  subCategory: String!
+  accountAddress: String!
+  type: String!
+  tokenIndex: BigInt!
+  tokenId: String!
+  tokenAddress: String!
+  value: BigInt!
+  status: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  createdAt: BigInt!
+}
+
 # Per (entryPoint, tranche) config. Upserted from TrancheConfigUpdated, created
 # lazily on the first request for a tranche.
 type DayEntryPointState @entity(immutable: false) {

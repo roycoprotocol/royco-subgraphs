@@ -11,11 +11,20 @@ export const CATEGORY_SHARES = "shares"; // redemptions escrow tranche shares
 export const SUB_CATEGORY_DEPOSIT = "deposit";
 export const SUB_CATEGORY_WITHDRAW = "withdraw";
 
+// GlobalTokenActivity.type — the entry point records request lifecycle events.
+export const ACTIVITY_TYPE_REQUEST = "request";
+
 // DayEntryPointRequest.status
 export const STATUS_PENDING = "pending";
 export const STATUS_PARTIALLY_FILLED = "partiallyFilled";
 export const STATUS_CANCELLED = "cancelled";
 export const STATUS_COMPLETED = "completed";
+
+// GlobalTokenActivity.status for a fill that does NOT complete the request. The
+// activity feed's lifecycle is pending -> updated -> completed | cancelled;
+// downstream consumers read "completed" as the WHOLE request completing, so a
+// partial fill must be "updated", not "completed".
+export const STATUS_UPDATED = "updated";
 
 // executorBonusWAD sentinel = third-party execution disabled (owner-only), NOT a
 // bonus. type(uint64).max; real bonuses are < WAD.

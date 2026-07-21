@@ -25,6 +25,12 @@ sources:
       - name: royco-day-entrypoint-mainnet
         version: 1.0.0
     type: subgraph_entity
+  royco_day_entrypoint_global_token_activity_reference:
+    name: global_token_activity
+    subgraphs:
+      - name: royco-day-entrypoint-mainnet
+        version: 1.0.0
+    type: subgraph_entity
 transforms: {}
 sinks:
   royco_day_entrypoint_day_entry_point_state_postgres:
@@ -48,3 +54,11 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_entry_point_execution"
     from: royco_day_entrypoint_day_entry_point_execution_reference
+  # SHARED cross-package table (not Day-prefixed) — the union activity feed.
+  royco_day_entrypoint_global_token_activity_postgres:
+    type: postgres
+    table: global_token_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_token_activity"
+    from: royco_day_entrypoint_global_token_activity_reference
