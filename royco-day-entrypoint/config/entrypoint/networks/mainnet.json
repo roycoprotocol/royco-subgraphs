@@ -1,0 +1,12 @@
+{
+  "network": "mainnet",
+  "chainId": 1,
+  "entryPoints": [
+    {
+      "id": "",
+      "version": 1,
+      "address": "0xba140d75fc0b646a13422224099a4f144a4ec9db",
+      "startBlock": 25582864
+    }
+  ]
+}

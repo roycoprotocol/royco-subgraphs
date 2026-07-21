@@ -1,0 +1,174 @@
+# royco-day-entrypoint schema — the RoycoDayEntryPoint async deposit/redemption
+# queue for Royco Day 3-tranche markets. Fresh Day-prefixed Neon tables
+# (day_entry_point_state / day_entry_point_request / day_entry_point_execution),
+# separate from royco-rwa's entry_point_*.
+#
+# Field names follow the entry-point contract naming (st*/jt*/lt*, category/
+# subCategory, curr/init) so Day reuses the backend/frontend EntrypointRequest
+# shape with additive lt/stShares/nav/quote fields. Names become snake_case Neon
+# columns — frozen after first deploy; add a field, never rename one.
+
+# !! FROZEN SHARED-TABLE CONTRACT — DO NOT EDIT THE FIELD SET !!
+# GlobalTokenActivity is byte-identical to royco-rwa / royco-day markets and sinks
+# into the SHARED public.global_token_activity table (secret NEON_ROYCO_ESTATE),
+# the union feed for "user activity across all markets". Changing a field here
+# breaks those pipelines. This subgraph writes one row per request lifecycle event
+# (create -> pending, partial fill -> updated, final fill -> completed, cancel ->
+# cancelled), type "request". "completed" means the whole request finished.
+type GlobalTokenActivity @entity(immutable: true) {
+  id: String!
+  vaultId: String!
+  chainId: BigInt!
+  vaultAddress: String!
+  category: String!
+  subCategory: String!
+  accountAddress: String!
+  type: String!
+  tokenIndex: BigInt!
+  tokenId: String!
+  tokenAddress: String!
+  value: BigInt!
+  status: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
+  logIndex: BigInt!
+  createdAt: BigInt!
+}
+
+# Per (entryPoint, tranche) config. Upserted from TrancheConfigUpdated, created
+# lazily on the first request for a tranche.
+type DayEntryPointState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<ENTRY_POINT_ADDRESS>_<TRANCHE_ADDRESS>
+  chainId: BigInt!
+  version: BigInt! # EntryPoint deployment version (getEntryPointVersion)
+  entryPointAddress: String!
+  vaultAddress: String! # the Day tranche
+  vaultId: String! # <CHAIN_ID>_<TRANCHE_ADDRESS>
+  depositTokenAddress: String! # <- tranche.asset()
+  depositTokenId: String!
+  shareTokenAddress: String! # == the tranche address
+  shareTokenId: String!
+  isEnabled: Boolean! # <- config.enabled
+  depositDelaySeconds: BigInt! # <- config.depositDelaySeconds (uint24)
+  redemptionDelaySeconds: BigInt! # <- config.redemptionDelaySeconds (uint24)
+  oracleClockAddress: String! # <- config.oracleClock (ZERO_ADDRESS disables the gate)
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# One deposit or redemption request, keyed by the EntryPoint's global nonce
+# (shared across deposits+redemptions, unique per deployment — hence the id keys
+# on the entry point address). Mutable aggregate holding running totals; partial
+# executions reduce currValue to zero (-> completed), cancel zeroes it
+# (-> cancelled). Each fill's own delta is in DayEntryPointExecution.
+#
+# !! SUM RULE — each *Executed reduces currValue by the SUM of two event legs,
+#    not one (verified against RoycoDayEntryPoint.sol):
+#      deposit:    currValue -= assetsDeposited + bonusAssets
+#      redemption: currValue -= sharesRedeemed + protocolFeeShares
+#    Using only the primary leg leaves the request perpetually "partial".
+type DayEntryPointRequest @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<ENTRY_POINT_ADDRESS>_<NONCE>
+  chainId: BigInt!
+  version: BigInt!
+  entryPointAddress: String!
+  nonce: BigInt!
+  vaultAddress: String! # tranche <- *Requested.tranche
+  vaultId: String! # <CHAIN_ID>_<TRANCHE_ADDRESS>
+  accountAddress: String! # <- *Requested.user
+  category: String! # "assets" (deposit) | "shares" (redemption)
+  subCategory: String! # "deposit" | "withdraw"
+  tokenId: String!
+  tokenAddress: String!
+  currValue: BigInt! # remaining escrow (assets for deposits, shares for redemptions)
+  initValue: BigInt! # <- *Requested.assets / .shares
+  status: String! # "pending" | "partiallyFilled" | "cancelled" | "completed"
+  queuedAtTimestamp: BigInt! # request block timestamp
+  executableAtTimestamp: BigInt! # <- *Requested.executableAtTimestamp
+  executorBonusWAD: BigInt! # <- *Requested.executorBonusWAD; type(uint64).max = self-only
+  selfExecutionOnly: Boolean! # executorBonusWAD == type(uint64).max
+  protocolFeeShares: BigInt! # cumulative shares forfeited to the protocol (yield forfeiture)
+  # Deposit aggregates (zero for redemptions)
+  assetsDeposited: BigInt! # <- DepositExecuted.assetsDeposited (post-bonus)
+  assetsBonus: BigInt! # <- DepositExecuted.bonusAssets
+  sharesMinted: BigInt! # <- DepositExecuted.sharesMinted
+  # Redemption aggregates (zero for deposits): the AssetClaims quintuple + quote
+  # leg, split into user and executor-bonus claims. Day adds lt/stShares/nav/quote
+  # over rwa's (st, jt) only.
+  sharesRedeemed: BigInt! # <- RedemptionExecuted.sharesRedeemed
+  stAssetsUserClaims: BigInt!
+  jtAssetsUserClaims: BigInt!
+  ltAssetsUserClaims: BigInt!
+  stSharesUserClaims: BigInt!
+  navUserClaims: BigInt!
+  quoteAssetsUserClaims: BigInt! # <- quoteAssets (0 unless a multi-asset LT exit)
+  stAssetsBonusClaims: BigInt!
+  jtAssetsBonusClaims: BigInt!
+  ltAssetsBonusClaims: BigInt!
+  stSharesBonusClaims: BigInt!
+  navBonusClaims: BigInt!
+  quoteAssetsBonusClaims: BigInt! # <- bonusQuoteAssets
+  # Set on cancellation (ZERO_ADDRESS / 0 otherwise). The cancel receiver can
+  # differ from the request's payout receiver (which the *Requested events don't
+  # emit, so it is not indexed).
+  cancelReceiverAddress: String! # <- *RequestCancelled.receiver
+  cancelledAmount: BigInt! # <- *RequestCancelled.assets / .shares (escrow returned)
+  createdAtBlockNumber: BigInt!
+  createdAtBlockTimestamp: BigInt!
+  createdAtTransactionHash: String!
+  createdAtLogIndex: BigInt!
+  updatedAtBlockNumber: BigInt!
+  updatedAtBlockTimestamp: BigInt!
+  updatedAtTransactionHash: String!
+  updatedAtLogIndex: BigInt!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+# One immutable row per *Executed log — the per-fill history behind a request's
+# running aggregate. `DayEntryPointRequest` holds the cumulative totals; this
+# holds each fill's own delta, plus who executed it and the request state after.
+# id = <CHAIN>_<TX_HASH>_<LOG_INDEX> (one execution per log; batch execution is
+# several logs), so it's write-once-safe.
+type DayEntryPointExecution @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  chainId: BigInt!
+  version: BigInt!
+  entryPointAddress: String!
+  requestId: String! # -> DayEntryPointRequest.id (<CHAIN>_<ENTRY_POINT>_<NONCE>)
+  nonce: BigInt!
+  vaultAddress: String!
+  vaultId: String!
+  accountAddress: String! # the request owner
+  executorAddress: String! # <- *Executed.executor (msg.sender of the fill)
+  category: String! # "assets" | "shares"
+  subCategory: String! # "deposit" | "withdraw"
+  consumed: BigInt! # escrow consumed by this fill (the SUM: see the request's SUM RULE)
+  remainingAfter: BigInt! # request.currValue after this fill
+  statusAfter: String! # request.status after this fill ("partiallyFilled" | "completed")
+  protocolFeeShares: BigInt! # this fill's forfeited shares
+  # Deposit legs (zero for redemptions)
+  assetsDeposited: BigInt!
+  assetsBonus: BigInt!
+  sharesMinted: BigInt!
+  # Redemption legs (zero for deposits)
+  sharesRedeemed: BigInt!
+  stAssetsUserClaims: BigInt!
+  jtAssetsUserClaims: BigInt!
+  ltAssetsUserClaims: BigInt!
+  stSharesUserClaims: BigInt!
+  navUserClaims: BigInt!
+  quoteAssetsUserClaims: BigInt!
+  stAssetsBonusClaims: BigInt!
+  jtAssetsBonusClaims: BigInt!
+  ltAssetsBonusClaims: BigInt!
+  stSharesBonusClaims: BigInt!
+  navBonusClaims: BigInt!
+  quoteAssetsBonusClaims: BigInt!
+  createdAtBlockNumber: BigInt!
+  createdAtBlockTimestamp: BigInt!
+  createdAtTransactionHash: String!
+  createdAtLogIndex: BigInt!
+  createdAt: BigInt!
+}

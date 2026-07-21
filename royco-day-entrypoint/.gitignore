@@ -1,0 +1,47 @@
+# Graph CLI outputs (codegen / build).
+/build/
+/generated/
+
+# matchstick compiles each *.test.ts to wasm here
+/tests/.bin/
+# matchstick's own run marker — a version + a timestamp, so it re-dirties the tree
+# on every `graph test`. Nothing reads it but matchstick.
+/tests/.latest.json
+
+# Derived by `npm run prepare:entrypoint:<network>` — pure functions of
+# config/entrypoint/networks/<network>.json. Deliberately NOT committed: they are
+# whichever network was prepared last, so a committed copy tells you
+# nothing about what you're building and lies about CHAIN_ID.
+subgraph.yaml
+src/constants/static.ts
+
+# Committed on purpose (do NOT add here):
+#   config/entrypoint/pipeline.template.yaml  <- hand-maintained source
+#   royco-day-entrypoint-pipeline.yaml        <- rendered, deployed artifact
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# dotenv environment variables file
+.env
+
+# Testing
+coverage
+coverage.json
+
+# Temp files
+temp/

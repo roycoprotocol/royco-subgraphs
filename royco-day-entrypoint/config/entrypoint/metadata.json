@@ -1,0 +1,11 @@
+{
+  "_comment": "Input to the pipeline template. `metadata` is the list of deployed subgraphs the pipeline reads from — one entry per network. Mainnet only for now; add an entry when Day launches on another chain (and add config/entrypoint/networks/<network>.json alongside it).",
+
+  "pipelineName": "royco-day-entrypoint-pipeline",
+  "metadata": [
+    {
+      "network": "mainnet",
+      "version": "1.0.0"
+    }
+  ]
+}

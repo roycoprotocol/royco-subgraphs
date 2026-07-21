@@ -1,0 +1,64 @@
+# prettier-ignore
+# Source template for subgraph.yaml (gitignored, rendered by
+# `npm run prepare:entrypoint:<network>` — edit here, not the output).
+#
+# The EntryPoint is a per-chain singleton, so this is ONE fixed-address dataSource
+# per deployment (no per-market `templates:`). The entryPoints loop (fed by
+# networks/<network>.json) renders one per deployment; an empty id keeps the name
+# and generated import path stable at `RoycoDayEntryPoint`.
+#
+# Event signatures are the exact ethabi form — a wrong one matches nothing (zero
+# rows, zero errors). Re-derive from the ABI with `npx graph codegen` if it changes.
+specVersion: 1.3.0
+schema:
+  file: ./schema.graphql
+dataSources:
+{{#entryPoints}}
+  - kind: ethereum
+    name: RoycoDayEntryPoint{{id}}
+    network: {{network}}
+    source:
+      address: "{{address}}"
+      abi: RoycoDayEntryPoint
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DayEntryPointState
+        - DayEntryPointRequest
+        - DayEntryPointExecution
+        - GlobalTokenActivity
+      abis:
+        - name: RoycoDayEntryPoint
+          file: ./abis/RoycoDayEntryPoint.json
+        # Bound in the handlers for tranche.asset() (the deposit token). The Royco
+        # Day tranches share this view surface; RoycoVaultTranche is the shared ABI.
+        - name: RoycoVaultTranche
+          file: ./abis/RoycoVaultTranche.json
+      eventHandlers:
+        # Populates DayEntryPointState (enabled / delays / oracle clock) per tranche.
+        - event: TrancheConfigUpdated(indexed address,(bool,uint24,uint24,address))
+          handler: handleTrancheConfigUpdated
+          receipt: true
+        - event: DepositRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
+          handler: handleDepositRequested
+          receipt: true
+        - event: DepositExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleDepositExecuted
+          receipt: true
+        - event: DepositRequestCancelled(indexed address,indexed uint256,address,uint256)
+          handler: handleDepositRequestCancelled
+          receipt: true
+        - event: RedemptionRequested(indexed address,indexed uint256,indexed address,uint256,uint32,uint64)
+          handler: handleRedemptionRequested
+          receipt: true
+        - event: RedemptionExecuted(indexed address,indexed uint256,indexed address,uint256,uint256,(uint256,uint256,uint256,uint256,uint256),uint256,(uint256,uint256,uint256,uint256,uint256),uint256)
+          handler: handleRedemptionExecuted
+          receipt: true
+        - event: RedemptionRequestCancelled(indexed address,indexed uint256,address,uint256)
+          handler: handleRedemptionRequestCancelled
+          receipt: true
+      file: ./src/royco-day-entrypoint.ts
+{{/entryPoints}}

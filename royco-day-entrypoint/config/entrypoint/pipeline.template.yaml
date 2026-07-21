@@ -1,0 +1,72 @@
+# prettier-ignore
+# Hand-maintained. One source+sink pair per schema entity; table names are the
+# entity name in snake_case. Add a pair here when you add an entity to
+# schema.graphql, or it silently never reaches Neon. The pipelineName and the
+# per-network metadata loop below are filled by prepare:entrypoint:<network>.
+apiVersion: 3
+name: {{pipelineName}}
+resource_size: s
+sources:
+  royco_day_entrypoint_day_entry_point_state_reference:
+    name: day_entry_point_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-entrypoint-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_entrypoint_day_entry_point_request_reference:
+    name: day_entry_point_request
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-entrypoint-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_entrypoint_day_entry_point_execution_reference:
+    name: day_entry_point_execution
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-entrypoint-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_entrypoint_global_token_activity_reference:
+    name: global_token_activity
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-entrypoint-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+transforms: {}
+sinks:
+  royco_day_entrypoint_day_entry_point_state_postgres:
+    type: postgres
+    table: day_entry_point_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_entry_point_state"
+    from: royco_day_entrypoint_day_entry_point_state_reference
+  royco_day_entrypoint_day_entry_point_request_postgres:
+    type: postgres
+    table: day_entry_point_request
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_entry_point_request"
+    from: royco_day_entrypoint_day_entry_point_request_reference
+  royco_day_entrypoint_day_entry_point_execution_postgres:
+    type: postgres
+    table: day_entry_point_execution
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_entry_point_execution"
+    from: royco_day_entrypoint_day_entry_point_execution_reference
+  # SHARED cross-package table (not Day-prefixed) — the union activity feed.
+  royco_day_entrypoint_global_token_activity_postgres:
+    type: postgres
+    table: global_token_activity
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: global_token_activity"
+    from: royco_day_entrypoint_global_token_activity_reference
