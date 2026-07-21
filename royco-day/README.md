@@ -69,12 +69,25 @@ committed copy would lie about `CHAIN_ID`): `subgraph.yaml`,
 Human-gated on purpose — `goldsky pipeline apply` mutates production Neon.
 
 ```bash
-npm run deploy:subgraphs:markets   # graph build + goldsky subgraph deploy
-npm run deploy:pipeline:markets    # regenerate + goldsky pipeline apply
+npm run deploy:subgraphs:markets   # ALL deployments (mainnet + staging)
+npm run deploy:subgraphs:mainnet   # just the real-factory subgraph
+npm run deploy:subgraphs:staging   # just the mock-factory (simulation) subgraph
+npm run deploy:pipeline:markets    # regenerate + goldsky pipeline apply (one pipeline, both subgraphs)
 ```
 
-**The Day factory isn't deployed yet.** `config/markets/networks/mainnet.json`
-holds a placeholder address and `startBlock: 0`. Fill those in first.
+**Two subgraphs, same chain, same tables.** `mainnet` (real factory) and
+`staging` (a separate factory that deploys **mock markets** for simulation) are
+separate Goldsky subgraphs — `royco-day-markets-mainnet` / `-staging` — both on
+Ethereum mainnet with identical code and schema. The single
+`royco-day-markets-pipeline` unions both into the shared Neon tables; staging
+rows are told apart by their mock market addresses. Prepare/build staging with
+the `:staging` script variants (`npm run build:staging`). See CLAUDE.md §11 for
+why `network` means "chain" in `networks/*.json` but "deploy label" everywhere
+else.
+
+**Neither factory is deployed yet.** `config/markets/networks/mainnet.json` and
+`staging.json` both hold a placeholder address and `startBlock: 0`. Fill those in
+first.
 
 ## Two things that will bite you
 

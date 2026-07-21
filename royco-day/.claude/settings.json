@@ -2,8 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npm run prepare:markets:mainnet)",
+      "Bash(npm run prepare:markets:staging)",
       "Bash(npm run codegen)",
       "Bash(npm run build)",
+      "Bash(npm run build:staging)",
       "Bash(npm run generate)",
       "Bash(npm run test)",
       "Bash(npm run test:node)",

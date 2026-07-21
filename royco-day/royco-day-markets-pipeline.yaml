@@ -10,7 +10,7 @@
 # A hand-edit here is reverted by the next generate and caught by
 # `npm run check:drift`.
 #
-# Entities wired: 17
+# Entities wired: 18
 # =============================================================================
 apiVersion: 3
 name: royco-day-markets-pipeline
@@ -19,103 +19,109 @@ sources:
   royco_day_markets_global_token_transfer_reference:
     name: global_token_transfer
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_global_token_activity_reference:
     name: global_token_activity
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_market_state_reference:
     name: day_market_state
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_vault_state_reference:
     name: day_vault_state
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_vault_state_historical_reference:
     name: day_vault_state_historical
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_fixed_term_history_reference:
     name: day_fixed_term_history
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_junior_tranche_yield_shares_accrued_history_reference:
     name: day_junior_tranche_yield_shares_accrued_history
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference:
     name: day_liquidity_tranche_yield_shares_accrued_history
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
+        version: 1.0.0
+    type: subgraph_entity
+  royco_day_markets_day_tranche_accounting_synced_history_reference:
+    name: day_tranche_accounting_synced_history
+    subgraphs:
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_liquidity_premium_shares_minted_history_reference:
     name: day_liquidity_premium_shares_minted_history
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_liquidity_premium_reinvested_history_reference:
     name: day_liquidity_premium_reinvested_history
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_liquidity_premium_reinvestment_failed_history_reference:
     name: day_liquidity_premium_reinvestment_failed_history
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_multi_asset_deposit_activity_reference:
     name: day_multi_asset_deposit_activity
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_multi_asset_redeem_activity_reference:
     name: day_multi_asset_redeem_activity
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_position_state_reference:
     name: day_position_state
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_position_state_historical_reference:
     name: day_position_state_historical
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_fee_state_reference:
     name: day_fee_state
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
   royco_day_markets_day_fee_state_historical_reference:
     name: day_fee_state_historical
     subgraphs:
-      - name: royco-day-markets-mainnet
+      - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
 transforms: {}
@@ -176,6 +182,13 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_liquidity_tranche_yield_shares_accrued_history"
     from: royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference
+  royco_day_markets_day_tranche_accounting_synced_history_postgres:
+    type: postgres
+    table: day_tranche_accounting_synced_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_tranche_accounting_synced_history"
+    from: royco_day_markets_day_tranche_accounting_synced_history_reference
   royco_day_markets_day_liquidity_premium_shares_minted_history_postgres:
     type: postgres
     table: day_liquidity_premium_shares_minted_history

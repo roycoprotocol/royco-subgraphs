@@ -10,7 +10,7 @@
 # A hand-edit here is reverted by the next generate and caught by
 # `npm run check:drift`.
 #
-# Entities wired: 17
+# Entities wired: 18
 # =============================================================================
 apiVersion: 3
 name: {{pipelineName}}
@@ -74,6 +74,14 @@ sources:
     type: subgraph_entity
   royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference:
     name: day_liquidity_tranche_yield_shares_accrued_history
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_tranche_accounting_synced_history_reference:
+    name: day_tranche_accounting_synced_history
     subgraphs:
       {{#metadata}}
       - name: royco-day-markets-{{network}}
@@ -210,6 +218,13 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_liquidity_tranche_yield_shares_accrued_history"
     from: royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference
+  royco_day_markets_day_tranche_accounting_synced_history_postgres:
+    type: postgres
+    table: day_tranche_accounting_synced_history
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_tranche_accounting_synced_history"
+    from: royco_day_markets_day_tranche_accounting_synced_history_reference
   royco_day_markets_day_liquidity_premium_shares_minted_history_postgres:
     type: postgres
     table: day_liquidity_premium_shares_minted_history

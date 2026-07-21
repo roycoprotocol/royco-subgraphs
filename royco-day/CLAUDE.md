@@ -31,6 +31,11 @@ npm test                          # node checks + matchstick
 Or just `/verify`, which runs them in order and hands back a distilled error list
 instead of hundreds of lines of `asc` output.
 
+There is a second deployment, **staging**, with `:staging` mirrors of these
+scripts (`prepare:markets:staging`, `build:staging`) — a separate subgraph on the
+same chain, fed by a mock-market factory, sinking into the same Neon tables. See
+§11 for how `network` splits into "chain" vs "deploy label".
+
 **`graph` and `mustache` are not on your PATH.** They are local devDependencies
 and only resolve inside `npm run` scripts. `bash ./scripts/markets/*.sh` run
 directly would die with `command not found` — those scripts use `npm exec` for
@@ -415,5 +420,33 @@ deliberately: `goldsky pipeline apply` mutates production Neon.
 Prepare the artifacts, run `/verify`, show the diff, and tell the user the exact
 command. Let them run it.
 
-**The factory isn't deployed yet.** `config/markets/networks/mainnet.json` holds
-a placeholder address and `startBlock: 0`. Fill those in before any real deploy.
+**The factory isn't deployed yet.** `config/markets/networks/mainnet.json` **and
+`staging.json`** both hold a placeholder address and `startBlock: 0`. Fill those
+in before any real deploy.
+
+### mainnet vs staging — one word, two meanings
+
+There are two deployments, and they are **separate Goldsky subgraphs on the same
+chain**: `royco-day-markets-mainnet` (real factory) and
+`royco-day-markets-staging` (a **separate factory that deploys mock markets** for
+simulation). Both index Ethereum mainnet with byte-identical code and schema.
+
+`network` therefore means two different things, and they only *coincide* for
+mainnet:
+
+| Where | `network` means | mainnet | staging |
+|---|---|---|---|
+| `config/markets/networks/<label>.json` | the **graph-node chain** (`network:` in subgraph.yaml) | `mainnet` | `mainnet` |
+| `config/markets/metadata.json`, the deploy scripts, the subgraph name | the **deploy label** (`royco-day-markets-<label>`) | `mainnet` | `staging` |
+
+So `staging.json` carries `"network": "mainnet"` — the *file basename* `staging`
+is the label, never the field. Prepare/build/deploy staging with the `:staging`
+script variants (`prepare:markets:staging`, `build:staging`,
+`deploy:subgraphs:staging`); everything else is identical to mainnet.
+
+**One pipeline, both subgraphs, same tables.** `royco-day-markets-pipeline` unions
+*both* subgraph sources (see the two `metadata` entries) into the shared Neon
+tables. Staging rows never collide with mainnet rows because mock market/vault
+addresses differ, and `CHAIN_ID` is `1` for both (chainId is the chain, not the
+deployment). This *is* the "same tables" contract — do not give staging its own
+tables or its own pipeline.

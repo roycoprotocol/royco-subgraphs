@@ -34,7 +34,7 @@ test("toSnakeCase leaves digits attached to their word", () => {
   assert.equal(toSnakeCase("Erc20Token"), "erc20_token");
 });
 
-test("schema declares the 17 expected entities", () => {
+test("schema declares the 18 expected entities", () => {
   const entities = readEntities(SCHEMA);
   assert.deepEqual(entities, [
     "GlobalTokenTransfer",
@@ -45,6 +45,7 @@ test("schema declares the 17 expected entities", () => {
     "DayFixedTermHistory",
     "DayJuniorTrancheYieldSharesAccruedHistory",
     "DayLiquidityTrancheYieldSharesAccruedHistory",
+    "DayTrancheAccountingSyncedHistory",
     "DayLiquidityPremiumSharesMintedHistory",
     "DayLiquidityPremiumReinvestedHistory",
     "DayLiquidityPremiumReinvestmentFailedHistory",
@@ -69,7 +70,7 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  assert.equal(blocks.length, 12, "expected 12 immutable entities");
+  assert.equal(blocks.length, 13, "expected 13 immutable entities");
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {

@@ -4,8 +4,10 @@
   "scripts": {
     "generate": "node scripts/generate.mjs",
     "prepare:markets:mainnet": "mustache config/markets/networks/mainnet.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/mainnet.json config/markets/constants.template.ts > src/constants/static.ts && mustache config/markets/metadata.json config/markets/pipeline.template.yaml > royco-day-markets-pipeline.yaml",
+    "prepare:markets:staging": "mustache config/markets/networks/staging.json config/markets/subgraph.template.yaml > subgraph.yaml && mustache config/markets/networks/staging.json config/markets/constants.template.ts > src/constants/static.ts && mustache config/markets/metadata.json config/markets/pipeline.template.yaml > royco-day-markets-pipeline.yaml",
     "codegen": "graph codegen",
     "build": "npm run prepare:markets:mainnet && npm run codegen && graph build",
+    "build:staging": "npm run prepare:markets:staging && npm run codegen && graph build",
     "test": "npm run test:node && npm run test:unit",
     "test:node": "node --test \"scripts/checks/*.test.mjs\"",
     "test:unit": "npm run prepare:markets:mainnet && npm run codegen && graph test -v 0.6.0",
@@ -14,8 +16,12 @@
     "check:drift": "node scripts/check-drift.mjs",
     "check": "npm run check:drift && npm run test",
     "deploy:subgraphs:markets": "bash ./scripts/markets/deploy-subgraphs.sh",
+    "deploy:subgraphs:mainnet": "bash ./scripts/markets/deploy-subgraphs.sh mainnet",
+    "deploy:subgraphs:staging": "bash ./scripts/markets/deploy-subgraphs.sh staging",
     "deploy:pipeline:markets": "bash ./scripts/markets/deploy-pipeline.sh",
     "delete:subgraphs:markets": "bash ./scripts/markets/delete-subgraphs.sh",
+    "delete:subgraphs:mainnet": "bash ./scripts/markets/delete-subgraphs.sh mainnet",
+    "delete:subgraphs:staging": "bash ./scripts/markets/delete-subgraphs.sh staging",
     "delete:pipeline:markets": "bash ./scripts/markets/delete-pipeline.sh"
   },
   "dependencies": {

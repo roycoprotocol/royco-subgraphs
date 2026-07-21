@@ -189,6 +189,7 @@ export function handleMarketDeploymentCompleted(
   market.countFixedTermEntries = BigInt.zero();
   market.countJuniorTrancheYieldSharesAccruedEntries = BigInt.zero();
   market.countLiquidityTrancheYieldSharesAccruedEntries = BigInt.zero();
+  market.countTrancheAccountingSyncedEntries = BigInt.zero();
   market.countLiquidityPremiumSharesMintedEntries = BigInt.zero();
   market.countLiquidityPremiumReinvestedEntries = BigInt.zero();
   market.countLiquidityPremiumReinvestmentFailedEntries = BigInt.zero();

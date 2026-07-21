@@ -172,7 +172,7 @@ type DayMarketState @entity(immutable: false) {
   # ======
   # => records
   #
-  # Cursors for the six DayFixedTermHistory / Day*History streams in "=== RECORDS ===".
+  # Cursors for the seven DayFixedTermHistory / Day*History streams in "=== RECORDS ===".
   # These are COUNTS, not last-indices — a different cursor shape from
   # `lastHistoricalEntryIndex`, deliberately. See "ENTRY INDEX CURSOR" below.
   #
@@ -191,6 +191,10 @@ type DayMarketState @entity(immutable: false) {
   #   increment this.
   countJuniorTrancheYieldSharesAccruedEntries: BigInt! # Count of Junior Tranche Yield Shares Accrued Entries -> DayJuniorTrancheYieldSharesAccruedHistory
   countLiquidityTrancheYieldSharesAccruedEntries: BigInt! # Count of Liquidity Tranche Yield Shares Accrued Entries -> DayLiquidityTrancheYieldSharesAccruedHistory
+  countTrancheAccountingSyncedEntries: BigInt! # Count of Tranche Accounting Synced Entries -> DayTrancheAccountingSyncedHistory
+  # ^ Advances on EVERY TrancheAccountingSynced — a HOT, AMM-frequency stream (one
+  #   row per Balancer swap), unlike its config-event neighbours here. Same count
+  #   cursor mechanics regardless: use-then-increment, total == count.
   countLiquidityPremiumSharesMintedEntries: BigInt! # Count of Liquidity Premium Shares Minted Entries -> DayLiquidityPremiumSharesMintedHistory
   countLiquidityPremiumReinvestedEntries: BigInt! # Count of Liquidity Premium Reinvested Entries -> DayLiquidityPremiumReinvestedHistory
   countLiquidityPremiumReinvestmentFailedEntries: BigInt! # Count of Liquidity Premium Reinvestment Failed Entries -> DayLiquidityPremiumReinvestmentFailedHistory
@@ -341,7 +345,7 @@ type DayVaultState @entity(immutable: false) {
 #   - The *State parents (DayVaultState, DayPositionState, DayFeeState) are born
 #     together with their entry 0, so `lastHistoricalEntryIndex` is a LAST-INDEX:
 #     total == field + 1, increment-then-write.
-#   - DayMarketState's six record streams (`# => records`) are born EMPTY — a market
+#   - DayMarketState's seven record streams (`# => records`) are born EMPTY — a market
 #     legitimately has zero fixed terms forever — so a non-null last-index has no
 #     truthful initial value (0 would falsely assert one entry exists). Hence
 #     `count*Entries` is a COUNT: total == field, last == field - 1 (only when
@@ -387,7 +391,7 @@ type DayVaultStateHistorical @entity(immutable: true) {
 
 # === RECORDS ===
 #
-# Six event-driven, market-keyed streams. Unlike the *Historical snapshots above,
+# Seven event-driven, market-keyed streams. Unlike the *Historical snapshots above,
 # these are cursored by DayMarketState's `count*Entries` fields, NOT by
 # `lastHistoricalEntryIndex` — see "ENTRY INDEX CURSOR" above for why the two
 # shapes differ and how each is written.
@@ -504,6 +508,67 @@ type DayLiquidityTrancheYieldSharesAccruedHistory @entity(immutable: true) {
   timeWeightedYieldShareAccruedWAD: BigInt! # Time Weighted Liquidity Tranche Yield Share Accrued WAD <- ABI: twLTYieldShareAccruedWAD
   # ^ NOT monotonic — sawtooth, reset on every premium payment. See the full note on
   #   DayJuniorTrancheYieldSharesAccruedHistory above.
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+}
+
+# <- ABI: RoycoDayAccountant.TrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,bool,uint256,uint256) resultingState)
+#
+# THE FULL SYNC, KEPT FOREVER. Every TrancheAccountingSynced carries the complete
+# 18-field TrancheState (the ABI struct `SyncedAccountingState`); this immutable
+# table stores ALL EIGHTEEN of them, verbatim, one row per sync. It is the
+# unabridged history that DayMarketState deliberately does NOT keep:
+# handleTrancheAccountingSynced writes only ten of these onto the mutable
+# DayMarketState (its LIVE preview block) and DROPS the other eight to avoid the §6
+# divergence traps — this table drops nothing. No contract is called; the event IS
+# the post-state at this log index (§5), so every column is free.
+#
+# !! HOT / HIGH-CARDINALITY STREAM. This is NOT a config event. The LT's Balancer V3
+#    pool hook holds SYNC_ROLE and syncs on EVERY swap (see the hot-path note on
+#    handleTrancheAccountingSynced), so this stream grows at AMM-volume frequency —
+#    one immutable row per sync, by far the highest-cardinality entity in the schema.
+#    That volume is the whole point ("all syncs, historically"); size Neon for it.
+#
+# The accountant address is NOT the marketId — resolve via ACCOUNTANT.KERNEL() (§6).
+# Market-keyed id is SAFE: exactly one accountant, and one sync stream, per market.
+type DayTrancheAccountingSyncedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countTrancheAccountingSyncedEntries)
+  # --- The full SyncedAccountingState, in ABI order. ---
+  marketState: String! # Market State ("perpetual" -> 0, "fixed" -> 1) <- ABI: resultingState.marketState (uint8 enum -> i32)
+  # ^ !! LIVE state at sync time — NOT the same field as DayMarketState.marketState.
+  #      DayMarketState stores getState().lastMarketState (the STORED value); this row
+  #      stores the sync's own state.marketState (the LIVE value). The two disagree
+  #      between syncs, and that divergence is precisely why capturing the live one
+  #      here is useful — and why it must never be copied onto DayMarketState (§6).
+  #      Enum order is PERPETUAL, FIXED_TERM (contracts/libraries/Types.sol) — 0 is
+  #      perpetual, which reads backwards. Do not "correct" it.
+  seniorTrancheRawNAV: BigInt! # Senior Tranche Raw NAV <- ABI: stRawNAV
+  juniorTrancheRawNAV: BigInt! # Junior Tranche Raw NAV <- ABI: jtRawNAV
+  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV <- ABI: ltRawNAV
+  seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV <- ABI: stEffectiveNAV
+  juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV <- ABI: jtEffectiveNAV
+  juniorTrancheCoverageImpermanentLoss: BigInt! # Junior Tranche Coverage Impermanent Loss (LIVE, point-in-time) <- ABI: jtCoverageImpermanentLoss
+  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium <- ABI: ltLiquidityPremium
+  # The three PER-SYNC protocol-fee AMOUNTS — NAV_UNIT amounts taken on THIS sync.
+  # NOT the uint64 RATES on DayMarketState.*ProtocolFeeWAD (from getState()): different
+  # type, different unit, one word apart (§6/§7). They have no home on DayMarketState
+  # and are dropped there; this table is the only place they are recorded.
+  seniorTrancheProtocolFee: BigInt! # Senior Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: stProtocolFee
+  juniorTrancheProtocolFee: BigInt! # Junior Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: jtProtocolFee
+  liquidityTrancheProtocolFee: BigInt! # Liquidity Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: ltProtocolFee
+  coverageUtilizationWAD: BigInt! # Coverage Utilization WAD <- ABI: coverageUtilizationWAD
+  liquidityUtilizationWAD: BigInt! # Liquidity Utilization WAD <- ABI: liquidityUtilizationWAD
+  fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp (LIVE) <- ABI: fixedTermEndTimestamp (uint32 -> BigInt, direct)
+  minCoverageWAD: BigInt! # Min Coverage WAD (LIVE, recomputed — NOT getState()'s stored one, §6) <- ABI: minCoverageWAD
+  isJuniorTrancheCoinvested: Boolean! # Is Junior Tranche Coinvested <- ABI: jtCoinvested
+  coverageLiquidationUtilizationWAD: BigInt! # Coverage Liquidation Utilization WAD (LIVE) <- ABI: coverageLiquidationUtilizationWAD
+  minLiquidityWAD: BigInt! # Min Liquidity WAD (LIVE — NOT getState()'s stored one, §6) <- ABI: minLiquidityWAD
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number

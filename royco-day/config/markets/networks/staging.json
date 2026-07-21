@@ -1,0 +1,8 @@
+{
+  "_comment": "STAGING deployment. The SAME royco-day code + schema as mainnet, pointed at a SEPARATE factory that deploys MOCK markets for simulation. It runs on the SAME chain (Ethereum mainnet, chainId 1) and sinks into the SAME Neon tables as mainnet — staging rows are told apart only by their (mock) market/vault addresses and never collide with real rows. IMPORTANT: `network` here is the graph-node CHAIN and MUST stay `mainnet` (that's the chain graph-node indexes); the 'staging' deploy label / subgraph name comes from this file's BASENAME, not from this field. If the mock factory ever lives on a fork/testnet instead, change `network`+`chainId` to that chain. TODO: fill in the mock factory address + start block before the first staging deploy.",
+
+  "network": "mainnet",
+  "chainId": 1,
+  "roycoFactoryContractAddress": "0xe9b3356dac63cca56faaadd9ba91c41712bf121c",
+  "roycoFactoryStartBlock": 25582864
+}

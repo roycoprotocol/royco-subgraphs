@@ -1,10 +1,10 @@
 {
-  "_comment": "Input to the pipeline template. `metadata` is the list of deployed subgraphs the pipeline reads from — one entry per network. Mainnet only for now; add an entry when Day launches on another chain (and add config/markets/networks/<network>.json alongside it).",
+  "_comment": "Input to the pipeline template. `metadata` is the list of deployed subgraphs THIS ONE pipeline reads from and unions into the shared Neon tables — one entry per deployment. NOTE: here `network` is the DEPLOY LABEL (the subgraph-name suffix `royco-day-markets-<network>`), NOT necessarily a distinct chain — `staging` is the same-chain (mainnet) mock-market deployment, so it shares every table with `mainnet` and rows never collide (different market addresses). Add an entry when Day launches on another chain (and add config/markets/networks/<network>.json alongside it), OR for another same-chain deployment like staging.",
 
   "pipelineName": "royco-day-markets-pipeline",
   "metadata": [
     {
-      "network": "mainnet",
+      "network": "staging",
       "version": "1.0.0"
     }
   ]

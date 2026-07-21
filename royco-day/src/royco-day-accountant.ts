@@ -24,6 +24,7 @@ import {
   DayFixedTermHistory,
   DayJuniorTrancheYieldSharesAccruedHistory,
   DayLiquidityTrancheYieldSharesAccruedHistory,
+  DayTrancheAccountingSyncedHistory,
 } from "../generated/schema";
 import {
   resolveMarketFromAccountant,
@@ -61,36 +62,43 @@ import { CHAIN_ID, MARKET_STATE_FIXED, MARKET_STATE_PERPETUAL } from "./constant
  */
 
 /**
- * The market's accounting was re-synced. Owns DayMarketState's PREVIEW BLOCK, and
- * nothing else.
+ * The market's accounting was re-synced. TWO writes, and only two:
  *
- * WRITES EXACTLY TEN OF THE EVENT'S EIGHTEEN FIELDS. The payload overlaps fields
- * that other handlers own, and copying it wholesale is wrong three different ways:
+ *   A. DayMarketState's PREVIEW BLOCK — exactly TEN of the event's eighteen fields.
+ *   B. DayTrancheAccountingSyncedHistory — ALL EIGHTEEN, verbatim, one immutable
+ *      row per sync (the full unabridged history this event carries).
+ *
+ * The asymmetry is deliberate. (B) is a fresh, write-once row keyed by a per-sync
+ * entryIndex, so copying the whole payload into it is not just safe but the point.
+ * (A) is a shared MUTABLE row, and copying the payload there is wrong three ways —
+ * the reasons the other eight fields are dropped FROM DayMarketState (never from B):
  *
  *   1. ALREADY OWNED — marketState and fixedTermEndTimestamp belong to the
  *      fixed-term handlers; minCoverageWAD, minLiquidityWAD and
  *      coverageLiquidationUtilizationWAD to the config handlers above. Writing
- *      them here would make each field's value depend on log ORDER. The hazard is
- *      real, not theoretical: setCoverage carries `withSyncedAccounting`, so it
- *      emits TrancheAccountingSynced (carrying the OLD coverage) BEFORE
- *      CoverageUpdated (the new one). Today the config handler runs second and
- *      wins. Swap those two emits in the contract and this handler would silently
- *      revert every config change. One writer per field.
+ *      them onto DayMarketState here would make each field's value depend on log
+ *      ORDER. The hazard is real, not theoretical: setCoverage carries
+ *      `withSyncedAccounting`, so it emits TrancheAccountingSynced (carrying the
+ *      OLD coverage) BEFORE CoverageUpdated (the new one). Today the config handler
+ *      runs second and wins. Swap those two emits in the contract and this handler
+ *      would silently revert every config change. One writer per DayMarketState field.
  *
  *   2. THE §6 DIVERGENCE TRAP — minCoverageWAD exists in BOTH this struct and
  *      Accountant.getState(), under the SAME NAME and a different width. The
- *      schema deliberately stores the getState() one. Reading it from here
- *      compiles, indexes, and is wrong forever; it is exactly the bug the factory
- *      handler shipped with. The `<- ABI:` annotations in schema.graphql are the
- *      authority on which source owns which field.
+ *      schema deliberately stores the getState() one on DayMarketState. Reading it
+ *      from here into DayMarketState compiles, indexes, and is wrong forever; it is
+ *      exactly the bug the factory handler shipped with. (B) records the LIVE
+ *      struct value under its own column — the two live in different tables and do
+ *      not collide. The `<- ABI:` annotations in schema.graphql are the authority.
  *
- *   3. NO SCHEMA HOME — state.stProtocolFee / jtProtocolFee / ltProtocolFee are
- *      NAV_UNIT AMOUNTS ("protocol fee taken on ST yield ON THIS SYNC"). The
+ *   3. NO DayMarketState HOME — state.stProtocolFee / jtProtocolFee / ltProtocolFee
+ *      are NAV_UNIT AMOUNTS ("protocol fee taken on ST yield ON THIS SYNC"). The
  *      schema's seniorTrancheProtocolFeeWAD is a uint64 RATE from
- *      getState().stProtocolFeeWAD. Different type, different unit, different
- *      meaning, one word apart. They are per-sync deltas and this entity is a
- *      snapshot, so they are DROPPED. If they are ever wanted, they need their own
- *      entity — never these columns.
+ *      getState().stProtocolFeeWAD. Different type, different unit, one word apart.
+ *      They are per-sync deltas and DayMarketState is a current-state snapshot, so
+ *      they are dropped THERE — but they DO have a home now: (B)'s
+ *      seniorTrancheProtocolFee / juniorTrancheProtocolFee / liquidityTrancheProtocolFee.
+ *      That history row is the "own entity" the previous note said they needed.
  *
  * ZERO CONTRACT CALLS by design. The event IS the post-state at this log index,
  * which is why §5 says prefer it over previewSyncTrancheAccounting.
@@ -100,14 +108,15 @@ import { CHAIN_ID, MARKET_STATE_FIXED, MARKET_STATE_PERPETUAL } from "./constant
  *    unconditionally, so EVERY SWAP against that pool — including a
  *    permissionless arb bot's — lands here. It is immune to share-transfer volume
  *    (a plain ERC20 transfer never syncs: that path dead-ends in an empty
- *    _preTrancheBalanceUpdate) but fully exposed to AMM volume. That makes the
- *    per-event KERNEL() hop in resolveMarketFromAccountant the one real cost in
- *    this file — see the note there.
+ *    _preTrancheBalanceUpdate) but fully exposed to AMM volume. That makes
+ *    DayTrancheAccountingSyncedHistory the highest-cardinality entity in the
+ *    schema, and the per-event KERNEL() hop in resolveMarketFromAccountant the one
+ *    eth_call cost in this file — see the note there.
  *
  * Deliberately does NOT refresh DayVaultState. At swap frequency that would be
  * ~6 eth_calls and 3 immutable history rows PER SWAP. The split is intentional:
- * market-level accounting is live (free, from this payload), per-vault claims stay
- * sampled at mint/burn.
+ * market-level accounting is live (free, from this payload) and (B) is one cheap
+ * call-free immutable row; per-vault claims stay sampled at mint/burn.
  */
 export function handleTrancheAccountingSynced(
   event: TrancheAccountingSyncedEvent
@@ -117,6 +126,9 @@ export function handleTrancheAccountingSynced(
 
   const state = event.params.resultingState;
 
+  // (A) DayMarketState LIVE preview block — TEN fields; the other eight are owned
+  //     elsewhere or have no current-state home (see the docstring). Do NOT add to
+  //     this list without re-reading it.
   market.seniorTrancheRawNAV = state.stRawNAV;
   market.juniorTrancheRawNAV = state.jtRawNAV;
   market.liquidityTrancheRawNAV = state.ltRawNAV;
@@ -128,7 +140,61 @@ export function handleTrancheAccountingSynced(
   market.liquidityUtilizationWAD = state.liquidityUtilizationWAD;
   market.isJuniorTrancheCoinvested = state.jtCoinvested;
 
+  // (B) DayTrancheAccountingSyncedHistory — the full 18-field struct, verbatim.
+  //     Use-then-increment: the count IS the next entryIndex, so the first sync is
+  //     entry 0 and the count becomes 1 (§ ENTRY INDEX CURSOR in schema.graphql).
+  const entryIndex = market.countTrancheAccountingSyncedEntries;
+  const entry = new DayTrancheAccountingSyncedHistory(
+    generateMarketRecordId(market.marketId, entryIndex)
+  );
+  entry.chainId = CHAIN_ID;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  entry.entryIndex = entryIndex;
+  // The LIVE market state carried by the sync — NOT market.marketState, which is the
+  // STORED lastMarketState owned by the fixed-term handlers (§6). uint8 -> i32.
+  entry.marketState = liveMarketStateName(state.marketState);
+  entry.seniorTrancheRawNAV = state.stRawNAV;
+  entry.juniorTrancheRawNAV = state.jtRawNAV;
+  entry.liquidityTrancheRawNAV = state.ltRawNAV;
+  entry.seniorTrancheEffectiveNAV = state.stEffectiveNAV;
+  entry.juniorTrancheEffectiveNAV = state.jtEffectiveNAV;
+  entry.juniorTrancheCoverageImpermanentLoss = state.jtCoverageImpermanentLoss;
+  entry.liquidityTrancheLiquidityPremium = state.ltLiquidityPremium;
+  // The per-sync protocol-fee AMOUNTS (NAV_UNIT) — dropped from DayMarketState (case
+  // 3 in the docstring), recorded here. NOT the getState() *ProtocolFeeWAD rates.
+  entry.seniorTrancheProtocolFee = state.stProtocolFee;
+  entry.juniorTrancheProtocolFee = state.jtProtocolFee;
+  entry.liquidityTrancheProtocolFee = state.ltProtocolFee;
+  entry.coverageUtilizationWAD = state.coverageUtilizationWAD;
+  entry.liquidityUtilizationWAD = state.liquidityUtilizationWAD;
+  // uint32 -> BigInt, direct (§4).
+  entry.fixedTermEndTimestamp = state.fixedTermEndTimestamp;
+  entry.minCoverageWAD = state.minCoverageWAD;
+  entry.isJuniorTrancheCoinvested = state.jtCoinvested;
+  entry.coverageLiquidationUtilizationWAD = state.coverageLiquidationUtilizationWAD;
+  entry.minLiquidityWAD = state.minLiquidityWAD;
+  // Immutable — createdAt* only, no updatedAt* (§8).
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
+  entry.save();
+
+  market.countTrancheAccountingSyncedEntries = entryIndex.plus(BigInt.fromI32(1));
+
   touchMarket(event, market);
+}
+
+/**
+ * Map the sync's LIVE state.marketState (uint8 -> i32) onto its schema string, for
+ * DayTrancheAccountingSyncedHistory. The enum is `MarketState { PERPETUAL, FIXED_TERM }`
+ * (contracts/libraries/Types.sol), so 0 is PERPETUAL — it reads backwards (§6). This
+ * is the factory's marketStateName twin, but for the LIVE value; the factory maps the
+ * STORED lastMarketState. Kept local rather than shared so neither file's meaning is
+ * silently coupled to the other's.
+ */
+function liveMarketStateName(marketState: i32): string {
+  return marketState == 0 ? MARKET_STATE_PERPETUAL : MARKET_STATE_FIXED;
 }
 
 // =============================================================================

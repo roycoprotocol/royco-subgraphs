@@ -522,13 +522,38 @@ describe("handleTrancheAccountingSynced", () => {
       TERM_END.toString()
     );
     assert.fieldEquals("DayMarketState", MARKET_ID, "marketState", "fixed");
+
+    // ...but the immutable history row DID capture the sync's LIVE values — the very
+    // ones DayMarketState refuses. This is the LIVE-vs-STORED split (§6) made visible:
+    // the row's marketState is "perpetual" (state.marketState = 0), and its
+    // minCoverageWAD is the live 9_999, while DayMarketState kept the stored 5_001.
+    const histId = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      histId,
+      "marketState",
+      "perpetual"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      histId,
+      "minCoverageWAD",
+      "9999"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      histId,
+      "fixedTermEndTimestamp",
+      "9996"
+    );
   });
 
   test("the per-sync protocol fee AMOUNTS never reach the fee RATE columns", () => {
     // state.stProtocolFee is a NAV_UNIT amount taken on THIS sync;
     // seniorTrancheProtocolFeeWAD is a uint64 rate from getState(). One word apart,
     // and writing the amount into the rate column would look entirely plausible.
-    // The amounts have no schema home and are dropped on purpose.
+    // The amounts have no home on DayMarketState — but they are NOT dropped: they
+    // land on the DayTrancheAccountingSyncedHistory row (asserted below).
     deployMarket();
 
     const s = new TrancheState();
@@ -539,7 +564,7 @@ describe("handleTrancheAccountingSynced", () => {
       createTrancheAccountingSyncedEvent(s, accountantCtx())
     );
 
-    // Still the factory's seeded RATES, untouched by the amounts.
+    // Still the factory's seeded RATES on DayMarketState, untouched by the amounts.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
@@ -551,6 +576,27 @@ describe("handleTrancheAccountingSynced", () => {
       MARKET_ID,
       "juniorTrancheProtocolFeeWAD",
       WAD.div(BigInt.fromI32(20)).toString()
+    );
+
+    // The AMOUNTS reach the history row's own amount columns — their proper home.
+    const histId = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      histId,
+      "seniorTrancheProtocolFee",
+      "4444"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      histId,
+      "juniorTrancheProtocolFee",
+      "4445"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      histId,
+      "liquidityTrancheProtocolFee",
+      "4446"
     );
   });
 
@@ -575,6 +621,111 @@ describe("handleTrancheAccountingSynced", () => {
     );
   });
 
+  test("records the full 18-field sync as an immutable history row (entry 0)", () => {
+    // ALL eighteen fields, verbatim — the unabridged history DayMarketState does not
+    // keep. Distinct sentinels for every field: a transposition among same-typed
+    // neighbours lands the wrong number in the wrong column, plausibly.
+    deployMarket();
+
+    const s = new TrancheState();
+    s.marketState = 1; // LIVE state -> "fixed"
+    s.stRawNAV = BigInt.fromI32(3_001);
+    s.jtRawNAV = BigInt.fromI32(3_002);
+    s.ltRawNAV = BigInt.fromI32(3_003);
+    s.stEffectiveNAV = BigInt.fromI32(3_004);
+    s.jtEffectiveNAV = BigInt.fromI32(3_005);
+    s.jtCoverageImpermanentLoss = BigInt.fromI32(3_006);
+    s.ltLiquidityPremium = BigInt.fromI32(3_007);
+    s.stProtocolFee = BigInt.fromI32(3_008);
+    s.jtProtocolFee = BigInt.fromI32(3_009);
+    s.ltProtocolFee = BigInt.fromI32(3_010);
+    s.coverageUtilizationWAD = BigInt.fromI32(3_011);
+    s.liquidityUtilizationWAD = BigInt.fromI32(3_012);
+    s.fixedTermEndTimestamp = BigInt.fromI32(3_013);
+    s.minCoverageWAD = BigInt.fromI32(3_014);
+    s.jtCoinvested = true;
+    s.coverageLiquidationUtilizationWAD = BigInt.fromI32(3_016);
+    s.minLiquidityWAD = BigInt.fromI32(3_017);
+
+    handleTrancheAccountingSynced(
+      createTrancheAccountingSyncedEvent(s, accountantCtx())
+    );
+
+    // Use-then-increment: the first sync is entry 0 and the count becomes 1.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countTrancheAccountingSyncedEntries",
+      "1"
+    );
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
+
+    const id = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    const E = "DayTrancheAccountingSyncedHistory";
+    assert.fieldEquals(E, id, "entryIndex", "0");
+    assert.fieldEquals(E, id, "marketId", ADDR_KERNEL.toHexString());
+    assert.fieldEquals(E, id, "marketRefId", MARKET_ID);
+    // LIVE market state from the payload — the value DayMarketState deliberately drops.
+    assert.fieldEquals(E, id, "marketState", "fixed");
+    assert.fieldEquals(E, id, "seniorTrancheRawNAV", "3001");
+    assert.fieldEquals(E, id, "juniorTrancheRawNAV", "3002");
+    assert.fieldEquals(E, id, "liquidityTrancheRawNAV", "3003");
+    assert.fieldEquals(E, id, "seniorTrancheEffectiveNAV", "3004");
+    assert.fieldEquals(E, id, "juniorTrancheEffectiveNAV", "3005");
+    assert.fieldEquals(E, id, "juniorTrancheCoverageImpermanentLoss", "3006");
+    assert.fieldEquals(E, id, "liquidityTrancheLiquidityPremium", "3007");
+    assert.fieldEquals(E, id, "seniorTrancheProtocolFee", "3008");
+    assert.fieldEquals(E, id, "juniorTrancheProtocolFee", "3009");
+    assert.fieldEquals(E, id, "liquidityTrancheProtocolFee", "3010");
+    assert.fieldEquals(E, id, "coverageUtilizationWAD", "3011");
+    assert.fieldEquals(E, id, "liquidityUtilizationWAD", "3012");
+    assert.fieldEquals(E, id, "fixedTermEndTimestamp", "3013");
+    assert.fieldEquals(E, id, "minCoverageWAD", "3014");
+    assert.fieldEquals(E, id, "isJuniorTrancheCoinvested", "true");
+    assert.fieldEquals(E, id, "coverageLiquidationUtilizationWAD", "3016");
+    assert.fieldEquals(E, id, "minLiquidityWAD", "3017");
+    // Immutable: createdAt* is set; there is no updatedAt* on this entity.
+    assert.fieldEquals(E, id, "createdAtBlockTimestamp", BLOCK_TIMESTAMP.toString());
+  });
+
+  test("a second sync opens entry 1 — the stream is dense", () => {
+    // A count, not a last-index (§ ENTRY INDEX CURSOR). The second sync in the same
+    // block gets the next dense entryIndex off the counter — no reliance on the
+    // block timestamp, which would collide for two syncs in one block (§8).
+    deployMarket();
+
+    handleTrancheAccountingSynced(
+      createTrancheAccountingSyncedEvent(new TrancheState(), accountantCtx())
+    );
+
+    const second = accountantCtx();
+    second.logIndex = BigInt.fromI32(7); // same block, later log index
+    handleTrancheAccountingSynced(
+      createTrancheAccountingSyncedEvent(new TrancheState(), second)
+    );
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countTrancheAccountingSyncedEntries",
+      "2"
+    );
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 2);
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.fromI32(1)),
+      "entryIndex",
+      "1"
+    );
+    // Entry 0 is immutable and still present, untouched by the second sync.
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
+      "entryIndex",
+      "0"
+    );
+  });
+
   test("a sync for an unknown market is a no-op", () => {
     clearStore();
     const market = DayMarketFixture.standard();
@@ -585,6 +736,8 @@ describe("handleTrancheAccountingSynced", () => {
     );
 
     assert.entityCount("DayMarketState", 0);
+    // The early return also means no history row was written.
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 0);
   });
 });
 

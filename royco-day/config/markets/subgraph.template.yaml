@@ -245,6 +245,10 @@ templates:
         # DayMarketState.timeWeighted*YieldShareAccruedWAD fields (§10.3).
         - DayJuniorTrancheYieldSharesAccruedHistory
         - DayLiquidityTrancheYieldSharesAccruedHistory
+        # handleTrancheAccountingSynced appends one immutable row per sync (the full
+        # 18-field TrancheState) + advances DayMarketState.countTrancheAccountingSyncedEntries.
+        # HOT: this fires on every Balancer swap, not just config changes (§10.3).
+        - DayTrancheAccountingSyncedHistory
       abis:
         - name: RoycoDayAccountant
           file: ./abis/RoycoDayAccountant.json
