@@ -34,10 +34,10 @@ import {
 
 const ENTITY = "DayEntryPointRequest";
 
-// Emit from 0x0: config/entrypoint/networks/mainnet.json maps the placeholder
-// 0x0 -> version 1, so getEntryPointVersion recognises it. When the real address
-// is deployed, update the network config AND this constant together.
-const ENTRY_POINT = Address.zero();
+// Must match config/entrypoint/networks/mainnet.json's entryPoints[].address so
+// getEntryPointVersion returns non-zero (handlers bail on version 0). Keep these
+// two in lockstep.
+const ENTRY_POINT = Address.fromString("0xba140d75fc0b646a13422224099a4f144a4ec9db");
 const TRANCHE = Address.fromString("0x0000000000000000000000000000000000000051");
 const ASSET = Address.fromString("0x00000000000000000000000000000000000000a5");
 const ALICE = Address.fromString("0x00000000000000000000000000000000000000e1");

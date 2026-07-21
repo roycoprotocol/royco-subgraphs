@@ -1,14 +1,12 @@
 {
-  "_comment": "TODO: RoycoDayEntryPoint is not deployed yet. It is a per-chain singleton deployed BEFORE any market (royco-day/script/Deploy.s.sol _deployPeripherySingletons). Fill in entryPoints[].address + startBlock (and version) before the first real deploy. The placeholder below lets the package prepare/codegen/build/test green in the meantime. Add more entryPoints[] entries (with a distinct non-empty id) to index additional deployments in one subgraph.",
-
   "network": "mainnet",
   "chainId": 1,
   "entryPoints": [
     {
       "id": "",
       "version": 1,
-      "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 0
+      "address": "0xba140d75fc0b646a13422224099a4f144a4ec9db",
+      "startBlock": 25582864
     }
   ]
 }
