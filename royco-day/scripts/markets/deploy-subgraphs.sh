@@ -19,7 +19,7 @@ set -uo pipefail
 
 # Default to every configured deployment; override with args to target one.
 networks=(
-    mainnet
+    # mainnet
     staging
 )
 if [ "$#" -gt 0 ]; then
