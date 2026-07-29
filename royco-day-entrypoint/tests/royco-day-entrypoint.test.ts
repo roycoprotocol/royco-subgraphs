@@ -16,6 +16,10 @@ import {
   RedemptionExecuted,
   RedemptionRequestCancelled,
   TrancheConfigUpdated,
+  CollateralAssetOraclePoked,
+  ProtocolFeeSharesCollected,
+  Paused,
+  Unpaused,
 } from "../generated/RoycoDayEntryPoint/RoycoDayEntryPoint";
 import {
   handleDepositRequested,
@@ -25,25 +29,31 @@ import {
   handleRedemptionExecuted,
   handleRedemptionRequestCancelled,
   handleTrancheConfigUpdated,
+  handleCollateralAssetOraclePoked,
+  handleProtocolFeeSharesCollected,
+  handlePaused,
+  handleUnpaused,
 } from "../src/royco-day-entrypoint";
 import {
+  generateEntryPointDeploymentStateId,
   generateEntryPointRequestId,
+  generateEntryPointStateId,
   generateExecutionId,
   generateGlobalTokenActivityId,
 } from "../src/utils";
 
 const ENTITY = "DayEntryPointRequest";
 
-// Must match config/entrypoint/networks/mainnet.json's entryPoints[].address so
-// getEntryPointVersion returns non-zero (handlers bail on version 0). Keep these
-// two in lockstep.
+// Must match config/entrypoint/networks/test.json.
 const ENTRY_POINT = Address.fromString("0xba140d75fc0b646a13422224099a4f144a4ec9db");
 const TRANCHE = Address.fromString("0x0000000000000000000000000000000000000051");
 const ASSET = Address.fromString("0x00000000000000000000000000000000000000a5");
 const ALICE = Address.fromString("0x00000000000000000000000000000000000000e1");
 const BOB = Address.fromString("0x00000000000000000000000000000000000000e2");
 const N1 = BigInt.fromI32(1);
+const QUEUED_AT = BigInt.fromI32(1_700_000_000);
 const EXEC_AT = BigInt.fromI32(1_700_000_100);
+const EXPIRES_AT = BigInt.fromI32(1_700_000_400);
 
 function reqId(nonce: BigInt): string {
   return generateEntryPointRequestId(ENTRY_POINT.toHexString(), nonce);
@@ -66,12 +76,11 @@ function uintSmall(v: i32): ethereum.Value {
 function param(name: string, v: ethereum.Value): ethereum.EventParam {
   return new ethereum.EventParam(name, v);
 }
-function claims(st: i32, jt: i32, lt: i32, stShares: i32, nav: i32): ethereum.Value {
+function claims(collateral: i32, lpt: i32, stShares: i32, nav: i32): ethereum.Value {
   return ethereum.Value.fromTuple(
     changetype<ethereum.Tuple>([
-      uint(BigInt.fromI32(st)),
-      uint(BigInt.fromI32(jt)),
-      uint(BigInt.fromI32(lt)),
+      uint(BigInt.fromI32(collateral)),
+      uint(BigInt.fromI32(lpt)),
       uint(BigInt.fromI32(stShares)),
       uint(BigInt.fromI32(nav)),
     ])
@@ -89,14 +98,34 @@ function at<T extends ethereum.Event>(e: T, logIndex: i32): T {
   return e;
 }
 
+function baseRequest(): ethereum.Value {
+  return ethereum.Value.fromTuple(
+    changetype<ethereum.Tuple>([
+      ethereum.Value.fromAddress(TRANCHE),
+      uint(QUEUED_AT),
+      uint(EXEC_AT),
+      uint(EXPIRES_AT),
+      uint(BigInt.zero()),
+      ethereum.Value.fromAddress(BOB),
+    ])
+  );
+}
+
 function depositRequested(assets: i32): DepositRequested {
   return mock(changetype<DepositRequested>(newMockEvent()), [
     param("user", ethereum.Value.fromAddress(ALICE)),
     param("nonce", uint(N1)),
     param("tranche", ethereum.Value.fromAddress(TRANCHE)),
-    param("assets", uint(BigInt.fromI32(assets))),
-    param("executableAtTimestamp", uint(EXEC_AT)),
-    param("executorBonusWAD", uint(BigInt.zero())),
+    param(
+      "request",
+      ethereum.Value.fromTuple(
+        changetype<ethereum.Tuple>([
+          uint(BigInt.fromI32(assets)),
+          uint(BigInt.fromI32(assets * 10)),
+          baseRequest(),
+        ])
+      )
+    ),
   ]);
 }
 function depositExecuted(deposited: i32, minted: i32, fee: i32, bonus: i32): DepositExecuted {
@@ -107,7 +136,7 @@ function depositExecuted(deposited: i32, minted: i32, fee: i32, bonus: i32): Dep
     param("assetsDeposited", uint(BigInt.fromI32(deposited))),
     param("sharesMinted", uint(BigInt.fromI32(minted))),
     param("protocolFeeShares", uint(BigInt.fromI32(fee))),
-    param("bonusAssets", uint(BigInt.fromI32(bonus))),
+    param("bonusShares", uint(BigInt.fromI32(bonus))),
   ]);
 }
 function redemptionRequested(shares: i32): RedemptionRequested {
@@ -115,9 +144,17 @@ function redemptionRequested(shares: i32): RedemptionRequested {
     param("user", ethereum.Value.fromAddress(ALICE)),
     param("nonce", uint(N1)),
     param("tranche", ethereum.Value.fromAddress(TRANCHE)),
-    param("shares", uint(BigInt.fromI32(shares))),
-    param("executableAtTimestamp", uint(EXEC_AT)),
-    param("executorBonusWAD", uint(BigInt.zero())),
+    param(
+      "request",
+      ethereum.Value.fromTuple(
+        changetype<ethereum.Tuple>([
+          uint(BigInt.fromI32(shares)),
+          uint(BigInt.fromI32(888)),
+          uintSmall(2),
+          baseRequest(),
+        ])
+      )
+    ),
   ]);
 }
 function redemptionExecuted(
@@ -133,6 +170,7 @@ function redemptionExecuted(
     param("nonce", uint(N1)),
     param("executor", ethereum.Value.fromAddress(BOB)),
     param("sharesRedeemed", uint(BigInt.fromI32(redeemed))),
+    param("executedMode", uintSmall(1)),
     param("protocolFeeShares", uint(BigInt.fromI32(fee))),
     param("userClaims", userClaims),
     param("quoteAssets", uint(BigInt.fromI32(quote))),
@@ -149,11 +187,21 @@ function trancheConfig(enabled: boolean, depositDelay: i32, redemptionDelay: i32
         changetype<ethereum.Tuple>([
           ethereum.Value.fromBoolean(enabled),
           uintSmall(depositDelay),
+          uint(BigInt.fromI32(300)),
           uintSmall(redemptionDelay),
-          ethereum.Value.fromAddress(Address.zero()),
+          uint(BigInt.fromI32(600)),
+          ethereum.Value.fromBoolean(true),
         ])
       )
     ),
+  ]);
+}
+
+function protocolFeeSharesCollected(receiver: Address, shares: i32): ProtocolFeeSharesCollected {
+  return mock(changetype<ProtocolFeeSharesCollected>(newMockEvent()), [
+    param("tranche", ethereum.Value.fromAddress(TRANCHE)),
+    param("receiver", ethereum.Value.fromAddress(receiver)),
+    param("shares", uint(BigInt.fromI32(shares))),
   ]);
 }
 
@@ -166,8 +214,77 @@ describe("TrancheConfigUpdated", () => {
     const id = "1_".concat(ENTRY_POINT.toHexString()).concat("_").concat(TRANCHE.toHexString());
     assert.fieldEquals("DayEntryPointState", id, "isEnabled", "true");
     assert.fieldEquals("DayEntryPointState", id, "depositDelaySeconds", "60");
+    assert.fieldEquals("DayEntryPointState", id, "depositExpirySeconds", "300");
     assert.fieldEquals("DayEntryPointState", id, "redemptionDelaySeconds", "120");
+    assert.fieldEquals("DayEntryPointState", id, "redemptionExpirySeconds", "600");
+    assert.fieldEquals("DayEntryPointState", id, "gateByOracleUpdate", "true");
     assert.fieldEquals("DayEntryPointState", id, "depositTokenAddress", ASSET.toHexString());
+  });
+
+  test("oracle pokes and pause events maintain executable-state inputs", () => {
+    mockAsset();
+
+    const poke = mock(changetype<CollateralAssetOraclePoked>(newMockEvent()), [
+      param("tranche", ethereum.Value.fromAddress(TRANCHE)),
+      param("lastUpdateTimestamp", uint(BigInt.fromI32(1_700_000_050))),
+    ]);
+    handleCollateralAssetOraclePoked(poke);
+
+    const stateId = generateEntryPointStateId(
+      ENTRY_POINT.toHexString(),
+      TRANCHE.toHexString()
+    );
+    assert.fieldEquals(
+      "DayEntryPointState",
+      stateId,
+      "latestOracleUpdateTimestamp",
+      "1700000050"
+    );
+
+    handlePaused(
+      mock(changetype<Paused>(newMockEvent()), [
+        param("account", ethereum.Value.fromAddress(ALICE)),
+      ])
+    );
+    const deploymentId = generateEntryPointDeploymentStateId(
+      ENTRY_POINT.toHexString()
+    );
+    assert.fieldEquals(
+      "DayEntryPointDeploymentState",
+      deploymentId,
+      "isPaused",
+      "true"
+    );
+
+    handleUnpaused(
+      mock(changetype<Unpaused>(newMockEvent()), [
+        param("account", ethereum.Value.fromAddress(ALICE)),
+      ])
+    );
+    assert.fieldEquals(
+      "DayEntryPointDeploymentState",
+      deploymentId,
+      "isPaused",
+      "false"
+    );
+  });
+});
+
+describe("protocol fee collection", () => {
+  beforeEach(clearStore);
+
+  test("records the exact collected tranche shares without request activity", () => {
+    const ev = at(protocolFeeSharesCollected(BOB, 73), 4);
+    handleProtocolFeeSharesCollected(ev);
+
+    const id = generateExecutionId(ev.transaction.hash.toHexString(), ev.logIndex);
+    assert.entityCount("DayEntryPointProtocolFeeCollection", 1);
+    assert.fieldEquals("DayEntryPointProtocolFeeCollection", id, "entryPointAddress", ENTRY_POINT.toHexString());
+    assert.fieldEquals("DayEntryPointProtocolFeeCollection", id, "trancheAddress", TRANCHE.toHexString());
+    assert.fieldEquals("DayEntryPointProtocolFeeCollection", id, "vaultId", "1_".concat(TRANCHE.toHexString()));
+    assert.fieldEquals("DayEntryPointProtocolFeeCollection", id, "receiverAddress", BOB.toHexString());
+    assert.fieldEquals("DayEntryPointProtocolFeeCollection", id, "shares", "73");
+    assert.entityCount("GlobalTokenActivity", 0);
   });
 });
 
@@ -184,7 +301,11 @@ describe("deposit lifecycle", () => {
     assert.fieldEquals(ENTITY, id, "initValue", "1000");
     assert.fieldEquals(ENTITY, id, "currValue", "1000");
     assert.fieldEquals(ENTITY, id, "selfExecutionOnly", "false");
-    // creation appended one pending row to the shared activity feed
+    assert.fieldEquals(ENTITY, id, "requestReceiverAddress", BOB.toHexString());
+    assert.fieldEquals(ENTITY, id, "queuedAtTimestamp", QUEUED_AT.toString());
+    assert.fieldEquals(ENTITY, id, "expiresAtTimestamp", EXPIRES_AT.toString());
+    assert.fieldEquals(ENTITY, id, "equivalentSharesAtRequestTime", "10000");
+    assert.fieldEquals(ENTITY, id, "remainingEquivalentSharesAtRequestTime", "10000");
     assert.entityCount("GlobalTokenActivity", 1);
     const actId = generateGlobalTokenActivityId(
       rq.transaction.hash.toHexString(), rq.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
@@ -195,85 +316,87 @@ describe("deposit lifecycle", () => {
     assert.fieldEquals("GlobalTokenActivity", actId, "accountAddress", ALICE.toHexString());
   });
 
-  test("partial then full execution follows the SUM rule (assetsDeposited + bonusAssets)", () => {
+  test("partial then full execution consumes deposited assets while bonus is paid in shares", () => {
     mockAsset();
     handleDepositRequested(at(depositRequested(100), 0));
     const id = reqId(N1);
 
-    // 38 deposited + 2 bonus consumes 40, leaving 60.
-    const fill1 = at(depositExecuted(38, 40, 2, 2), 1);
+    const fill1 = at(depositExecuted(40, 40, 2, 2), 1);
     handleDepositExecuted(fill1);
     assert.fieldEquals(ENTITY, id, "currValue", "60");
     assert.fieldEquals(ENTITY, id, "status", "partiallyFilled");
     assert.fieldEquals(ENTITY, id, "protocolFeeShares", "2");
+    assert.fieldEquals(ENTITY, id, "remainingEquivalentSharesAtRequestTime", "600");
 
-    // 58 + 2 consumes the remaining 60 -> completed.
-    const fill2 = at(depositExecuted(58, 60, 0, 2), 2);
+    const fill2 = at(depositExecuted(60, 60, 0, 2), 2);
     handleDepositExecuted(fill2);
     assert.fieldEquals(ENTITY, id, "currValue", "0");
+    assert.fieldEquals(ENTITY, id, "remainingEquivalentSharesAtRequestTime", "0");
     assert.fieldEquals(ENTITY, id, "status", "completed");
-    assert.fieldEquals(ENTITY, id, "assetsDeposited", "96");
-    assert.fieldEquals(ENTITY, id, "assetsBonus", "4");
+    assert.fieldEquals(ENTITY, id, "assetsDeposited", "100");
+    assert.fieldEquals(ENTITY, id, "bonusShares", "4");
     assert.fieldEquals(ENTITY, id, "sharesMinted", "100");
-    // each fill left an immutable execution row with its own deltas + post-fill state
     assert.entityCount("DayEntryPointExecution", 2);
     const exec2 = generateExecutionId(fill2.transaction.hash.toHexString(), fill2.logIndex);
     assert.fieldEquals("DayEntryPointExecution", exec2, "statusAfter", "completed");
     assert.fieldEquals("DayEntryPointExecution", exec2, "remainingAfter", "0");
     assert.fieldEquals("DayEntryPointExecution", exec2, "consumed", "60");
-    assert.fieldEquals("DayEntryPointExecution", exec2, "assetsDeposited", "58");
-    assert.fieldEquals("DayEntryPointExecution", exec2, "assetsBonus", "2");
+    assert.fieldEquals("DayEntryPointExecution", exec2, "equivalentSharesAtRequestTime", "600");
+    assert.fieldEquals("DayEntryPointExecution", exec2, "assetsDeposited", "60");
+    assert.fieldEquals("DayEntryPointExecution", exec2, "bonusShares", "2");
     assert.fieldEquals("DayEntryPointExecution", exec2, "executorAddress", BOB.toHexString());
-    // activity feed: 1 pending (create) + partial fill (updated) + final fill (completed)
     assert.entityCount("GlobalTokenActivity", 3);
     const act1 = generateGlobalTokenActivityId(
       fill1.transaction.hash.toHexString(), fill1.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
     );
     assert.fieldEquals("GlobalTokenActivity", act1, "status", "updated"); // partial fill, request not done
-    assert.fieldEquals("GlobalTokenActivity", act1, "value", "38");
+    assert.fieldEquals("GlobalTokenActivity", act1, "value", "40");
     const act2 = generateGlobalTokenActivityId(
       fill2.transaction.hash.toHexString(), fill2.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
     );
     assert.fieldEquals("GlobalTokenActivity", act2, "status", "completed"); // final fill completes the request
-    assert.fieldEquals("GlobalTokenActivity", act2, "value", "58");
+    assert.fieldEquals("GlobalTokenActivity", act2, "value", "60");
   });
 
-  test("cancellation marks cancelled and zeroes the escrow", () => {
+  test("cancellation after a partial fill returns only the remaining escrow", () => {
     mockAsset();
     handleDepositRequested(at(depositRequested(1000), 0));
+    handleDepositExecuted(at(depositExecuted(400, 390, 10, 0), 1));
     const cancelEv = at(
       mock(changetype<DepositRequestCancelled>(newMockEvent()), [
         param("user", ethereum.Value.fromAddress(ALICE)),
         param("nonce", uint(N1)),
         param("receiver", ethereum.Value.fromAddress(ALICE)),
-        param("assets", uint(BigInt.fromI32(1000))),
+        param("assets", uint(BigInt.fromI32(600))),
       ]),
-      1
+      2
     );
     handleDepositRequestCancelled(cancelEv);
     const id = reqId(N1);
     assert.fieldEquals(ENTITY, id, "status", "cancelled");
     assert.fieldEquals(ENTITY, id, "currValue", "0");
+    assert.fieldEquals(ENTITY, id, "remainingEquivalentSharesAtRequestTime", "0");
     assert.fieldEquals(ENTITY, id, "cancelReceiverAddress", ALICE.toHexString());
-    assert.fieldEquals(ENTITY, id, "cancelledAmount", "1000");
-    // activity feed: 1 pending (create) + 1 cancelled
-    assert.entityCount("GlobalTokenActivity", 2);
+    assert.fieldEquals(ENTITY, id, "cancelledAmount", "600");
+    assert.fieldEquals(ENTITY, id, "assetsDeposited", "400");
+    assert.fieldEquals(ENTITY, id, "protocolFeeShares", "10");
+    assert.entityCount("GlobalTokenActivity", 3);
     const cancelActId = generateGlobalTokenActivityId(
       cancelEv.transaction.hash.toHexString(), cancelEv.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
     );
     assert.fieldEquals("GlobalTokenActivity", cancelActId, "status", "cancelled");
-    assert.fieldEquals("GlobalTokenActivity", cancelActId, "value", "1000");
+    assert.fieldEquals("GlobalTokenActivity", cancelActId, "value", "600");
   });
 });
 
 describe("redemption lifecycle", () => {
   beforeEach(clearStore);
 
-  test("execution follows the SUM rule and accumulates every claim lane", () => {
+  test("two fills follow the SUM rule, recursively scale references, and complete", () => {
     mockAsset();
     handleRedemptionRequested(at(redemptionRequested(1000), 0));
     // 600 redeemed + 100 forfeited consumes 700, leaving 300.
-    const ev = at(redemptionExecuted(600, 100, claims(11, 12, 13, 14, 15), 7, claims(1, 2, 3, 4, 5), 1), 3);
+    const ev = at(redemptionExecuted(600, 100, claims(11, 13, 14, 15), 7, claims(1, 3, 4, 5), 1), 3);
     handleRedemptionExecuted(ev);
     const id = reqId(N1);
     assert.fieldEquals(ENTITY, id, "subCategory", "withdraw");
@@ -281,14 +404,17 @@ describe("redemption lifecycle", () => {
     assert.fieldEquals(ENTITY, id, "status", "partiallyFilled");
     assert.fieldEquals(ENTITY, id, "sharesRedeemed", "600");
     assert.fieldEquals(ENTITY, id, "protocolFeeShares", "100");
-    // Day-specific lt / stShares / nav / quote legs
-    assert.fieldEquals(ENTITY, id, "ltAssetsUserClaims", "13");
+    assert.fieldEquals(ENTITY, id, "requestReceiverAddress", BOB.toHexString());
+    assert.fieldEquals(ENTITY, id, "valueAtRequestTime", "888");
+    assert.fieldEquals(ENTITY, id, "remainingValueAtRequestTime", "266");
+    assert.fieldEquals(ENTITY, id, "requestedRedemptionMode", "2");
+    assert.fieldEquals(ENTITY, id, "collateralAssetsUserClaims", "11");
+    assert.fieldEquals(ENTITY, id, "lptAssetsUserClaims", "13");
     assert.fieldEquals(ENTITY, id, "stSharesUserClaims", "14");
     assert.fieldEquals(ENTITY, id, "navUserClaims", "15");
     assert.fieldEquals(ENTITY, id, "quoteAssetsUserClaims", "7");
-    assert.fieldEquals(ENTITY, id, "ltAssetsBonusClaims", "3");
+    assert.fieldEquals(ENTITY, id, "lptAssetsBonusClaims", "3");
     assert.fieldEquals(ENTITY, id, "quoteAssetsBonusClaims", "1");
-    // the fill left an immutable execution row with this fill's own deltas
     assert.entityCount("DayEntryPointExecution", 1);
     const execId = generateExecutionId(ev.transaction.hash.toHexString(), ev.logIndex);
     assert.fieldEquals("DayEntryPointExecution", execId, "executorAddress", BOB.toHexString());
@@ -296,15 +422,117 @@ describe("redemption lifecycle", () => {
     assert.fieldEquals("DayEntryPointExecution", execId, "remainingAfter", "300");
     assert.fieldEquals("DayEntryPointExecution", execId, "statusAfter", "partiallyFilled");
     assert.fieldEquals("DayEntryPointExecution", execId, "sharesRedeemed", "600");
-    assert.fieldEquals("DayEntryPointExecution", execId, "ltAssetsUserClaims", "13");
+    assert.fieldEquals("DayEntryPointExecution", execId, "valueAtRequestTime", "621");
+    assert.fieldEquals("DayEntryPointExecution", execId, "executedRedemptionMode", "1");
+    assert.fieldEquals("DayEntryPointExecution", execId, "lptAssetsUserClaims", "13");
     assert.fieldEquals("DayEntryPointExecution", execId, "requestId", id);
-    // activity feed: 1 pending (create) + 1 updated (partial fill, request not done)
     assert.entityCount("GlobalTokenActivity", 2);
     const redActId = generateGlobalTokenActivityId(
       ev.transaction.hash.toHexString(), ev.logIndex, TRANCHE.toHexString(), "shares", "withdraw", BigInt.zero()
     );
     assert.fieldEquals("GlobalTokenActivity", redActId, "status", "updated");
     assert.fieldEquals("GlobalTokenActivity", redActId, "value", "600");
+
+    const ev2 = at(
+      redemptionExecuted(
+        250,
+        50,
+        claims(21, 23, 24, 25),
+        17,
+        claims(2, 6, 8, 10),
+        2
+      ),
+      4
+    );
+    handleRedemptionExecuted(ev2);
+    assert.fieldEquals(ENTITY, id, "currValue", "0");
+    assert.fieldEquals(ENTITY, id, "remainingValueAtRequestTime", "0");
+    assert.fieldEquals(ENTITY, id, "status", "completed");
+    assert.fieldEquals(ENTITY, id, "sharesRedeemed", "850");
+    assert.fieldEquals(ENTITY, id, "protocolFeeShares", "150");
+    assert.fieldEquals(ENTITY, id, "collateralAssetsUserClaims", "32");
+    assert.fieldEquals(ENTITY, id, "quoteAssetsUserClaims", "24");
+
+    const exec2 = generateExecutionId(
+      ev2.transaction.hash.toHexString(),
+      ev2.logIndex
+    );
+    assert.fieldEquals("DayEntryPointExecution", exec2, "consumed", "300");
+    assert.fieldEquals(
+      "DayEntryPointExecution",
+      exec2,
+      "valueAtRequestTime",
+      "266"
+    );
+    assert.fieldEquals(
+      "DayEntryPointExecution",
+      exec2,
+      "statusAfter",
+      "completed"
+    );
+    assert.entityCount("GlobalTokenActivity", 3);
+    const redAct2 = generateGlobalTokenActivityId(
+      ev2.transaction.hash.toHexString(),
+      ev2.logIndex,
+      TRANCHE.toHexString(),
+      "shares",
+      "withdraw",
+      BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", redAct2, "status", "completed");
+    assert.fieldEquals("GlobalTokenActivity", redAct2, "value", "250");
+  });
+
+  test("full forfeiture completes escrow even when activity value is zero", () => {
+    mockAsset();
+    handleRedemptionRequested(at(redemptionRequested(1000), 0));
+
+    const ev = at(
+      redemptionExecuted(
+        0,
+        1000,
+        claims(0, 0, 0, 0),
+        0,
+        claims(0, 0, 0, 0),
+        0
+      ),
+      1
+    );
+    handleRedemptionExecuted(ev);
+
+    const id = reqId(N1);
+    assert.fieldEquals(ENTITY, id, "status", "completed");
+    assert.fieldEquals(ENTITY, id, "currValue", "0");
+    assert.fieldEquals(ENTITY, id, "protocolFeeShares", "1000");
+
+    const execId = generateExecutionId(
+      ev.transaction.hash.toHexString(),
+      ev.logIndex
+    );
+    assert.fieldEquals("DayEntryPointExecution", execId, "consumed", "1000");
+    assert.fieldEquals(
+      "DayEntryPointExecution",
+      execId,
+      "valueAtRequestTime",
+      "888"
+    );
+    assert.fieldEquals(
+      "DayEntryPointExecution",
+      execId,
+      "statusAfter",
+      "completed"
+    );
+
+    const activityId = generateGlobalTokenActivityId(
+      ev.transaction.hash.toHexString(),
+      ev.logIndex,
+      TRANCHE.toHexString(),
+      "shares",
+      "withdraw",
+      BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenActivity", activityId, "status", "completed");
+    assert.fieldEquals("GlobalTokenActivity", activityId, "value", "0");
   });
 
   test("cancellation records the receiver and returned shares", () => {
@@ -324,6 +552,7 @@ describe("redemption lifecycle", () => {
     const id = reqId(N1);
     assert.fieldEquals(ENTITY, id, "status", "cancelled");
     assert.fieldEquals(ENTITY, id, "currValue", "0");
+    assert.fieldEquals(ENTITY, id, "remainingValueAtRequestTime", "0");
     assert.fieldEquals(ENTITY, id, "cancelReceiverAddress", BOB.toHexString());
     assert.fieldEquals(ENTITY, id, "cancelledAmount", "1000");
     // activity feed: 1 pending (create) + 1 cancelled

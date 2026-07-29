@@ -1,11 +1,12 @@
 {
+  "_comment": "Local build and test configuration.",
   "network": "mainnet",
   "chainId": 1,
   "entryPoints": [
     {
       "id": "",
       "version": 2,
-      "address": "0x0000000000000000000000000000000000000000",
+      "address": "0xba140d75fc0b646a13422224099a4f144a4ec9db",
       "startBlock": 0
     }
   ]

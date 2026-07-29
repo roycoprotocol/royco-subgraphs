@@ -6,6 +6,10 @@ import { CHAIN_ID } from "../constants";
 
 // <CHAIN_ID>_<ENTRY_POINT_ADDRESS>_<TRANCHE_ADDRESS>. Keyed on the entry point
 // address, not a version: the nonce counter is per-deployment.
+export function generateEntryPointDeploymentStateId(entryPointAddress: string): string {
+  return CHAIN_ID.toString().concat("_").concat(entryPointAddress);
+}
+
 export function generateEntryPointStateId(entryPointAddress: string, trancheAddress: string): string {
   return CHAIN_ID.toString().concat("_").concat(entryPointAddress).concat("_").concat(trancheAddress);
 }

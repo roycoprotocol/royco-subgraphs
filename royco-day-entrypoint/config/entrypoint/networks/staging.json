@@ -1,4 +1,5 @@
 {
+  "_comment": "Replace placeholders after deployment.",
   "network": "mainnet",
   "chainId": 1,
   "entryPoints": [
