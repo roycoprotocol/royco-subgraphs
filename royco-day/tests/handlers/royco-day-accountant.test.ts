@@ -814,6 +814,74 @@ describe("the kernel sync handlers", () => {
     assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "600");
   });
 
+  test("a term opens with a ZERO loss — the seed must exist", () => {
+    // NON-NULL, so leaving it unset is fatal at INDEX time and `graph build` cannot
+    // catch it (§8). This asserts the seed is actually written. 0 is unambiguous as a
+    // "no loss" marker because a real erase is always > 0 — the handler returns early
+    // on a zero erase — it just cannot on its own tell a running term from an ended one.
+    deployMarket();
+    handleFixedTermCommenced(
+      createUintEvent<FixedTermCommenced>(
+        "fixedTermEndTimestamp",
+        TERM_END,
+        accountantCtx()
+      )
+    );
+
+    const entryId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
+    );
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      entryId,
+      "juniorTrancheImpermanentLossNAV",
+      "0"
+    );
+  });
+
+  test("a CLEAN expiry sets duration and leaves the loss at ZERO", () => {
+    // THE PAIR A CONSUMER READS TOGETHER — neither column answers it alone:
+    //   duration IS NULL                -> still running
+    //   duration NOT NULL + loss = 0    -> ran its course, no coverage erased
+    //   duration NOT NULL + loss > 0    -> a loss hit this term
+    // Guards closeOpenFixedTerm against ever writing a loss of its own: closing a term
+    // is not a coverage event, and only the Reset may set that column.
+    deployMarket();
+    handleFixedTermCommenced(
+      createUintEvent<FixedTermCommenced>(
+        "fixedTermEndTimestamp",
+        TERM_END,
+        accountantCtx()
+      )
+    );
+
+    // Ends naturally. NO JuniorTrancheImpermanentLossReset follows — nothing was erased.
+    const end = accountantCtx();
+    end.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(600));
+    handleFixedTermEnded(createEmptyEvent<FixedTermEnded>(end));
+
+    const entryId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
+    );
+    assert.fieldEquals("DayFixedTermHistory", entryId, "endBlockTimestamp", end.blockTimestamp.toString());
+    assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "600");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      entryId,
+      "juniorTrancheImpermanentLossNAV",
+      "0"
+    );
+    // And the market's LIFETIME total is untouched — it only moves on a real erase.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "0"
+    );
+  });
+
   test("a term that opens and closes in ONE BLOCK stores duration 0, not null", () => {
     // THE ENCODING TEST, and the reason `duration` is nullable rather than
     // 0-sentinelled. 0 is a legitimate duration, so it must survive as 0 and stay
@@ -1152,6 +1220,144 @@ describe("the kernel sync handlers", () => {
       "juniorTrancheImpermanentLossNAV",
       "9303"
     );
+  });
+
+  test("zero duration: a loss opens its OWN zero-length closed term", () => {
+    // With no configured term length there is no term to patch, so the loss gets a
+    // degenerate one. Without this it reached case C and was dropped from history
+    // entirely, leaving DayMarketState's lifetime total permanently above
+    // SUM(DayFixedTermHistory.juniorTrancheImpermanentLossNAV) with no way to
+    // attribute the difference.
+    deployMarket();
+    // Drive the market to a zero duration. No term is open, so this closes nothing.
+    handleFixedTermDurationUpdated(
+      createUint24Event<FixedTermDurationUpdated>(
+        "fixedTermDurationSeconds",
+        0,
+        accountantCtx()
+      )
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "fixedTermDurationSeconds", "0");
+    assert.entityCount("DayFixedTermHistory", 0);
+
+    const reset = accountantCtx();
+    reset.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(4_242));
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.fromI32(5_150),
+        reset
+      )
+    );
+
+    assert.entityCount("DayFixedTermHistory", 1);
+    const id = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    assert.fieldEquals("DayFixedTermHistory", id, "entryIndex", "0");
+    // All three timestamps are this block's: it opens and closes on the event.
+    const t = reset.blockTimestamp.toString();
+    assert.fieldEquals("DayFixedTermHistory", id, "startBlockTimestamp", t);
+    assert.fieldEquals("DayFixedTermHistory", id, "scheduledEndBlockTimestamp", t);
+    assert.fieldEquals("DayFixedTermHistory", id, "endBlockTimestamp", t);
+    // A REAL zero duration, not a null — the term genuinely lasted no time.
+    assert.fieldEquals("DayFixedTermHistory", id, "duration", "0");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      id,
+      "juniorTrancheImpermanentLossNAV",
+      "5150"
+    );
+    // The cursor advanced AND was persisted — recordFixedTermCoverageLoss mutates the
+    // in-memory market and touchMarket is the save. Called in the other order this
+    // reads 0 and the next loss overwrites this row.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "1");
+    // And the lifetime total now reconciles with the row.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "5150"
+    );
+  });
+
+  test("zero duration: each loss gets its OWN row — they never overwrite", () => {
+    // The cursor-persistence test. If the bump were lost, both losses would resolve to
+    // entryIndex 0 and the second would silently overwrite the first — one row, the
+    // wrong number, and the market total no longer equal to the sum.
+    deployMarket();
+    handleFixedTermDurationUpdated(
+      createUint24Event<FixedTermDurationUpdated>(
+        "fixedTermDurationSeconds",
+        0,
+        accountantCtx()
+      )
+    );
+
+    const first = accountantCtx();
+    first.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(100));
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.fromI32(300),
+        first
+      )
+    );
+
+    const second = accountantCtx();
+    second.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(200));
+    second.txHash = TX_HASH_2;
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.fromI32(700),
+        second
+      )
+    );
+
+    assert.entityCount("DayFixedTermHistory", 2);
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "2");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
+      "juniorTrancheImpermanentLossNAV",
+      "300"
+    );
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.fromI32(1)),
+      "juniorTrancheImpermanentLossNAV",
+      "700"
+    );
+    // SUM(rows) == the market lifetime total. That reconciliation is the whole point.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "1000"
+    );
+  });
+
+  test("zero duration: a ZERO erase still writes nothing", () => {
+    // The unguarded config site emits this even when nothing was erased. The new branch
+    // must not turn that into a spurious zero-length term.
+    deployMarket();
+    handleFixedTermDurationUpdated(
+      createUint24Event<FixedTermDurationUpdated>(
+        "fixedTermDurationSeconds",
+        0,
+        accountantCtx()
+      )
+    );
+
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.zero(),
+        accountantCtx()
+      )
+    );
+
+    assert.entityCount("DayFixedTermHistory", 0);
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "0");
   });
 
   test("a Reset carrying ZERO never patches — only the unguarded site emits it", () => {

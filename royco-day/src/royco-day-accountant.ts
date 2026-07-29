@@ -30,7 +30,11 @@ import {
   recordFixedTermCoverageLoss,
 } from "./handlers/base/fixed-term";
 import { generateMarketRecordId, generateMarketBlockRecordId } from "./utils";
-import { CHAIN_ID, MARKET_STATE_FIXED, MARKET_STATE_PERPETUAL } from "./constants";
+import {
+  CHAIN_ID,
+  MARKET_STATE_FIXED,
+  MARKET_STATE_PERPETUAL,
+} from "./constants";
 
 /**
  * RoycoDayAccountant — the market's config and accounting surface.
@@ -90,7 +94,7 @@ export function handleFixedTermCommenced(event: FixedTermCommencedEvent): void {
   const entryIndex = market.countFixedTermEntries;
 
   const entry = new DayFixedTermHistory(
-    generateMarketRecordId(market.marketId, entryIndex)
+    generateMarketRecordId(market.marketId, entryIndex),
   );
   entry.chainId = CHAIN_ID;
   entry.marketId = market.marketId;
@@ -154,7 +158,7 @@ export function handleFixedTermEnded(event: FixedTermEndedEvent): void {
  * resolveMarketFromAccountant is what makes that a no-op rather than a crash.
  */
 export function handleFixedTermDurationUpdated(
-  event: FixedTermDurationUpdatedEvent
+  event: FixedTermDurationUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -162,7 +166,7 @@ export function handleFixedTermDurationUpdated(
   // uint24 -> i32. THE one lift in this file; its uint32/uint64 neighbours are
   // direct assigns (§4).
   market.fixedTermDurationSeconds = BigInt.fromI32(
-    event.params.fixedTermDurationSeconds
+    event.params.fixedTermDurationSeconds,
   );
 
   if (event.params.fixedTermDurationSeconds == 0) {
@@ -209,7 +213,7 @@ export function handleFixedTermDurationUpdated(
  * things.
  */
 export function handleJuniorTrancheImpermanentLossReset(
-  event: JuniorTrancheImpermanentLossResetEvent
+  event: JuniorTrancheImpermanentLossResetEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -222,9 +226,15 @@ export function handleJuniorTrancheImpermanentLossReset(
 
   market.juniorTrancheImpermanentLossNAV =
     market.juniorTrancheImpermanentLossNAV.plus(erased);
-  touchMarket(event, market);
 
+  // BEFORE touchMarket, not after. On a market with a zero fixedTermDurationSeconds
+  // this opens a new history row and ADVANCES countFixedTermEntries on the in-memory
+  // market; touchMarket is the save that persists it. Called after the save, the
+  // cursor bump would be silently dropped and the next loss would overwrite this
+  // row's id. Same ordering as handleFixedTermCommenced and handleFixedTermEnded.
   recordFixedTermCoverageLoss(event, market, erased);
+
+  touchMarket(event, market);
 }
 
 // =============================================================================
@@ -248,7 +258,7 @@ export function handleLiquidityUpdated(event: LiquidityUpdatedEvent): void {
 }
 
 export function handleLiquidationCoverageUtilizationUpdated(
-  event: LiquidationCoverageUtilizationUpdatedEvent
+  event: LiquidationCoverageUtilizationUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -270,13 +280,14 @@ export function handleLiquidationCoverageUtilizationUpdated(
  * them. Never average or compare the two.
  */
 export function handleMaxYieldSharesUpdated(
-  event: MaxYieldSharesUpdatedEvent
+  event: MaxYieldSharesUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
   market.maxJuniorTrancheYieldShareAccruedWAD = event.params.maxJTYieldShareWAD;
-  market.maxLiquidityTrancheYieldShareAccruedWAD = event.params.maxLPTYieldShareWAD;
+  market.maxLiquidityTrancheYieldShareAccruedWAD =
+    event.params.maxLPTYieldShareWAD;
   touchMarket(event, market);
 }
 
@@ -330,11 +341,10 @@ export function handleYieldSharesAccrued(event: YieldSharesAccruedEvent): void {
   // running accumulators already, so the latest tick simply wins. Mixing the two rules
   // in one row is the whole point of the delta-vs-snapshot distinction.
   entry.juniorTrancheYieldShareWAD = entry.juniorTrancheYieldShareWAD.plus(
-    event.params.jtYieldShareWAD
+    event.params.jtYieldShareWAD,
   );
-  entry.liquidityTrancheYieldShareWAD = entry.liquidityTrancheYieldShareWAD.plus(
-    event.params.lptYieldShareWAD
-  );
+  entry.liquidityTrancheYieldShareWAD =
+    entry.liquidityTrancheYieldShareWAD.plus(event.params.lptYieldShareWAD);
   entry.juniorTrancheTimeWeightedYieldShareAccruedWAD =
     event.params.twJTYieldShareAccruedWAD;
   entry.liquidityTrancheTimeWeightedYieldShareAccruedWAD =
@@ -348,7 +358,7 @@ export function handleYieldSharesAccrued(event: YieldSharesAccruedEvent): void {
 }
 
 export function handleSeniorTrancheProtocolFeeUpdated(
-  event: SeniorTrancheProtocolFeeUpdatedEvent
+  event: SeniorTrancheProtocolFeeUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -358,7 +368,7 @@ export function handleSeniorTrancheProtocolFeeUpdated(
 }
 
 export function handleJuniorTrancheProtocolFeeUpdated(
-  event: JuniorTrancheProtocolFeeUpdatedEvent
+  event: JuniorTrancheProtocolFeeUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -368,7 +378,7 @@ export function handleJuniorTrancheProtocolFeeUpdated(
 }
 
 export function handleJuniorTrancheYieldShareProtocolFeeUpdated(
-  event: JuniorTrancheYieldShareProtocolFeeUpdatedEvent
+  event: JuniorTrancheYieldShareProtocolFeeUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -379,7 +389,7 @@ export function handleJuniorTrancheYieldShareProtocolFeeUpdated(
 }
 
 export function handleLiquidityTrancheYieldShareProtocolFeeUpdated(
-  event: LiquidityProviderTrancheYieldShareProtocolFeeUpdatedEvent
+  event: LiquidityProviderTrancheYieldShareProtocolFeeUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -402,7 +412,7 @@ export function handleLiquidityTrancheYieldShareProtocolFeeUpdated(
  * recompute and nothing to keep in sync.
  */
 export function handleDustToleranceUpdated(
-  event: DustToleranceUpdatedEvent
+  event: DustToleranceUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -419,7 +429,7 @@ export function handleDustToleranceUpdated(
  * transposition trap that exists at the factory does not exist here.
  */
 export function handleJuniorTrancheYDMUpdated(
-  event: JuniorTrancheYDMUpdatedEvent
+  event: JuniorTrancheYDMUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
@@ -429,7 +439,7 @@ export function handleJuniorTrancheYDMUpdated(
 }
 
 export function handleLiquidityTrancheYDMUpdated(
-  event: LiquidityProviderTrancheYDMUpdatedEvent
+  event: LiquidityProviderTrancheYDMUpdatedEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;

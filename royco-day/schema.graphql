@@ -758,6 +758,13 @@ type DayFixedTermHistory @entity(immutable: false) {
   #    Aggregates behave correctly too: AVG/MIN/MAX skip NULLs, whereas the 0 sentinel
   #    would silently drag an average of term lengths toward zero.
   juniorTrancheImpermanentLossNAV: BigInt! # Junior Impermanent Loss NAV (0 if not ended, or no loss) <- ABI: JuniorTrancheImpermanentLossReset.jtImpermanentLossErased
+  # ^ NON-NULL, seeded to 0 at FixedTermCommenced — deliberately NOT nullable like
+  #   `duration` above. A real erase is always > 0 (the handler returns early on a zero
+  #   erase), so 0 unambiguously means "no loss recorded for this term". It does NOT
+  #   distinguish a running term from one that expired cleanly — pair it with `duration`
+  #   for that: `duration IS NOT NULL AND juniorTrancheImpermanentLossNAV = 0` is the
+  #   clean expiry.
+  #
   # ^ NOT previewSyncTrancheAccountingFor().state.jtImpermanentLoss and NOT
   #   getState().lastJTImpermanentLoss — BOTH are provably ZERO by the instant
   #   FixedTermEnded fires: the Accountant erases into a local and zeroes storage
