@@ -47,7 +47,7 @@ import {
  * Writes, per market:
  *   - 1 DayMarketState  (id = <CHAIN_ID>_<KERNEL>; the kernel address IS the marketId)
  *   - 3 DayVaultState        (senior / junior / liquidity)
- *   - 3 DayVaultStateHistorical at entryIndex 0 — the creation snapshot
+ *   - 3 DayVaultStateHistorical for the creation block
  *
  * See CLAUDE.md §5 before adding any contract call, and §6 for the Claims struct.
  */
@@ -216,15 +216,11 @@ export function handleMarketDeploymentCompleted(
     // coverage floor is the most dangerous possible wrong answer for that field.
   }
 
-  // === record cursors ===
-  // Counts, not last-indices: every stream is born empty. See the "=> records"
-  // block in schema.graphql.
+  // === the one record cursor ===
+  // A COUNT, not a last-index: the stream is born empty. It survives for
+  // DayFixedTermHistory alone — every other stream is keyed and ordered by block
+  // number and carries no cursor. See "ENTRY INDEX CURSOR" in schema.graphql.
   market.countFixedTermEntries = BigInt.zero();
-  market.countYieldSharesAccruedEntries = BigInt.zero();
-  market.countTrancheAccountingSyncedEntries = BigInt.zero();
-  market.countLiquidityPremiumSharesMintedEntries = BigInt.zero();
-  market.countLiquidityPremiumReinvestedEntries = BigInt.zero();
-  market.countLiquidityPremiumReinvestmentFailedEntries = BigInt.zero();
 
   // A lifetime accumulator, not a cursor: every coverage-loss erase adds to it.
   // Zero is the only truthful seed — nothing has been erased yet, and unlike every
@@ -360,9 +356,9 @@ function createVault(
   // more (see its schema note). Both moved to DayMarketNav, written once per market
   // at the bottom of handleMarketDeploymentCompleted rather than three times here.
   //
-  // The creation snapshot IS entry 0, so the cursor starts at 0 and the next
-  // snapshot writes 1. Total snapshots == lastHistoricalEntryIndex + 1.
-  vault.lastHistoricalEntryIndex = BigInt.zero();
+  // No historical cursor to seed either. DayVaultStateHistorical is keyed and ordered
+  // by block number; snapshotVault below writes the creation block's row and nothing
+  // has to be counted. See "BLOCK-KEYED HISTORY" in schema.graphql.
 
   vault.createdAtTransactionHash = event.transaction.hash.toHexString();
   vault.createdAtBlockNumber = event.block.number;

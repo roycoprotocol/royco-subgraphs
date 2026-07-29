@@ -92,7 +92,7 @@ test("every immutable entity's id carries a per-write discriminator", () => {
   }
 });
 
-test("every *Historical entity has an entryIndex paired to a parent cursor", () => {
+test("block-keyed streams order by blockNumber and carry NO entryIndex cursor", () => {
   const src = fs.readFileSync(SCHEMA, "utf8");
   // Body captured lazily up to a closing brace AT COLUMN 0 (house style for every
   // entity), not with `[^}]*`. A `}` inside a field comment truncates the latter
@@ -106,23 +106,68 @@ test("every *Historical entity has an entryIndex paired to a parent cursor", () 
     return m[1];
   };
 
-  for (const [parent, historical] of [
-    ["DayMarketNav", "DayMarketNavHistorical"],
-    ["DayVaultState", "DayVaultStateHistorical"],
-    ["DayPositionState", "DayPositionStateHistorical"],
-    ["DayFeeState", "DayFeeStateHistorical"],
-  ]) {
+  // Every block-collapsed stream. Each is keyed <...>_<BLOCK_NUMBER> and ordered by
+  // its own blockNumber column; NONE of them carries an entryIndex any more, and no
+  // parent carries a cursor. See "BLOCK-KEYED HISTORY" in schema.graphql.
+  const BLOCK_KEYED = [
+    "DayMarketNavHistorical",
+    "DayVaultStateHistorical",
+    "DayPositionStateHistorical",
+    "DayFeeStateHistorical",
+    "DayYieldSharesAccruedHistory",
+    "DayTrancheAccountingSyncedHistory",
+    "DayLiquidityPremiumSharesMintedHistory",
+    "DayLiquidityPremiumReinvestedHistory",
+    "DayLiquidityPremiumReinvestmentFailedHistory",
+  ];
+
+  for (const historical of BLOCK_KEYED) {
+    const body = typeBlock(historical);
+    // The ordering column MUST exist: it is the only thing these rows can be sorted
+    // by now, and it is stored so consumers never have to parse it out of the id.
     assert.match(
-      typeBlock(historical),
-      /^\s*entryIndex:\s*BigInt!/m,
-      `${historical} must declare entryIndex`,
+      body,
+      /^\s*blockNumber:\s*BigInt!/m,
+      `${historical} must declare blockNumber — it is the ordering column`,
     );
-    assert.match(
-      typeBlock(parent),
-      /^\s*lastHistoricalEntryIndex:\s*BigInt!/m,
-      `${parent} must declare lastHistoricalEntryIndex (the cursor driving ${historical})`,
+    // And the cursor must NOT come back. It was removed deliberately: with the id
+    // already keyed on the block it carried no extra information, and it had to be
+    // advanced on creation but NOT on same-block updates — an invariant that fails
+    // silently and leaves gaps in an index the schema would be promising is dense.
+    assert.doesNotMatch(
+      body,
+      /^\s*entryIndex:\s*BigInt!/m,
+      `${historical} is block-keyed and must NOT declare entryIndex — order by blockNumber`,
     );
   }
+
+  for (const parent of [
+    "DayMarketNav",
+    "DayVaultState",
+    "DayPositionState",
+    "DayFeeState",
+  ]) {
+    assert.doesNotMatch(
+      typeBlock(parent),
+      /^\s*lastHistoricalEntryIndex:\s*BigInt!/m,
+      `${parent} must NOT declare lastHistoricalEntryIndex — its historical is block-keyed`,
+    );
+  }
+
+  // THE ONE EXCEPTION, asserted positively so it cannot be swept away by a future
+  // "clean up the last cursor" pass. A fixed term OPENS in one block and CLOSES in a
+  // later one, so the close-out patches a row opened earlier — block keying would send
+  // it to a different id and orphan it.
+  assert.match(
+    typeBlock("DayFixedTermHistory"),
+    /^\s*entryIndex:\s*BigInt!/m,
+    "DayFixedTermHistory must KEEP entryIndex — it spans blocks and cannot be block-keyed",
+  );
+  assert.match(
+    typeBlock("DayMarketState"),
+    /^\s*countFixedTermEntries:\s*BigInt!/m,
+    "DayMarketState must KEEP countFixedTermEntries — the cursor driving DayFixedTermHistory",
+  );
 });
 
 test("global entities stay byte-identical to royco-rwa's — frozen shared-table contract", () => {

@@ -314,8 +314,6 @@ export function handleYieldSharesAccrued(event: YieldSharesAccruedEvent): void {
   if (!entry) {
     entry = new DayYieldSharesAccruedHistory(id);
     // Use-then-increment, and ONLY for a new block.
-    const entryIndex = market.countYieldSharesAccruedEntries;
-    entry.entryIndex = entryIndex;
     entry.blockNumber = event.block.number;
     entry.chainId = CHAIN_ID;
     entry.marketId = market.marketId;
@@ -326,7 +324,6 @@ export function handleYieldSharesAccrued(event: YieldSharesAccruedEvent): void {
     entry.createdAtTransactionHash = event.transaction.hash.toHexString();
     entry.createdAtBlockNumber = event.block.number;
     entry.createdAtBlockTimestamp = event.block.timestamp;
-    market.countYieldSharesAccruedEntries = entryIndex.plus(BigInt.fromI32(1));
   }
 
   // The instantaneous shares ACCUMULATE across the block; the timeWeighted* pair are

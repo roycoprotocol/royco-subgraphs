@@ -598,15 +598,9 @@ describe("the kernel sync handlers", () => {
 
     // 3 creation snapshots and no more — the sync added nothing.
     assert.entityCount("DayVaultStateHistorical", 3);
-    assert.fieldEquals(
-      "DayVaultState",
-      generateVaultId(ADDR_SENIOR.toHexString()),
-      "lastHistoricalEntryIndex",
-      "0"
-    );
   });
 
-  test("records the full 16-field sync as the block's row (entry 0)", () => {
+  test("records the full 16-field sync as the block's row", () => {
     // ALL eighteen fields, verbatim — the unabridged history DayMarketState does not
     // keep. Distinct sentinels for every field: a transposition among same-typed
     // neighbours lands the wrong number in the wrong column, plausibly.
@@ -635,17 +629,10 @@ describe("the kernel sync handlers", () => {
     );
 
     // Use-then-increment: the first sync is entry 0 and the count becomes 1.
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "1"
-    );
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
 
     const id = generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER);
     const E = "DayTrancheAccountingSyncedHistory";
-    assert.fieldEquals(E, id, "entryIndex", "0");
     assert.fieldEquals(E, id, "marketId", ADDR_KERNEL.toHexString());
     assert.fieldEquals(E, id, "marketRefId", MARKET_ID);
     // LIVE market state from the payload — the value DayMarketState deliberately drops.
@@ -682,12 +669,6 @@ describe("the kernel sync handlers", () => {
     );
 
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "1"
-    );
     const blockId = generateMarketBlockRecordId(
       ADDR_KERNEL.toHexString(),
       BLOCK_NUMBER
@@ -705,13 +686,6 @@ describe("the kernel sync handlers", () => {
 
     // STILL ONE ROW, cursor STILL 1.
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "1"
-    );
-    assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "entryIndex", "0");
     // ...now carrying the post-op's values and its operation (3 == jtRedeem).
     assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "syncType", "postOp");
     assert.fieldEquals(
@@ -728,7 +702,7 @@ describe("the kernel sync handlers", () => {
     );
   });
 
-  test("a sync in a NEW BLOCK opens a new row and advances the cursor", () => {
+  test("a sync in a NEW BLOCK opens a new row", () => {
     // The flip side: collapsing is per BLOCK, not per market. A later block must get
     // its own row, or the table would only ever hold one row per market.
     deployMarket();
@@ -742,28 +716,7 @@ describe("the kernel sync handlers", () => {
     handlePreOpTrancheAccountingSynced(createPreOpSyncEvent(new TrancheState(), later));
 
     assert.entityCount("DayTrancheAccountingSyncedHistory", 2);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "2"
-    );
     // Dense entryIndex, ordered by block.
-    assert.fieldEquals(
-      "DayTrancheAccountingSyncedHistory",
-      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
-      "entryIndex",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayTrancheAccountingSyncedHistory",
-      generateMarketBlockRecordId(
-        ADDR_KERNEL.toHexString(),
-        BLOCK_NUMBER.plus(BigInt.fromI32(1))
-      ),
-      "entryIndex",
-      "1"
-    );
   });
 
   test("a sync for an unknown market is a no-op", () => {

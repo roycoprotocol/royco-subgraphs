@@ -84,8 +84,8 @@ export function handleProtocolFeeSharesMinted(
   event: ProtocolFeeSharesMintedEvent
 ): void {
   // The contract emits this even when 0 shares were minted (the _mint is guarded,
-  // the emit is not). A zero-fee event is not a fee — skip it rather than burn an
-  // entryIndex on a no-op snapshot.
+  // the emit is not). A zero-fee event is not a fee — skip it rather than open a
+  // block row, and a cumulative*, for a no-op.
   if (event.params.mintedProtocolFeeShares.isZero()) return;
 
   recordFeeSharesMinted(
@@ -100,7 +100,7 @@ export function handleLiquidityPremiumSharesMinted(
 ): void {
   // The contract emits this even when 0 shares were minted (the _mint is guarded,
   // the emit is not — RoycoSeniorTranche.sol:41,44). A zero mint is not a premium
-  // event — skip it rather than burn an entryIndex on a no-op record.
+  // event — skip it rather than open a block row for a no-op.
   if (event.params.mintedLiquidityPremiumShares.isZero()) return;
 
   recordLiquidityPremiumSharesMinted(

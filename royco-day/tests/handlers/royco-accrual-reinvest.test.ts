@@ -115,7 +115,6 @@ describe("handleYieldSharesAccrued", () => {
     );
 
     assert.entityCount("DayYieldSharesAccruedHistory", 1);
-    assert.fieldEquals("DayYieldSharesAccruedHistory", ENTRY0, "entryIndex", "0");
     assert.fieldEquals("DayYieldSharesAccruedHistory", ENTRY0, "marketId", KERNEL);
     // All four values land on their OWN column — distinct sentinels are the only thing
     // separating four same-typed BigInts in one row.
@@ -157,15 +156,9 @@ describe("handleYieldSharesAccrued", () => {
       "timeWeightedLiquidityTrancheYieldShareAccruedWAD",
       "4400"
     );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countYieldSharesAccruedEntries",
-      "1"
-    );
   });
 
-  test("a second tick climbs the cursor + both market fields; entry 0 stays frozen", () => {
+  test("a second tick in a NEW BLOCK gets its own row; the first block's row stays frozen", () => {
     deployMarket();
 
     handleYieldSharesAccrued(
@@ -201,12 +194,6 @@ describe("handleYieldSharesAccrued", () => {
     );
 
     assert.entityCount("DayYieldSharesAccruedHistory", 2);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countYieldSharesAccruedEntries",
-      "2"
-    );
     // Market fields hold the LATEST running totals.
     assert.fieldEquals(
       "DayMarketState",
@@ -247,7 +234,7 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
     clearStore();
   });
 
-  test("reinvested records realised shares/assets at entry 0 + bumps its cursor", () => {
+  test("reinvested records realised shares/assets into its block's row", () => {
     deployMarket();
 
     handleLiquidityPremiumReinvested(
@@ -264,15 +251,9 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
     assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", ENTRY0, "shares", "55");
     assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", ENTRY0, "assets", "66");
     assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", ENTRY0, "marketId", KERNEL);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestedEntries",
-      "1"
-    );
   });
 
-  test("failed records the attempt/bound/revertData at entry 0 + bumps its cursor", () => {
+  test("failed records the attempt/bound/revertData into its block's row", () => {
     deployMarket();
 
     handleLiquidityPremiumReinvestmentFailed(
@@ -296,15 +277,9 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
       "revertData",
       "0xdeadbeef"
     );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestmentFailedEntries",
-      "1"
-    );
   });
 
-  test("the two reinvest streams keep independent cursors", () => {
+  test("the two reinvest streams stay independent", () => {
     // A success and a failure in the same market each open their own stream at 0.
     deployMarket();
 
@@ -333,12 +308,5 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
 
     assert.entityCount("DayLiquidityPremiumReinvestedHistory", 1);
     assert.entityCount("DayLiquidityPremiumReinvestmentFailedHistory", 1);
-    assert.fieldEquals("DayMarketState", MARKET_ID, "countLiquidityPremiumReinvestedEntries", "1");
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestmentFailedEntries",
-      "1"
-    );
   });
 });

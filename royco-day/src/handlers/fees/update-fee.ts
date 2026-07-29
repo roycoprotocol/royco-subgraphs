@@ -78,7 +78,6 @@ export function recordFeeSharesMinted(
     minorType
   );
   let fee = DayFeeState.load(id);
-  const isNew = fee == null;
 
   if (!fee) {
     fee = new DayFeeState(id);
@@ -92,7 +91,6 @@ export function recordFeeSharesMinted(
     fee.minorType = minorType;
     fee.cumulativeShares = BigInt.zero();
     fee.cumulativeNav = BigInt.zero();
-    fee.lastHistoricalEntryIndex = BigInt.zero();
     fee.createdAtTransactionHash = event.transaction.hash.toHexString();
     fee.createdAtBlockNumber = event.block.number;
     fee.createdAtBlockTimestamp = event.block.timestamp;
@@ -103,8 +101,8 @@ export function recordFeeSharesMinted(
   fee.cumulativeShares = fee.cumulativeShares.plus(mintedShares);
   fee.cumulativeNav = fee.cumulativeNav.plus(navDelta);
 
-  // ONE ROW PER (fee stream, BLOCK). Several fee mints can share a block; the cursor
-  // advances only when the block has no row yet (rule 2 of "BLOCK-KEYED HISTORY").
+  // ONE ROW PER (fee stream, BLOCK). Several fee mints can share a block; their deltas
+  // accumulate into the one row. See "BLOCK-KEYED HISTORY" in schema.graphql.
   const snapshotId = generateFeeStateHistoricalId(
     vault.marketId,
     accountAddress,
@@ -113,16 +111,9 @@ export function recordFeeSharesMinted(
     event.block.number
   );
   let snapshot = DayFeeStateHistorical.load(snapshotId);
-  const isNewBlock = snapshot == null;
-  const entryIndex = isNewBlock
-    ? isNew
-      ? BigInt.zero()
-      : fee.lastHistoricalEntryIndex.plus(BigInt.fromI32(1))
-    : fee.lastHistoricalEntryIndex;
 
   if (!snapshot) {
     snapshot = new DayFeeStateHistorical(snapshotId);
-    snapshot.entryIndex = entryIndex;
     snapshot.blockNumber = event.block.number;
     // The DELTA columns start at zero and ACCUMULATE across this block's mints — see
     // below. Seeding them here is what makes the `.plus()` valid on the first write.
@@ -155,7 +146,6 @@ export function recordFeeSharesMinted(
   snapshot.updatedAtBlockTimestamp = event.block.timestamp;
   snapshot.save();
 
-  fee.lastHistoricalEntryIndex = entryIndex;
   fee.updatedAtTransactionHash = event.transaction.hash.toHexString();
   fee.updatedAtBlockNumber = event.block.number;
   fee.updatedAtBlockTimestamp = event.block.timestamp;

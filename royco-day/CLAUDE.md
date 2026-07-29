@@ -382,32 +382,32 @@ nothing**; that's why the test harness exists.
 - `DayMarketNav.id` is byte-identical to `DayMarketState.id` — one live NAV row per
   market, hanging off the same key. It still gets its own generator
   (`generateMarketNavId`), so a call site names the table it addresses.
-- **Entry index cursor**: the `*State` parent owns `lastHistoricalEntryIndex`.
-  Creation snapshot is entry `0`. Each later snapshot writes `+1`, then stores
-  it. Never derive an entry index from block number or timestamp — two writes in
-  one block collide. (royco-rwa's `PositionStateHistorical` uses
-  `_<BLOCK_TIMESTAMP>` and has exactly that bug. Don't copy it.) The `count*Entries`
-  cursors are the *other* shape — a count, not a last-index: read, use, **then**
-  increment. Both shapes are spelled out in `schema.graphql`'s "ENTRY INDEX CURSOR".
 - **Block keying**: every `*Historical` and `*History` stream except
   `DayFixedTermHistory` collapses to **one row per (subject, block)** — the id ends in
-  the block number and the later write in a block **updates** the earlier one. That
-  inverts the bullet above *for the id only*: the collision is deliberate, it is the
-  dedupe. Two consequences that are easy to get wrong and impossible to see at index
-  time:
+  the block number and the later write in a block **updates** the earlier one. §8's
+  "never derive an id from a block number" is inverted here deliberately: the collision
+  IS the dedupe. Three consequences, none visible at build time:
     - **These entities MUST be `immutable: false`.** An immutable one dies on the
       second write in a block.
-    - **`entryIndex` is assigned once, when the row is created, and the cursor advances
-      only then.** Bumping it on an update leaves holes in the stream.
+    - **They carry NO `entryIndex`, and their parents carry no cursor.** Order by the
+      `blockNumber` column, which every one of them stores. A counter alongside a
+      block-keyed id carried no extra information and had to advance on creation but
+      not on same-block updates — an invariant that fails silently. If a consumer
+      wants an ordinal, derive it: `ROW_NUMBER() OVER (PARTITION BY <parent> ORDER BY
+      block_number)`. `scripts/checks/schema.test.mjs` fails the build if one comes
+      back.
     - **Delta columns ACCUMULATE within a block; snapshot columns overwrite.** A fee
       mint's `shares`, a premium mint's `shares`, an accrual's `yieldShareWAD` are
       per-event deltas and get `.plus()`-ed on each write in the block, so
       `SUM(delta)` still equals the lifetime total. A state, a cumulative total, or a
       price is a snapshot and is simply overwritten.
-  `DayFixedTermHistory` is the one exception: a term **opens in one block and closes in
-  a later one**, so the close-out patches a row opened earlier. Block keying would send
-  the close to a different id and orphan it, so that stream keeps `<ENTRY_IDX>` and
-  `generateMarketRecordId`. See "BLOCK-KEYED HISTORY" in `schema.graphql`.
+- **The one cursor left** is `DayMarketState.countFixedTermEntries`, driving
+  `DayFixedTermHistory` — a term **opens in one block and closes in a later one**, so
+  the close-out patches a row opened earlier and block keying would orphan it. That
+  cursor is a COUNT, not a last-index: read, use, **then** increment. Never derive an
+  entry index from a block number or timestamp (royco-rwa's `PositionStateHistorical`
+  uses `_<BLOCK_TIMESTAMP>` and has exactly that bug — don't copy it). See
+  "BLOCK-KEYED HISTORY" and "ENTRY INDEX CURSOR" in `schema.graphql`.
 
 **`createdAt*` / `updatedAt*`:** set `createdAt*` **exactly once**, inside the
 `if (!entity)` branch — never touch it again. Re-stamping it on update is the

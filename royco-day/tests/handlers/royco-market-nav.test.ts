@@ -181,7 +181,7 @@ describe("DayMarketNav at market creation", () => {
     clearStore();
   });
 
-  test("creation seeds entry 0 — asset prices read, share prices provably zero", () => {
+  test("creation seeds the first row — asset prices read, share prices provably zero", () => {
     deployMarket();
 
     assert.entityCount("DayMarketNav", 1);
@@ -191,8 +191,6 @@ describe("DayMarketNav at market creation", () => {
     // A LAST-INDEX, not a count: born together with entry 0, so total == field + 1.
     // If this ever reads "1" the isNew branch in writeMarketNav has inverted and
     // entry 0 does not exist.
-    assert.fieldEquals("DayMarketNav", NAV_ID, "lastHistoricalEntryIndex", "0");
-    assert.fieldEquals("DayMarketNavHistorical", historicalId(0), "entryIndex", "0");
 
     // Zero supply => _scaleAssetClaims returns the zero struct for ANY input,
     // including one whole share. So all FIFTEEN legs are 0 by the contract's own
@@ -317,7 +315,7 @@ describe("DayMarketNav on TrancheAccountingSynced", () => {
     // construction rather than by discipline.
   });
 
-  test("the cursor is dense across BLOCKS and earlier snapshots are frozen", () => {
+  test("each BLOCK gets its own row and earlier snapshots are frozen", () => {
     deployMarket(); // creation writes the row for BLOCK_NUMBER (entry 0)
 
     // This sync is in the CREATION BLOCK, so it COLLAPSES into that same row rather
@@ -338,7 +336,6 @@ describe("DayMarketNav on TrancheAccountingSynced", () => {
     );
     sync(second); // a NEW block -> entry 1
 
-    assert.fieldEquals("DayMarketNav", NAV_ID, "lastHistoricalEntryIndex", "1");
     assert.entityCount("DayMarketNav", 1); // still ONE live row
     assert.entityCount("DayMarketNavHistorical", 2); // one per BLOCK, dense: 0, 1
 

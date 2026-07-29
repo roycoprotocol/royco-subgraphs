@@ -9,8 +9,8 @@ import { generateMarketBlockRecordId, generateVaultId } from "../../utils";
 import { touchMarket } from "../base/resolve-market";
 
 /**
- * Record one liquidity-premium mint as a DayLiquidityPremiumSharesMintedHistory
- * row, advancing the market's countLiquidityPremiumSharesMintedEntries cursor.
+ * Record one liquidity-premium mint into this block's
+ * DayLiquidityPremiumSharesMintedHistory row.
  *
  * THE LIQUIDITY PREMIUM IS NOT A FEE. A fee is taken from a holder; this is minted
  * into the market's own accounting (the kernel custodies the shares for the
@@ -54,9 +54,6 @@ export function recordLiquidityPremiumSharesMinted(
 
   if (!record) {
     record = new DayLiquidityPremiumSharesMintedHistory(id);
-    // Use-then-increment, and ONLY for a new block: the count IS the next entryIndex.
-    const entryIndex = market.countLiquidityPremiumSharesMintedEntries;
-    record.entryIndex = entryIndex;
     record.blockNumber = event.block.number;
     record.chainId = CHAIN_ID;
     record.marketId = vault.marketId;
@@ -68,9 +65,6 @@ export function recordLiquidityPremiumSharesMinted(
     record.createdAtTransactionHash = event.transaction.hash.toHexString();
     record.createdAtBlockNumber = event.block.number;
     record.createdAtBlockTimestamp = event.block.timestamp;
-    market.countLiquidityPremiumSharesMintedEntries = entryIndex.plus(
-      BigInt.fromI32(1)
-    );
   }
 
   record.accountAddress = holder.toHexString(); // invariantly the kernel (== marketId)

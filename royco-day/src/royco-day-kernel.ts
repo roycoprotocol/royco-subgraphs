@@ -115,8 +115,6 @@ export function handleLiquidityPremiumReinvested(
 
   if (!entry) {
     entry = new DayLiquidityPremiumReinvestedHistory(id);
-    const entryIndex = market.countLiquidityPremiumReinvestedEntries;
-    entry.entryIndex = entryIndex;
     entry.blockNumber = event.block.number;
     entry.chainId = CHAIN_ID;
     entry.marketId = market.marketId;
@@ -127,9 +125,6 @@ export function handleLiquidityPremiumReinvested(
     entry.createdAtTransactionHash = event.transaction.hash.toHexString();
     entry.createdAtBlockNumber = event.block.number;
     entry.createdAtBlockTimestamp = event.block.timestamp;
-    market.countLiquidityPremiumReinvestedEntries = entryIndex.plus(
-      BigInt.fromI32(1)
-    );
   }
 
   // REALISED amounts, and DELTAS — they accumulate within the block so the column still
@@ -206,8 +201,6 @@ export function handleLiquidityPremiumReinvestmentFailed(
 
   if (!entry) {
     entry = new DayLiquidityPremiumReinvestmentFailedHistory(id);
-    const entryIndex = market.countLiquidityPremiumReinvestmentFailedEntries;
-    entry.entryIndex = entryIndex;
     entry.blockNumber = event.block.number;
     entry.chainId = CHAIN_ID;
     entry.marketId = market.marketId;
@@ -217,9 +210,6 @@ export function handleLiquidityPremiumReinvestmentFailed(
     entry.createdAtTransactionHash = event.transaction.hash.toHexString();
     entry.createdAtBlockNumber = event.block.number;
     entry.createdAtBlockTimestamp = event.block.timestamp;
-    market.countLiquidityPremiumReinvestmentFailedEntries = entryIndex.plus(
-      BigInt.fromI32(1)
-    );
   }
 
   // An ATTEMPT and a BOUND, not realised amounts — but still per-event quantities, so
@@ -282,8 +272,8 @@ class SyncedState {
  *                                   carrying the settled state plus the `op` enum.
  *
  * THE COLLAPSE RULE: one DayTrancheAccountingSyncedHistory row per (market, block).
- * The first sync in a block creates it and takes the next entryIndex; every later sync
- * in that same block OVERWRITES it. So a swap-only block leaves a `preOp` row, and a
+ * The first sync in a block creates it; every later sync in that same block
+ * OVERWRITES it. So a swap-only block leaves a `preOp` row, and a
  * deposit block leaves a `postOp` row because the post-op fires second and wins.
  *
  * That is why the id is keyed by BLOCK NUMBER and why the entity is `immutable: false`
@@ -372,12 +362,6 @@ function recordSync(
     entry.marketId = market.marketId;
     entry.marketRefId = market.id;
     entry.blockNumber = event.block.number;
-    // entryIndex is assigned ONCE, on creation, and the cursor advances only here — so
-    // it stays dense and total == countTrancheAccountingSyncedEntries. An update must
-    // never touch either, or the count would exceed the row count.
-    entry.entryIndex = market.countTrancheAccountingSyncedEntries;
-    market.countTrancheAccountingSyncedEntries =
-      market.countTrancheAccountingSyncedEntries.plus(BigInt.fromI32(1));
     // createdAt* EXACTLY ONCE (§8) — the FIRST sync in this block. A block can span
     // several transactions, so this genuinely differs from updatedAt* when a swap and
     // a deposit share one.

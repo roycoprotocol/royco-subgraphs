@@ -57,19 +57,8 @@ export class MarketNavPrices {
 }
 
 /**
- * Write the market's price vector: upsert DayMarketNav, then append its immutable
+ * Write the market's price vector: upsert DayMarketNav, then upsert this block's
  * snapshot.
- *
- * THE CURSOR IS A LAST-INDEX, not a count. This row is born together with its
- * entry 0 (the factory writes both in one handler), so total snapshots ==
- * lastHistoricalEntryIndex + 1 and the order is increment-then-write. That is the
- * INVERSE of DayMarketState's `count*Entries` streams, which are born empty. Both
- * shapes are 0-based and dense; only the base value and the increment order differ
- * — see "ENTRY INDEX CURSOR" in schema.graphql.
- *
- * Hence the isNew branch: get it wrong and the first snapshot lands at entry 1,
- * entry 0 never exists, and the dense "total == cursor + 1" contract the schema
- * states is broken forever. Same shape as updatePosition and recordFeeSharesMinted.
  *
  * COLLAPSES PER BLOCK. The historical row is keyed by (market, block), so the first
  * write in a block creates it and every later one overwrites it — a deposit block, which
@@ -91,7 +80,6 @@ export function writeMarketNav(
 ): void {
   const id = generateMarketNavId(market.marketId);
   let nav = DayMarketNav.load(id);
-  const isNew = nav == null;
 
   if (!nav) {
     nav = new DayMarketNav(id);
@@ -145,15 +133,7 @@ export function writeMarketNav(
 
   if (!snapshot) {
     snapshot = new DayMarketNavHistorical(snapshotId);
-    // The cursor advances ONLY when a new block row is created. Bumping it on an update
-    // would push it past the row count permanently and put gaps in an index the schema
-    // promises is dense.
-    const entryIndex = isNew
-      ? BigInt.zero()
-      : nav.lastHistoricalEntryIndex.plus(BigInt.fromI32(1));
-    snapshot.entryIndex = entryIndex;
     snapshot.blockNumber = event.block.number;
-    nav.lastHistoricalEntryIndex = entryIndex;
     // createdAt* EXACTLY ONCE (§8) — the FIRST write in this block.
     snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
     snapshot.createdAtBlockNumber = event.block.number;

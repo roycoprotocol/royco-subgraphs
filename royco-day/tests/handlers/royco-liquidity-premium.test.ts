@@ -79,14 +79,13 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     clearStore();
   });
 
-  test("first mint opens the record stream at entry 0, market-keyed", () => {
+  test("first mint opens the record stream in its block's row, market-keyed", () => {
     deployMarket();
 
     emitPremium(BigInt.fromI32(500), TOTAL, ctx());
 
     const id = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 1);
-    assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", id, "entryIndex", "0");
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", id, "marketId", KERNEL);
     assert.fieldEquals(
       "DayLiquidityPremiumSharesMintedHistory",
@@ -119,15 +118,9 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     );
 
     // Cursor advanced 0 -> 1 (write-then-increment).
-    assert.fieldEquals(
-      "DayMarketState",
-      generateMarketId(KERNEL),
-      "countLiquidityPremiumSharesMintedEntries",
-      "1"
-    );
   });
 
-  test("each mint is a standalone record; the cursor climbs and earlier rows are frozen", () => {
+  test("a mint in a NEW BLOCK is its own record; earlier blocks' rows stay frozen", () => {
     // A record stream, NOT a fee: in a DIFFERENT block, `shares` is the second mint
     // alone rather than a running total, and the first block's row is untouched.
     // Distinct values so an overwrite or a cross-block accumulation would show.
@@ -144,17 +137,10 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     emitPremium(BigInt.fromI32(300), BigInt.fromI32(100_300), c2);
 
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 2);
-    assert.fieldEquals(
-      "DayMarketState",
-      generateMarketId(KERNEL),
-      "countLiquidityPremiumSharesMintedEntries",
-      "2"
-    );
 
     const e0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
     const e1 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER.plus(BigInt.fromI32(1)));
     // The second block's row holds that mint alone — a running total would read 800.
-    assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e1, "entryIndex", "1");
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e1, "shares", "300");
     assert.fieldEquals(
       "DayLiquidityPremiumSharesMintedHistory",
@@ -188,7 +174,7 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     assert.fieldEquals("DayVaultState", generateVaultId(SENIOR), "sharesTotalSupply", "0");
   });
 
-  test("a zero-share mint is skipped entirely — no record, cursor stays 0", () => {
+  test("a zero-share mint is skipped entirely — no record at all", () => {
     // The contract emits even when 0 shares were minted (the _mint is guarded, the
     // emit is not). A zero mint is not a premium event — it must not burn an
     // entryIndex on a no-op record.
@@ -197,12 +183,6 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     emitPremium(BigInt.zero(), TOTAL, ctx());
 
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 0);
-    assert.fieldEquals(
-      "DayMarketState",
-      generateMarketId(KERNEL),
-      "countLiquidityPremiumSharesMintedEntries",
-      "0"
-    );
   });
 
   test("an emit from an address with no DayVaultState is a no-op", () => {
@@ -223,12 +203,6 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     );
 
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 0);
-    assert.fieldEquals(
-      "DayMarketState",
-      generateMarketId(KERNEL),
-      "countLiquidityPremiumSharesMintedEntries",
-      "0"
-    );
   });
 
   test("two premium mints in ONE block collapse to one row whose shares SUM", () => {
@@ -247,15 +221,8 @@ describe("handleLiquidityPremiumSharesMinted", () => {
 
     // ONE row, and the count cursor advanced only once.
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 1);
-    assert.fieldEquals(
-      "DayMarketState",
-      generateMarketId(KERNEL),
-      "countLiquidityPremiumSharesMintedEntries",
-      "1"
-    );
 
     const e0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
-    assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e0, "entryIndex", "0");
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e0, "shares", "800");
     // Overwritten, NOT summed — 200300 would be a meaningless supply.
     assert.fieldEquals(

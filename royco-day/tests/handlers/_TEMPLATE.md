@@ -123,16 +123,18 @@ describe("handle<EVENT>", () => {
     );
   });
 
-  test("appends a historical snapshot and advances the cursor", () => {
-    // Creation snapshot is entry 0 and sets lastHistoricalEntryIndex = 0;
-    // each later snapshot writes +1. Total = lastHistoricalEntryIndex + 1.
-    // Delete this test if the handler writes no *Historical entity.
+  test("writes this block's historical row", () => {
+    // ONE ROW PER (subject, BLOCK): the first write in a block creates the row and
+    // every later write in that same block UPDATES it. There is no entryIndex and no
+    // parent cursor — order by `blockNumber`. See "BLOCK-KEYED HISTORY" in
+    // schema.graphql. Delete this test if the handler writes no *Historical entity.
+    //
+    // Worth a second test: fire twice in ONE block, assert entityCount stays 1 and
+    // that any DELTA column holds the SUM while snapshot columns hold the last value.
     const c = ctx();
     c.emitter = ADDR_SENIOR;
     handle<EVENT>(create<EVENT>Event(/* args */, c));
 
-    const parentId = generateVaultId(ADDR_SENIOR.toHexString());
-    assert.fieldEquals("<ENTITY>", parentId, "lastHistoricalEntryIndex", "0");
     assert.entityCount("<ENTITY>Historical", 1);
     assert.fieldEquals(
       "<ENTITY>Historical",

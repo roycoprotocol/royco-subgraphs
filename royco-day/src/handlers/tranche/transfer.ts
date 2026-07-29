@@ -45,9 +45,9 @@ export function processTransfer(
   // carry a guessed minorType and a permanently wrong marketId.
   if (!vault) return;
 
-  // ERC20 permits a zero-value transfer. The global rows below would be honest,
-  // but a position/vault write for a no-op burns a write-once entryIndex on a
-  // snapshot identical to its predecessor. Nothing downstream can tell them apart.
+  // ERC20 permits a zero-value transfer. The global rows below would be honest, but a
+  // position/vault write for a no-op would open a block row identical to the previous
+  // block's. Nothing downstream can tell them apart.
   if (value.isZero()) return;
 
   const fromAddress = from.toHexString();
@@ -111,10 +111,9 @@ export function processTransfer(
     addTransferActivity(transfer, SUB_CATEGORY_TRANSFER_IN, TOKEN_INDEX_SINGLE);
   }
 
-  // Supply moves only on mint/burn. A plain transfer must NOT touch the vault:
-  // the supply is unchanged, so a snapshot would duplicate the previous row and
-  // burn an entryIndex forever. Vault first, so the positions below derive from
-  // a fresh one.
+  // Supply moves only on mint/burn. A plain transfer must NOT touch the vault: the
+  // supply is unchanged, so a snapshot would just duplicate the previous row into this
+  // block. Vault first, so the positions below derive from a fresh one.
   if (subCategory == SUB_CATEGORY_MINT) {
     applySharesDelta(event, vault, value);
   } else if (subCategory == SUB_CATEGORY_BURN) {

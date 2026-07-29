@@ -442,36 +442,13 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("all six record cursors start at zero", () => {
-    // These are COUNTS, not last-indices: every record stream is born empty.
-    // A non-null field left unset is fatal at index time, not build time (§8).
+  test("the fixed-term record cursor starts at zero", () => {
+    // A COUNT, not a last-index: the stream is born empty. It is the ONLY cursor left
+    // — every other stream is keyed and ordered by block number. A non-null field left
+    // unset is fatal at index time, not build time (§8).
     deployStandard();
 
     assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "0");
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countYieldSharesAccruedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumSharesMintedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestmentFailedEntries",
-      "0"
-    );
   });
 
   test("writes exactly three DayVaultState, one per tranche", () => {
@@ -729,18 +706,15 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.fieldEquals("DayMarketNav", navId, "liquidityTrancheAssetPriceNAV", "3300");
   });
 
-  test("creation writes historical entry 0 and seeds the cursor to match", () => {
-    // The cursor contract: the creation snapshot IS entry 0, so
-    // lastHistoricalEntryIndex == 0 and total snapshots == cursor + 1. If
-    // creation wrote no snapshot, the first later one would write entry 1 and
-    // leave a hole at 0.
+  test("creation writes the vault's first historical row", () => {
+    // Creation must open the vault's row for its own block. If it wrote none, the
+    // stream would begin at the first mint instead and a market's opening state
+    // would be missing from Neon entirely.
     deployStandard();
 
     assert.entityCount("DayVaultStateHistorical", 3);
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "0");
 
     const snapshotId = generateVaultStateHistoricalId(ADDR_SENIOR.toHexString(), BLOCK_NUMBER);
-    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "entryIndex", "0");
     assert.fieldEquals("DayVaultStateHistorical", snapshotId, "vaultId", SENIOR_ID);
     assert.fieldEquals(
       "DayVaultStateHistorical",

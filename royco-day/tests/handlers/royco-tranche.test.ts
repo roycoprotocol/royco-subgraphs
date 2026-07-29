@@ -282,7 +282,6 @@ describe("processTransfer", () => {
       "sharesTotalSupply",
       MINT_AMOUNT.toString()
     );
-    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "entryIndex", "1");
     // The creation block's row still holds the pre-mint zero — the snapshot stream is a
     // real time series, not a repeated view of the latest state.
     assert.fieldEquals(
@@ -395,7 +394,6 @@ describe("processTransfer", () => {
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c));
     // 3 creation snapshots (one per tranche) + 1 for this mint, in its own block.
     assert.entityCount("DayVaultStateHistorical", 4);
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
 
     const half = MINT_AMOUNT.div(BigInt.fromI32(2));
     mockConvertToAssets(ADDR_SENIOR, half, claimsOf(4_500));
@@ -407,7 +405,6 @@ describe("processTransfer", () => {
 
     // A THIRD block went by and still no fourth senior row: the guard, not the key.
     assert.entityCount("DayVaultStateHistorical", 4);
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
   });
 
   test("a self-transfer writes NOTHING — not even the global rows", () => {
@@ -453,16 +450,10 @@ describe("processTransfer", () => {
       "shares",
       MINT_AMOUNT.toString()
     );
-    assert.fieldEquals(
-      "DayPositionState",
-      generatePositionStateId(ADDR_SENIOR.toHexString(), ALICE),
-      "lastHistoricalEntryIndex",
-      "0"
-    );
     assert.entityCount("DayPositionStateHistorical", 1);
   });
 
-  test("the position cursor starts at 0 and is dense", () => {
+  test("a position gets one row per BLOCK, starting at its first transfer", () => {
     // A position is born on its FIRST transfer, not seeded by the factory the way
     // a vault is — so its entry 0 is that first write. Getting this wrong writes
     // entry 1 first and leaves 0 absent forever. The rows are keyed by BLOCK, so the
@@ -491,28 +482,7 @@ describe("processTransfer", () => {
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c2));
 
     const positionId = generatePositionStateId(ADDR_SENIOR.toHexString(), ALICE);
-    assert.fieldEquals("DayPositionState", positionId, "lastHistoricalEntryIndex", "1");
     assert.entityCount("DayPositionStateHistorical", 2);
-    assert.fieldEquals(
-      "DayPositionStateHistorical",
-      generatePositionStateHistoricalId(
-        ADDR_SENIOR.toHexString(),
-        ALICE,
-        BLOCK_NUMBER
-      ),
-      "entryIndex",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayPositionStateHistorical",
-      generatePositionStateHistoricalId(
-        ADDR_SENIOR.toHexString(),
-        ALICE,
-        BLOCK_NUMBER.plus(BigInt.fromI32(1))
-      ),
-      "entryIndex",
-      "1"
-    );
   });
 
   test("a mint writes ONE activity; a plain transfer writes transferOut AND transferIn", () => {
@@ -870,45 +840,33 @@ describe("processRedeem", () => {
     assert.fieldEquals("DayVaultState", SENIOR_ID, "sharesTotalSupply", "0");
   });
 
-  test("the vault cursor does NOT advance on a same-block update, so entryIndex stays dense", () => {
-    // The cursor bump belongs to CREATING a block's row, not to writing one. If it fired
-    // on every write, a second mint in the same block would push the cursor to 2 while
-    // still only 2 rows existed, and the NEXT block's row would be stamped entryIndex 3 —
-    // a hole in the stream. Nothing errors; ordering and dense-index readers just break.
+  test("two mints in ONE block collapse to one row carrying the summed supply", () => {
+    // The collapse in both directions: two mints in ONE block must leave ONE row holding
+    // their SUM, and a mint in a NEW block must still open its own. Over-collapsing loses
+    // a block of history; under-collapsing puts two rows on one block and double-counts
+    // any reader that sums them.
     const market = DayMarketFixture.standard();
-    deployMarket(market); // creation row for BLOCK_NUMBER, entryIndex 0, cursor 0
+    deployMarket(market); // writes the creation block's row
 
     const c1 = ctx();
     c1.emitter = ADDR_SENIOR;
     c1.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c1));
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
 
-    // SECOND mint, SAME block: updates that row. The cursor must not move.
+    // SECOND mint, SAME block: must UPDATE that row, not add one.
     const c2 = ctx();
     c2.emitter = ADDR_SENIOR;
     c2.logIndex = BigInt.fromI32(2);
     c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_BOB, MINT_AMOUNT, c2));
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
 
-    // Third mint, NEW block: this is where the drift would surface as entryIndex 3.
+    // Third mint, NEW block: must open its own row.
     const c3 = ctx();
     c3.emitter = ADDR_SENIOR;
     c3.logIndex = BigInt.fromI32(3);
     c3.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(2));
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c3));
 
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "2");
-    assert.fieldEquals(
-      "DayVaultStateHistorical",
-      generateVaultStateHistoricalId(
-        ADDR_SENIOR.toHexString(),
-        BLOCK_NUMBER.plus(BigInt.fromI32(2))
-      ),
-      "entryIndex",
-      "2"
-    );
     // Three senior rows (one per block) + two untouched sibling creation rows.
     assert.entityCount("DayVaultStateHistorical", 5);
     // The collapsed block's row holds BOTH of its mints.
@@ -920,6 +878,16 @@ describe("processRedeem", () => {
       ),
       "sharesTotalSupply",
       MINT_AMOUNT.times(BigInt.fromI32(2)).toString()
+    );
+    // ...and the next block's row carries all three, so collapsing did not swallow it.
+    assert.fieldEquals(
+      "DayVaultStateHistorical",
+      generateVaultStateHistoricalId(
+        ADDR_SENIOR.toHexString(),
+        BLOCK_NUMBER.plus(BigInt.fromI32(2))
+      ),
+      "sharesTotalSupply",
+      MINT_AMOUNT.times(BigInt.fromI32(3)).toString()
     );
   });
 });

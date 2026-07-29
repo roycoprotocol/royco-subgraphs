@@ -24,9 +24,6 @@ export function snapshotVault(event: ethereum.Event, vault: DayVaultState): void
 
   if (!snapshot) {
     snapshot = new DayVaultStateHistorical(id);
-    // entryIndex is fixed at creation; the caller already advanced the cursor for a new
-    // block, and must NOT have advanced it for an update.
-    snapshot.entryIndex = vault.lastHistoricalEntryIndex;
     snapshot.blockNumber = event.block.number;
     snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
     snapshot.createdAtBlockNumber = event.block.number;
@@ -60,11 +57,14 @@ export function snapshotVault(event: ethereum.Event, vault: DayVaultState): void
  * this log index. It is also provably complete — every supply mutation routes
  * through ERC20._update and therefore emits Transfer.
  *
- * ZERO eth_calls. This used to refresh two AssetClaims quintuples (whose literal input
- * WAS sharesTotalSupply, so they had to move with it) and then just assetPriceNAV; all
- * of those columns are gone from DayVaultState, so there is nothing left to read from
- * chain here. Every price now lives on DayMarketNav. A mint or a burn is pure
- * bookkeeping: add the delta, stamp, snapshot.
+ * ZERO eth_calls, and now zero extra store reads. This used to refresh two AssetClaims
+ * quintuples (whose literal input WAS sharesTotalSupply, so they had to move with it)
+ * and then just assetPriceNAV; all of those columns are gone from DayVaultState, so
+ * there is nothing left to read from chain here. Every price now lives on DayMarketNav.
+ * It also used to load the block's snapshot just to decide whether to advance an
+ * entryIndex cursor — that cursor is gone too (see "BLOCK-KEYED HISTORY" in
+ * schema.graphql), so a mint or a burn is now pure bookkeeping: add the delta, stamp,
+ * snapshot.
  */
 export function applySharesDelta(
   event: ethereum.Event,
@@ -77,17 +77,6 @@ export function applySharesDelta(
   vault.updatedAtBlockNumber = event.block.number;
   vault.updatedAtBlockTimestamp = event.block.timestamp;
 
-  // Advance the cursor ONLY when this block has no row yet. A second mint in the same
-  // block updates the existing snapshot, and bumping here would push the cursor past
-  // the row count permanently (rule 2 of "BLOCK-KEYED HISTORY").
-  const existing = DayVaultStateHistorical.load(
-    generateVaultStateHistoricalId(vault.vaultAddress, event.block.number)
-  );
-  if (!existing) {
-    vault.lastHistoricalEntryIndex = vault.lastHistoricalEntryIndex.plus(
-      BigInt.fromI32(1)
-    );
-  }
   vault.save();
   snapshotVault(event, vault);
 }

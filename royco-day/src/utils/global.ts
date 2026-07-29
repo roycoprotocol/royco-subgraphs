@@ -12,9 +12,12 @@ import { CHAIN_ID } from "../constants";
 //   2. Addresses are lowercase hex WITH the 0x prefix, i.e. straight from
 //      `.toHexString()`. Never pass a checksummed address — ids won't match on
 //      load and you'll silently create a second entity.
-//   3. Every immutable entity's id MUST carry a per-write discriminator
-//      (entryIndex, or txHash+logIndex). See "ENTRY INDEX CURSOR" in
-//      schema.graphql.
+//   3. Every id MUST carry a discriminator that makes it unique per intended row.
+//      For the immutable activity streams that is txHash+logIndex; for the
+//      block-collapsed history tables it is the BLOCK NUMBER, and the collision
+//      between two writes in one block is the deliberate dedupe. Only
+//      DayFixedTermHistory still uses an entryIndex. See "BLOCK-KEYED HISTORY" and
+//      "ENTRY INDEX CURSOR" in schema.graphql.
 //   4. Built with .concat() — house style across this monorepo, and the AS
 //      compiler handles it predictably. See CLAUDE.md §3.
 // =============================================================================
@@ -41,15 +44,14 @@ export const generateMarketId = (kernelAddress: string): string => {
 // === RECORDS ===
 
 /**
- * The shared id shape for EVERY market-keyed record stream:
- *   <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
- * DayFixedTermHistory, DayLiquidityPremiumSharesMintedHistory, and the yield-share
- * accrual streams all key on it. One generator so the format lives in one place
- * (§8) — a stream that needs a different shape gets its own, not a tweak to this.
+ * DayFixedTermHistory.id = <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
  *
- * The entryIndex comes from that stream's DayMarketState.count*Entries cursor,
- * which is a COUNT and not a last-index: read it, use it, THEN increment (the
- * inverse of lastHistoricalEntryIndex). The record streams are born empty, so the
+ * THE ONLY REMAINING entryIndex-keyed id. Every other market-keyed stream moved to
+ * generateMarketBlockRecordId below; a fixed term OPENS in one block and CLOSES in a
+ * later one, so block keying would send the close to a different id and orphan it.
+ *
+ * The entryIndex comes from DayMarketState.countFixedTermEntries, which is a COUNT and
+ * not a last-index: read it, use it, THEN increment. The stream is born empty, so the
  * first entry is 0 and the count becomes 1. See "ENTRY INDEX CURSOR" in schema.graphql.
  *
  * `marketId` here is the bare KERNEL ADDRESS, not the composite <CHAIN>_<KERNEL>
@@ -81,18 +83,16 @@ export const generateMarketNavId = (marketId: string): string => {
 /**
  * DayMarketNavHistorical.id = <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
  *
- * KEYED BY BLOCK, not by entryIndex — the second of the two ids in this file that are
- * (see generateMarketBlockRecordId, which does the same for the sync stream). The nav
- * history collapses to one row per block, so both writes of a deposit block resolve to
- * the SAME id and the later one updates the earlier. That requires the entity to be
- * `immutable: false`; on an immutable entity the second save is fatal at index time.
+ * KEYED BY BLOCK. The nav history collapses to one row per block, so both writes of a
+ * deposit block resolve to the SAME id and the later one updates the earlier. That
+ * requires the entity to be `immutable: false`; on an immutable entity the second save
+ * is fatal at index time.
  *
- * `entryIndex` still exists on the row and is still dense — it is just no longer what
- * the id is built from. Read entryIndex for ordering, the id for lookup.
+ * Order these rows by `blockNumber` — there is no entryIndex on them.
  *
  * Same string SHAPE as generateMarketRecordId and generateMarketBlockRecordId, and
- * deliberately its own function: shape is not meaning, and which cursor (or block) fills
- * the last component is exactly the thing a call site must not have to guess.
+ * deliberately its own function: shape is not meaning, and whether an entryIndex or a
+ * block fills the last component is exactly what a call site must not have to guess.
  */
 export const generateMarketNavHistoricalId = (
   marketId: string,
@@ -116,7 +116,7 @@ export const generateMarketNavHistoricalId = (
  * schema.graphql.
  *
  * DayFixedTermHistory does NOT use this — a term spans blocks, so it keeps
- * generateMarketRecordId.
+ * generateMarketRecordId and is the last holder of an entryIndex.
  *
  * Pass the bare KERNEL ADDRESS (market.marketId), never the composite DayMarketState.id.
  */
@@ -165,9 +165,8 @@ export const generatePositionStateId = (
  * DayPositionStateHistorical.id
  *   = <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<BLOCK_NUMBER>
  *
- * The trailing entryIndex is what makes this immutable entity writable more than
- * once per account. The draft schema omitted it and would have died on the 2nd
- * snapshot for any position.
+ * Block-collapsed: several transfers can touch one account in a block and they all
+ * land on this one row, which keeps the END-of-block position.
  */
 export const generatePositionStateHistoricalId = (
   vaultAddress: string,
