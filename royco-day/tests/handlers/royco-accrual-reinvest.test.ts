@@ -8,16 +8,14 @@ import {
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
 import {
-  handleJuniorTrancheYieldShareAccrued,
-  handleLiquidityTrancheYieldShareAccrued,
+  handleYieldSharesAccrued,
 } from "../../src/royco-day-accountant";
 import {
   handleLiquidityPremiumReinvested,
   handleLiquidityPremiumReinvestmentFailed,
 } from "../../src/royco-day-kernel";
 import {
-  JuniorTrancheYieldShareAccrued,
-  LiquidityTrancheYieldShareAccrued,
+  YieldSharesAccrued,
 } from "../../generated/templates/RoycoDayAccountant/RoycoDayAccountant";
 import {
   LiquidityPremiumReinvested,
@@ -29,17 +27,19 @@ import {
 } from "../builders/factory";
 import {
   createTwoUintEvent,
+  createFourUintEvent,
   createTwoUintBytesEvent,
 } from "../builders/accountant";
 import { DayMarketFixture, mockDayMarket } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
+  BLOCK_NUMBER,
   ADDR_ACCOUNTANT,
   ADDR_DEPLOYER,
   ADDR_KERNEL,
   ADDR_TEMPLATE,
 } from "../helpers/constants";
-import { generateMarketId, generateMarketRecordId } from "../../src/utils";
+import { generateMarketId, generateMarketBlockRecordId } from "../../src/utils";
 
 // =============================================================================
 // The four remaining record streams:
@@ -54,8 +54,13 @@ import { generateMarketId, generateMarketRecordId } from "../../src/utils";
 
 const KERNEL = ADDR_KERNEL.toHexString();
 const MARKET_ID = generateMarketId(KERNEL);
-const ENTRY0 = generateMarketRecordId(KERNEL, BigInt.zero());
-const ENTRY1 = generateMarketRecordId(KERNEL, BigInt.fromI32(1));
+// These streams are BLOCK-KEYED now: one row per (market, block). ENTRY0 is the row
+// for the fixture's default block; ENTRY1 is the NEXT block's row.
+const ENTRY0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
+const ENTRY1 = generateMarketBlockRecordId(
+  KERNEL,
+  BLOCK_NUMBER.plus(BigInt.fromI32(1))
+);
 
 function deployMarket(): void {
   mockDayMarket(DayMarketFixture.standard());
@@ -83,120 +88,68 @@ function kernelCtx(): EventContext {
   return c;
 }
 
-describe("handleJuniorTrancheYieldShareAccrued", () => {
+describe("handleYieldSharesAccrued", () => {
   beforeEach(() => {
     clearStore();
   });
 
-  test("writes entry 0, advances the market's timeWeighted field, bumps the cursor", () => {
+  test("one event writes ONE row carrying BOTH tranches, and advances both fields", () => {
+    // v1 had two events, two handlers, two entities and two cursors. v2 emits a single
+    // YieldSharesAccrued with all four values, so a JT accrual can no longer be
+    // recorded without its LPT twin — the drift that was structurally possible before
+    // is now impossible.
     deployMarket();
 
-    handleJuniorTrancheYieldShareAccrued(
-      createTwoUintEvent<JuniorTrancheYieldShareAccrued>(
+    handleYieldSharesAccrued(
+      createFourUintEvent<YieldSharesAccrued>(
         "jtYieldShareWAD",
         BigInt.fromI32(11),
         "twJTYieldShareAccruedWAD",
         BigInt.fromI32(2200),
-        accountantCtx()
-      )
-    );
-
-    assert.entityCount("DayJuniorTrancheYieldSharesAccruedHistory", 1);
-    assert.fieldEquals("DayJuniorTrancheYieldSharesAccruedHistory", ENTRY0, "entryIndex", "0");
-    assert.fieldEquals("DayJuniorTrancheYieldSharesAccruedHistory", ENTRY0, "yieldShareWAD", "11");
-    assert.fieldEquals(
-      "DayJuniorTrancheYieldSharesAccruedHistory",
-      ENTRY0,
-      "timeWeightedYieldShareAccruedWAD",
-      "2200"
-    );
-    assert.fieldEquals("DayJuniorTrancheYieldSharesAccruedHistory", ENTRY0, "marketId", KERNEL);
-    // The un-freeze: the market field tracks the running total (seed was 8101).
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
-      "2200"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countJuniorTrancheYieldSharesAccruedEntries",
-      "1"
-    );
-  });
-
-  test("a second tick climbs the cursor + market field; entry 0 stays frozen", () => {
-    deployMarket();
-
-    handleJuniorTrancheYieldShareAccrued(
-      createTwoUintEvent<JuniorTrancheYieldShareAccrued>(
-        "jtYieldShareWAD",
-        BigInt.fromI32(11),
-        "twJTYieldShareAccruedWAD",
-        BigInt.fromI32(2200),
-        accountantCtx()
-      )
-    );
-
-    const c2 = accountantCtx();
-    c2.logIndex = ctx().logIndex.plus(BigInt.fromI32(2));
-    handleJuniorTrancheYieldShareAccrued(
-      createTwoUintEvent<JuniorTrancheYieldShareAccrued>(
-        "jtYieldShareWAD",
-        BigInt.fromI32(7),
-        "twJTYieldShareAccruedWAD",
-        BigInt.fromI32(2207),
-        c2
-      )
-    );
-
-    assert.entityCount("DayJuniorTrancheYieldSharesAccruedHistory", 2);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countJuniorTrancheYieldSharesAccruedEntries",
-      "2"
-    );
-    // Market field now holds the LATEST running total.
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
-      "2207"
-    );
-    // Entry 1 holds the second tick; entry 0 is untouched.
-    assert.fieldEquals("DayJuniorTrancheYieldSharesAccruedHistory", ENTRY1, "yieldShareWAD", "7");
-    assert.fieldEquals("DayJuniorTrancheYieldSharesAccruedHistory", ENTRY0, "yieldShareWAD", "11");
-  });
-});
-
-describe("handleLiquidityTrancheYieldShareAccrued", () => {
-  beforeEach(() => {
-    clearStore();
-  });
-
-  test("writes its OWN entity + timeWeighted field, not the junior twin's", () => {
-    // Guards against a copy-paste that writes the junior entity/field.
-    deployMarket();
-
-    handleLiquidityTrancheYieldShareAccrued(
-      createTwoUintEvent<LiquidityTrancheYieldShareAccrued>(
-        "ltYieldShareWAD",
+        "lptYieldShareWAD",
         BigInt.fromI32(33),
-        "twLTYieldShareAccruedWAD",
+        "twLPTYieldShareAccruedWAD",
         BigInt.fromI32(4400),
         accountantCtx()
       )
     );
 
-    assert.entityCount("DayLiquidityTrancheYieldSharesAccruedHistory", 1);
-    assert.fieldEquals("DayLiquidityTrancheYieldSharesAccruedHistory", ENTRY0, "yieldShareWAD", "33");
+    assert.entityCount("DayYieldSharesAccruedHistory", 1);
+    assert.fieldEquals("DayYieldSharesAccruedHistory", ENTRY0, "entryIndex", "0");
+    assert.fieldEquals("DayYieldSharesAccruedHistory", ENTRY0, "marketId", KERNEL);
+    // All four values land on their OWN column — distinct sentinels are the only thing
+    // separating four same-typed BigInts in one row.
     assert.fieldEquals(
-      "DayLiquidityTrancheYieldSharesAccruedHistory",
+      "DayYieldSharesAccruedHistory",
       ENTRY0,
-      "timeWeightedYieldShareAccruedWAD",
+      "juniorTrancheYieldShareWAD",
+      "11"
+    );
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      ENTRY0,
+      "juniorTrancheTimeWeightedYieldShareAccruedWAD",
+      "2200"
+    );
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      ENTRY0,
+      "liquidityTrancheYieldShareWAD",
+      "33"
+    );
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      ENTRY0,
+      "liquidityTrancheTimeWeightedYieldShareAccruedWAD",
       "4400"
+    );
+    // The un-freeze: BOTH market fields track their running totals (seeds were
+    // 8101 / 8103), advanced in the same write.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "2200"
     );
     assert.fieldEquals(
       "DayMarketState",
@@ -207,16 +160,84 @@ describe("handleLiquidityTrancheYieldShareAccrued", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "countLiquidityTrancheYieldSharesAccruedEntries",
+      "countYieldSharesAccruedEntries",
       "1"
     );
-    // The junior stream is untouched — the twins do not cross.
-    assert.entityCount("DayJuniorTrancheYieldSharesAccruedHistory", 0);
+  });
+
+  test("a second tick climbs the cursor + both market fields; entry 0 stays frozen", () => {
+    deployMarket();
+
+    handleYieldSharesAccrued(
+      createFourUintEvent<YieldSharesAccrued>(
+        "jtYieldShareWAD",
+        BigInt.fromI32(11),
+        "twJTYieldShareAccruedWAD",
+        BigInt.fromI32(2200),
+        "lptYieldShareWAD",
+        BigInt.fromI32(33),
+        "twLPTYieldShareAccruedWAD",
+        BigInt.fromI32(4400),
+        accountantCtx()
+      )
+    );
+
+    // A NEW BLOCK, not just a later log index: within one block the second tick would
+    // collapse into the first row (that is asserted separately below).
+    const c2 = accountantCtx();
+    c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    handleYieldSharesAccrued(
+      createFourUintEvent<YieldSharesAccrued>(
+        "jtYieldShareWAD",
+        BigInt.fromI32(7),
+        "twJTYieldShareAccruedWAD",
+        BigInt.fromI32(2207),
+        "lptYieldShareWAD",
+        BigInt.fromI32(9),
+        "twLPTYieldShareAccruedWAD",
+        BigInt.fromI32(4409),
+        c2
+      )
+    );
+
+    assert.entityCount("DayYieldSharesAccruedHistory", 2);
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countYieldSharesAccruedEntries",
+      "2"
+    );
+    // Market fields hold the LATEST running totals.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
       "timeWeightedJuniorTrancheYieldShareAccruedWAD",
-      "8101"
+      "2207"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedLiquidityTrancheYieldShareAccruedWAD",
+      "4409"
+    );
+    // Entry 1 holds the second tick; entry 0 is untouched (immutable).
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      ENTRY1,
+      "juniorTrancheYieldShareWAD",
+      "7"
+    );
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      ENTRY0,
+      "juniorTrancheYieldShareWAD",
+      "11"
+    );
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      ENTRY0,
+      "liquidityTrancheYieldShareWAD",
+      "33"
     );
   });
 });

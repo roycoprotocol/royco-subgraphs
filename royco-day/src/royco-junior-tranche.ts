@@ -35,9 +35,8 @@ export function handleDeposit(event: DepositEvent): void {
 
 export function handleRedeem(event: RedeemEvent): void {
   const claims = new RedeemClaims();
-  claims.stAssets = event.params.claims.stAssets;
-  claims.jtAssets = event.params.claims.jtAssets;
-  claims.ltAssets = event.params.claims.ltAssets;
+  claims.collateralAssets = event.params.claims.collateralAssets;
+  claims.lptAssets = event.params.claims.lptAssets;
   claims.stShares = event.params.claims.stShares;
   claims.nav = event.params.claims.nav;
 

@@ -5,7 +5,7 @@ import {
   DayVaultState,
 } from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
-import { generateMarketRecordId, generateVaultId } from "../../utils";
+import { generateMarketBlockRecordId, generateVaultId } from "../../utils";
 import { touchMarket } from "../base/resolve-market";
 
 /**
@@ -48,30 +48,41 @@ export function recordLiquidityPremiumSharesMinted(
   const market = DayMarketState.load(vault.marketRefId);
   if (!market) return;
 
-  // Use-then-increment: the count IS the next entryIndex, so the first mint is
-  // entry 0 and the count becomes 1.
-  const entryIndex = market.countLiquidityPremiumSharesMintedEntries;
+  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
+  const id = generateMarketBlockRecordId(vault.marketId, event.block.number);
+  let record = DayLiquidityPremiumSharesMintedHistory.load(id);
 
-  // Immutable (@entity(immutable: true)) — createdAt only, written once.
-  const record = new DayLiquidityPremiumSharesMintedHistory(
-    generateMarketRecordId(vault.marketId, entryIndex)
-  );
-  record.chainId = CHAIN_ID;
-  record.marketId = vault.marketId;
-  record.marketRefId = vault.marketRefId;
-  record.entryIndex = entryIndex;
-  record.vaultAddress = vaultAddress; // the senior tranche
-  record.vaultId = vault.id;
+  if (!record) {
+    record = new DayLiquidityPremiumSharesMintedHistory(id);
+    // Use-then-increment, and ONLY for a new block: the count IS the next entryIndex.
+    const entryIndex = market.countLiquidityPremiumSharesMintedEntries;
+    record.entryIndex = entryIndex;
+    record.blockNumber = event.block.number;
+    record.chainId = CHAIN_ID;
+    record.marketId = vault.marketId;
+    record.marketRefId = vault.marketRefId;
+    record.vaultAddress = vaultAddress; // the senior tranche
+    record.vaultId = vault.id;
+    // A DELTA — starts at zero and accumulates across this block's mints (see below).
+    record.shares = BigInt.zero();
+    record.createdAtTransactionHash = event.transaction.hash.toHexString();
+    record.createdAtBlockNumber = event.block.number;
+    record.createdAtBlockTimestamp = event.block.timestamp;
+    market.countLiquidityPremiumSharesMintedEntries = entryIndex.plus(
+      BigInt.fromI32(1)
+    );
+  }
+
   record.accountAddress = holder.toHexString(); // invariantly the kernel (== marketId)
-  record.shares = mintedShares; // <- ABI: mintedLiquidityPremiumShares
+  // `shares` is a DELTA, so it ACCUMULATES within the block: two premium mints in one
+  // block must still sum to the block's total. `sharesTotalSupply` is a SNAPSHOT of the
+  // senior supply after the mint, so the last one wins.
+  record.shares = record.shares.plus(mintedShares); // <- ABI: mintedLiquidityPremiumShares
   record.sharesTotalSupply = totalTrancheShares; // <- ABI: totalTrancheShares (senior total supply POST-mint)
-  record.createdAtTransactionHash = event.transaction.hash.toHexString();
-  record.createdAtBlockNumber = event.block.number;
-  record.createdAtBlockTimestamp = event.block.timestamp;
+  record.updatedAtTransactionHash = event.transaction.hash.toHexString();
+  record.updatedAtBlockNumber = event.block.number;
+  record.updatedAtBlockTimestamp = event.block.timestamp;
   record.save();
 
-  market.countLiquidityPremiumSharesMintedEntries = entryIndex.plus(
-    BigInt.fromI32(1)
-  );
   touchMarket(event, market);
 }

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: LicenseRef-PolyForm-Perimeter-1.0.1
 pragma solidity ^0.8.28;
 
 import { UUPSUpgradeable } from "../../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
@@ -9,7 +9,7 @@ import { RoycoAuth } from "../auth/RoycoAuth.sol";
  * @author Ankur Dubey, Shivaansh Kapoor
  * @notice Abstract base contract for upgradeable Royco protocol contracts
  * @dev Combines UUPS upgradeability with Royco's access control system
- * @dev All upgradeable Royco contracts (tranches, kernel, accountant) inherit from this base.
+ * @dev All upgradeable Royco contracts (tranches, kernel, accountant) inherit from this base
  */
 abstract contract RoycoBase is UUPSUpgradeable, RoycoAuth {
     /// @dev Thrown when the new implementation for this contract is invalid

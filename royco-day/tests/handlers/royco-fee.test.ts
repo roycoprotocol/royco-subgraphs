@@ -12,7 +12,7 @@ import { handleProtocolFeeSharesMinted as handleJuniorProtocolFee } from "../../
 import { handleProtocolFeeSharesMinted as handleLiquidityProtocolFee } from "../../src/royco-liquidity-tranche";
 import { ProtocolFeeSharesMinted as SeniorProtocolFee } from "../../generated/templates/RoycoSeniorTranche/RoycoSeniorTranche";
 import { ProtocolFeeSharesMinted as JuniorProtocolFee } from "../../generated/templates/RoycoJuniorTranche/RoycoJuniorTranche";
-import { ProtocolFeeSharesMinted as LiquidityProtocolFee } from "../../generated/templates/RoycoLiquidityTranche/RoycoLiquidityTranche";
+import { ProtocolFeeSharesMinted as LiquidityProtocolFee } from "../../generated/templates/RoycoLiquidityProviderTranche/RoycoLiquidityProviderTranche";
 import {
   DeploymentResult,
   createMarketDeploymentCompletedEvent,
@@ -27,6 +27,7 @@ import {
 import { Claims } from "../builders/shared";
 import { ctx } from "../helpers/event";
 import {
+  BLOCK_NUMBER,
   ADDR_ALICE,
   ADDR_DEPLOYER,
   ADDR_FEE_RECIPIENT,
@@ -88,9 +89,8 @@ function seniorFeeId(): string {
 /** A Claims whose nav is `nav`; the other four are distinct so a nav/other mixup shows. */
 function claimsWithNav(nav: i32): Claims {
   const c = new Claims();
-  c.stAssets = BigInt.fromI32(nav + 1);
-  c.jtAssets = BigInt.fromI32(nav + 2);
-  c.ltAssets = BigInt.fromI32(nav + 3);
+  c.collateralAssets = BigInt.fromI32(nav + 1);
+  c.lptAssets = BigInt.fromI32(nav + 3);
   c.stShares = BigInt.fromI32(nav + 4);
   c.nav = BigInt.fromI32(nav);
   return c;
@@ -135,7 +135,7 @@ describe("handleProtocolFeeSharesMinted", () => {
       RECIP,
       VAULT_MAJOR_TYPE,
       TRANCHE_TYPE_SENIOR,
-      BigInt.zero()
+      BLOCK_NUMBER
     );
     assert.entityCount("DayFeeStateHistorical", 1);
     assert.fieldEquals("DayFeeStateHistorical", snapId, "entryIndex", "0");
@@ -170,6 +170,9 @@ describe("handleProtocolFeeSharesMinted", () => {
     c2.emitter = ADDR_SENIOR;
     c2.logIndex = BigInt.fromI32(3);
     c2.txHash = TX_HASH_2;
+    // A NEW block, so this lands on its own row. Two mints in one block accumulate into
+    // a single row instead — see "two fees in ONE block".
+    c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     handleProtocolFeeSharesMinted(
       createProtocolFeeSharesMintedEvent<SeniorProtocolFee>(
         ADDR_FEE_RECIPIENT,
@@ -186,27 +189,27 @@ describe("handleProtocolFeeSharesMinted", () => {
     assert.fieldEquals("DayFeeState", id, "lastHistoricalEntryIndex", "1");
     assert.entityCount("DayFeeStateHistorical", 2);
 
-    // Entry 1: shares/nav are the DELTAS (300 / 2000), cumulative* the running
-    // totals (800 / 11000). An overwrite would show shares==800; a
+    // The second block's row: shares/nav are the DELTAS (300 / 2000), cumulative* the
+    // running totals (800 / 11000). An overwrite would show shares==800; a
     // SUM(cumulativeShares) reader would get 1300.
     const snap1 = generateFeeStateHistoricalId(
       ADDR_KERNEL.toHexString(),
       RECIP,
       VAULT_MAJOR_TYPE,
       TRANCHE_TYPE_SENIOR,
-      BigInt.fromI32(1)
+      BLOCK_NUMBER.plus(BigInt.fromI32(1))
     );
     assert.fieldEquals("DayFeeStateHistorical", snap1, "shares", "300");
     assert.fieldEquals("DayFeeStateHistorical", snap1, "cumulativeShares", "800");
     assert.fieldEquals("DayFeeStateHistorical", snap1, "nav", "2000");
     assert.fieldEquals("DayFeeStateHistorical", snap1, "cumulativeNav", "11000");
-    // Entry 0 still holds its own deltas — untouched by the second event.
+    // The first block's row still holds its own deltas — untouched by the second event.
     const snap0 = generateFeeStateHistoricalId(
       ADDR_KERNEL.toHexString(),
       RECIP,
       VAULT_MAJOR_TYPE,
       TRANCHE_TYPE_SENIOR,
-      BigInt.zero()
+      BLOCK_NUMBER
     );
     assert.fieldEquals("DayFeeStateHistorical", snap0, "shares", "500");
     assert.fieldEquals("DayFeeStateHistorical", snap0, "cumulativeShares", "500");
@@ -291,7 +294,7 @@ describe("handleProtocolFeeSharesMinted", () => {
       RECIP,
       VAULT_MAJOR_TYPE,
       TRANCHE_TYPE_SENIOR,
-      BigInt.zero()
+      BLOCK_NUMBER
     );
     assert.fieldEquals("DayFeeStateHistorical", snapId, "shares", "500");
     assert.fieldEquals("DayFeeStateHistorical", snapId, "cumulativeShares", "500");
@@ -400,5 +403,66 @@ describe("handleProtocolFeeSharesMinted", () => {
     );
     // Three distinct vault streams for one recipient — no cross-contamination.
     assert.entityCount("DayFeeState", 2);
+  });
+
+  test("two fees in ONE block collapse to one row whose deltas SUM", () => {
+    // The rule that makes block collapse safe for delta columns: `shares` and `nav` are
+    // per-event DELTAS, so the second write in a block ADDS to them. Plain last-write-wins
+    // would leave 300/2000 on the row and permanently lose the first mint's 500/9000 —
+    // SUM(shares) over the table would stop equalling the lifetime total, silently, with
+    // no error anywhere. cumulative* is a SNAPSHOT and is overwritten, not added.
+    deployMarket();
+
+    const first = BigInt.fromI32(500);
+    mockConvertToAssets(ADDR_SENIOR, first, claimsWithNav(9_000));
+    const c1 = ctx();
+    c1.emitter = ADDR_SENIOR;
+    handleProtocolFeeSharesMinted(
+      createProtocolFeeSharesMintedEvent<SeniorProtocolFee>(
+        ADDR_FEE_RECIPIENT,
+        first,
+        TOTAL,
+        c1
+      )
+    );
+
+    const second = BigInt.fromI32(300);
+    mockConvertToAssets(ADDR_SENIOR, second, claimsWithNav(2_000));
+    const c2 = ctx();
+    c2.emitter = ADDR_SENIOR;
+    c2.logIndex = BigInt.fromI32(3);
+    c2.txHash = TX_HASH_2;
+    // SAME block as c1 — deliberately. Only logIndex/txHash differ.
+    handleProtocolFeeSharesMinted(
+      createProtocolFeeSharesMintedEvent<SeniorProtocolFee>(
+        ADDR_FEE_RECIPIENT,
+        second,
+        TOTAL,
+        c2
+      )
+    );
+
+    // ONE row, and the cursor never moved off 0.
+    assert.entityCount("DayFeeStateHistorical", 1);
+    assert.fieldEquals("DayFeeState", seniorFeeId(), "lastHistoricalEntryIndex", "0");
+
+    const snap = generateFeeStateHistoricalId(
+      ADDR_KERNEL.toHexString(),
+      RECIP,
+      VAULT_MAJOR_TYPE,
+      TRANCHE_TYPE_SENIOR,
+      BLOCK_NUMBER
+    );
+    assert.fieldEquals("DayFeeStateHistorical", snap, "entryIndex", "0");
+    // DELTAS summed: 500+300, 9000+2000.
+    assert.fieldEquals("DayFeeStateHistorical", snap, "shares", "800");
+    assert.fieldEquals("DayFeeStateHistorical", snap, "nav", "11000");
+    // SNAPSHOTS overwritten to the latest running totals — which here happen to match,
+    // because the block holds the whole history. That is the invariant worth having:
+    // SUM(shares) across rows == the final cumulativeShares, always.
+    assert.fieldEquals("DayFeeStateHistorical", snap, "cumulativeShares", "800");
+    assert.fieldEquals("DayFeeStateHistorical", snap, "cumulativeNav", "11000");
+    assert.fieldEquals("DayFeeState", seniorFeeId(), "cumulativeShares", "800");
+    assert.fieldEquals("DayFeeState", seniorFeeId(), "cumulativeNav", "11000");
   });
 });

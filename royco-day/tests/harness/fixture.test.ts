@@ -39,15 +39,16 @@ describe("DayMarketFixture.standard()", () => {
 
     assert.assertTrue(m.accountantState.stProtocolFeeWAD.gt(BigInt.zero()));
     assert.assertTrue(m.accountantState.minCoverageWAD.gt(BigInt.zero()));
-    assert.assertTrue(m.trancheState.stRawNAV.gt(BigInt.zero()));
+    assert.assertTrue(m.trancheState.collateralNAV.gt(BigInt.zero()));
     assert.assertTrue(m.claims.nav.gt(BigInt.zero()));
     assert.assertTrue(m.totalTrancheShares.gt(BigInt.zero()));
 
-    // NAV should be the sum of the three tranche claims — if this drifts, every
-    // handler test built on the fixture is reasoning about an impossible market.
+    // NAV should be the sum of the TWO tranche asset claims — v2 merged the senior
+    // and junior legs into one collateral leg. If this drifts, every handler test
+    // built on the fixture is reasoning about an impossible market.
     assert.bigIntEquals(
       m.claims.nav,
-      m.claims.stAssets.plus(m.claims.jtAssets).plus(m.claims.ltAssets)
+      m.claims.collateralAssets.plus(m.claims.lptAssets)
     );
   });
 
@@ -71,15 +72,15 @@ describe("DayMarketFixture.standard()", () => {
     // All three tranche types are mocked — a handler reading TRANCHE_TYPE() and
     // passing it through will hit one of these whichever tranche it is.
     assert.bigIntEquals(
-      kernel.previewSyncTrancheAccounting(TRANCHE_SENIOR).value1.nav,
+      kernel.previewSyncTrancheAccountingFor(TRANCHE_SENIOR).value1.nav,
       m.claims.nav
     );
     assert.bigIntEquals(
-      kernel.previewSyncTrancheAccounting(TRANCHE_JUNIOR).value1.nav,
+      kernel.previewSyncTrancheAccountingFor(TRANCHE_JUNIOR).value1.nav,
       m.claims.nav
     );
     assert.bigIntEquals(
-      kernel.previewSyncTrancheAccounting(TRANCHE_LIQUIDITY).value1.nav,
+      kernel.previewSyncTrancheAccountingFor(TRANCHE_LIQUIDITY).value1.nav,
       m.claims.nav
     );
 
@@ -93,15 +94,11 @@ describe("DayMarketFixture.standard()", () => {
   test("mutating one field leaves the rest coherent", () => {
     // The intended usage pattern for handler tests.
     const m = DayMarketFixture.standard();
-    m.trancheState.jtCoinvested = true;
     m.accountantState.lastMarketState = 1; // "fixed"
     mockDayMarket(m);
 
-    const kernel = RoycoDayKernel.bind(m.kernel);
-    assert.booleanEquals(
-      kernel.previewSyncTrancheAccounting(TRANCHE_SENIOR).value0.jtCoinvested,
-      true
-    );
+    // v1 also asserted state.jtCoinvested survived the mutation; that member is gone
+    // from SyncedAccountingState in v2, so lastMarketState carries the check alone.
     assert.i32Equals(
       RoycoDayAccountant.bind(m.accountant).getState().lastMarketState,
       1

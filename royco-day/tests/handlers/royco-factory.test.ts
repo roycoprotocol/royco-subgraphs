@@ -11,11 +11,18 @@ import {
   DeploymentResult,
   createMarketDeploymentCompletedEvent,
 } from "../builders/factory";
-import { DayMarketFixture, mockDayMarket } from "../mocks";
+import {
+  DayMarketFixture,
+  mockDayMarket,
+  mockQuoteAssetReverts,
+} from "../mocks";
 import { ctx } from "../helpers/event";
 import {
   ADDR_ACCOUNTANT,
   ADDR_ASSET,
+  ADDR_LPT_ASSET,
+  ADDR_QUOTE_ASSET,
+  ADDR_ZERO,
   ADDR_DEPLOYER,
   ADDR_FEE_RECIPIENT,
   ADDR_JT_YDM,
@@ -34,6 +41,7 @@ import {
 } from "../helpers/constants";
 import {
   generateMarketId,
+  generateMarketNavId,
   generateTokenId,
   generateVaultId,
   generateVaultStateHistoricalId,
@@ -53,6 +61,7 @@ import {
 // =============================================================================
 
 const MARKET_ID = generateMarketId(ADDR_KERNEL.toHexString());
+const ADDR_ZERO_STR = ADDR_ZERO.toHexString();
 const SENIOR_ID = generateVaultId(ADDR_SENIOR.toHexString());
 const JUNIOR_ID = generateVaultId(ADDR_JUNIOR.toHexString());
 const LIQUIDITY_ID = generateVaultId(ADDR_LIQUIDITY.toHexString());
@@ -96,14 +105,14 @@ describe("handleMarketDeploymentCompleted", () => {
 
     assert.dataSourceCount("RoycoSeniorTranche", 1);
     assert.dataSourceCount("RoycoJuniorTranche", 1);
-    assert.dataSourceCount("RoycoLiquidityTranche", 1);
+    assert.dataSourceCount("RoycoLiquidityProviderTranche", 1);
     assert.dataSourceCount("RoycoDayAccountant", 1);
     assert.dataSourceCount("RoycoDayKernel", 1);
 
     // The counts alone survive a transposition — the addresses are the real check.
     assert.dataSourceExists("RoycoSeniorTranche", ADDR_SENIOR.toHexString());
     assert.dataSourceExists("RoycoJuniorTranche", ADDR_JUNIOR.toHexString());
-    assert.dataSourceExists("RoycoLiquidityTranche", ADDR_LIQUIDITY.toHexString());
+    assert.dataSourceExists("RoycoLiquidityProviderTranche", ADDR_LIQUIDITY.toHexString());
     assert.dataSourceExists("RoycoDayAccountant", ADDR_ACCOUNTANT.toHexString());
     assert.dataSourceExists("RoycoDayKernel", ADDR_KERNEL.toHexString());
   });
@@ -182,7 +191,7 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("`ydm` is the JUNIOR ydm and `ltYdm` is the liquidity one", () => {
+  test("`ydm` is the JUNIOR ydm and `lptYdm` is the liquidity one", () => {
     // The ABI names the junior tranche's YDM `ydm`, not `jtYdm` (CLAUDE.md §6).
     // Nothing but distinct sentinels catches this transposition — both fields are
     // plausible addresses either way round.
@@ -316,9 +325,7 @@ describe("handleMarketDeploymentCompleted", () => {
       "coverageLiquidationUtilizationWAD",
       "7101"
     );
-    assert.fieldEquals("DayMarketState", MARKET_ID, "seniorTrancheDustTolerance", "6101");
-    assert.fieldEquals("DayMarketState", MARKET_ID, "juniorTrancheDustTolerance", "6102");
-    assert.fieldEquals("DayMarketState", MARKET_ID, "effectiveNAVDustTolerance", "6103");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "dustTolerance", "6101");
     // uint32 -> BigInt, assigned direct. Note lastYieldShareAccruedTimestamp reads
     // from the ABI's lastYieldShareAccrualTimestamp — the names differ by design.
     assert.fieldEquals(
@@ -361,19 +368,13 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "seniorTrancheOwnedYieldBearingAssets",
+      "totalCollateralAssets",
       "5101"
     );
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheOwnedYieldBearingAssets",
-      "5102"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "liquidityTrancheOwnedYieldBearingAssets",
+      "totalLiquidityTrancheAssets",
       "5103"
     );
     assert.fieldEquals(
@@ -386,32 +387,20 @@ describe("handleMarketDeploymentCompleted", () => {
 
   test("previewSyncTrancheAccounting's tranche-independent state lands", () => {
     const market = DayMarketFixture.standard();
-    market.trancheState.jtCoinvested = true;
     deploy(market);
 
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "seniorTrancheRawNAV",
-      WAD.times(BigInt.fromI32(100)).toString()
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "juniorTrancheRawNAV",
-      WAD.times(BigInt.fromI32(50)).toString()
+      "collateralNAV",
+      // 150 = the v1 senior 100 + junior 50, now one merged collateral pool.
+      WAD.times(BigInt.fromI32(150)).toString()
     );
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
       "liquidityTrancheRawNAV",
       WAD.times(BigInt.fromI32(25)).toString()
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "isJuniorTrancheCoinvested",
-      "true"
     );
     // Effective NAV is a distinct member from raw NAV — the coverage model turns on
     // the difference, so equal fixture values would hide a mix-up.
@@ -430,7 +419,7 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageImpermanentLoss",
+      "juniorTrancheImpermanentLoss",
       "7201"
     );
     assert.fieldEquals(
@@ -462,13 +451,7 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "countJuniorTrancheYieldSharesAccruedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityTrancheYieldSharesAccruedEntries",
+      "countYieldSharesAccruedEntries",
       "0"
     );
     assert.fieldEquals(
@@ -552,28 +535,135 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("a market is born with zero supply and zero claims, calling nothing", () => {
-    // Both quintuples are provably zero at deployment: _scaleAssetClaims returns
-    // the zero struct whenever the tranche's total shares is zero, for ANY input.
-    // And supply IS zero — no _mint is reachable from deployMarket/initialize.
-    // So the factory does not call convertToAssets at all, and mockDayMarket
-    // deliberately does NOT mock it at 0: if this handler ever starts calling it
-    // again, these tests abort as unmocked rather than passing quietly.
+  test("a market is born with zero supply, and the vault has no claims at all", () => {
+    // Supply IS zero at deployment — no _mint is reachable from
+    // deployMarket/initialize — and DayVaultState no longer carries either
+    // AssetClaims quintuple, so the factory calls convertToAssets ZERO times per
+    // vault. mockDayMarket deliberately does not mock it at 0: if this handler ever
+    // starts calling it again, these tests abort as unmocked rather than passing
+    // quietly. The market-wide price vector is asserted on DayMarketNav instead —
+    // see tests/handlers/royco-market-nav.test.ts.
     deployStandard();
 
     assert.fieldEquals("DayVaultState", SENIOR_ID, "sharesTotalSupply", "0");
     assert.fieldEquals("DayVaultState", JUNIOR_ID, "sharesTotalSupply", "0");
     assert.fieldEquals("DayVaultState", LIQUIDITY_ID, "sharesTotalSupply", "0");
 
-    for (let i = 0; i < 3; i++) {
-      const id = i == 0 ? SENIOR_ID : i == 1 ? JUNIOR_ID : LIQUIDITY_ID;
-      assert.fieldEquals("DayVaultState", id, "claimsSeniorTrancheAssets", "0");
-      assert.fieldEquals("DayVaultState", id, "claimsJuniorTrancheAssets", "0");
-      assert.fieldEquals("DayVaultState", id, "claimsLiquidityTrancheAssets", "0");
-      assert.fieldEquals("DayVaultState", id, "claimsSeniorTrancheShares", "0");
-      assert.fieldEquals("DayVaultState", id, "claimsNAV", "0");
-      assert.fieldEquals("DayVaultState", id, "sharePriceNAV", "0");
-    }
+    // The vault carries NO price at all now — not claims*, not sharePrice*, not
+    // assetPriceNAV. Prices live only on DayMarketNav, which is asserted below and in
+    // tests/handlers/royco-market-nav.test.ts.
+  });
+
+  test("the three Kernel asset tokens land, each on its own pair of columns", () => {
+    // Three separate Kernel views, not getState() members. Six columns, and the ids
+    // must be chain-scoped rather than bare addresses.
+    deployStandard();
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralTokenAddress",
+      ADDR_ASSET.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralTokenId",
+      generateTokenId(ADDR_ASSET.toHexString())
+    );
+    // A DIFFERENT ERC20 from the collateral — the liquidity tranche has its own asset.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheAssetTokenAddress",
+      ADDR_LPT_ASSET.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheAssetTokenId",
+      generateTokenId(ADDR_LPT_ASSET.toHexString())
+    );
+    // And a third that belongs to NO tranche — this row is its only home.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "quoteAssetTokenAddress",
+      ADDR_QUOTE_ASSET.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "quoteAssetTokenId",
+      generateTokenId(ADDR_QUOTE_ASSET.toHexString())
+    );
+  });
+
+  test("collateral matches what the tranches report — the kernel's own invariant", () => {
+    // The kernel constructor REQUIRES senior.asset() == junior.asset() ==
+    // COLLATERAL_ASSET and liquidity.asset() == LPT_ASSET
+    // (TRANCHE_AND_KERNEL_ASSETS_MISMATCH). So these market-level columns are not
+    // independent of the per-vault ones, and asserting they agree is a real check on
+    // the handler having read the right getter for each — not a tautology, because the
+    // two values travel completely different paths: one via tranche.asset(), the other
+    // via Kernel.COLLATERAL_ASSET().
+    deployStandard();
+
+    assert.fieldEquals(
+      "DayVaultState",
+      SENIOR_ID,
+      "assetTokenAddress",
+      ADDR_ASSET.toHexString()
+    );
+    assert.fieldEquals(
+      "DayVaultState",
+      JUNIOR_ID,
+      "assetTokenAddress",
+      ADDR_ASSET.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralTokenAddress",
+      ADDR_ASSET.toHexString()
+    );
+  });
+
+  test("a reverting QUOTE_ASSET falls back to the zero address, not a dead handler", () => {
+    // QUOTE_ASSET is the ONE of the three read with try_: it is `virtual` and BODYLESS
+    // on the base kernel, concretised only by the liquidity venue, so a venue-less
+    // kernel variant need not implement it. A raw revert here would kill
+    // handleMarketDeploymentCompleted outright — no market, no vaults, no downstream
+    // rows, ever. This proves the market is still fully written.
+    const market = DayMarketFixture.standard();
+    mockDayMarket(market);
+    mockQuoteAssetReverts(market.kernel); // registered AFTER, so it wins
+
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    assert.entityCount("DayMarketState", 1);
+    assert.entityCount("DayVaultState", 3);
+    assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenAddress", ADDR_ZERO_STR);
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "quoteAssetTokenId",
+      generateTokenId(ADDR_ZERO_STR)
+    );
+    // The other two are raw reads and are unaffected.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralTokenAddress",
+      ADDR_ASSET.toHexString()
+    );
   });
 
   test("assetPriceNAV is priced in ASSET decimals, not share decimals", () => {
@@ -596,8 +686,7 @@ describe("handleMarketDeploymentCompleted", () => {
     const market = DayMarketFixture.standard();
     market.assetDecimals = DECIMALS_6;
     market.trancheDecimals = DECIMALS_18;
-    market.seniorAssetPriceNAV = BigInt.fromI32(9_100);
-    market.juniorAssetPriceNAV = BigInt.fromI32(9_200);
+    market.collateralAssetPriceNAV = BigInt.fromI32(9_100);
     market.liquidityAssetPriceNAV = BigInt.fromI32(9_300);
     deploy(market);
 
@@ -613,19 +702,31 @@ describe("handleMarketDeploymentCompleted", () => {
       "shareTokenDecimals",
       DECIMALS_18.toString()
     );
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "assetPriceNAV", "9100");
-    assert.fieldEquals("DayVaultState", JUNIOR_ID, "assetPriceNAV", "9200");
-    assert.fieldEquals("DayVaultState", LIQUIDITY_ID, "assetPriceNAV", "9300");
+    // The price itself lands on DayMarketNav — the vault stores none.
+    assert.fieldEquals(
+      "DayMarketNav",
+      generateMarketNavId(ADDR_KERNEL.toHexString()),
+      "collateralAssetPriceNAV",
+      "9100"
+    );
+    assert.fieldEquals(
+      "DayMarketNav",
+      generateMarketNavId(ADDR_KERNEL.toHexString()),
+      "liquidityTrancheAssetPriceNAV",
+      "9300"
+    );
   });
 
-  test("assetPriceNAV routes each tranche to its own Kernel converter", () => {
-    // st/jt/lt are three distinct Kernel methods and AS has no closures, so the
-    // dispatch is a hand-written if/else — exactly the shape that transposes.
+  test("the creation price vector routes collateral vs LPT to the right converter", () => {
+    // TWO distinct Kernel methods in v2 and AS has no closures, so the dispatch is a
+    // hand-written if/else — exactly the shape that transposes. Senior and junior SHARE
+    // the collateral converter; only the liquidity tranche takes the other branch, so
+    // this asserts the one boundary that can actually be crossed wrongly.
     deployStandard();
 
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "assetPriceNAV", "3100");
-    assert.fieldEquals("DayVaultState", JUNIOR_ID, "assetPriceNAV", "3200");
-    assert.fieldEquals("DayVaultState", LIQUIDITY_ID, "assetPriceNAV", "3300");
+    const navId = generateMarketNavId(ADDR_KERNEL.toHexString());
+    assert.fieldEquals("DayMarketNav", navId, "collateralAssetPriceNAV", "3100");
+    assert.fieldEquals("DayMarketNav", navId, "liquidityTrancheAssetPriceNAV", "3300");
   });
 
   test("creation writes historical entry 0 and seeds the cursor to match", () => {
@@ -638,10 +739,7 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.entityCount("DayVaultStateHistorical", 3);
     assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "0");
 
-    const snapshotId = generateVaultStateHistoricalId(
-      ADDR_SENIOR.toHexString(),
-      BigInt.zero()
-    );
+    const snapshotId = generateVaultStateHistoricalId(ADDR_SENIOR.toHexString(), BLOCK_NUMBER);
     assert.fieldEquals("DayVaultStateHistorical", snapshotId, "entryIndex", "0");
     assert.fieldEquals("DayVaultStateHistorical", snapshotId, "vaultId", SENIOR_ID);
     assert.fieldEquals(
@@ -656,29 +754,23 @@ describe("handleMarketDeploymentCompleted", () => {
   test("the creation snapshot mirrors its parent's values", () => {
     deployStandard();
 
-    const snapshotId = generateVaultStateHistoricalId(
-      ADDR_JUNIOR.toHexString(),
-      BigInt.zero()
-    );
+    const snapshotId = generateVaultStateHistoricalId(ADDR_JUNIOR.toHexString(), BLOCK_NUMBER);
     // Zero, and that is the point: entry 0 records a market with no shares yet.
-    // assetPriceNAV below is the one contract-sourced value that is NOT
-    // supply-scaled, so it is the field that proves the snapshot really copied
-    // the parent rather than defaulting everything.
     assert.fieldEquals(
       "DayVaultStateHistorical",
       snapshotId,
-      "claimsSeniorTrancheAssets",
+      "sharesTotalSupply",
       "0"
     );
-    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "claimsNAV", "0");
-    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "sharePriceNAV", "0");
-    // Junior's converter, not senior's or liquidity's — the snapshot copied the
-    // parent, and the parent routed to the right one of the three.
+    // With every price gone from this entity, `minorType` is what proves the snapshot
+    // copied ITS OWN parent rather than defaulting or copying a sibling: this id is the
+    // JUNIOR vault's, so a snapshot built from the senior row would read "senior" here.
+    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "minorType", "junior");
     assert.fieldEquals(
       "DayVaultStateHistorical",
       snapshotId,
-      "assetPriceNAV",
-      "3200"
+      "marketId",
+      ADDR_KERNEL.toHexString()
     );
   });
 
@@ -724,10 +816,7 @@ describe("handleMarketDeploymentCompleted", () => {
     );
 
     // Immutable entities carry createdAt* only — no updatedAt* to re-stamp.
-    const snapshotId = generateVaultStateHistoricalId(
-      ADDR_SENIOR.toHexString(),
-      BigInt.zero()
-    );
+    const snapshotId = generateVaultStateHistoricalId(ADDR_SENIOR.toHexString(), BLOCK_NUMBER);
     assert.fieldEquals(
       "DayVaultStateHistorical",
       snapshotId,

@@ -47,6 +47,14 @@ export function closeOpenFixedTerm(
   if (!entry.endBlockTimestamp.isZero()) return;
 
   entry.endBlockTimestamp = event.block.timestamp;
+  // The ONLY write of `duration`, deliberately in the same statement group as the close
+  // it is derived from — the two can never disagree, and the "first close wins" guard
+  // above covers both. Non-negative by construction: startBlockTimestamp came off
+  // FixedTermCommenced, which necessarily preceded this event.
+  //
+  // Zero is a legitimate value here (a term opened and closed in one block), which is
+  // exactly why the field is nullable rather than 0-sentinelled — see schema.graphql.
+  entry.duration = event.block.timestamp.minus(entry.startBlockTimestamp);
   entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
   entry.updatedAtBlockNumber = event.block.number;
   entry.updatedAtBlockTimestamp = event.block.timestamp;
@@ -54,12 +62,12 @@ export function closeOpenFixedTerm(
 }
 
 /**
- * Record the JT coverage impermanent loss that was erased when a term ended.
+ * Record the JT impermanent loss that was erased when a term ended.
  *
  * WHY THIS VALUE ONLY EXISTS IN THIS EVENT: the Accountant copies the loss into a
  * local and zeroes storage BEFORE it marshals `state`, so by the instant
- * FixedTermEnded fires, BOTH previewSyncTrancheAccounting().state
- * .jtCoverageImpermanentLoss AND getState().lastJTCoverageImpermanentLoss are
+ * FixedTermEnded fires, BOTH previewSyncTrancheAccountingFor().state
+ * .jtImpermanentLoss AND getState().lastJTImpermanentLoss are
  * already 0. The pre-erase number survives nowhere else.
  *
  * A BLIND PATCH CORRUPTS. The Reset has TWO emit sites with different guards, and
@@ -117,7 +125,7 @@ export function recordFixedTermCoverageLoss(
     return;
   }
 
-  entry.juniorTrancheCoverageImpermanentLossNAV = erased;
+  entry.juniorTrancheImpermanentLossNAV = erased;
   entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
   entry.updatedAtBlockNumber = event.block.number;
   entry.updatedAtBlockTimestamp = event.block.timestamp;

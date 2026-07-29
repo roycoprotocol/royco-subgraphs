@@ -10,6 +10,8 @@ import { Claims, TrancheState } from "../builders/shared";
 import {
   ADDR_ACCOUNTANT,
   ADDR_ASSET,
+  ADDR_LPT_ASSET,
+  ADDR_QUOTE_ASSET,
   ADDR_JUNIOR,
   ADDR_KERNEL,
   ADDR_LIQUIDITY,
@@ -18,9 +20,11 @@ import {
   WAD,
 } from "../helpers/constants";
 import {
-  ROYCO_DAY_KERNEL__JT_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS,
-  ROYCO_DAY_KERNEL__LT_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS,
-  ROYCO_DAY_KERNEL__ST_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS,
+  ROYCO_DAY_KERNEL__CONVERT_COLLATERAL_ASSETS_TO_VALUE,
+  ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE,
+  ROYCO_DAY_KERNEL__COLLATERAL_ASSET,
+  ROYCO_DAY_KERNEL__LPT_ASSET,
+  ROYCO_DAY_KERNEL__QUOTE_ASSET,
   ROYCO_SENIOR_TRANCHE__CONVERT_TO_ASSETS,
   ROYCO_SENIOR_TRANCHE__TRANCHE_TYPE,
 } from "../generated/abi-signatures";
@@ -28,13 +32,13 @@ import {
 export * from "./accountant";
 export * from "./kernel";
 
-// Tranche type selectors for previewSyncTrancheAccounting(uint8).
+// Tranche type selectors for previewSyncTrancheAccountingFor(uint8).
 // Inferred from the Kernel's SENIOR/JUNIOR/LIQUIDITY getter order — the ABI
 // carries no enum names. Production code must read TRANCHE_TYPE() rather than
 // hardcode these; they exist here only so fixtures can mock all three.
 export const TRANCHE_SENIOR: i32 = 0;
 export const TRANCHE_JUNIOR: i32 = 1;
-export const TRANCHE_LIQUIDITY: i32 = 2;
+export const TRANCHE_LIQUIDITY: i32 = 2; // TrancheType.LIQUIDITY_PROVIDER in v2
 
 /** Mock the ERC20-ish surface every tranche shares. */
 export function mockTrancheToken(
@@ -115,42 +119,78 @@ export function mockConvertToAssets(
 }
 
 /**
- * Mock the Kernel's three tranche-prefixed NAV-unit converters, which back
- * DayVaultState.assetPriceNAV.
+ * Mock the Kernel's TWO asset-scoped NAV-unit converters, which back
+ * DayVaultState.assetPriceNAV and DayMarketNav's asset prices.
  *
- * There is no bare `convertTrancheUnitsToNAVUnits` on any contract — only these
- * three, and only on the Kernel. Distinct return values per prefix are the point:
- * they are what makes an st/jt/lt dispatch transposition fail the test.
+ * v1 had three, one per tranche. v2 has two, because senior and junior are coinvested
+ * in ONE collateral asset and therefore share a converter — so a senior vault and a
+ * junior vault in the same market legitimately store the SAME assetPriceNAV. Distinct
+ * return values across the two are still the point: they are what makes a
+ * collateral/LPT dispatch transposition fail the test.
  */
 export function mockAssetPriceNAV(
   kernel: Address,
   oneAssetToken: BigInt,
-  stNAV: BigInt,
-  jtNAV: BigInt,
-  ltNAV: BigInt
+  collateralNAV: BigInt,
+  lptNAV: BigInt
 ): void {
   const arg = [ethereum.Value.fromUnsignedBigInt(oneAssetToken)];
   createMockedFunction(
     kernel,
-    "stConvertTrancheUnitsToNAVUnits",
-    ROYCO_DAY_KERNEL__ST_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS
+    "convertCollateralAssetsToValue",
+    ROYCO_DAY_KERNEL__CONVERT_COLLATERAL_ASSETS_TO_VALUE
   )
     .withArgs(arg)
-    .returns([ethereum.Value.fromUnsignedBigInt(stNAV)]);
+    .returns([ethereum.Value.fromUnsignedBigInt(collateralNAV)]);
   createMockedFunction(
     kernel,
-    "jtConvertTrancheUnitsToNAVUnits",
-    ROYCO_DAY_KERNEL__JT_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS
+    "convertLPTAssetsToValue",
+    ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE
   )
     .withArgs(arg)
-    .returns([ethereum.Value.fromUnsignedBigInt(jtNAV)]);
-  createMockedFunction(
-    kernel,
-    "ltConvertTrancheUnitsToNAVUnits",
-    ROYCO_DAY_KERNEL__LT_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS
-  )
-    .withArgs(arg)
-    .returns([ethereum.Value.fromUnsignedBigInt(ltNAV)]);
+    .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
+}
+
+/**
+ * Mock the Kernel's three asset-token views.
+ *
+ * All three are `immutable` on chain and have no event, so handleMarketDeploymentCompleted
+ * is the only place they are ever read — but it reads them unconditionally, so leaving
+ * any of the three unmocked aborts EVERY factory test with a "function not mocked" that
+ * reads like a logic bug.
+ *
+ * Distinct sentinels per token are the point: collateral and LPT are separate ERC20s in
+ * v2, and quote is a third that belongs to no tranche at all. Shared values would let a
+ * transposition among the three pass.
+ */
+export function mockKernelAssets(
+  kernel: Address,
+  collateralAsset: Address,
+  lptAsset: Address,
+  quoteAsset: Address
+): void {
+  createMockedFunction(kernel, "COLLATERAL_ASSET", ROYCO_DAY_KERNEL__COLLATERAL_ASSET)
+    .withArgs([])
+    .returns([ethereum.Value.fromAddress(collateralAsset)]);
+  createMockedFunction(kernel, "LPT_ASSET", ROYCO_DAY_KERNEL__LPT_ASSET)
+    .withArgs([])
+    .returns([ethereum.Value.fromAddress(lptAsset)]);
+  createMockedFunction(kernel, "QUOTE_ASSET", ROYCO_DAY_KERNEL__QUOTE_ASSET)
+    .withArgs([])
+    .returns([ethereum.Value.fromAddress(quoteAsset)]);
+}
+
+/**
+ * Make QUOTE_ASSET revert — a kernel variant with no liquidity venue.
+ *
+ * It is the ONE of the three read with try_, because it is `virtual` and bodyless on the
+ * base kernel. This exists so the zero-address fallback is actually exercised rather than
+ * merely asserted in a comment.
+ */
+export function mockQuoteAssetReverts(kernel: Address): void {
+  createMockedFunction(kernel, "QUOTE_ASSET", ROYCO_DAY_KERNEL__QUOTE_ASSET)
+    .withArgs([])
+    .reverts();
 }
 
 /**
@@ -166,6 +206,12 @@ export class DayMarketFixture {
   juniorTranche: Address = ADDR_JUNIOR;
   liquidityTranche: Address = ADDR_LIQUIDITY;
   asset: Address = ADDR_ASSET;
+  // The kernel's own view of the same tokens. `asset` above is what the TRANCHES
+  // report; the constructor requires senior.asset() == junior.asset() ==
+  // COLLATERAL_ASSET, so collateralAsset mirrors it deliberately.
+  collateralAsset: Address = ADDR_ASSET;
+  lptAsset: Address = ADDR_LPT_ASSET;
+  quoteAsset: Address = ADDR_QUOTE_ASSET;
   assetDecimals: i32 = DECIMALS_18;
   trancheDecimals: i32 = DECIMALS_18;
 
@@ -195,9 +241,8 @@ export class DayMarketFixture {
   juniorShareClaims: Claims = new Claims();
   liquidityShareClaims: Claims = new Claims();
 
-  /** kernel.{st,jt,lt}ConvertTrancheUnitsToNAVUnits(10 ** assetDecimals). */
-  seniorAssetPriceNAV: BigInt = BigInt.zero();
-  juniorAssetPriceNAV: BigInt = BigInt.zero();
+  /** kernel.convertCollateralAssetsToValue / convertLPTAssetsToValue(10 ** assetDecimals). */
+  collateralAssetPriceNAV: BigInt = BigInt.zero();
   liquidityAssetPriceNAV: BigInt = BigInt.zero();
 
   /**
@@ -225,34 +270,32 @@ export class DayMarketFixture {
     m.accountantState.lastYieldShareAccrualTimestamp = BigInt.fromI32(1_700_100_002);
     m.accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_100_003);
     m.accountantState.jtYieldShareProtocolFeeWAD = BigInt.fromI32(4_101);
-    m.accountantState.ltYieldShareProtocolFeeWAD = BigInt.fromI32(4_102);
+    m.accountantState.lptYieldShareProtocolFeeWAD = BigInt.fromI32(4_102);
     m.accountantState.twJTYieldShareAccruedWAD = BigInt.fromI32(8_101);
     m.accountantState.maxJTYieldShareWAD = BigInt.fromI32(8_102);
-    m.accountantState.twLTYieldShareAccruedWAD = BigInt.fromI32(8_103);
-    m.accountantState.maxLTYieldShareWAD = BigInt.fromI32(8_104);
+    m.accountantState.twLPTYieldShareAccruedWAD = BigInt.fromI32(8_103);
+    m.accountantState.maxLPTYieldShareWAD = BigInt.fromI32(8_104);
     m.accountantState.coverageLiquidationUtilizationWAD = BigInt.fromI32(7_101);
-    m.accountantState.stNAVDustTolerance = BigInt.fromI32(6_101);
-    m.accountantState.jtNAVDustTolerance = BigInt.fromI32(6_102);
-    m.accountantState.effectiveNAVDustTolerance = BigInt.fromI32(6_103);
+    m.accountantState.dustTolerance = BigInt.fromI32(6_101);
 
     m.kernelState.stSelfLiquidationBonusWAD = WAD.div(BigInt.fromI32(100));
     // Four adjacent st/jt/lt-prefixed BigInts — a rotation is undetectable
     // downstream, so they must not share a value.
-    m.kernelState.stOwnedYieldBearingAssets = BigInt.fromI32(5_101);
-    m.kernelState.jtOwnedYieldBearingAssets = BigInt.fromI32(5_102);
-    m.kernelState.ltOwnedYieldBearingAssets = BigInt.fromI32(5_103);
-    m.kernelState.ltOwnedSeniorTrancheShares = BigInt.fromI32(5_104);
+    m.kernelState.totalCollateralAssets = BigInt.fromI32(5_101);
+    m.kernelState.totalLPTAssets = BigInt.fromI32(5_103);
+    m.kernelState.lptOwnedSeniorTrancheShares = BigInt.fromI32(5_104);
+    m.kernelState.stalenessThresholdSeconds = BigInt.fromI32(5_201);
+    m.kernelState.gracePeriodSeconds = BigInt.fromI32(5_202);
 
     m.trancheState.marketState = 0;
-    m.trancheState.stRawNAV = WAD.times(BigInt.fromI32(100));
-    m.trancheState.jtRawNAV = WAD.times(BigInt.fromI32(50));
-    m.trancheState.ltRawNAV = WAD.times(BigInt.fromI32(25));
+    m.trancheState.collateralNAV = WAD.times(BigInt.fromI32(150));
+    m.trancheState.lptRawNAV = WAD.times(BigInt.fromI32(25));
     // Effective != raw. Equal values would let a raw/effective mix-up pass, and the
     // distinction is the whole point of the coverage model.
     m.trancheState.stEffectiveNAV = WAD.times(BigInt.fromI32(99));
     m.trancheState.jtEffectiveNAV = WAD.times(BigInt.fromI32(49));
-    m.trancheState.jtCoverageImpermanentLoss = BigInt.fromI32(7_201);
-    m.trancheState.ltLiquidityPremium = BigInt.fromI32(7_202);
+    m.trancheState.jtImpermanentLoss = BigInt.fromI32(7_201);
+    m.trancheState.lptLiquidityPremium = BigInt.fromI32(7_202);
     m.trancheState.coverageUtilizationWAD = WAD.div(BigInt.fromI32(2));
     m.trancheState.liquidityUtilizationWAD = WAD.div(BigInt.fromI32(4));
     // !! DELIBERATELY DIFFERENT from accountantState's min*WAD above. Both structs
@@ -266,9 +309,8 @@ export class DayMarketFixture {
     m.trancheState.minCoverageWAD = WAD.div(BigInt.fromI32(3));
     m.trancheState.minLiquidityWAD = WAD.div(BigInt.fromI32(5));
 
-    m.claims.stAssets = WAD.times(BigInt.fromI32(100));
-    m.claims.jtAssets = WAD.times(BigInt.fromI32(50));
-    m.claims.ltAssets = WAD.times(BigInt.fromI32(25));
+    m.claims.collateralAssets = WAD.times(BigInt.fromI32(150));
+    m.claims.lptAssets = WAD.times(BigInt.fromI32(25));
     m.claims.stShares = WAD.times(BigInt.fromI32(10));
     m.claims.nav = WAD.times(BigInt.fromI32(175));
 
@@ -285,8 +327,7 @@ export class DayMarketFixture {
     seedClaims(m.juniorShareClaims, 2_200);
     seedClaims(m.liquidityShareClaims, 2_300);
 
-    m.seniorAssetPriceNAV = BigInt.fromI32(3_100);
-    m.juniorAssetPriceNAV = BigInt.fromI32(3_200);
+    m.collateralAssetPriceNAV = BigInt.fromI32(3_100);
     m.liquidityAssetPriceNAV = BigInt.fromI32(3_300);
 
     return m;
@@ -294,18 +335,17 @@ export class DayMarketFixture {
 }
 
 /**
- * Fill a Claims with five distinct, traceable values: base+1 .. base+5.
+ * Fill a Claims with four distinct, traceable values: base+1 .. base+4.
  *
- * The five fields are all BigInt and all plausible, so a stAssets/jtAssets swap
+ * The four fields are all BigInt and all plausible, so a collateralAssets/lptAssets swap
  * is invisible unless every value differs. Reading 1_103 in a failure message
  * tells you exactly which field and which tranche you actually got.
  */
 function seedClaims(c: Claims, base: i32): void {
-  c.stAssets = BigInt.fromI32(base + 1);
-  c.jtAssets = BigInt.fromI32(base + 2);
-  c.ltAssets = BigInt.fromI32(base + 3);
-  c.stShares = BigInt.fromI32(base + 4);
-  c.nav = BigInt.fromI32(base + 5);
+  c.collateralAssets = BigInt.fromI32(base + 1);
+  c.lptAssets = BigInt.fromI32(base + 2);
+  c.stShares = BigInt.fromI32(base + 3);
+  c.nav = BigInt.fromI32(base + 4);
 }
 
 /**
@@ -373,12 +413,13 @@ export function mockDayMarket(m: DayMarketFixture): void {
   mockAssetPriceNAV(
     m.kernel,
     BigInt.fromI32(10).pow(u8(m.assetDecimals)),
-    m.seniorAssetPriceNAV,
-    m.juniorAssetPriceNAV,
+    m.collateralAssetPriceNAV,
     m.liquidityAssetPriceNAV
   );
 
   mockAssetToken(m.asset, m.assetDecimals);
+
+  mockKernelAssets(m.kernel, m.collateralAsset, m.lptAsset, m.quoteAsset);
 }
 
 /**
@@ -399,7 +440,7 @@ export function mockConvertToAssetsReverts(tranche: Address, shares: BigInt): vo
     .reverts();
 }
 
-/** Make all three Kernel NAV converters REVERT for one input. */
+/** Make both Kernel NAV converters REVERT for one input. */
 export function mockAssetPriceNAVReverts(
   kernel: Address,
   oneAssetToken: BigInt
@@ -407,22 +448,15 @@ export function mockAssetPriceNAVReverts(
   const arg = [ethereum.Value.fromUnsignedBigInt(oneAssetToken)];
   createMockedFunction(
     kernel,
-    "stConvertTrancheUnitsToNAVUnits",
-    ROYCO_DAY_KERNEL__ST_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS
+    "convertCollateralAssetsToValue",
+    ROYCO_DAY_KERNEL__CONVERT_COLLATERAL_ASSETS_TO_VALUE
   )
     .withArgs(arg)
     .reverts();
   createMockedFunction(
     kernel,
-    "jtConvertTrancheUnitsToNAVUnits",
-    ROYCO_DAY_KERNEL__JT_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS
-  )
-    .withArgs(arg)
-    .reverts();
-  createMockedFunction(
-    kernel,
-    "ltConvertTrancheUnitsToNAVUnits",
-    ROYCO_DAY_KERNEL__LT_CONVERT_TRANCHE_UNITS_TO_NAV_UNITS
+    "convertLPTAssetsToValue",
+    ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE
   )
     .withArgs(arg)
     .reverts();

@@ -8,7 +8,7 @@ import {
   createMarketDeploymentCompletedEvent,
   DeploymentResult,
 } from "../builders/factory";
-import { createTrancheAccountingSyncedEvent } from "../builders/accountant";
+import { createPreOpSyncEvent, createPostOpSyncEvent } from "../builders/kernel";
 import { createRedeemEvent, createMultiAssetRedeemEvent } from "../builders/tranche";
 import { Claims, TrancheState } from "../builders/shared";
 import { ctx } from "../helpers/event";
@@ -28,7 +28,7 @@ import {
   TX_HASH,
 } from "../helpers/constants";
 import { Redeem as SeniorRedeem } from "../../generated/templates/RoycoSeniorTranche/RoycoSeniorTranche";
-import { MultiAssetRedeem } from "../../generated/templates/RoycoLiquidityTranche/RoycoLiquidityTranche";
+import { MultiAssetRedeem } from "../../generated/templates/RoycoLiquidityProviderTranche/RoycoLiquidityProviderTranche";
 
 // =============================================================================
 // Round-trip tests: build an event with our builders, then read it back through
@@ -62,13 +62,13 @@ describe("MarketDeploymentCompleted builder", () => {
     const r = event.params.result;
     assert.addressEquals(r.seniorTranche, ADDR_SENIOR);
     assert.addressEquals(r.juniorTranche, ADDR_JUNIOR);
-    assert.addressEquals(r.liquidityTranche, ADDR_LIQUIDITY);
+    assert.addressEquals(r.liquidityProviderTranche, ADDR_LIQUIDITY);
     assert.addressEquals(r.kernel, ADDR_KERNEL);
     assert.addressEquals(r.accountant, ADDR_ACCOUNTANT);
     assert.stringEquals(r.extras.toHexString(), "0xdeadbeef");
   });
 
-  test("`ydm` is the JUNIOR ydm and `ltYdm` is the liquidity ydm", () => {
+  test("`ydm` is the JUNIOR ydm and `lptYdm` is the liquidity ydm", () => {
     // The ABI names the junior YDM `ydm`, not `jtYdm` — the single easiest
     // transposition in this event, and it would be invisible in production.
     const r = createMarketDeploymentCompletedEvent(
@@ -79,7 +79,7 @@ describe("MarketDeploymentCompleted builder", () => {
     ).params.result;
 
     assert.addressEquals(r.ydm, ADDR_JT_YDM);
-    assert.addressEquals(r.ltYdm, ADDR_LT_YDM);
+    assert.addressEquals(r.lptYdm, ADDR_LT_YDM);
   });
 
   test("applyCtx overrides matchstick's 20-byte default tx hash", () => {
@@ -98,47 +98,43 @@ describe("MarketDeploymentCompleted builder", () => {
   });
 });
 
-describe("TrancheAccountingSynced builder", () => {
-  test("all 18 TrancheState fields decode to the right getters", () => {
+describe("kernel sync builders", () => {
+  test("all 16 SyncedAccountingState fields decode to the right getters", () => {
     const s = new TrancheState();
     // One distinct sentinel per index — identical values would hide a swap.
     s.marketState = 1; //  0 uint8 -> i32
-    s.stRawNAV = BigInt.fromI32(1001); //  1
-    s.jtRawNAV = BigInt.fromI32(1002); //  2
-    s.ltRawNAV = BigInt.fromI32(1003); //  3
+    s.collateralNAV = BigInt.fromI32(1001); //  1
+    s.lptRawNAV = BigInt.fromI32(1003); //  3
     s.stEffectiveNAV = BigInt.fromI32(1004); //  4
     s.jtEffectiveNAV = BigInt.fromI32(1005); //  5
-    s.jtCoverageImpermanentLoss = BigInt.fromI32(1006); //  6
-    s.ltLiquidityPremium = BigInt.fromI32(1007); //  7
+    s.jtImpermanentLoss = BigInt.fromI32(1006); //  6
+    s.lptLiquidityPremium = BigInt.fromI32(1007); //  7
     s.stProtocolFee = BigInt.fromI32(1008); //  8
     s.jtProtocolFee = BigInt.fromI32(1009); //  9
-    s.ltProtocolFee = BigInt.fromI32(1010); // 10
+    s.lptProtocolFee = BigInt.fromI32(1010); // 10
     s.coverageUtilizationWAD = BigInt.fromI32(1011); // 11
     s.liquidityUtilizationWAD = BigInt.fromI32(1012); // 12
     s.fixedTermEndTimestamp = BigInt.fromI32(1013); // 13 uint32 -> BigInt
     s.minCoverageWAD = BigInt.fromI32(1014); // 14
-    s.jtCoinvested = true; // 15
     s.coverageLiquidationUtilizationWAD = BigInt.fromI32(1016); // 16
     s.minLiquidityWAD = BigInt.fromI32(1017); // 17
 
-    const p = createTrancheAccountingSyncedEvent(s, ctx()).params.resultingState;
+    const p = createPreOpSyncEvent(s, ctx()).params.resultingState;
 
     assert.i32Equals(p.marketState, 1);
-    assert.bigIntEquals(p.stRawNAV, BigInt.fromI32(1001));
-    assert.bigIntEquals(p.jtRawNAV, BigInt.fromI32(1002));
-    assert.bigIntEquals(p.ltRawNAV, BigInt.fromI32(1003));
+    assert.bigIntEquals(p.collateralNAV, BigInt.fromI32(1001));
+    assert.bigIntEquals(p.lptRawNAV, BigInt.fromI32(1003));
     assert.bigIntEquals(p.stEffectiveNAV, BigInt.fromI32(1004));
     assert.bigIntEquals(p.jtEffectiveNAV, BigInt.fromI32(1005));
-    assert.bigIntEquals(p.jtCoverageImpermanentLoss, BigInt.fromI32(1006));
-    assert.bigIntEquals(p.ltLiquidityPremium, BigInt.fromI32(1007));
+    assert.bigIntEquals(p.jtImpermanentLoss, BigInt.fromI32(1006));
+    assert.bigIntEquals(p.lptLiquidityPremium, BigInt.fromI32(1007));
     assert.bigIntEquals(p.stProtocolFee, BigInt.fromI32(1008));
     assert.bigIntEquals(p.jtProtocolFee, BigInt.fromI32(1009));
-    assert.bigIntEquals(p.ltProtocolFee, BigInt.fromI32(1010));
+    assert.bigIntEquals(p.lptProtocolFee, BigInt.fromI32(1010));
     assert.bigIntEquals(p.coverageUtilizationWAD, BigInt.fromI32(1011));
     assert.bigIntEquals(p.liquidityUtilizationWAD, BigInt.fromI32(1012));
     assert.bigIntEquals(p.fixedTermEndTimestamp, BigInt.fromI32(1013));
     assert.bigIntEquals(p.minCoverageWAD, BigInt.fromI32(1014));
-    assert.booleanEquals(p.jtCoinvested, true);
     assert.bigIntEquals(
       p.coverageLiquidationUtilizationWAD,
       BigInt.fromI32(1016)
@@ -148,13 +144,12 @@ describe("TrancheAccountingSynced builder", () => {
 });
 
 describe("Claims-carrying events", () => {
-  test("Redeem: claims at index 2, all 5 fields in order", () => {
+  test("Redeem: claims at index 2, all 4 fields in order", () => {
     const claims = new Claims();
-    claims.stAssets = BigInt.fromI32(2001);
-    claims.jtAssets = BigInt.fromI32(2002);
-    claims.ltAssets = BigInt.fromI32(2003);
-    claims.stShares = BigInt.fromI32(2004);
-    claims.nav = BigInt.fromI32(2005);
+    claims.collateralAssets = BigInt.fromI32(2001);
+    claims.lptAssets = BigInt.fromI32(2002);
+    claims.stShares = BigInt.fromI32(2003);
+    claims.nav = BigInt.fromI32(2004);
 
     const event = createRedeemEvent<SeniorRedeem>(
       ADDR_ALICE,
@@ -167,20 +162,18 @@ describe("Claims-carrying events", () => {
     assert.addressEquals(event.params.sender, ADDR_ALICE);
     assert.addressEquals(event.params.receiver, ADDR_BOB);
     assert.bigIntEquals(event.params.shares, BigInt.fromI32(2099));
-    assert.bigIntEquals(event.params.claims.stAssets, BigInt.fromI32(2001));
-    assert.bigIntEquals(event.params.claims.jtAssets, BigInt.fromI32(2002));
-    assert.bigIntEquals(event.params.claims.ltAssets, BigInt.fromI32(2003));
-    assert.bigIntEquals(event.params.claims.stShares, BigInt.fromI32(2004));
-    assert.bigIntEquals(event.params.claims.nav, BigInt.fromI32(2005));
+    assert.bigIntEquals(event.params.claims.collateralAssets, BigInt.fromI32(2001));
+    assert.bigIntEquals(event.params.claims.lptAssets, BigInt.fromI32(2002));
+    assert.bigIntEquals(event.params.claims.stShares, BigInt.fromI32(2003));
+    assert.bigIntEquals(event.params.claims.nav, BigInt.fromI32(2004));
   });
 
   test("MultiAssetRedeem: claims at index 4 — AFTER shares, unlike Redeem", () => {
     const claims = new Claims();
-    claims.stAssets = BigInt.fromI32(3001);
-    claims.jtAssets = BigInt.fromI32(3002);
-    claims.ltAssets = BigInt.fromI32(3003);
-    claims.stShares = BigInt.fromI32(3004);
-    claims.nav = BigInt.fromI32(3005);
+    claims.collateralAssets = BigInt.fromI32(3001);
+    claims.lptAssets = BigInt.fromI32(3002);
+    claims.stShares = BigInt.fromI32(3003);
+    claims.nav = BigInt.fromI32(3004);
 
     const event = createMultiAssetRedeemEvent<MultiAssetRedeem>(
       ADDR_ALICE,
@@ -194,7 +187,7 @@ describe("Claims-carrying events", () => {
 
     assert.bigIntEquals(event.params.shares, BigInt.fromI32(3098));
     assert.bigIntEquals(event.params.quoteAssets, BigInt.fromI32(3099));
-    assert.bigIntEquals(event.params.stClaims.stAssets, BigInt.fromI32(3001));
-    assert.bigIntEquals(event.params.stClaims.nav, BigInt.fromI32(3005));
+    assert.bigIntEquals(event.params.stClaims.collateralAssets, BigInt.fromI32(3001));
+    assert.bigIntEquals(event.params.stClaims.nav, BigInt.fromI32(3004));
   });
 });

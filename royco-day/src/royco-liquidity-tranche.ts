@@ -5,7 +5,7 @@ import {
   ProtocolFeeSharesMinted as ProtocolFeeSharesMintedEvent,
   MultiAssetDeposit as MultiAssetDepositEvent,
   MultiAssetRedeem as MultiAssetRedeemEvent,
-} from "../generated/templates/RoycoLiquidityTranche/RoycoLiquidityTranche";
+} from "../generated/templates/RoycoLiquidityProviderTranche/RoycoLiquidityProviderTranche";
 import {
   RedeemClaims,
   processDeposit,
@@ -27,7 +27,7 @@ import {
  * class. See the full note in src/royco-senior-tranche.ts.
  *
  * NO LT SPECIAL-CASING in the shared handlers, on purpose. convertToAssets zeroes
- * claims.stShares and substitutes ltRawNAV for claims.nav on the LT and only the
+ * claims.stShares and substitutes lptRawNAV for claims.nav on the LPT and only the
  * LT — that asymmetry is the CONTRACT's answer and is copied through verbatim,
  * exactly as the factory's creation path already does. A zero
  * claimsSeniorTrancheShares on an LT row is correct, not missing data. See §6.
@@ -59,9 +59,8 @@ export function handleDeposit(event: DepositEvent): void {
 
 export function handleRedeem(event: RedeemEvent): void {
   const claims = new RedeemClaims();
-  claims.stAssets = event.params.claims.stAssets;
-  claims.jtAssets = event.params.claims.jtAssets;
-  claims.ltAssets = event.params.claims.ltAssets;
+  claims.collateralAssets = event.params.claims.collateralAssets;
+  claims.lptAssets = event.params.claims.lptAssets;
   claims.stShares = event.params.claims.stShares;
   claims.nav = event.params.claims.nav;
 
@@ -86,9 +85,9 @@ export function handleMultiAssetDeposit(event: MultiAssetDepositEvent): void {
     event,
     event.params.caller,
     event.params.receiver,
-    event.params.stAssets,
+    event.params.collateralAssets,
     event.params.quoteAssets,
-    event.params.ltAssetsMinted,
+    event.params.lptAssetsMinted,
     event.params.shares
   );
 }
@@ -98,9 +97,8 @@ export function handleMultiAssetRedeem(event: MultiAssetRedeemEvent): void {
   // reads its five members positionally, so decoding here (not across the shared
   // boundary) keeps the §6 quintuple under the right slots. See handleRedeem.
   const claims = new RedeemClaims();
-  claims.stAssets = event.params.stClaims.stAssets;
-  claims.jtAssets = event.params.stClaims.jtAssets;
-  claims.ltAssets = event.params.stClaims.ltAssets;
+  claims.collateralAssets = event.params.stClaims.collateralAssets;
+  claims.lptAssets = event.params.stClaims.lptAssets;
   claims.stShares = event.params.stClaims.stShares;
   claims.nav = event.params.stClaims.nav;
 

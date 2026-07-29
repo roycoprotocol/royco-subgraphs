@@ -19,10 +19,10 @@ import { RedeemClaims } from "../tranche";
  *
  * OWNS THE ACTIVITY ROW ONLY — never shares/positions/supply. Both flows emit their
  * own share Transfer at a LOWER log index (deposit: _mint(receiver) at
- * RoycoLiquidityTranche.sol:73; redeem: _burn(owner) at :105), so processTransfer
+ * RoycoLiquidityProviderTranche.sol; redeem: _burn(owner)), so processTransfer
  * has already written the position and the supply delta. Re-booking here would
- * double-count. The underlying asset legs (ST/quote/LT on deposit, the ST/JT claim
- * legs + quote on redeem) move on ERC20s this subgraph does not index, so these rows
+ * double-count. The underlying asset legs (collateral/quote/LPT on deposit, the collateral claim
+ * leg + quote on redeem) move on ERC20s this subgraph does not index, so these rows
  * are their sole on-subgraph record. `shares` is guaranteed > 0 by the contract
  * (require on both paths), so every emitted event is a real deposit/redeem.
  */
@@ -30,9 +30,9 @@ export function recordMultiAssetDeposit(
   event: ethereum.Event,
   caller: Address,
   receiver: Address,
-  stAssets: BigInt,
+  collateralAssets: BigInt,
   quoteAssets: BigInt,
-  ltAssetsMinted: BigInt,
+  lptAssetsMinted: BigInt,
   shares: BigInt
 ): void {
   const vaultAddress = event.address.toHexString(); // the liquidity tranche
@@ -52,9 +52,9 @@ export function recordMultiAssetDeposit(
   activity.vaultId = vault.id;
   activity.accountAddress = receiver.toHexString(); // share-side: LT shares minted to receiver
   activity.callerAddress = caller.toHexString(); // msg.sender (may be a router/zap)
-  activity.seniorTrancheAssets = stAssets; // <- ABI: stAssets (raw, pulled IN)
+  activity.collateralAssets = collateralAssets; // <- ABI: collateralAssets (raw, pulled IN)
   activity.quoteAssets = quoteAssets; // <- ABI: quoteAssets (raw, pulled IN)
-  activity.liquidityTrancheAssetsMinted = ltAssetsMinted; // <- ABI: ltAssetsMinted
+  activity.liquidityTrancheAssetsMinted = lptAssetsMinted; // <- ABI: lptAssetsMinted
   activity.shares = shares; // <- ABI: shares (LT shares minted)
   activity.createdAtTransactionHash = event.transaction.hash.toHexString();
   activity.createdAtBlockNumber = event.block.number;
@@ -87,12 +87,11 @@ export function recordMultiAssetRedeem(
   activity.callerAddress = caller.toHexString(); // msg.sender (spends owner's allowance if != owner)
   activity.receiverAddress = receiver.toHexString(); // who the assets are paid to
   activity.shares = shares; // <- ABI: shares (LT shares burned)
-  // stClaims is the kernel's SENIOR claim: stShares and ltAssets are invariantly 0
+  // stClaims is the kernel's SENIOR claim: stShares and lptAssets are invariantly 0
   // (the SENIOR branch never sets the two LT-only fields), nav is the senior
   // effective NAV pro-rata. Copied verbatim; see the schema comment.
-  activity.claimsSeniorTrancheAssets = claims.stAssets; // <- ABI: stClaims.stAssets
-  activity.claimsJuniorTrancheAssets = claims.jtAssets; // <- ABI: stClaims.jtAssets
-  activity.claimsLiquidityTrancheAssets = claims.ltAssets; // <- ABI: stClaims.ltAssets (invariantly 0)
+  activity.claimsCollateralAssets = claims.collateralAssets; // <- ABI: stClaims.collateralAssets
+  activity.claimsLiquidityTrancheAssets = claims.lptAssets; // <- ABI: stClaims.lptAssets (invariantly 0)
   activity.claimsSeniorTrancheShares = claims.stShares; // <- ABI: stClaims.stShares (invariantly 0)
   activity.claimsNAV = claims.nav; // <- ABI: stClaims.nav (senior effective NAV, pro-rata)
   activity.quoteAssets = quoteAssets; // <- ABI: quoteAssets (paid OUT to receiver)

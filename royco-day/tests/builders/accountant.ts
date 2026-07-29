@@ -1,35 +1,11 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
 import { newTypedMockEventWithParams } from "matchstick-as";
-import { TrancheAccountingSynced } from "../../generated/templates/RoycoDayAccountant/RoycoDayAccountant";
 import { EventContext, applyCtx } from "../helpers/event";
-import { TrancheState } from "./shared";
 import { uint, uintI32, addr } from "../helpers/tuple";
 
-/**
- * TrancheAccountingSynced((uint8,uint256 x12,uint32,uint256,bool,uint256,uint256))
- *
- * One param: the full 18-field TrancheState. Prefer this event over calling
- * previewSyncTrancheAccounting — it's free and it is the post-state at exactly
- * this log index.
- */
-export function createTrancheAccountingSyncedEvent(
-  resultingState: TrancheState,
-  c: EventContext
-): TrancheAccountingSynced {
-  const params: ethereum.EventParam[] = [
-    new ethereum.EventParam(
-      "resultingState",
-      ethereum.Value.fromTuple(resultingState.toTuple())
-    ),
-  ];
-  const event = newTypedMockEventWithParams<TrancheAccountingSynced>(params);
-  applyCtx(event, c);
-  return event;
-}
-
-
 // =============================================================================
-// Config-event builders.
+// Config-event builders. (The sync builders moved to ./kernel.ts in v2, when the
+// sync events moved from the accountant onto the kernel.)
 //
 // The Accountant's fifteen config events reduce to five SHAPES, and shape is
 // what a builder has to get right: codegen decodes POSITIONALLY
@@ -103,6 +79,35 @@ export function createTwoUintEvent<T>(
   const params: ethereum.EventParam[] = [
     new ethereum.EventParam(firstName, uint(first)),
     new ethereum.EventParam(secondName, uint(second)),
+  ];
+  const event = newTypedMockEventWithParams<T>(params);
+  applyCtx(changetype<ethereum.Event>(event), c);
+  return event;
+}
+
+/**
+ * Four uints — YieldSharesAccrued(jtYieldShareWAD, twJTYieldShareAccruedWAD,
+ * lptYieldShareWAD, twLPTYieldShareAccruedWAD).
+ *
+ * v2 merged v1's two separate accrual events into this one, so a single builder now
+ * covers what used to need two calls at adjacent log indices.
+ */
+export function createFourUintEvent<T>(
+  n1: string,
+  v1: BigInt,
+  n2: string,
+  v2: BigInt,
+  n3: string,
+  v3: BigInt,
+  n4: string,
+  v4: BigInt,
+  c: EventContext
+): T {
+  const params: ethereum.EventParam[] = [
+    new ethereum.EventParam(n1, uint(v1)),
+    new ethereum.EventParam(n2, uint(v2)),
+    new ethereum.EventParam(n3, uint(v3)),
+    new ethereum.EventParam(n4, uint(v4)),
   ];
   const event = newTypedMockEventWithParams<T>(params);
   applyCtx(changetype<ethereum.Event>(event), c);

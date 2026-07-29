@@ -17,6 +17,7 @@ import { createLiquidityPremiumSharesMintedEvent } from "../builders/tranche";
 import { DayMarketFixture, mockDayMarket } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
+  BLOCK_NUMBER,
   ADDR_ALICE,
   ADDR_DEPLOYER,
   ADDR_KERNEL,
@@ -27,7 +28,7 @@ import {
 } from "../helpers/constants";
 import {
   generateMarketId,
-  generateMarketRecordId,
+  generateMarketBlockRecordId,
   generateVaultId,
 } from "../../src/utils";
 
@@ -83,7 +84,7 @@ describe("handleLiquidityPremiumSharesMinted", () => {
 
     emitPremium(BigInt.fromI32(500), TOTAL, ctx());
 
-    const id = generateMarketRecordId(KERNEL, BigInt.zero());
+    const id = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 1);
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", id, "entryIndex", "0");
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", id, "marketId", KERNEL);
@@ -127,9 +128,9 @@ describe("handleLiquidityPremiumSharesMinted", () => {
   });
 
   test("each mint is a standalone record; the cursor climbs and earlier rows are frozen", () => {
-    // A record stream, NOT a fee: entry 1's `shares` is the SECOND mint alone, not a
-    // running total, and entry 0 is untouched (immutable). Distinct values so an
-    // overwrite or an accidental accumulation would show.
+    // A record stream, NOT a fee: in a DIFFERENT block, `shares` is the second mint
+    // alone rather than a running total, and the first block's row is untouched.
+    // Distinct values so an overwrite or a cross-block accumulation would show.
     deployMarket();
 
     emitPremium(BigInt.fromI32(500), BigInt.fromI32(100_000), ctx());
@@ -137,6 +138,9 @@ describe("handleLiquidityPremiumSharesMinted", () => {
     const c2 = ctx();
     c2.logIndex = BigInt.fromI32(3);
     c2.txHash = TX_HASH_2;
+    // A NEW block. Two mints in one block collapse into one row whose `shares` is their
+    // SUM — see "two premium mints in ONE block".
+    c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     emitPremium(BigInt.fromI32(300), BigInt.fromI32(100_300), c2);
 
     assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 2);
@@ -147,9 +151,9 @@ describe("handleLiquidityPremiumSharesMinted", () => {
       "2"
     );
 
-    const e0 = generateMarketRecordId(KERNEL, BigInt.zero());
-    const e1 = generateMarketRecordId(KERNEL, BigInt.fromI32(1));
-    // Entry 1 holds the second mint alone — a running total would read 800.
+    const e0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
+    const e1 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER.plus(BigInt.fromI32(1)));
+    // The second block's row holds that mint alone — a running total would read 800.
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e1, "entryIndex", "1");
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e1, "shares", "300");
     assert.fieldEquals(
@@ -158,7 +162,7 @@ describe("handleLiquidityPremiumSharesMinted", () => {
       "sharesTotalSupply",
       "100300"
     );
-    // Entry 0 unchanged by the second mint.
+    // The first block's row is unchanged by the second mint.
     assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e0, "shares", "500");
     assert.fieldEquals(
       "DayLiquidityPremiumSharesMintedHistory",
@@ -224,6 +228,41 @@ describe("handleLiquidityPremiumSharesMinted", () => {
       generateMarketId(KERNEL),
       "countLiquidityPremiumSharesMintedEntries",
       "0"
+    );
+  });
+
+  test("two premium mints in ONE block collapse to one row whose shares SUM", () => {
+    // `shares` is a per-event DELTA, so the same-block second mint ADDS to it;
+    // `sharesTotalSupply` is a SNAPSHOT and is overwritten with the later supply. Getting
+    // that split backwards is invisible at index time and corrupts every SUM() in Neon.
+    deployMarket();
+
+    emitPremium(BigInt.fromI32(500), BigInt.fromI32(100_000), ctx());
+
+    const c2 = ctx();
+    c2.logIndex = BigInt.fromI32(3);
+    c2.txHash = TX_HASH_2;
+    // SAME block as the first mint — deliberately.
+    emitPremium(BigInt.fromI32(300), BigInt.fromI32(100_300), c2);
+
+    // ONE row, and the count cursor advanced only once.
+    assert.entityCount("DayLiquidityPremiumSharesMintedHistory", 1);
+    assert.fieldEquals(
+      "DayMarketState",
+      generateMarketId(KERNEL),
+      "countLiquidityPremiumSharesMintedEntries",
+      "1"
+    );
+
+    const e0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
+    assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e0, "entryIndex", "0");
+    assert.fieldEquals("DayLiquidityPremiumSharesMintedHistory", e0, "shares", "800");
+    // Overwritten, NOT summed — 200300 would be a meaningless supply.
+    assert.fieldEquals(
+      "DayLiquidityPremiumSharesMintedHistory",
+      e0,
+      "sharesTotalSupply",
+      "100300"
     );
   });
 });

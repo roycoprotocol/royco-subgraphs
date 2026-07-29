@@ -6,27 +6,9 @@
         "name": "_kernel",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "_jtCoinvested",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "JT_COINVESTED",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -69,10 +51,10 @@
   },
   {
     "type": "function",
-    "name": "commitLiquidityTrancheRawNAV",
+    "name": "commitLiquidityProviderTrancheRawNAV",
     "inputs": [
       {
-        "name": "_freshLtRawNAV",
+        "name": "_freshLPTRawNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       }
@@ -106,12 +88,17 @@
             "internalType": "uint64"
           },
           {
-            "name": "ltYieldShareProtocolFeeWAD",
+            "name": "lptYieldShareProtocolFeeWAD",
             "type": "uint64",
             "internalType": "uint64"
           },
           {
             "name": "minCoverageWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "minLiquidityWAD",
             "type": "uint64",
             "internalType": "uint64"
           },
@@ -146,34 +133,29 @@
             "internalType": "address"
           },
           {
-            "name": "ltYDM",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "minLiquidityWAD",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "twJTYieldShareAccruedWAD",
-            "type": "uint192",
-            "internalType": "uint192"
-          },
-          {
             "name": "maxJTYieldShareWAD",
             "type": "uint64",
             "internalType": "uint64"
           },
           {
-            "name": "twLTYieldShareAccruedWAD",
-            "type": "uint192",
-            "internalType": "uint192"
+            "name": "lptYDM",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            "name": "maxLTYieldShareWAD",
+            "name": "maxLPTYieldShareWAD",
             "type": "uint64",
             "internalType": "uint64"
+          },
+          {
+            "name": "twJTYieldShareAccruedWAD",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "twLPTYieldShareAccruedWAD",
+            "type": "uint128",
+            "internalType": "uint128"
           },
           {
             "name": "coverageLiquidationUtilizationWAD",
@@ -181,12 +163,7 @@
             "internalType": "uint256"
           },
           {
-            "name": "lastSTRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "lastJTRawNAV",
+            "name": "lastCollateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -201,27 +178,17 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "lastJTCoverageImpermanentLoss",
+            "name": "lastJTImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "lastLTRawNAV",
+            "name": "lastLPTRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "stNAVDustTolerance",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtNAVDustTolerance",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "effectiveNAVDustTolerance",
+            "name": "dustTolerance",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           }
@@ -265,12 +232,12 @@
             "internalType": "bytes"
           },
           {
-            "name": "ltYDM",
+            "name": "lptYDM",
             "type": "address",
             "internalType": "address"
           },
           {
-            "name": "ltYDMInitializationData",
+            "name": "lptYDMInitializationData",
             "type": "bytes",
             "internalType": "bytes"
           },
@@ -280,7 +247,7 @@
             "internalType": "uint64"
           },
           {
-            "name": "maxLTYieldShareWAD",
+            "name": "maxLPTYieldShareWAD",
             "type": "uint64",
             "internalType": "uint64"
           },
@@ -290,12 +257,7 @@
             "internalType": "uint24"
           },
           {
-            "name": "stNAVDustTolerance",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtNAVDustTolerance",
+            "name": "dustTolerance",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -315,7 +277,7 @@
             "internalType": "uint64"
           },
           {
-            "name": "ltYieldShareProtocolFeeWAD",
+            "name": "lptYieldShareProtocolFeeWAD",
             "type": "uint64",
             "internalType": "uint64"
           }
@@ -358,17 +320,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -383,12 +340,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -403,7 +360,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -428,11 +385,6 @@
             "internalType": "uint256"
           },
           {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
             "name": "coverageLiquidationUtilizationWAD",
             "type": "uint256",
             "internalType": "uint256"
@@ -447,12 +399,7 @@
     ],
     "outputs": [
       {
-        "name": "stWithdrawableNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "jtWithdrawableNAV",
+        "name": "",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       }
@@ -461,7 +408,7 @@
   },
   {
     "type": "function",
-    "name": "maxLTWithdrawal",
+    "name": "maxLPTWithdrawal",
     "inputs": [
       {
         "name": "state",
@@ -474,17 +421,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -499,12 +441,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -519,7 +461,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -544,11 +486,6 @@
             "internalType": "uint256"
           },
           {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
             "name": "coverageLiquidationUtilizationWAD",
             "type": "uint256",
             "internalType": "uint256"
@@ -563,7 +500,7 @@
     ],
     "outputs": [
       {
-        "name": "ltWithdrawableNAV",
+        "name": "",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       }
@@ -585,17 +522,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -610,12 +542,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -630,7 +562,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -653,11 +585,6 @@
             "name": "minCoverageWAD",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
           },
           {
             "name": "coverageLiquidationUtilizationWAD",
@@ -711,17 +638,12 @@
         "internalType": "enum Operation"
       },
       {
-        "name": "_stRawNAV",
+        "name": "_collateralNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "_jtRawNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "_ltRawNAV",
+        "name": "_lptRawNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
@@ -748,17 +670,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -773,12 +690,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -793,7 +710,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -816,11 +733,6 @@
             "name": "minCoverageWAD",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
           },
           {
             "name": "coverageLiquidationUtilizationWAD",
@@ -842,12 +754,7 @@
     "name": "preOpSyncTrancheAccounting",
     "inputs": [
       {
-        "name": "_stRawNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "_jtRawNAV",
+        "name": "_collateralNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       }
@@ -864,17 +771,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -889,12 +791,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -909,7 +811,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -932,11 +834,6 @@
             "name": "minCoverageWAD",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
           },
           {
             "name": "coverageLiquidationUtilizationWAD",
@@ -958,12 +855,7 @@
     "name": "previewSyncTrancheAccounting",
     "inputs": [
       {
-        "name": "_stRawNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "_jtRawNAV",
+        "name": "_collateralNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       }
@@ -980,17 +872,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1005,12 +892,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1025,7 +912,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1048,11 +935,6 @@
             "name": "minCoverageWAD",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
           },
           {
             "name": "coverageLiquidationUtilizationWAD",
@@ -1097,6 +979,19 @@
   },
   {
     "type": "function",
+    "name": "setDustTolerance",
+    "inputs": [
+      {
+        "name": "_dustTolerance",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setFixedTermDuration",
     "inputs": [
       {
@@ -1116,19 +1011,6 @@
         "name": "_jtYieldShareProtocolFeeWAD",
         "type": "uint64",
         "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setJuniorTrancheDustTolerance",
-    "inputs": [
-      {
-        "name": "_jtNAVDustTolerance",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
       }
     ],
     "outputs": [],
@@ -1167,10 +1049,10 @@
   },
   {
     "type": "function",
-    "name": "setLTYieldShareProtocolFee",
+    "name": "setLPTYieldShareProtocolFee",
     "inputs": [
       {
-        "name": "_ltYieldShareProtocolFeeWAD",
+        "name": "_lptYieldShareProtocolFeeWAD",
         "type": "uint64",
         "internalType": "uint64"
       }
@@ -1193,15 +1075,15 @@
   },
   {
     "type": "function",
-    "name": "setLiquidityTrancheYDM",
+    "name": "setLiquidityProviderTrancheYDM",
     "inputs": [
       {
-        "name": "_ltYDM",
+        "name": "_lptYDM",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "_ltYDMInitializationData",
+        "name": "_lptYDMInitializationData",
         "type": "bytes",
         "internalType": "bytes"
       }
@@ -1219,7 +1101,7 @@
         "internalType": "uint64"
       },
       {
-        "name": "_maxLTYieldShareWAD",
+        "name": "_maxLPTYieldShareWAD",
         "type": "uint64",
         "internalType": "uint64"
       }
@@ -1248,19 +1130,6 @@
         "name": "_minLiquidityWAD",
         "type": "uint64",
         "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setSeniorTrancheDustTolerance",
-    "inputs": [
-      {
-        "name": "_stNAVDustTolerance",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
       }
     ],
     "outputs": [],
@@ -1332,6 +1201,19 @@
   },
   {
     "type": "event",
+    "name": "DustToleranceUpdated",
+    "inputs": [
+      {
+        "name": "dustTolerance",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "NAV_UNIT"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "FixedTermCommenced",
     "inputs": [
       {
@@ -1377,23 +1259,10 @@
   },
   {
     "type": "event",
-    "name": "JuniorTrancheCoverageImpermanentLossReset",
+    "name": "JuniorTrancheImpermanentLossReset",
     "inputs": [
       {
-        "name": "jtCoverageImpermanentLossErased",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "JuniorTrancheDustToleranceUpdated",
-    "inputs": [
-      {
-        "name": "jtNAVDustTolerance",
+        "name": "jtImpermanentLossErased",
         "type": "uint256",
         "indexed": false,
         "internalType": "NAV_UNIT"
@@ -1429,25 +1298,6 @@
   },
   {
     "type": "event",
-    "name": "JuniorTrancheYieldShareAccrued",
-    "inputs": [
-      {
-        "name": "jtYieldShareWAD",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "twJTYieldShareAccruedWAD",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "JuniorTrancheYieldShareProtocolFeeUpdated",
     "inputs": [
       {
@@ -1474,23 +1324,10 @@
   },
   {
     "type": "event",
-    "name": "LiquidityTrancheRawNAVCommitted",
+    "name": "LiquidityProviderTrancheYDMUpdated",
     "inputs": [
       {
-        "name": "ltRawNAV",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "LiquidityTrancheYDMUpdated",
-    "inputs": [
-      {
-        "name": "ltYDM",
+        "name": "lptYDM",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -1500,29 +1337,10 @@
   },
   {
     "type": "event",
-    "name": "LiquidityTrancheYieldShareAccrued",
+    "name": "LiquidityProviderTrancheYieldShareProtocolFeeUpdated",
     "inputs": [
       {
-        "name": "ltYieldShareWAD",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "twLTYieldShareAccruedWAD",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "LiquidityTrancheYieldShareProtocolFeeUpdated",
-    "inputs": [
-      {
-        "name": "ltYieldShareProtocolFeeWAD",
+        "name": "lptYieldShareProtocolFeeWAD",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
@@ -1554,7 +1372,7 @@
         "internalType": "uint64"
       },
       {
-        "name": "maxLTYieldShareWAD",
+        "name": "maxLPTYieldShareWAD",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
@@ -1577,19 +1395,6 @@
   },
   {
     "type": "event",
-    "name": "SeniorTrancheDustToleranceUpdated",
-    "inputs": [
-      {
-        "name": "stNAVDustTolerance",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "SeniorTrancheProtocolFeeUpdated",
     "inputs": [
       {
@@ -1597,111 +1402,6 @@
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TrancheAccountingSynced",
-    "inputs": [
-      {
-        "name": "resultingState",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct SyncedAccountingState",
-        "components": [
-          {
-            "name": "marketState",
-            "type": "uint8",
-            "internalType": "enum MarketState"
-          },
-          {
-            "name": "stRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtCoverageImpermanentLoss",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltLiquidityPremium",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "coverageUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "liquidityUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "fixedTermEndTimestamp",
-            "type": "uint32",
-            "internalType": "uint32"
-          },
-          {
-            "name": "minCoverageWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "minLiquidityWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
       }
     ],
     "anonymous": false
@@ -1728,6 +1428,37 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "YieldSharesAccrued",
+    "inputs": [
+      {
+        "name": "jtYieldShareWAD",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "twJTYieldShareAccruedWAD",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "lptYieldShareWAD",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "twLPTYieldShareAccruedWAD",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false

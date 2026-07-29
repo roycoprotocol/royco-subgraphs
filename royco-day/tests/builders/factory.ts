@@ -16,20 +16,20 @@ import {
 /**
  * The `result` tuple of MarketDeploymentCompleted.
  *
- *   (seniorTranche, juniorTranche, liquidityTranche, kernel, accountant, ydm, ltYdm, extras)
+ *   (seniorTranche, juniorTranche, liquidityProviderTranche, kernel, accountant, ydm, lptYdm, extras)
  *
- * NOTE the two YDM fields: `ydm` is the JUNIOR tranche's YDM, `ltYdm` is the
+ * NOTE the two YDM fields: `ydm` is the JUNIOR tranche's YDM, `lptYdm` is the
  * liquidity tranche's. The ABI does not name the first one `jtYdm`, which makes
  * this an easy transposition — hence distinct sentinels and a round-trip test.
  */
 export class DeploymentResult {
   seniorTranche: Address = ADDR_SENIOR;
   juniorTranche: Address = ADDR_JUNIOR;
-  liquidityTranche: Address = ADDR_LIQUIDITY;
+  liquidityProviderTranche: Address = ADDR_LIQUIDITY;
   kernel: Address = ADDR_KERNEL;
   accountant: Address = ADDR_ACCOUNTANT;
   ydm: Address = ADDR_JT_YDM;
-  ltYdm: Address = ADDR_LT_YDM;
+  lptYdm: Address = ADDR_LT_YDM;
   extras: Bytes = Bytes.fromHexString("0xdeadbeef") as Bytes;
 
   /** MUST match ABI component order exactly. */
@@ -37,11 +37,11 @@ export class DeploymentResult {
     return tuple([
       addr(this.seniorTranche), // 0
       addr(this.juniorTranche), // 1
-      addr(this.liquidityTranche), // 2
+      addr(this.liquidityProviderTranche), // 2
       addr(this.kernel), // 3
       addr(this.accountant), // 4
       addr(this.ydm), // 5  <- JUNIOR ydm
-      addr(this.ltYdm), // 6  <- LIQUIDITY ydm
+      addr(this.lptYdm), // 6  <- LIQUIDITY ydm
       bytes(this.extras), // 7
     ]);
   }

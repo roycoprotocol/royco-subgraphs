@@ -14,6 +14,19 @@
   },
   {
     "type": "function",
+    "name": "COLLATERAL_ASSET",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "ENFORCE_TRANCHE_WHITELIST_ON_TRANSFER",
     "inputs": [],
     "outputs": [
@@ -21,19 +34,6 @@
         "name": "",
         "type": "bool",
         "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "JT_ASSET",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -53,7 +53,7 @@
   },
   {
     "type": "function",
-    "name": "LIQUIDITY_TRANCHE",
+    "name": "LIQUIDITY_PROVIDER_TRANCHE",
     "inputs": [],
     "outputs": [
       {
@@ -66,7 +66,7 @@
   },
   {
     "type": "function",
-    "name": "LT_ASSET",
+    "name": "LPT_ASSET",
     "inputs": [],
     "outputs": [
       {
@@ -105,19 +105,6 @@
   },
   {
     "type": "function",
-    "name": "ST_ASSET",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "UPGRADE_INTERFACE_VERSION",
     "inputs": [],
     "outputs": [
@@ -134,6 +121,11 @@
     "name": "addLiquidity",
     "inputs": [
       {
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
         "name": "_seniorShares",
         "type": "uint256",
         "internalType": "uint256"
@@ -144,16 +136,26 @@
         "internalType": "uint256"
       },
       {
-        "name": "_minLTAssetsOut",
+        "name": "_minLPTAssetsOut",
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       }
     ],
     "outputs": [
       {
-        "name": "ltAssets",
+        "name": "lptAssets",
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
+      },
+      {
+        "name": "depositNAV",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      },
+      {
+        "name": "postOpLPTRawNAV",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
       }
     ],
     "stateMutability": "nonpayable"
@@ -196,6 +198,121 @@
   },
   {
     "type": "function",
+    "name": "convertCollateralAssetsToValue",
+    "inputs": [
+      {
+        "name": "_collateralAssets",
+        "type": "uint256",
+        "internalType": "TRANCHE_UNIT"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "convertLPTAssetsToValue",
+    "inputs": [
+      {
+        "name": "_lptAssets",
+        "type": "uint256",
+        "internalType": "TRANCHE_UNIT"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "convertValueToCollateralAssets",
+    "inputs": [
+      {
+        "name": "_value",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "collateralAssets",
+        "type": "uint256",
+        "internalType": "TRANCHE_UNIT"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "convertValueToLPTAssets",
+    "inputs": [
+      {
+        "name": "_value",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "TRANCHE_UNIT"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "enforceNotBlacklisted",
+    "inputs": [
+      {
+        "name": "_account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "enforceNotBlacklisted",
+    "inputs": [
+      {
+        "name": "_accounts",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCollateralAssetOracle",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "collateralAssetOracle",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getState",
     "inputs": [],
     "outputs": [
@@ -215,22 +332,17 @@
             "internalType": "uint64"
           },
           {
-            "name": "stOwnedYieldBearingAssets",
+            "name": "totalCollateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtOwnedYieldBearingAssets",
+            "name": "totalLPTAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "ltOwnedYieldBearingAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltOwnedSeniorTrancheShares",
+            "name": "lptOwnedSeniorTrancheShares",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -238,6 +350,26 @@
             "name": "roycoBlacklist",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "collateralAssetOracle",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "stalenessThresholdSeconds",
+            "type": "uint48",
+            "internalType": "uint48"
+          },
+          {
+            "name": "sequencerUptimeFeed",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "gracePeriodSeconds",
+            "type": "uint48",
+            "internalType": "uint48"
           }
         ]
       }
@@ -259,46 +391,13 @@
   },
   {
     "type": "function",
-    "name": "jtConvertNAVUnitsToTrancheUnits",
-    "inputs": [
-      {
-        "name": "_value",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "jtConvertTrancheUnitsToNAVUnits",
-    "inputs": [
-      {
-        "name": "_jtAssets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "jtDeposit",
     "inputs": [
+      {
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
       {
         "name": "_assets",
         "type": "uint256",
@@ -307,14 +406,19 @@
     ],
     "outputs": [
       {
-        "name": "valueAllocated",
+        "name": "depositNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "navToMintSharesAt",
+        "name": "effectiveNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
+      },
+      {
+        "name": "totalTrancheShares",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -350,17 +454,7 @@
     ],
     "outputs": [
       {
-        "name": "claimOnSTNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "claimOnJTNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "stMaxWithdrawableNAV",
+        "name": "jtClaimNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
@@ -379,175 +473,13 @@
   },
   {
     "type": "function",
-    "name": "jtPreviewDeposit",
-    "inputs": [
-      {
-        "name": "_assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "stateBeforeDeposit",
-        "type": "tuple",
-        "internalType": "struct SyncedAccountingState",
-        "components": [
-          {
-            "name": "marketState",
-            "type": "uint8",
-            "internalType": "enum MarketState"
-          },
-          {
-            "name": "stRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtCoverageImpermanentLoss",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltLiquidityPremium",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "coverageUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "liquidityUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "fixedTermEndTimestamp",
-            "type": "uint32",
-            "internalType": "uint32"
-          },
-          {
-            "name": "minCoverageWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "minLiquidityWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      },
-      {
-        "name": "valueAllocated",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "totalTrancheShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "jtPreviewRedeem",
-    "inputs": [
-      {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "userClaim",
-        "type": "tuple",
-        "internalType": "struct AssetClaims",
-        "components": [
-          {
-            "name": "stAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "stShares",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "jtRedeem",
     "inputs": [
+      {
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
       {
         "name": "_shares",
         "type": "uint256",
@@ -566,17 +498,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -597,46 +524,13 @@
   },
   {
     "type": "function",
-    "name": "ltConvertNAVUnitsToTrancheUnits",
+    "name": "lptDeposit",
     "inputs": [
       {
-        "name": "_value",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ltConvertTrancheUnitsToNAVUnits",
-    "inputs": [
-      {
-        "name": "_ltAssets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ltDeposit",
-    "inputs": [
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
       {
         "name": "_assets",
         "type": "uint256",
@@ -645,24 +539,34 @@
     ],
     "outputs": [
       {
-        "name": "valueAllocated",
+        "name": "depositNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "navToMintSharesAt",
+        "name": "effectiveNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
+      },
+      {
+        "name": "totalTrancheShares",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "ltDepositMultiAsset",
+    "name": "lptDepositMultiAsset",
     "inputs": [
       {
-        "name": "_stAssets",
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_collateralAssets",
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       },
@@ -672,24 +576,24 @@
         "internalType": "uint256"
       },
       {
-        "name": "_minLTAssetsOut",
+        "name": "_minLPTAssetsOut",
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       }
     ],
     "outputs": [
       {
-        "name": "valueAllocated",
+        "name": "depositNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "navToMintSharesAt",
+        "name": "effectiveNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "ltAssetsOut",
+        "name": "lptAssetsOut",
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       }
@@ -698,7 +602,7 @@
   },
   {
     "type": "function",
-    "name": "ltMaxDeposit",
+    "name": "lptMaxDeposit",
     "inputs": [
       {
         "name": "_receiver",
@@ -717,7 +621,7 @@
   },
   {
     "type": "function",
-    "name": "ltMaxWithdrawable",
+    "name": "lptMaxWithdrawable",
     "inputs": [
       {
         "name": "_owner",
@@ -727,12 +631,41 @@
     ],
     "outputs": [
       {
-        "name": "claimOnLTNAV",
+        "name": "claimOnLPTNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "ltMaxWithdrawableNAV",
+        "name": "lptMaxWithdrawableNAV",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      },
+      {
+        "name": "totalTrancheShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lptMaxWithdrawableMultiAsset",
+    "inputs": [
+      {
+        "name": "_owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimOnLPTNAV",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
+      },
+      {
+        "name": "lptMaxWithdrawableNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
@@ -742,274 +675,17 @@
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ltPreviewDeposit",
-    "inputs": [
-      {
-        "name": "_assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "stateBeforeDeposit",
-        "type": "tuple",
-        "internalType": "struct SyncedAccountingState",
-        "components": [
-          {
-            "name": "marketState",
-            "type": "uint8",
-            "internalType": "enum MarketState"
-          },
-          {
-            "name": "stRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtCoverageImpermanentLoss",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltLiquidityPremium",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "coverageUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "liquidityUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "fixedTermEndTimestamp",
-            "type": "uint32",
-            "internalType": "uint32"
-          },
-          {
-            "name": "minCoverageWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "minLiquidityWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      },
-      {
-        "name": "valueAllocated",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "totalTrancheShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "navToMintSharesAt",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ltPreviewDepositMultiAsset",
-    "inputs": [
-      {
-        "name": "_stAssets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      },
-      {
-        "name": "_quoteAssets",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "valueAllocated",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "navToMintSharesAt",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "ltAssetsOut",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      },
-      {
-        "name": "ltTotalSupplyAfterMints",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "ltPreviewRedeem",
+    "name": "lptRedeem",
     "inputs": [
       {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "userClaim",
-        "type": "tuple",
-        "internalType": "struct AssetClaims",
-        "components": [
-          {
-            "name": "stAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "stShares",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ltPreviewRedeemMultiAsset",
-    "inputs": [
-      {
-        "name": "_ltShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "stClaims",
-        "type": "tuple",
-        "internalType": "struct AssetClaims",
-        "components": [
-          {
-            "name": "stAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "stShares",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
-        ]
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
       },
-      {
-        "name": "quoteAssets",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "ltRedeem",
-    "inputs": [
       {
         "name": "_shares",
         "type": "uint256",
@@ -1028,17 +704,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -1059,10 +730,15 @@
   },
   {
     "type": "function",
-    "name": "ltRedeemMultiAsset",
+    "name": "lptRedeemMultiAsset",
     "inputs": [
       {
-        "name": "_ltShares",
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_lptShares",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -1089,17 +765,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -1173,55 +844,7 @@
   },
   {
     "type": "function",
-    "name": "previewAddLiquidity",
-    "inputs": [
-      {
-        "name": "_seniorShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_quoteAssets",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "ltAssets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "previewRemoveLiquidity",
-    "inputs": [
-      {
-        "name": "_ltAssets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "stShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "quoteAssets",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "previewSyncTrancheAccounting",
+    "name": "previewSyncTrancheAccountingFor",
     "inputs": [
       {
         "name": "_trancheType",
@@ -1241,17 +864,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1266,12 +884,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1286,7 +904,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1311,11 +929,6 @@
             "internalType": "uint256"
           },
           {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
             "name": "coverageLiquidationUtilizationWAD",
             "type": "uint256",
             "internalType": "uint256"
@@ -1333,17 +946,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -1398,7 +1006,12 @@
     "name": "removeLiquidity",
     "inputs": [
       {
-        "name": "_ltAssets",
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_lptAssets",
         "type": "uint256",
         "internalType": "TRANCHE_UNIT"
       },
@@ -1428,6 +1041,11 @@
         "name": "quoteAssets",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "postOpLPTRawNAV",
+        "type": "uint256",
+        "internalType": "NAV_UNIT"
       }
     ],
     "stateMutability": "nonpayable"
@@ -1440,6 +1058,29 @@
         "name": "newAuthority",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCollateralAssetOracle",
+    "inputs": [
+      {
+        "name": "_collateralAssetOracle",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_stalenessThresholdSeconds",
+        "type": "uint48",
+        "internalType": "uint48"
+      },
+      {
+        "name": "_syncBeforeUpdate",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "outputs": [],
@@ -1486,46 +1127,31 @@
   },
   {
     "type": "function",
-    "name": "stConvertNAVUnitsToTrancheUnits",
+    "name": "setSequencerUptimeFeed",
     "inputs": [
       {
-        "name": "_value",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "outputs": [
+        "name": "_sequencerUptimeFeed",
+        "type": "address",
+        "internalType": "address"
+      },
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
+        "name": "_gracePeriodSeconds",
+        "type": "uint48",
+        "internalType": "uint48"
       }
     ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "stConvertTrancheUnitsToNAVUnits",
-    "inputs": [
-      {
-        "name": "_stAssets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "stDeposit",
     "inputs": [
+      {
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
       {
         "name": "_assets",
         "type": "uint256",
@@ -1534,14 +1160,19 @@
     ],
     "outputs": [
       {
-        "name": "valueAllocated",
+        "name": "depositNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "navToMintSharesAt",
+        "name": "effectiveNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
+      },
+      {
+        "name": "totalTrancheShares",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -1577,12 +1208,7 @@
     ],
     "outputs": [
       {
-        "name": "claimOnSTNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "claimOnJTNAV",
+        "name": "stClaimNAV",
         "type": "uint256",
         "internalType": "NAV_UNIT"
       },
@@ -1592,181 +1218,9 @@
         "internalType": "NAV_UNIT"
       },
       {
-        "name": "jtMaxWithdrawableNAV",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
         "name": "totalTrancheShares",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "stPreviewDeposit",
-    "inputs": [
-      {
-        "name": "_assets",
-        "type": "uint256",
-        "internalType": "TRANCHE_UNIT"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "stateBeforeDeposit",
-        "type": "tuple",
-        "internalType": "struct SyncedAccountingState",
-        "components": [
-          {
-            "name": "marketState",
-            "type": "uint8",
-            "internalType": "enum MarketState"
-          },
-          {
-            "name": "stRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtEffectiveNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtCoverageImpermanentLoss",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltLiquidityPremium",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "stProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "jtProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltProtocolFee",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "coverageUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "liquidityUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "fixedTermEndTimestamp",
-            "type": "uint32",
-            "internalType": "uint32"
-          },
-          {
-            "name": "minCoverageWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "minLiquidityWAD",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      },
-      {
-        "name": "valueAllocated",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      },
-      {
-        "name": "totalTrancheShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "stPreviewRedeem",
-    "inputs": [
-      {
-        "name": "_shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "userClaim",
-        "type": "tuple",
-        "internalType": "struct AssetClaims",
-        "components": [
-          {
-            "name": "stAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "stShares",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "nav",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          }
-        ]
       }
     ],
     "stateMutability": "view"
@@ -1775,6 +1229,11 @@
     "type": "function",
     "name": "stRedeem",
     "inputs": [
+      {
+        "name": "_isPreview",
+        "type": "bool",
+        "internalType": "bool"
+      },
       {
         "name": "_shares",
         "type": "uint256",
@@ -1793,17 +1252,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -1838,17 +1292,12 @@
             "internalType": "enum MarketState"
           },
           {
-            "name": "stRawNAV",
+            "name": "collateralNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtRawNAV",
-            "type": "uint256",
-            "internalType": "NAV_UNIT"
-          },
-          {
-            "name": "ltRawNAV",
+            "name": "lptRawNAV",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1863,12 +1312,12 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "jtCoverageImpermanentLoss",
+            "name": "jtImpermanentLoss",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltLiquidityPremium",
+            "name": "lptLiquidityPremium",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1883,7 +1332,7 @@
             "internalType": "NAV_UNIT"
           },
           {
-            "name": "ltProtocolFee",
+            "name": "lptProtocolFee",
             "type": "uint256",
             "internalType": "NAV_UNIT"
           },
@@ -1908,9 +1357,105 @@
             "internalType": "uint256"
           },
           {
-            "name": "jtCoinvested",
-            "type": "bool",
-            "internalType": "bool"
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minLiquidityWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "syncTrancheAccountingFor",
+    "inputs": [
+      {
+        "name": "_trancheType",
+        "type": "uint8",
+        "internalType": "enum TrancheType"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "state",
+        "type": "tuple",
+        "internalType": "struct SyncedAccountingState",
+        "components": [
+          {
+            "name": "marketState",
+            "type": "uint8",
+            "internalType": "enum MarketState"
+          },
+          {
+            "name": "collateralNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptRawNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtImpermanentLoss",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptLiquidityPremium",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "coverageUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minCoverageWAD",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
             "name": "coverageLiquidationUtilizationWAD",
@@ -1923,6 +1468,38 @@
             "internalType": "uint256"
           }
         ]
+      },
+      {
+        "name": "claims",
+        "type": "tuple",
+        "internalType": "struct AssetClaims",
+        "components": [
+          {
+            "name": "collateralAssets",
+            "type": "uint256",
+            "internalType": "TRANCHE_UNIT"
+          },
+          {
+            "name": "lptAssets",
+            "type": "uint256",
+            "internalType": "TRANCHE_UNIT"
+          },
+          {
+            "name": "stShares",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "nav",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          }
+        ]
+      },
+      {
+        "name": "totalTrancheShares",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
@@ -1967,6 +1544,25 @@
   },
   {
     "type": "event",
+    "name": "CollateralAssetOracleUpdated",
+    "inputs": [
+      {
+        "name": "collateralAssetOracle",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "stalenessThresholdSeconds",
+        "type": "uint48",
+        "indexed": false,
+        "internalType": "uint48"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Initialized",
     "inputs": [
       {
@@ -1989,7 +1585,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "ltAssetsMinted",
+        "name": "lptAssetsMinted",
         "type": "uint256",
         "indexed": false,
         "internalType": "TRANCHE_UNIT"
@@ -2008,7 +1604,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "minLTAssetsOut",
+        "name": "minLPTAssetsOut",
         "type": "uint256",
         "indexed": false,
         "internalType": "TRANCHE_UNIT"
@@ -2031,6 +1627,202 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PostOpTrancheAccountingSynced",
+    "inputs": [
+      {
+        "name": "op",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum Operation"
+      },
+      {
+        "name": "resultingState",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct SyncedAccountingState",
+        "components": [
+          {
+            "name": "marketState",
+            "type": "uint8",
+            "internalType": "enum MarketState"
+          },
+          {
+            "name": "collateralNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptRawNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtImpermanentLoss",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptLiquidityPremium",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "coverageUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minCoverageWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minLiquidityWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PreOpTrancheAccountingSynced",
+    "inputs": [
+      {
+        "name": "resultingState",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct SyncedAccountingState",
+        "components": [
+          {
+            "name": "marketState",
+            "type": "uint8",
+            "internalType": "enum MarketState"
+          },
+          {
+            "name": "collateralNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptRawNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtImpermanentLoss",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptLiquidityPremium",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "coverageUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minCoverageWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minLiquidityWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "anonymous": false
@@ -2070,6 +1862,25 @@
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SequencerUptimeFeedUpdated",
+    "inputs": [
+      {
+        "name": "sequencerUptimeFeed",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "gracePeriodSeconds",
+        "type": "uint48",
+        "indexed": false,
+        "internalType": "uint48"
       }
     ],
     "anonymous": false
@@ -2162,6 +1973,16 @@
   },
   {
     "type": "error",
+    "name": "CACHE_VALUE_OUT_OF_DOMAIN",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "COLLATERAL_ASSET_ORACLE_MISMATCH",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "DISABLED_IN_FIXED_TERM_STATE",
     "inputs": []
   },
@@ -2198,7 +2019,22 @@
   },
   {
     "type": "error",
+    "name": "GRACE_PERIOD_NOT_OVER",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "INVALID_GRACE_PERIOD_SECONDS",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "INVALID_IMPLEMENTATION",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "INVALID_PRICE",
     "inputs": []
   },
   {
@@ -2208,12 +2044,12 @@
   },
   {
     "type": "error",
-    "name": "InvalidInitialization",
+    "name": "INVALID_STALENESS_THRESHOLD_SECONDS",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "JT_MUST_BE_COINVESTED",
+    "name": "InvalidInitialization",
     "inputs": []
   },
   {
@@ -2228,11 +2064,6 @@
   },
   {
     "type": "error",
-    "name": "NULL_DEPOSITOR",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "NotInitializing",
     "inputs": []
   },
@@ -2243,7 +2074,7 @@
   },
   {
     "type": "error",
-    "name": "ONLY_LIQUIDITY_TRANCHE",
+    "name": "ONLY_LIQUIDITY_PROVIDER_TRANCHE",
     "inputs": []
   },
   {
@@ -2264,6 +2095,16 @@
   {
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SEQUENCER_DOWN",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "STALE_PRICE",
     "inputs": []
   },
   {

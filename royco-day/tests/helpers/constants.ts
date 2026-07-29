@@ -48,11 +48,21 @@ export const ADDR_ASSET = Address.fromString(
 export const ADDR_QUOTE_ASSET = Address.fromString(
   "0x00000000000000000000000000000000000000a6"
 );
+/** The liquidity tranche's own asset — a DIFFERENT ERC20 from the collateral. */
+export const ADDR_LPT_ASSET = Address.fromString(
+  "0x00000000000000000000000000000000000000a7"
+);
 export const ADDR_BLACKLIST = Address.fromString(
   "0x00000000000000000000000000000000000000b1"
 );
 export const ADDR_FEE_RECIPIENT = Address.fromString(
   "0x00000000000000000000000000000000000000fe"
+);
+export const ADDR_ORACLE = Address.fromString(
+  "0x00000000000000000000000000000000000000c1"
+);
+export const ADDR_SEQUENCER_FEED = Address.fromString(
+  "0x00000000000000000000000000000000000000c2"
 );
 
 export const ADDR_ALICE = Address.fromString(

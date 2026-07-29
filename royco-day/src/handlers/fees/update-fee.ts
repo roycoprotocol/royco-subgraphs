@@ -103,21 +103,35 @@ export function recordFeeSharesMinted(
   fee.cumulativeShares = fee.cumulativeShares.plus(mintedShares);
   fee.cumulativeNav = fee.cumulativeNav.plus(navDelta);
 
-  // Born-with-entry-0 cursor (increment-then-write): the first accrual for this
-  // stream is entry 0. Total snapshots == lastHistoricalEntryIndex + 1.
-  const entryIndex = isNew
-    ? BigInt.zero()
-    : fee.lastHistoricalEntryIndex.plus(BigInt.fromI32(1));
-
-  const snapshot = new DayFeeStateHistorical(
-    generateFeeStateHistoricalId(
-      vault.marketId,
-      accountAddress,
-      majorType,
-      minorType,
-      entryIndex
-    )
+  // ONE ROW PER (fee stream, BLOCK). Several fee mints can share a block; the cursor
+  // advances only when the block has no row yet (rule 2 of "BLOCK-KEYED HISTORY").
+  const snapshotId = generateFeeStateHistoricalId(
+    vault.marketId,
+    accountAddress,
+    majorType,
+    minorType,
+    event.block.number
   );
+  let snapshot = DayFeeStateHistorical.load(snapshotId);
+  const isNewBlock = snapshot == null;
+  const entryIndex = isNewBlock
+    ? isNew
+      ? BigInt.zero()
+      : fee.lastHistoricalEntryIndex.plus(BigInt.fromI32(1))
+    : fee.lastHistoricalEntryIndex;
+
+  if (!snapshot) {
+    snapshot = new DayFeeStateHistorical(snapshotId);
+    snapshot.entryIndex = entryIndex;
+    snapshot.blockNumber = event.block.number;
+    // The DELTA columns start at zero and ACCUMULATE across this block's mints — see
+    // below. Seeding them here is what makes the `.plus()` valid on the first write.
+    snapshot.shares = BigInt.zero();
+    snapshot.nav = BigInt.zero();
+    snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
+    snapshot.createdAtBlockNumber = event.block.number;
+    snapshot.createdAtBlockTimestamp = event.block.timestamp;
+  }
   snapshot.chainId = fee.chainId;
   snapshot.vaultAddress = fee.vaultAddress;
   snapshot.vaultId = fee.vaultId;
@@ -126,15 +140,19 @@ export function recordFeeSharesMinted(
   snapshot.accountAddress = fee.accountAddress;
   snapshot.majorType = fee.majorType;
   snapshot.minorType = fee.minorType;
-  snapshot.entryIndex = entryIndex;
-  // Deltas (this event alone) and running totals (mirror the parent), per denomination.
-  snapshot.shares = mintedShares; // delta — this event's minted shares
-  snapshot.cumulativeShares = fee.cumulativeShares; // running total
-  snapshot.nav = navDelta; // delta — this event's nav contribution
-  snapshot.cumulativeNav = fee.cumulativeNav; // running total
-  snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
-  snapshot.createdAtBlockNumber = event.block.number;
-  snapshot.createdAtBlockTimestamp = event.block.timestamp;
+  // DELTAS ACCUMULATE, CUMULATIVES OVERWRITE — the two halves of this row behave
+  // differently under block collapsing, and both keep the meaning their column comments
+  // state. `shares`/`nav` are "what this ROW covers", which is now the whole block, so
+  // a second mint in the block ADDS to them; plain last-write-wins would drop the first
+  // mint and silently break SUM(shares) == lifetime total. `cumulative*` already are
+  // running totals, so the latest simply wins.
+  snapshot.shares = snapshot.shares.plus(mintedShares);
+  snapshot.nav = snapshot.nav.plus(navDelta);
+  snapshot.cumulativeShares = fee.cumulativeShares;
+  snapshot.cumulativeNav = fee.cumulativeNav;
+  snapshot.updatedAtTransactionHash = event.transaction.hash.toHexString();
+  snapshot.updatedAtBlockNumber = event.block.number;
+  snapshot.updatedAtBlockTimestamp = event.block.timestamp;
   snapshot.save();
 
   fee.lastHistoricalEntryIndex = entryIndex;

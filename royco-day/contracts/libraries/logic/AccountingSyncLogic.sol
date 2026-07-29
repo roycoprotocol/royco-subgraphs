@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: LicenseRef-PolyForm-Perimeter-1.0.1
 pragma solidity ^0.8.28;
 
 import { IERC20 } from "../../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -23,8 +23,9 @@ library AccountingSyncLogic {
     // =============================
 
     /**
-     * @notice Synchronizes and persists the raw and effective NAVs of both tranches
+     * @notice Synchronizes and persists the collateral NAV and the effective NAVs of both tranches
      * @dev Only executes a pre-op sync because there is no operation being executed in the same call as this sync
+     * @dev Does not deploy the idle liquidity-premium senior shares
      * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
      * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
@@ -41,7 +42,32 @@ library AccountingSyncLogic {
     }
 
     /**
-     * @notice Syncs the tranche accounting and attempts to reinvest the liquidity tranche's idle liquidity-premium senior shares into its market-making inventory
+     * @notice Synchronizes and persists the collateral NAV and the effective NAVs of both tranches, returning the specified tranche's post-sync claims and supply
+     * @dev Only executes a pre-op sync because there is no operation being executed in the same call as this sync
+     * @dev Syncs every tranche exactly as `syncTrancheAccounting` does, the tranche type only scopes the claims and supply returned alongside the state
+     * @dev The executed counterpart of `previewSyncTrancheAccountingFor`: the claims and supply are read after this sync has minted its
+     *      premium and protocol fee shares, so no post-mint simulation is needed
+     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param _trancheType An enumerator indicating which tranche to return claims and total tranche shares for
+     * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
+     * @return claims The asset claims that the specified tranche has denominated in tranche-native units
+     * @return totalTrancheShares The total number of shares that exist in the specified tranche after the post-sync mint of its accrued shares: the protocol fee shares for the senior and junior tranches, plus the liquidity premium shares for the senior tranche (the liquidity provider tranche mints none)
+     */
+    function syncTrancheAccountingFor(
+        IRoycoDayKernel.RoycoDayKernelState storage $,
+        IRoycoDayKernel.RoycoDayKernelImmutableState memory _immutables,
+        TrancheType _trancheType
+    )
+        external
+        returns (SyncedAccountingState memory state, AssetClaims memory claims, uint256 totalTrancheShares)
+    {
+        // Execute a NAV accounting sync via the accountant to reconcile PNL, then read the specified tranche's post-mint claims and supply
+        return _preOpSyncTrancheAccounting($, _immutables, _trancheType);
+    }
+
+    /**
+     * @notice Syncs the tranche accounting and attempts to reinvest the liquidity provider tranche's idle liquidity-premium senior shares into its market-making inventory
      * @dev Values the reinvested shares against the freshly synced senior share rate, so a smaller amount can clear the venue's slippage gate when reinvesting the entire idle balance would not
      * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
@@ -54,25 +80,25 @@ library AccountingSyncLogic {
     )
         external
     {
-        // Sync first so the reinvestment values the idle premium shares against fresh committed senior state (and stages any newly accrued premium)
+        // Sync first to stage any newly accrued premium into the idle pile and commit the fresh senior state the reinvestment values against
         SyncedAccountingState memory state = _preOpSyncTrancheAccounting($, _immutables);
         // Reinvest the requested idle premium shares (type(uint256).max reinvests the entire idle balance) at this sync's post-mint senior share rate
         IRoycoDayKernel(address(this)).attemptLiquidityPremiumReinvestment(_stShares, state.stEffectiveNAV, IERC20(_immutables.seniorTranche).totalSupply());
-        // Re-commit the LT raw NAV: the reinvestment settled after the sync's commit, so the committed depth must reflect the freshly deployed LT assets
-        _commitPostSyncLiquidityTrancheRawNAV($, _immutables, state);
+        // Re-commit the LPT raw NAV: the reinvestment settled after the sync's commit, so the committed depth must reflect the freshly deployed LPT assets
+        _commitLPTRawNAV($, _immutables, state);
     }
 
     /**
-     * @notice Previews a synchronization of the raw and effective NAVs of both tranches
+     * @notice Previews a synchronization of the collateral NAV and the effective NAVs of both tranches
      * @dev Does not mutate any state
      * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _trancheType An enumerator indicating which tranche to execute this preview for
      * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
-     * @return claims The claims on ST and JT assets that the specified tranche has denominated in tranche-native units
-     * @return totalTrancheShares The total number of shares that exist in the specified tranche after the post-sync mint of its accrued shares: the protocol fee shares for every tranche, plus the liquidity premium shares for the senior tranche
+     * @return claims The asset claims that the specified tranche has denominated in tranche-native units
+     * @return totalTrancheShares The total number of shares that exist in the specified tranche after the post-sync mint of its accrued shares: the protocol fee shares for the senior and junior tranches, plus the liquidity premium shares for the senior tranche (the liquidity provider tranche mints none)
      */
-    function previewSyncTrancheAccounting(
+    function previewSyncTrancheAccountingFor(
         IRoycoDayKernel.RoycoDayKernelState storage $,
         IRoycoDayKernel.RoycoDayKernelImmutableState memory _immutables,
         TrancheType _trancheType
@@ -94,25 +120,20 @@ library AccountingSyncLogic {
                 FeeAndLiquidityPremiumLogic._computeSTFeeAndLiquidityPremiumSharesToMint(state, IERC20(_immutables.seniorTranche).totalSupply());
         } else if (_trancheType == TrancheType.JUNIOR) {
             // Compute JT share supply after the JT protocol fee shares are minted
-            uint256 jtTotalSupply = IERC20(_immutables.juniorTranche).totalSupply();
-            totalTrancheShares = jtTotalSupply
-                + ValuationLogic._convertToShares(state.jtProtocolFee, (state.jtEffectiveNAV - state.jtProtocolFee), jtTotalSupply, Math.Rounding.Floor);
+            totalTrancheShares = IERC20(_immutables.juniorTranche).totalSupply();
+            totalTrancheShares += ValuationLogic._convertToShares(
+                state.jtProtocolFee, (state.jtEffectiveNAV - state.jtProtocolFee), totalTrancheShares, Math.Rounding.Floor
+            );
         } else {
-            // Compute LT share supply after the LT protocol fee shares are minted
+            // Simulate the liquidity premium senior-share mint (net of the LPT protocol fee, which is carved out as senior shares to the protocol) to value the LPT effective NAV
             (uint256 liquidityPremiumShares,, uint256 stTotalSupplyAfterMints) =
                 FeeAndLiquidityPremiumLogic._computeSTFeeAndLiquidityPremiumSharesToMint(state, IERC20(_immutables.seniorTranche).totalSupply());
-            // Update the simulated post-mint ST shares owned by LT
-            uint256 ltOwnedSeniorTrancheShares = $.ltOwnedSeniorTrancheShares + liquidityPremiumShares;
-            claims.stShares = ltOwnedSeniorTrancheShares;
-            totalTrancheShares = IERC20(_immutables.liquidityTranche).totalSupply();
-            totalTrancheShares = totalTrancheShares
-                + ValuationLogic._convertToShares(
-                    state.ltProtocolFee,
-                    (ValuationLogic._getLiquidityTrancheEffectiveNAV($, state.stEffectiveNAV, stTotalSupplyAfterMints, ltOwnedSeniorTrancheShares)
-                            - state.ltProtocolFee),
-                    totalTrancheShares,
-                    Math.Rounding.Floor
-                );
+            // Update the simulated post-mint ST shares owned by LPT
+            uint256 lptOwnedSeniorTrancheShares = $.lptOwnedSeniorTrancheShares + liquidityPremiumShares;
+            claims.stShares = lptOwnedSeniorTrancheShares;
+            claims.nav = ValuationLogic._getLiquidityProviderTrancheEffectiveNAV($, state.stEffectiveNAV, stTotalSupplyAfterMints, lptOwnedSeniorTrancheShares);
+            // The LPT protocol fee no longer mints liquidity provider tranche shares, so this sync leaves the LPT share supply unchanged
+            totalTrancheShares = IERC20(_immutables.liquidityProviderTranche).totalSupply();
         }
     }
 
@@ -135,11 +156,10 @@ library AccountingSyncLogic {
         returns (SyncedAccountingState memory state)
     {
         // Preview a senior/junior accounting sync via the accountant
-        state = IRoycoDayAccountant(_immutables.accountant)
-            .previewSyncTrancheAccounting(ValuationLogic._getSeniorTrancheRawNAV($), ValuationLogic._getJuniorTrancheRawNAV($));
-        // Refresh the liquidity tranche raw NAV and utilization in memory so the preview mirrors execution
-        state.ltRawNAV = ValuationLogic._getLiquidityTrancheRawNAV($);
-        state.liquidityUtilizationWAD = UtilizationLogic._computeLiquidityUtilization(state.stEffectiveNAV, state.minLiquidityWAD, state.ltRawNAV);
+        state = IRoycoDayAccountant(_immutables.accountant).previewSyncTrancheAccounting(ValuationLogic._getCollateralNAV($));
+        // Refresh the liquidity provider tranche raw NAV and utilization in memory so the preview mirrors execution
+        state.lptRawNAV = ValuationLogic._getLiquidityProviderTrancheRawNAV($);
+        state.liquidityUtilizationWAD = UtilizationLogic._computeLiquidityUtilization(state.stEffectiveNAV, state.minLiquidityWAD, state.lptRawNAV);
     }
 
     /**
@@ -157,12 +177,13 @@ library AccountingSyncLogic {
         returns (SyncedAccountingState memory state)
     {
         // Execute the pre-op PnL synchronization via the accountant
-        state = IRoycoDayAccountant(_immutables.accountant)
-            .preOpSyncTrancheAccounting(ValuationLogic._getSeniorTrancheRawNAV($), ValuationLogic._getJuniorTrancheRawNAV($));
-        // Mint the fee and liquidity premium shares accrued by this sync, caching the senior share rate for any liquidity venue before the premium is reinvested
+        state = IRoycoDayAccountant(_immutables.accountant).preOpSyncTrancheAccounting(ValuationLogic._getCollateralNAV($));
+        // Mint the fee and liquidity premium shares accrued by this sync, caching the senior share rate for any liquidity venue mark read
         FeeAndLiquidityPremiumLogic._processFeesAndLiquidityPremium($, _immutables, state);
-        // Commit the liquidity tranche's fresh raw NAV against the post-sync market state
-        _commitPostSyncLiquidityTrancheRawNAV($, _immutables, state);
+        // Commit the liquidity provider tranche's fresh raw NAV against the post-sync market state
+        _commitLPTRawNAV($, _immutables, state);
+        // Signal the settled sync with the committed LPT mark and utilization in the state packet
+        emit IRoycoDayKernel.PreOpTrancheAccountingSynced(state);
     }
 
     /**
@@ -185,17 +206,18 @@ library AccountingSyncLogic {
         returns (SyncedAccountingState memory state, AssetClaims memory claims, uint256 totalTrancheShares)
     {
         // Execute the pre-op PnL synchronization via the accountant
-        state = IRoycoDayAccountant(_immutables.accountant)
-            .preOpSyncTrancheAccounting(ValuationLogic._getSeniorTrancheRawNAV($), ValuationLogic._getJuniorTrancheRawNAV($));
-        // Mint the fee and liquidity premium shares accrued by this sync, caching the senior share rate for any liquidity venue before the premium is reinvested
+        state = IRoycoDayAccountant(_immutables.accountant).preOpSyncTrancheAccounting(ValuationLogic._getCollateralNAV($));
+        // Mint the fee and liquidity premium shares accrued by this sync, caching the senior share rate for any liquidity venue mark read
         FeeAndLiquidityPremiumLogic._processFeesAndLiquidityPremium($, _immutables, state);
-        // Commit the liquidity tranche's fresh raw NAV against the post-sync market state
-        _commitPostSyncLiquidityTrancheRawNAV($, _immutables, state);
+        // Commit the liquidity provider tranche's fresh raw NAV against the post-sync market state
+        _commitLPTRawNAV($, _immutables, state);
+        // Signal the settled sync with the committed LPT mark and utilization in the state packet
+        emit IRoycoDayKernel.PreOpTrancheAccountingSynced(state);
 
         // Read the requested tranche's total supply after all shares (fees and premium) have been minted
         if (_trancheType == TrancheType.SENIOR) totalTrancheShares = IERC20(_immutables.seniorTranche).totalSupply();
         else if (_trancheType == TrancheType.JUNIOR) totalTrancheShares = IERC20(_immutables.juniorTranche).totalSupply();
-        else totalTrancheShares = IERC20(_immutables.liquidityTranche).totalSupply();
+        else totalTrancheShares = IERC20(_immutables.liquidityProviderTranche).totalSupply();
 
         // Derive the asset claims for the specified tranche
         claims = TrancheClaimsLogic._deriveTrancheAssetClaims($, _immutables, _trancheType, state);
@@ -207,7 +229,7 @@ library AccountingSyncLogic {
      * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _op The operation being executed in between the pre and post synchronizations
-     * @param _stSelfLiquidationBonusNAV The NAV of assets from JT effective NAV used as a bonus for ST redemptions (only nonzero if _op == ST_REDEEM || LT_REDEEM)
+     * @param _stSelfLiquidationBonusNAV The NAV of assets from JT effective NAV used as a bonus for ST redemptions (only nonzero if _op == ST_REDEEM || LPT_MULTI_ASSET_REDEEM)
      * @param _enforceCoverageAndLiquidityRequirements Whether to enforce the market's coverage and liquidity requirements applicable to the operation
      * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
      */
@@ -221,38 +243,75 @@ library AccountingSyncLogic {
         internal
         returns (SyncedAccountingState memory state)
     {
-        // Execute the post-op sync on the accountant, committing the final state of the accounting and enforcing the market's requirements if specified
-        state = IRoycoDayAccountant(_immutables.accountant)
-            .postOpSyncTrancheAccounting(
-                _op,
-                ValuationLogic._getSeniorTrancheRawNAV($),
-                ValuationLogic._getJuniorTrancheRawNAV($),
-                ValuationLogic._getLiquidityTrancheRawNAV($),
-                _stSelfLiquidationBonusNAV,
-                _enforceCoverageAndLiquidityRequirements
-            );
+        return _postOpSyncTrancheAccounting(
+            $, _immutables, _op, ValuationLogic._getLiquidityProviderTrancheRawNAV($), _stSelfLiquidationBonusNAV, _enforceCoverageAndLiquidityRequirements
+        );
     }
 
     /**
-     * @notice Marks and commits the liquidity tranche's fresh raw NAV and refreshes the in-memory state packet
-     * @dev Called after a sync has committed the senior/junior NAVs and this kernel has minted any fee shares (and after any liquidity
-     *      tranche venue mutation has settled), so the freshly marked liquidity tranche raw NAV reflects the final post-mint depth and
-     *      senior share rate. The committed liquidity tranche raw NAV stays out of the P&L waterfall and the senior share rate provider's dependency loop
+     * @notice Executes a post-operation sync at a caller-marked liquidity provider tranche raw NAV
+     * @dev Used by flows whose venue interaction marked the post-op LPT raw NAV inside the venue frame, so preview and
+     *      execution enforce against the same mark
+     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param _op The operation being executed in between the pre and post synchronizations
+     * @param _lptRawNAV The post-op liquidity provider tranche raw NAV, marked by the caller at the venue's post-op state
+     * @param _stSelfLiquidationBonusNAV The NAV of assets from JT effective NAV used as a bonus for ST redemptions (only nonzero if _op == ST_REDEEM || LPT_MULTI_ASSET_REDEEM)
+     * @param _enforceCoverageAndLiquidityRequirements Whether to enforce the market's coverage and liquidity requirements applicable to the operation
+     * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
+     */
+    function _postOpSyncTrancheAccounting(
+        IRoycoDayKernel.RoycoDayKernelState storage $,
+        IRoycoDayKernel.RoycoDayKernelImmutableState memory _immutables,
+        Operation _op,
+        NAV_UNIT _lptRawNAV,
+        NAV_UNIT _stSelfLiquidationBonusNAV,
+        bool _enforceCoverageAndLiquidityRequirements
+    )
+        internal
+        returns (SyncedAccountingState memory state)
+    {
+        // Execute the post-op sync on the accountant, committing the final state of the accounting and enforcing the market's requirements if specified
+        state = IRoycoDayAccountant(_immutables.accountant)
+            .postOpSyncTrancheAccounting(
+                _op, ValuationLogic._getCollateralNAV($), _lptRawNAV, _stSelfLiquidationBonusNAV, _enforceCoverageAndLiquidityRequirements
+            );
+
+        // Deploy the accumulated idle liquidity-premium senior shares now that the operation has settled and its requirements are enforced
+        if ($.lptOwnedSeniorTrancheShares != 0) {
+            // Value the pile at the settled post-op senior state, a gated or unpriceable deployment defers inside the attempt and leaves the shares idle
+            // The venue's senior-leg mark stays the pre-op cached rate, which the frozen collateral price and at-rate mints keep exact through the operation
+            IRoycoDayKernel(address(this))
+                .attemptLiquidityPremiumReinvestment(type(uint256).max, state.stEffectiveNAV, IERC20(_immutables.seniorTranche).totalSupply());
+            // Re-commit the LPT raw NAV: the deployment settled after the post-op's commit, so the committed depth must reflect the freshly deployed LPT assets
+            _commitLPTRawNAV($, _immutables, state);
+        }
+
+        // Signal the settled sync with the final LPT mark and utilization the operation left behind
+        emit IRoycoDayKernel.PostOpTrancheAccountingSynced(_op, state);
+    }
+
+    /**
+     * @notice Marks and commits the liquidity provider tranche's fresh raw NAV and refreshes the in-memory state packet
+     * @dev Called wherever the depth may have moved under the committed mark: after a sync's fee and premium mints, or a reinvestment
+     *      The committed liquidity provider tranche raw NAV stays out of the P&L waterfall and the senior share rate provider's dependency loop
      * @dev Refreshes the state packet in place so every downstream consumer reads the most up-to-date values
+     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _state The synced accounting state to refresh in place
      */
-    function _commitPostSyncLiquidityTrancheRawNAV(
+    function _commitLPTRawNAV(
         IRoycoDayKernel.RoycoDayKernelState storage $,
         IRoycoDayKernel.RoycoDayKernelImmutableState memory _immutables,
         SyncedAccountingState memory _state
     )
         internal
     {
-        // Get the post-sync LT raw NAV
-        NAV_UNIT ltRawNAV = ValuationLogic._getLiquidityTrancheRawNAV($);
-        // Commit the fresh LT raw NAV in the accountant and the derived liquidity utilization in the state packet
-        IRoycoDayAccountant(_immutables.accountant).commitLiquidityTrancheRawNAV(ltRawNAV);
-        _state.ltRawNAV = ltRawNAV;
-        _state.liquidityUtilizationWAD = UtilizationLogic._computeLiquidityUtilization(_state.stEffectiveNAV, _state.minLiquidityWAD, ltRawNAV);
+        // Get the post-sync LPT raw NAV
+        NAV_UNIT lptRawNAV = ValuationLogic._getLiquidityProviderTrancheRawNAV($);
+        // Commit the fresh LPT raw NAV in the accountant and the derived liquidity utilization in the state packet
+        IRoycoDayAccountant(_immutables.accountant).commitLiquidityProviderTrancheRawNAV(lptRawNAV);
+        _state.lptRawNAV = lptRawNAV;
+        _state.liquidityUtilizationWAD = UtilizationLogic._computeLiquidityUtilization(_state.stEffectiveNAV, _state.minLiquidityWAD, lptRawNAV);
     }
 }

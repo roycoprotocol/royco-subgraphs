@@ -91,88 +91,161 @@ type DayMarketState @entity(immutable: false) {
   deployerAddress: String! # Deployer Address
   seniorTrancheAddress: String! # Senior Tranche Address
   juniorTrancheAddress: String! # Junior Tranche Address
-  liquidityTrancheAddress: String! # Liquidity Tranche Address
+  liquidityTrancheAddress: String! # Liquidity Tranche Address <- ABI: result.liquidityProviderTranche
   seniorTrancheId: String! # Senior Tranche ID: <CHAIN_ID>_<SENIOR_TRANCHE_ADDRESS>
   juniorTrancheId: String! # Junior Tranche ID: <CHAIN_ID>_<JUNIOR_TRANCHE_ADDRESS>
   liquidityTrancheId: String! # Liquidity Tranche ID: <CHAIN_ID>_<LIQUIDITY_TRANCHE_ADDRESS>
   kernelAddress: String! # Kernel Address
   accountantAddress: String! # Accountant Address
-  juniorTrancheYdmAddress: String! # Junior Tranche YDM Address <- ABI: result.ydm (NOT result.ltYdm)
-  liquidityTrancheYdmAddress: String! # Liquidity Tranche YDM Address <- ABI: result.ltYdm
+  juniorTrancheYdmAddress: String! # Junior Tranche YDM Address <- ABI: result.ydm (NOT result.lptYdm)
+  liquidityTrancheYdmAddress: String! # Liquidity Tranche YDM Address <- ABI: result.lptYdm
   creationEncodedData: String! # Creation Encoded Data (bytes of "extras" in event, stored as hex string)
+  #
+  # !! SCHEMA-vs-CONTRACT VOCABULARY. The v2 contracts renamed the liquidity tranche to
+  #    the LIQUIDITY PROVIDER tranche (`lpt*`, `IRoycoLiquidityProviderTranche`,
+  #    `TrancheType.LIQUIDITY_PROVIDER`). These columns deliberately KEEP the older
+  #    `liquidityTranche*` spelling, and `DayVaultState.minorType` keeps the value
+  #    "liquidity" — that value is part of DayFeeState's entity id, so moving it would
+  #    fork every fee row's lineage for a pure rename. The `<- ABI:` annotations are the
+  #    bridge: where a column says `liquidityTranche` the ABI says `lpt`. See MIGRATION-v2.md.
   # ======
   # ======
-  # => data from "RoycoDayAccountant.getState()" (27-member struct)
+  # => data from "RoycoDayAccountant.getState()" (24-member struct)
   seniorTrancheProtocolFeeWAD: BigInt! # Senior Tranche Protocol Fee WAD <- ABI: stProtocolFeeWAD
   juniorTrancheProtocolFeeWAD: BigInt! # Junior Tranche Protocol Fee WAD <- ABI: jtProtocolFeeWAD
   juniorTrancheYieldShareProtocolFeeWAD: BigInt! # Junior Tranche Yield Share Protocol Fee WAD <- ABI: jtYieldShareProtocolFeeWAD
-  liquidityTrancheYieldShareProtocolFeeWAD: BigInt! # Liquidity Tranche Yield Share Protocol Fee WAD <- ABI: ltYieldShareProtocolFeeWAD
+  liquidityTrancheYieldShareProtocolFeeWAD: BigInt! # Liquidity Tranche Yield Share Protocol Fee WAD <- ABI: lptYieldShareProtocolFeeWAD
   minCoverageWAD: BigInt! # Min Coverage WAD <- ABI: minCoverageWAD
   minLiquidityWAD: BigInt! # Min Liquidity WAD <- ABI: minLiquidityWAD
   marketState: String! # Market State (Enum: "perpetual" -> 0 in Contract.MarketState, "fixed" -> 1 in Contract.MarketState)
-  # ^ The enum order is PERPETUAL, FIXED_TERM — see contracts/libraries/Types.sol:25-28.
+  # ^ The enum order is PERPETUAL, FIXED_TERM — see contracts/libraries/Types.sol.
   #   0 is PERPETUAL, not "fixed". Do not "correct" this back; it reads backwards.
   # ^ <- ABI: lastMarketState (uint8 -> i32). NOTE: this is the LAST SYNCED state.
-  #   The LIVE state is previewSyncTrancheAccounting().state.marketState. They
+  #   The LIVE state is previewSyncTrancheAccountingFor().state.marketState. They
   #   disagree between syncs — this field is deliberately the stored one.
   fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds <- ABI: fixedTermDurationSeconds (uint24 -> i32! needs BigInt.fromI32)
   fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp <- ABI: fixedTermEndTimestamp (uint32 -> BigInt, direct)
   lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp <- ABI: lastYieldShareAccrualTimestamp
   lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp <- ABI: lastPremiumPaymentTimestamp
-  timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD
+  timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD (uint128 -> BigInt, direct)
   maxJuniorTrancheYieldShareAccruedWAD: BigInt! # Max Junior Tranche Yield Share WAD <- ABI: maxJTYieldShareWAD
   # ^ NOTE: this is a CONFIGURED CAP (set via setMaxYieldShares / MaxYieldSharesUpdated),
   #   NOT an accrual — despite the "Accrued" in the field name. The real accrual is
   #   timeWeightedJuniorTrancheYieldShareAccruedWAD directly above. Do not average them.
-  timeWeightedLiquidityTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Liquidity Tranche Yield Share Accrued WAD <- ABI: twLTYieldShareAccruedWAD
-  maxLiquidityTrancheYieldShareAccruedWAD: BigInt! # Max Liquidity Tranche Yield Share WAD <- ABI: maxLTYieldShareWAD (also a CAP, see above)
+  timeWeightedLiquidityTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Liquidity Tranche Yield Share Accrued WAD <- ABI: twLPTYieldShareAccruedWAD (uint128)
+  maxLiquidityTrancheYieldShareAccruedWAD: BigInt! # Max Liquidity Tranche Yield Share WAD <- ABI: maxLPTYieldShareWAD (also a CAP, see above)
   coverageLiquidationUtilizationWAD: BigInt! # Coverage Liquidation Utilization WAD <- ABI: coverageLiquidationUtilizationWAD
-  seniorTrancheDustTolerance: BigInt! # Senior Tranche Dust Tolerance <- ABI: stNAVDustTolerance
-  juniorTrancheDustTolerance: BigInt! # Junior Tranche Dust Tolerance <- ABI: jtNAVDustTolerance
-  effectiveNAVDustTolerance: BigInt! # Effective NAV Dust Tolerance <- ABI: effectiveNAVDustTolerance
+  dustTolerance: BigInt! # Dust Tolerance <- ABI: dustTolerance
+  # ^ ONE tolerance now, where v1 had THREE (stNAVDustTolerance, jtNAVDustTolerance and a
+  #   cached effectiveNAVDustTolerance = st + jt). Senior and junior share one collateral
+  #   asset, so one tolerance covers both, and it arrives on its own DustToleranceUpdated
+  #   event. That deletes v1's nastiest handler quirk: effectiveNAVDustTolerance had NO
+  #   event and had to be recomputed inside both dust handlers or it drifted stale forever.
   # ======
   # ======
-  # => data from "RoycoDayKernel.getState()" (7-member struct)
+  # => data from "RoycoDayKernel.getState()" (10-member struct)
   protocolFeeRecipientAddress: String! # Protocol Fee Recipient Address <- ABI: protocolFeeRecipient
   seniorTrancheSelfLiquidationBonusWAD: BigInt! # Senior Tranche Self Liquidation Bonus WAD <- ABI: stSelfLiquidationBonusWAD
-  seniorTrancheOwnedYieldBearingAssets: BigInt! # Senior Tranche Owned Yield Bearing Assets in asset token units <- ABI: stOwnedYieldBearingAssets
-  juniorTrancheOwnedYieldBearingAssets: BigInt! # Junior Tranche Owned Yield Bearing Assets in asset token units <- ABI: jtOwnedYieldBearingAssets
-  liquidityTrancheOwnedYieldBearingAssets: BigInt! # Liquidity Tranche Owned Yield Bearing Assets in asset token units <- ABI: ltOwnedYieldBearingAssets
-  liquidityTrancheOwnedSeniorTrancheShares: BigInt! # Liquidity Tranche Owned Senior Tranche Shares <- ABI: ltOwnedSeniorTrancheShares
+  totalCollateralAssets: BigInt! # Total Collateral Assets, in collateral-token units <- ABI: totalCollateralAssets
+  # ^ Replaces v1's separate stOwnedYieldBearingAssets + jtOwnedYieldBearingAssets. The
+  #   senior and junior tranches are coinvested in ONE collateral asset now, so the kernel
+  #   tracks a single balance and the split no longer exists on chain to record.
+  totalLiquidityTrancheAssets: BigInt! # Total Liquidity Tranche Assets, in LPT-asset units <- ABI: totalLPTAssets
+  liquidityTrancheOwnedSeniorTrancheShares: BigInt! # Liquidity Tranche Owned Senior Tranche Shares <- ABI: lptOwnedSeniorTrancheShares
+  collateralAssetOracleAddress: String! # Collateral Asset Oracle Address <- ABI: collateralAssetOracle
+  collateralAssetOracleStalenessThresholdSeconds: BigInt! # Staleness Threshold Seconds <- ABI: stalenessThresholdSeconds (uint48 -> BigInt, direct)
+  sequencerUptimeFeedAddress: String! # Sequencer Uptime Feed Address <- ABI: sequencerUptimeFeed
+  sequencerUptimeFeedGracePeriodSeconds: BigInt! # Grace Period Seconds <- ABI: gracePeriodSeconds (uint48 -> BigInt, direct)
+  # ^ The four above are new in v2 and each has its own event
+  #   (CollateralAssetOracleUpdated, SequencerUptimeFeedUpdated), so they stay fresh
+  #   without a getState() re-read. uint48 is >= uint32, so BigInt direct — NOT
+  #   BigInt.fromI32 (§4); only uint24-and-below decode to i32.
+  #
   # NOTE: Kernel.getState() also returns `roycoBlacklist` (address), which this
   # schema deliberately does not capture. RoycoBlacklistUpdated(address) is
   # likewise unindexed. Add both together if it is ever needed.
   # ======
   # ======
-  # => data from "RoycoDayKernel.previewSyncTrancheAccounting(_trancheType)"
+  # => the market's three ASSET TOKENS, from dedicated Kernel views
+  #    (NOT getState() members — three separate calls).
   #
-  #    !! Use the KERNEL overload, not the Accountant's !!
-  #    Kernel:     previewSyncTrancheAccounting(uint8 _trancheType)
-  #                  -> (TrancheState state, Claims claims, uint256 totalTrancheShares)   [view]
-  #    Accountant: previewSyncTrancheAccounting(uint256 _stRawNAV, uint256 _jtRawNAV)
-  #                  -> (TrancheState state)                                              [view]
-  #    The Accountant overload requires you to supply the very NAVs you are
-  #    trying to read — circular. The Kernel derives them itself, and only the
-  #    Kernel returns `claims` (which DayVaultState's five asset fields need).
+  # Read ONCE at market creation and never updated, because all three are
+  # `immutable` on chain: COLLATERAL_ASSET and LPT_ASSET are declared
+  # `public immutable` on RoycoDayKernel itself, and QUOTE_ASSET is `public immutable`
+  # on the liquidity venue that concretises it. No event exists for any of them
+  # because none can ever change.
+  #
+  # !! THESE ARE NOT INDEPENDENT DATA — the kernel's constructor requires
+  #    seniorTranche.asset() == COLLATERAL_ASSET && juniorTranche.asset() == COLLATERAL_ASSET
+  #    && liquidityProviderTranche.asset() == LPT_ASSET
+  #    (RoycoDayKernel.sol, TRANCHE_AND_KERNEL_ASSETS_MISMATCH). So
+  #    collateralTokenAddress MUST equal the senior and junior DayVaultState.assetTokenAddress,
+  #    and liquidityTrancheAssetTokenAddress MUST equal the liquidity one. Storing them
+  #    here is a market-level convenience — one row instead of a three-way vault join —
+  #    and a free cross-check: if they ever disagree in Neon, something is very wrong.
+  #    quoteAssetTokenAddress is the exception: it exists on NO tranche, so this is its
+  #    only home.
+  collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.COLLATERAL_ASSET()
+  collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>
+  liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.LPT_ASSET()
+  liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>
+  quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.QUOTE_ASSET()
+  quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>
+  # ^ The venue's non-senior constituent — the token paid in on a multi-asset LP
+  #   deposit and out on a multi-asset redeem (DayMultiAssetDeposit/RedeemActivity's
+  #   `quoteAssets` column is denominated in it). It has no tranche and no DayVaultState,
+  #   so without this field the amounts in those two tables have no token attached.
+  #
+  #   ONLY THIS ONE IS READ WITH try_. COLLATERAL_ASSET and LPT_ASSET are concrete
+  #   `immutable`s on the base kernel, so raw is correct (§5). QUOTE_ASSET is declared
+  #   `virtual` and BODYLESS there and only implemented by the liquidity venue — a kernel
+  #   variant without a venue need not implement it at all. A raw call that reverted would
+  #   kill handleMarketDeploymentCompleted, and that is the worst possible place to fail:
+  #   the market, all three vaults and every downstream row would silently never exist.
+  #   On revert this falls back to the zero address, which is the truthful "no quote
+  #   asset" answer for a venue-less market.
+  # ======
+  # ======
+  # => data from "RoycoDayKernel.previewSyncTrancheAccountingFor(_trancheType)"
+  #
+  #    RENAMED in v2 from previewSyncTrancheAccounting. Still the KERNEL overload, not
+  #    the Accountant's previewSyncTrancheAccounting(NAV_UNIT), which makes you supply
+  #    the very NAV you are trying to read and returns no claims.
+  #    Kernel: previewSyncTrancheAccountingFor(uint8 _trancheType)
+  #              -> (SyncedAccountingState state, AssetClaims claims, uint256 totalTrancheShares)
   #
   #    The fields below all come from `state`, which is TRANCHE-INDEPENDENT — so
-  #    any _trancheType works for this market-level entity. DayVaultState, which
-  #    consumes `claims`, must pass that tranche's own TRANCHE_TYPE() instead.
-  seniorTrancheRawNAV: BigInt! # Senior Tranche Raw NAV <- ABI: state.stRawNAV
-  juniorTrancheRawNAV: BigInt! # Junior Tranche Raw NAV <- ABI: state.jtRawNAV
-  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV <- ABI: state.ltRawNAV
+  #    any _trancheType works for this market-level entity. Callers that consume
+  #    `claims` must pass that tranche's own TRANCHE_TYPE() instead.
+  collateralNAV: BigInt! # Collateral NAV <- ABI: state.collateralNAV
+  # ^ Replaces v1's seniorTrancheRawNAV + juniorTrancheRawNAV. One coinvested collateral
+  #   pool, one raw NAV. The per-tranche split survives only as the EFFECTIVE NAVs below,
+  #   which is where the coverage model actually lives.
+  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV <- ABI: state.lptRawNAV
+  # ^ REAL as of the v2 sync rework. Both sync events now emit AFTER _commitLPTRawNAV,
+  #   which refreshes lptRawNAV and liquidityUtilizationWAD in the state packet in
+  #   place. In v1 this column and the one below were permanently zero, because the
+  #   single sync event marshalled them as placeholders.
   seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV <- ABI: state.stEffectiveNAV
   juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV <- ABI: state.jtEffectiveNAV
-  juniorTrancheCoverageImpermanentLoss: BigInt! # Junior Tranche Coverage Impermanent Loss <- ABI: state.jtCoverageImpermanentLoss
-  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium <- ABI: state.ltLiquidityPremium
+  juniorTrancheImpermanentLoss: BigInt! # Junior Tranche Impermanent Loss <- ABI: state.jtImpermanentLoss
+  # ^ v1 called this juniorTrancheCoverageImpermanentLoss; v2 drops "Coverage" from the
+  #   contract member, and the column follows.
+  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium <- ABI: state.lptLiquidityPremium
   coverageUtilizationWAD: BigInt! # Coverage Utilization WAD <- ABI: state.coverageUtilizationWAD
   liquidityUtilizationWAD: BigInt! # Liquidity Utilization WAD <- ABI: state.liquidityUtilizationWAD
-  isJuniorTrancheCoinvested: Boolean! # Is Junior Tranche Coinvested <- ABI: state.jtCoinvested
+  # ^ REAL too — see liquidityTrancheRawNAV above. _commitLPTRawNAV recomputes it as
+  #   UtilizationLogic._computeLiquidityUtilization(stEffectiveNAV, minLiquidityWAD,
+  #   lptRawNAV) before the emit.
+  #
+  # v1 also stored `isJuniorTrancheCoinvested` here, from state.jtCoinvested. That member
+  # is GONE from SyncedAccountingState in v2 — coinvestment is no longer a per-market
+  # toggle — so the column is dropped rather than frozen at a guess.
   # ======
   # ======
   # => records
   #
-  # Cursors for the seven DayFixedTermHistory / Day*History streams in "=== RECORDS ===".
+  # Cursors for the six DayFixedTermHistory / Day*History streams in "=== RECORDS ===".
   # These are COUNTS, not last-indices — a different cursor shape from
   # `lastHistoricalEntryIndex`, deliberately. See "ENTRY INDEX CURSOR" below.
   #
@@ -189,40 +262,41 @@ type DayMarketState @entity(immutable: false) {
   # ^ Advances ONLY on FixedTermCommenced. DayFixedTermHistory is the one MUTABLE
   #   record stream: the close-out writes patch the row at (count - 1) and must NOT
   #   increment this.
-  countJuniorTrancheYieldSharesAccruedEntries: BigInt! # Count of Junior Tranche Yield Shares Accrued Entries -> DayJuniorTrancheYieldSharesAccruedHistory
-  countLiquidityTrancheYieldSharesAccruedEntries: BigInt! # Count of Liquidity Tranche Yield Shares Accrued Entries -> DayLiquidityTrancheYieldSharesAccruedHistory
+  countYieldSharesAccruedEntries: BigInt! # Count of Yield Shares Accrued Entries -> DayYieldSharesAccruedHistory
+  # ^ ONE cursor where v1 had two. v2 merged JuniorTrancheYieldShareAccrued and
+  #   LiquidityTrancheYieldShareAccrued into a single YieldSharesAccrued carrying all
+  #   four values, so the two accruals are now one atomic event and get one row.
   countTrancheAccountingSyncedEntries: BigInt! # Count of Tranche Accounting Synced Entries -> DayTrancheAccountingSyncedHistory
-  # ^ Advances on EVERY TrancheAccountingSynced — a HOT, AMM-frequency stream (one
-  #   row per Balancer swap), unlike its config-event neighbours here. Same count
-  #   cursor mechanics regardless: use-then-increment, total == count.
+  # ^ Advances on every PostOpTrancheAccountingSynced — i.e. once per completed deposit
+  #   or redemption. NOT the AMM-frequency stream it was in v1: the pre-op event, which
+  #   is what fires on swaps, is deliberately not indexed (see that entity's note).
   countLiquidityPremiumSharesMintedEntries: BigInt! # Count of Liquidity Premium Shares Minted Entries -> DayLiquidityPremiumSharesMintedHistory
   countLiquidityPremiumReinvestedEntries: BigInt! # Count of Liquidity Premium Reinvested Entries -> DayLiquidityPremiumReinvestedHistory
   countLiquidityPremiumReinvestmentFailedEntries: BigInt! # Count of Liquidity Premium Reinvestment Failed Entries -> DayLiquidityPremiumReinvestmentFailedHistory
   #
   # A LIFETIME ACCUMULATOR, not a cursor and not a mirror of any on-chain value.
-  # Every JuniorTrancheCoverageImpermanentLossReset adds its erased amount here, so
-  # this only ever grows: it answers "how much JT coverage loss has this market
-  # written off in total?", which no contract tracks and no getState() member holds.
+  # Every JuniorTrancheImpermanentLossReset adds its erased amount here, so this only
+  # ever grows: it answers "how much JT loss has this market written off in total?",
+  # which no contract tracks and no getState() member holds.
   #
-  # !! DO NOT CONFUSE WITH `juniorTrancheCoverageImpermanentLoss` ABOVE. They sit in
-  #    one row, differ by one word, and mean opposite things:
-  #      juniorTrancheCoverageImpermanentLoss  = the LIVE, point-in-time loss, from
-  #                                              the preview block. Goes UP and DOWN,
-  #                                              and is reset to 0 on every erase.
-  #      juniorTrancheCoverageLossNAV          = the LIFETIME TOTAL of everything
-  #                                              erased. MONOTONIC; never decreases.
-  #    In Neon: junior_tranche_coverage_impermanent_loss vs
-  #    junior_tranche_coverage_loss_nav. Summing or comparing the two is meaningless.
+  # !! DO NOT CONFUSE WITH `juniorTrancheImpermanentLoss` ABOVE. They sit in one row,
+  #    differ by one word, and mean opposite things:
+  #      juniorTrancheImpermanentLoss     = the LIVE, point-in-time loss, from the
+  #                                         preview block. Goes UP and DOWN, and is
+  #                                         reset to 0 on every erase.
+  #      juniorTrancheImpermanentLossNAV  = the LIFETIME TOTAL of everything erased.
+  #                                         MONOTONIC; never decreases.
+  #    In Neon: junior_tranche_impermanent_loss vs junior_tranche_impermanent_loss_nav.
+  #    Summing or comparing the two is meaningless.
   #
   # Counts EVERY erase, not just term ends — unlike
-  # DayFixedTermHistory.juniorTrancheCoverageImpermanentLossNAV, which is per-term
-  # and only records the erase that ENDED that term. The erase branch fires on
-  # already-perpetual markets too (coverage past the liquidation threshold, JT wiped
-  # out), so this total is >= the sum of the per-term rows, by design.
+  # DayFixedTermHistory.juniorTrancheImpermanentLossNAV, which is per-term and only
+  # records the erase that ENDED that term. The erase branch fires on already-perpetual
+  # markets too, so this total is >= the sum of the per-term rows, by design.
   #
   # NAV_UNIT, like every other *NAV field here. Seeded to zero at market creation:
   # nothing has been erased yet, and there is no contract value to read.
-  juniorTrancheCoverageLossNAV: BigInt! # Junior Tranche Coverage Loss NAV (cumulative, monotonic)
+  juniorTrancheImpermanentLossNAV: BigInt! # Junior Tranche Impermanent Loss NAV (cumulative, monotonic)
   # ======
   # ======
   # => general data
@@ -232,6 +306,243 @@ type DayMarketState @entity(immutable: false) {
   updatedAtTransactionHash: String! # Updated At Transaction Hash
   updatedAtBlockNumber: BigInt! # Updated At Block Number
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+# =============================================================================
+# ASSET CLAIMS — the quadruple. Read this before touching any claims*/sharePrice*
+# field anywhere in this file.
+#
+# This block is the canonical note. It lives on its own rather than on an entity
+# because the entities that carry the struct change over time — it used to hang off
+# DayVaultState, which no longer has one — and a "see the note above" pointing at a
+# deleted note is worse than no note.
+#
+# `AssetClaims = (collateralAssets, lptAssets, stShares, nav)`
+# (contracts/libraries/Types.sol — the struct is AssetClaims; `claims` is only ever a
+# variable name). THESE ARE NOT ERC-4626 VAULTS: on all three tranches
+# convertToAssets / totalAssets / previewRedeem return this STRUCT, not a uint256.
+# Only previewDeposit is a scalar. The mapping is fixed:
+#
+#   .collateralAssets -> claimsCollateralAssets        .stShares -> claimsSeniorTrancheShares
+#   .lptAssets        -> claimsLiquidityTrancheAssets   .nav      -> claimsNAV
+#
+# !! FOUR MEMBERS IN v2, NOT FIVE. v1's separate `stAssets` and `jtAssets` collapsed
+#    into one `collateralAssets` when senior and junior became coinvested in a single
+#    collateral token. Consequence beyond the column count: `Redeem` and
+#    `MultiAssetRedeem` embed this struct, so their TOPIC0 CHANGED even though their
+#    names and parameter lists did not.
+#
+# THE `claims` PREFIX IS LOAD-BEARING, not decoration. Without it
+# `seniorTrancheShares` sits beside a row's own `shares` / `sharesTotalSupply` looking
+# like a sibling, when the two are unrelated: one is the row's own share balance, the
+# other is senior-tranche shares held INSIDE the claim. DayMarketNav's
+# `<tranche>SharePrice<leg>` names are the same struct under a different prefix,
+# because that entity carries three of them at once.
+#
+# NOT REDEMPTION PROCEEDS. previewRedeem is a different call down a different kernel
+# path. convertToAssets is the pro-rata ACCOUNTING claim — what the shares represent.
+# Never name or describe it as "redeemable".
+#
+# !! LIQUIDITY TRANCHE ASYMMETRY (RoycoVaultTranche.convertToAssets):
+#    on the LPT — and ONLY the LPT — the tranche rewrites the struct before scaling:
+#    stShares is forced to 0 and nav is taken from state.lptRawNAV. Idle
+#    (un-reinvested) ST shares are excluded so the LPT share price cannot tick down on
+#    reinvestment slippage. So a zero claimsSeniorTrancheShares on a liquidity row is
+#    CORRECT, not missing data. claimsNAV keeps its meaning — the total NAV of the
+#    claim — on every tranche; the LPT claim simply contains no ST shares, so its NAV
+#    is lptRawNAV. Same unit, same definition, narrower claim.
+#    All three tranches declare byte-identical convertToAssets signatures, so this is
+#    invisible from the ABI. Only contracts/ shows it (§4).
+#
+# WHICH LEGS ARE STRUCTURALLY ZERO depends on the tranche, decided one level down in
+# TrancheClaimsLogic._deriveTrancheAssetClaims. In v2 it is symmetric and simple:
+#   SENIOR / JUNIOR      set nav + collateralAssets  =>  lptAssets and stShares are 0
+#   LIQUIDITY_PROVIDER   set nav + lptAssets + stShares  =>  collateralAssets is 0,
+#                        and the convertToAssets rewrite above then forces stShares to 0
+# So exactly TWO of the four legs are live on every tranche. A zero there is the
+# contract's answer, not a failed read.
+#
+# UNITS are NOT uniform across the four: collateralAssets and lptAssets are
+# TRANCHE_UNIT in two DIFFERENT tokens, stShares is a raw uint256 share count, and only
+# nav is NAV_UNIT. Never sum or compare across legs.
+# =============================================================================
+
+# =============================================================================
+# THE MARKET'S PRICE VECTOR — all three tranches priced in ONE row.
+#
+# Per tranche: a SHARE price (the full AssetClaims quadruple), plus an ASSET price
+# (a NAV_UNIT scalar) per distinct asset — and v2 has only TWO of those, because senior
+# and junior are coinvested in one collateral token. 2 + 12 = 14 price columns.
+#
+# THE SOLE HOME of the share-price claims. DayVaultState used to carry a per-vault
+# copy of this struct and no longer does — the per-vault rows could not answer the
+# question these are for, because DayVaultStateHistorical advances on each vault's OWN
+# mint/burn cursor, so entry N on the senior and entry N on the junior are different
+# moments and "the market's price vector at time T" was unreconstructable without a
+# three-way as-of join. Here all three tranches are captured AT THE SAME INSTANT, by
+# construction. Since v2 this is the ONLY place any price is stored: DayVaultState
+# carries none at all.
+#
+# TWO WRITE SITES, TWO DIFFERENT SOURCES — the asymmetry is the whole design:
+#   1. MarketDeploymentCompleted -> entry 0. Copied off the three DayVaultState
+#      rows the same handler just wrote, so it costs ZERO extra eth_calls. All
+#      three sharePrice* are provably 0 there (supply is 0, so _scaleAssetClaims
+#      returns the zero struct for any input), and the assetPrice* were already read.
+#   2. TrancheAccountingSynced -> every later entry. Here all 18 values MUST be
+#      re-read from the contracts. The sync payload carries MARKET-level NAVs
+#      (stRawNAV, jtEffectiveNAV, ...) and no per-share or per-asset-token price at
+#      all, and the DayVaultState copies are stale between mints/burns. That is 6
+#      eth_calls per sync on the hottest path in this subgraph — see the cost note
+#      on refreshMarketNav in src/handlers/base/market-nav.ts. FIVE calls for 14 columns:
+#      2 asset-price converters + 3 convertToAssets, each returning a whole quadruple.
+#
+# THE TWO NAV_UNIT PRICES, and what they are denominated in:
+#   *AssetPriceNAV = the NAV value of ONE WHOLE ASSET TOKEN (10 ** assetTokenDecimals)
+#                    — collateral for senior+junior, the LPT asset for liquidity
+#   *SharePriceNAV = the NAV value of ONE WHOLE SHARE       (10 ** shareTokenDecimals)
+# The two denominators are different tokens with independently-configured decimals.
+# Never divide one by the other, and never compare an asset price to a share price.
+# The share price's other four legs are NOT NAV_UNIT — see the units note on that
+# group below before touching them.
+#
+# No `marketRefId` column, deliberately: this id IS <CHAIN_ID>_<MARKET_ID>, i.e.
+# byte-identical to DayMarketState.id, so the join key is already `id`. (The
+# historical row below DOES carry it — its own id has the entryIndex appended, so
+# there the pointer is not derivable without parsing.) Same asymmetry as
+# DayVaultState (no self `vaultId`) vs DayVaultStateHistorical (has one).
+# =============================================================================
+type DayMarketNav @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID> — byte-identical to DayMarketState.id
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  collateralAssetPriceNAV: BigInt! # Collateral Asset Price NAV <- ABI: Kernel.convertCollateralAssetsToValue(10 ** assetTokenDecimals) — covers senior AND junior, which share one asset
+  liquidityTrancheAssetPriceNAV: BigInt! # Liquidity Tranche Asset Price NAV <- ABI: Kernel.convertLPTAssetsToValue(10 ** assetTokenDecimals)
+  # ^ ABI: Kernel.convertCollateralAssetsToValue / convertLPTAssetsToValue, each called
+  #   with (10 ** assetTokenDecimals). TWO methods in v2, not three: senior and junior
+  #   share one collateral asset, so they route to the SAME converter. Dispatch on the
+  #   vault's own minorType — never on TRANCHE_TYPE() == 0/1/2, which is an inference (§6).
+  # --- THREE AssetClaims QUADRUPLES: one whole share of each tranche. ---
+  #
+  # Each group is tranche.convertToAssets(10 ** shareTokenDecimals) in full — the
+  # AssetClaims struct (collateralAssets, lptAssets, stShares, nav) in ABI order, per the
+  # "ASSET CLAIMS" block. Naming is <WHOSE SHARE>SharePrice<WHICH LEG>, so the
+  # *SharePriceNAV fields are simply the `nav` leg of their own group.
+  #
+  # FREE relative to keeping only `nav`: convertToAssets already returns the whole
+  # struct, so the extra legs per tranche cost no additional eth_call.
+  #
+  # !! SIX OF THESE TWELVE ARE INVARIANTLY ZERO — structurally, not incidentally.
+  #    Verified in contracts/, and invisible from the ABI (all three tranches declare
+  #    byte-identical convertToAssets, §4). A zero here is CORRECT, never missing data:
+  #
+  #      TrancheClaimsLogic._deriveTrancheAssetClaims fills only SOME legs and leaves
+  #      the rest at Solidity's memory zero; _scaleAssetClaims then multiplies every leg
+  #      through, so the zeros survive scaling:
+  #        SENIOR / JUNIOR branch    sets nav + collateralAssets
+  #                                    -> lptAssets, stShares stay 0
+  #        LIQUIDITY_PROVIDER branch sets nav + lptAssets + stShares
+  #                                    -> collateralAssets stays 0
+  #      and then RoycoVaultTranche.convertToAssets rewrites the LPT, and ONLY the LPT,
+  #      before scaling: stShares -> 0, nav -> state.lptRawNAV. Idle un-reinvested ST
+  #      shares are excluded so the LPT share price cannot tick down on reinvestment
+  #      slippage. That kills the LPT's third leg.
+  #
+  #    So exactly TWO legs move per tranche: senior/junior collateralAssets+nav, and
+  #    liquidity lptAssets+nav. Do not "fix" a zero column, and do not drop them —
+  #    they are kept so the row is the whole struct.
+  #
+  # UNITS — THREE different ones in this group; the header's NAV_UNIT rule does NOT
+  # extend here. Never sum or compare across them:
+  #   *CollateralAssets / *LiquidityTrancheAssets
+  #                   TRANCHE_UNIT in two DIFFERENT tokens with different decimals
+  #   *SeniorTrancheShares  a raw uint256 SHARE COUNT — not a unit type at all
+  #   *NAV            NAV_UNIT — the only leg comparable ACROSS tranches, which is why
+  #                   it is the one the header treats as the price vector proper
+  seniorTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets of the SENIOR tranche's share
+  seniorTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets (INVARIANTLY 0 — the SENIOR branch never sets it)
+  seniorTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0 — likewise)
+  seniorTrancheSharePriceNAV: BigInt! # <- claims.nav — the senior effective NAV, pro-rata to one share
+  juniorTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets of the JUNIOR tranche's share
+  juniorTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets (INVARIANTLY 0 — the JUNIOR branch never sets it)
+  juniorTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0 — likewise)
+  juniorTrancheSharePriceNAV: BigInt! # <- claims.nav — the junior effective NAV, pro-rata to one share
+  liquidityTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets (INVARIANTLY 0 — the LIQUIDITY_PROVIDER branch never sets it)
+  liquidityTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets of the LIQUIDITY tranche's share
+  liquidityTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0 — forced by the LPT-only rewrite, NOT by the branch)
+  liquidityTrancheSharePriceNAV: BigInt! # <- claims.nav — lptRawNAV pro-rata, NOT an effective NAV (the LPT rewrite substitutes it)
+  lastHistoricalEntryIndex: BigInt! # Cursor for DayMarketNavHistorical. See "ENTRY INDEX CURSOR" below.
+  # ^ A LAST-INDEX, not a count: this row is born together with its entry 0 at
+  #   market creation, so total == field + 1 and the write order is
+  #   increment-then-write. Do NOT copy DayMarketState's `count*Entries` mechanics
+  #   here — those streams are born empty and use the inverse order.
+  #
+  # !! IT ADVANCES PER BLOCK, NOT PER WRITE. DayMarketNavHistorical collapses to one
+  #    row per (market, block), so a second sync in the same block UPDATES that row and
+  #    must NOT bump this. Bumping on an update would push the cursor past the row count
+  #    permanently and leave gaps in an index that is supposed to be dense.
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+# One immutable snapshot per write of the parent above: entry 0 at market creation,
+# then one per TrancheAccountingSynced.
+#
+# !! HOT / HIGH-CARDINALITY STREAM, for the same reason as
+#    DayTrancheAccountingSyncedHistory: the LT's Balancer V3 pool hook holds
+#    SYNC_ROLE and syncs on EVERY swap, so this grows at AMM-volume frequency. It
+#    is written UNCONDITIONALLY — one row per sync, even when no price moved — so
+#    the stream stays dense and 1:1 with the sync stream. Size Neon for it.
+# ONE ROW PER (MARKET, BLOCK) — THE LAST PRICE VECTOR THAT BLOCK SETTLED ON.
+#
+# Collapses exactly like DayTrancheAccountingSyncedHistory, and for the same reason: a
+# deposit block emits two syncs (pre-op then post-op) and both re-price the market, so
+# without collapsing, one block would leave two near-identical snapshots. The first
+# write in a block creates the row and takes the next entryIndex; every later write in
+# that block overwrites it. The block's FINAL prices win.
+#
+# !! MUTABLE, AND IT MUST STAY THAT WAY. The id keys on the block number, so a second
+#    write in the same block resolves to the SAME id — which on an
+#    @entity(immutable: true) is a fatal "entity already exists" at INDEX time that
+#    `graph build` cannot catch (§8). CLAUDE.md §8's "never key an id on a block number"
+#    is inverted here deliberately: that collision IS the dedupe.
+type DayMarketNavHistorical @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+  chainId: BigInt! # Chain ID
+  marketId: String! # Market ID: <KERNEL_ADDRESS>
+  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID> — also the parent DayMarketNav.id
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketNav.lastHistoricalEntryIndex) — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  # The same 14 price columns as the parent — see its notes for units, provenance,
+  # and WHICH SIX of the twelve share-price legs are invariantly zero.
+  collateralAssetPriceNAV: BigInt! # Collateral Asset Price NAV
+  liquidityTrancheAssetPriceNAV: BigInt! # Liquidity Tranche Asset Price NAV
+  seniorTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets of the SENIOR tranche's share
+  seniorTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets (INVARIANTLY 0)
+  seniorTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0)
+  seniorTrancheSharePriceNAV: BigInt! # <- claims.nav
+  juniorTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets of the JUNIOR tranche's share
+  juniorTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets (INVARIANTLY 0)
+  juniorTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0)
+  juniorTrancheSharePriceNAV: BigInt! # <- claims.nav
+  liquidityTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets (INVARIANTLY 0)
+  liquidityTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets of the LIQUIDITY tranche's share
+  liquidityTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0 — the LPT rewrite)
+  liquidityTrancheSharePriceNAV: BigInt! # <- claims.nav (lptRawNAV pro-rata, NOT an effective NAV)
+  # => general data
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
+  createdAtBlockNumber: BigInt! # Created At Block Number
+  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+  # ^ createdAt* set once, in the `if (!entity)` branch, never re-stamped (§8). One block
+  #   can span several transactions, so the two tx hashes genuinely differ when a swap
+  #   and a deposit share a block.
 }
 
 # xxx MARKETS xxx
@@ -253,64 +564,42 @@ type DayVaultState @entity(immutable: false) {
   shareTokenAddress: String! # Share Token Address
   shareTokenDecimals: Int! # Share Token Decimals (tranche.decimals() -> uint8 -> i32)
   sharesTotalSupply: BigInt! # Shares Total Supply
-  # The next 5 fields are the AssetClaims struct from convertToAssets(sharesTotalSupply)
-  # — the pro-rata breakdown of what those shares represent underneath.
-  # AssetClaims = (stAssets, jtAssets, ltAssets, stShares, nav). See CLAUDE.md §6.
   #
-  # The `claims` prefix is not decoration. Without it `seniorTrancheShares` sits
-  # beside `sharesTotalSupply` looking like a sibling of it, when the two are
-  # unrelated: one is this vault's own share supply, the other is senior-tranche
-  # shares held INSIDE the claim. The prefix also groups the five as one derived
-  # struct, which is why a junior vault legitimately reports senior assets.
+  # NO AssetClaims QUADRUPLE HERE, deliberately — this vault carries no claims* and
+  # no sharePrice* columns.
   #
-  # NOT redemption proceeds — previewRedeem is a different call down a different
-  # kernel path (stPreviewRedeem/jt/lt). convertToAssets is the accounting claim.
+  # Both quintuples were dropped in favour of DayMarketNav / DayMarketNavHistorical,
+  # which hold all three tranches' share-price claims in ONE row, at ONE instant, and
+  # refresh on every accounting sync. The per-vault copies advanced on each vault's own
+  # mint/burn cursor, so the senior, junior and liquidity streams were never
+  # simultaneous and could not be read as a market-wide price vector — see the note on
+  # DayMarketNav.
   #
-  # !! LIQUIDITY TRANCHE ASYMMETRY (RoycoVaultTranche.convertToAssets):
-  #    on the LT — and ONLY the LT — the tranche rewrites the struct before
-  #    scaling: claimsSeniorTrancheShares is forced to 0 and claimsNAV is taken
-  #    from state.ltRawNAV. Idle (un-reinvested) ST shares are excluded so LT's
-  #    share price cannot tick down on reinvestment slippage. So a zero
-  #    claimsSeniorTrancheShares on an LT row is CORRECT, not missing data.
-  #    claimsNAV stays NAV_UNIT and keeps its meaning — the total NAV of the
-  #    claim — on every tranche; the LT claim simply contains no ST shares, so
-  #    its NAV is ltRawNAV. Same unit, same definition, narrower claim.
-  #    All three tranches declare byte-identical convertToAssets signatures, so
-  #    this is invisible from the ABI. Only contracts/ shows it (§4).
-  claimsSeniorTrancheAssets: BigInt! # Claims Senior Tranche Assets <- ABI: claims.stAssets
-  claimsJuniorTrancheAssets: BigInt! # Claims Junior Tranche Assets <- ABI: claims.jtAssets
-  claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets <- ABI: claims.ltAssets
-  claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares <- ABI: claims.stShares (ALWAYS 0 on the liquidity tranche — see above)
-  claimsNAV: BigInt! # Claims NAV <- ABI: claims.nav
-  # The NAV value of ONE whole asset token.
-  # There is NO bare `convertTrancheUnitsToNAVUnits` anywhere — the tranches expose
-  # only convertToAssets -> Claims and convertToShares -> uint256, neither of which
-  # converts to NAV units. It lives ONLY on RoycoDayKernel, as three tranche-prefixed
-  # `view` variants. Reach the Kernel via tranche.KERNEL() (raw is fine, §5 — immutable
-  # metadata). AS has no closures (§3) and these are three distinct generated methods,
-  # so dispatch is an explicit if/else on THIS vault's minorType:
-  #   "senior"    -> kernel.try_stConvertTrancheUnitsToNAVUnits(oneAssetToken)
-  #   "junior"    -> kernel.try_jtConvertTrancheUnitsToNAVUnits(oneAssetToken)
-  #   "liquidity" -> kernel.try_ltConvertTrancheUnitsToNAVUnits(oneAssetToken)
-  # with oneAssetToken = BigInt.fromI32(10).pow(u8(assetTokenDecimals)) (.pow takes u8).
-  # Dispatch on minorType, NOT on TRANCHE_TYPE() == 0/1/2 — the ABI carries the enum
-  # type name but no member names, so that numbering is an inference (§6).
-  # Unlike DayMarketState's `state` fields (tranche-independent, any type works), the
-  # prefix here is fixed by this vault's own tranche.
-  # try_ is MANDATORY — state-dependent, reverts in edge states (§5); `view` is not
-  # revert-safety. On reverted, leave the previous value — do NOT write zero. At
-  # creation there is no previous value, so seed it in the `if (!entity)` branch (§8).
-  assetPriceNAV: BigInt! # Asset Price NAV <- ABI: Kernel.st/jt/ltConvertTrancheUnitsToNAVUnits(10 ** assetTokenDecimals)
-  # The next 5 are the SAME AssetClaims struct, from convertToAssets(10 ** shareTokenDecimals)
-  # — i.e. one whole share's claim. They carry no `claims` prefix only because
-  # `sharePrice` already says what they are; they are claims too, and the LT
-  # asymmetry above applies to them identically (sharePriceSeniorTrancheShares is
-  # likewise always 0 on the liquidity tranche).
-  sharePriceSeniorTrancheAssets: BigInt! # Share Price Senior Tranche Assets <- ABI: claims.stAssets
-  sharePriceJuniorTrancheAssets: BigInt! # Share Price Junior Tranche Assets <- ABI: claims.jtAssets
-  sharePriceLiquidityTrancheAssets: BigInt! # Share Price Liquidity Tranche Assets <- ABI: claims.ltAssets
-  sharePriceSeniorTrancheShares: BigInt! # Share Price Senior Tranche Shares <- ABI: claims.stShares
-  sharePriceNAV: BigInt! # Share Price NAV <- ABI: claims.nav
+  # !! CONSEQUENCE, AND IT IS A REAL LOSS: convertToAssets(sharesTotalSupply) — the
+  #    claim on the vault's ENTIRE supply — is now recorded NOWHERE, and it is not
+  #    exactly recoverable downstream. `sharesTotalSupply * sharePriceNAV / 10 **
+  #    shareTokenDecimals` is an approximation only: _scaleAssetClaims floors at
+  #    `nav * shares / totalShares` (TrancheClaimsLogic.sol:126), so pricing one share
+  #    and multiplying back up loses the per-share truncation, magnified by the supply.
+  #    If a consumer ever needs the exact total claim, it comes back as its own field —
+  #    it does NOT come back by reviving these columns (§9: add, don't rename).
+  #
+  # The three-eth_call saving is why refreshVaultClaims became refreshVaultAssetPrice:
+  # the two convertToAssets reads per vault per mint/burn had no remaining consumer.
+  #
+  #
+  # NO CONTRACT-SOURCED PRICE AT ALL, deliberately — this entity holds no claims*, no
+  # sharePrice* and no assetPriceNAV. Every price the market has lives on DayMarketNav,
+  # which captures all three tranches at ONE instant; the per-vault copies could not do
+  # that, because each advanced on its own mint/burn cursor.
+  #
+  # The upshot is that a DayVaultState write costs ZERO eth_calls. applySharesDelta now
+  # only adds the supply delta and snapshots — the accumulator is exact at the log index
+  # by construction, so there is nothing left to read from chain on a mint or a burn.
+  #
+  # !! Do NOT reintroduce a price here to "save a join". The reason DayMarketNav exists
+  #    is that per-vault prices sampled on per-vault cursors are not comparable across
+  #    tranches, and adding one back would put a second, staler answer next to it.
   lastHistoricalEntryIndex: BigInt! # Cursor for DayVaultStateHistorical. See "ENTRY INDEX CURSOR" below.
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
@@ -320,6 +609,45 @@ type DayVaultState @entity(immutable: false) {
   updatedAtBlockNumber: BigInt! # Updated At Block Number
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
+
+# =============================================================================
+# BLOCK-KEYED HISTORY — read with "ENTRY INDEX CURSOR" below; they work together.
+#
+# EVERY *History / *Historical table collapses to ONE ROW PER BLOCK, with one
+# deliberate exception (DayFixedTermHistory — see below). The first write in a block
+# creates the row and takes the next entryIndex; every later write in that same block
+# updates it in place. The block's FINAL state is what survives.
+#
+# WHY, given §8 says the opposite: §8's "never derive an id from a block number, two
+# writes in one block collide" assumes you want every write preserved. Here the
+# collision IS the mechanism. The v2 kernel emits TWO sync events per operation
+# (pre-op then post-op) and both re-price the market, so without collapsing, one
+# deposit would leave two near-identical rows in several tables at once.
+#
+# THE THREE RULES, all load-bearing:
+#   1. EVERY collapsing entity MUST be `@entity(immutable: false)`. A second save on
+#      the same id is a fatal "entity already exists" at INDEX time — it passes
+#      `graph build` and dies in production.
+#   2. entryIndex is assigned ONCE, on creation, and its cursor advances ONLY then.
+#      Bumping it on an update pushes the cursor past the row count permanently and
+#      puts gaps in an index the schema promises is dense.
+#   3. createdAt* is the FIRST write in the block, updatedAt* the one the row settled
+#      on. A block spans transactions, so the two tx hashes genuinely differ.
+#
+# !! DELTA COLUMNS ACCUMULATE, THEY DO NOT OVERWRITE. A row that now covers a whole
+#    block must still mean what its column comments say. So a per-event DELTA — a fee
+#    mint's `shares`, a premium mint's `shares`, a reinvestment's `assets`, an
+#    accrual's `yieldShareWAD` — is ADDED to on each write within the block, while
+#    SNAPSHOT columns (a state, a cumulative total, a price) are overwritten. That
+#    keeps SUM(delta) across rows equal to the lifetime total, which plain
+#    last-write-wins would silently break.
+#
+# !! THE ONE EXCEPTION: DayFixedTermHistory is NOT block-keyed, and must not be. A
+#    fixed term OPENS in one block and CLOSES in a later one — the close-out patches
+#    the row opened earlier. Under block keying the close would land on a different id
+#    and create an orphan row instead of closing the term, breaking the whole
+#    lifecycle. It stays keyed by entryIndex.
+# =============================================================================
 
 # =============================================================================
 # ENTRY INDEX CURSOR — read this before writing any *Historical entity.
@@ -345,7 +673,7 @@ type DayVaultState @entity(immutable: false) {
 #   - The *State parents (DayVaultState, DayPositionState, DayFeeState) are born
 #     together with their entry 0, so `lastHistoricalEntryIndex` is a LAST-INDEX:
 #     total == field + 1, increment-then-write.
-#   - DayMarketState's seven record streams (`# => records`) are born EMPTY — a market
+#   - DayMarketState's six record streams (`# => records`) are born EMPTY — a market
 #     legitimately has zero fixed terms forever — so a non-null last-index has no
 #     truthful initial value (0 would falsely assert one entry exists). Hence
 #     `count*Entries` is a COUNT: total == field, last == field - 1 (only when
@@ -355,43 +683,41 @@ type DayVaultState @entity(immutable: false) {
 # reading of `entryIndex` across tables.
 # =============================================================================
 
-type DayVaultStateHistorical @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayVaultStateHistorical @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   vaultId: String! # Vault ID
-  entryIndex: BigInt! # Entry Index
+  entryIndex: BigInt! # Entry Index — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   majorType: String! # Major Type ("day")
   minorType: String! # Minor Type ("senior", "junior", "liquidity")
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   sharesTotalSupply: BigInt! # Shares Total Supply
-  # The AssetClaims quintuple — see the full note on DayVaultState above,
-  # including the liquidity-tranche asymmetry (claimsSeniorTrancheShares is
-  # always 0 there).
-  claimsSeniorTrancheAssets: BigInt! # Claims Senior Tranche Assets
-  claimsJuniorTrancheAssets: BigInt! # Claims Junior Tranche Assets
-  claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets
-  claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares
-  claimsNAV: BigInt! # Claims NAV
-  assetPriceNAV: BigInt! # Asset Price NAV (copy the parent DayVaultState's value —
-  # this entity has no assetTokenDecimals and must not re-call the Kernel)
-  sharePriceSeniorTrancheAssets: BigInt! # Share Price Senior Tranche Assets
-  sharePriceJuniorTrancheAssets: BigInt! # Share Price Junior Tranche Assets
-  sharePriceLiquidityTrancheAssets: BigInt! # Share Price Liquidity Tranche Assets
-  sharePriceSeniorTrancheShares: BigInt! # Share Price Senior Tranche Shares
-  sharePriceNAV: BigInt! # Share Price NAV
+  # No claims* / sharePrice* / assetPriceNAV here either — mirrors the parent, which
+  # now carries no price at all. See its note. (This entity could not have kept
+  # assetPriceNAV alone in any case: it has no assetTokenDecimals of its own and is
+  # forbidden from re-calling the Kernel, so it only ever copied the parent's value.)
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
 # xxx TRANCHES xxx
 
 # === RECORDS ===
 #
-# Seven event-driven, market-keyed streams. Unlike the *Historical snapshots above,
+# Six event-driven, market-keyed streams. Unlike the *Historical snapshots above,
 # these are cursored by DayMarketState's `count*Entries` fields, NOT by
 # `lastHistoricalEntryIndex` — see "ENTRY INDEX CURSOR" above for why the two
 # shapes differ and how each is written.
@@ -400,8 +726,8 @@ type DayVaultStateHistorical @entity(immutable: true) {
 # immutable: true would be a fatal "entity already exists" at index time (§8):
 #   1. FixedTermCommenced(uint32)                     -> creates the row
 #   2. FixedTermEnded()                               -> sets endBlockTimestamp
-#   3. JuniorTrancheCoverageImpermanentLossReset(uint256)
-#        -> patches juniorTrancheCoverageImpermanentLossNAV. Same tx as (2),
+#   3. JuniorTrancheImpermanentLossReset(uint256)
+#        -> patches juniorTrancheImpermanentLossNAV. Same tx as (2),
 #           later log index — handlers fire in log order, so (2) cannot see it.
 #
 # !! FixedTermEnded() has an EMPTY payload — it carries no term identifier. The
@@ -436,9 +762,26 @@ type DayFixedTermHistory @entity(immutable: false) {
   #   scheduled-vs-actual for a CONCLUDED term is unanswerable without this per-term
   #   copy. Do not substitute one for the other.
   endBlockTimestamp: BigInt! # End Block Timestamp (ACTUAL end; if not ended, it's 0)
-  juniorTrancheCoverageImpermanentLossNAV: BigInt! # Junior Coverage Impermanent Loss NAV (0 if not ended, or no loss) <- ABI: JuniorTrancheCoverageImpermanentLossReset.jtCoverageImpermanentLossErased
-  # ^ NOT previewSyncTrancheAccounting().state.jtCoverageImpermanentLoss and NOT
-  #   getState().lastJTCoverageImpermanentLoss — BOTH are provably ZERO by the instant
+  duration: BigInt # Duration in SECONDS = endBlockTimestamp - startBlockTimestamp. NULL while the term is still running.
+  # ^ THE ONE NULLABLE FIELD IN THIS SCHEMA (note the missing `!`). Every other column
+  #   is non-null with a sentinel; this one is genuinely absent until there is an answer,
+  #   which is the honest encoding: a running term has no duration, and 0 would be a lie
+  #   (it is also a legal REAL duration — a term that opens and closes in one block).
+  #   Written exactly once, in closeOpenFixedTerm, in the same write as endBlockTimestamp.
+  #
+  # !! endBlockTimestamp REMAINS the open/closed key — do NOT re-point the guards at
+  #    `duration == null`. closeOpenFixedTerm and recordFixedTermCoverageLoss both branch
+  #    on `endBlockTimestamp.isZero()`, and that field is non-null and frozen (§9). The
+  #    two encodings agree by construction because one write sets both; they are not
+  #    independent signals, and duration is the DERIVED one.
+  #
+  #    In Neon this is a nullable bigint, so `WHERE duration IS NULL` selects live terms —
+  #    cleaner than `endBlockTimestamp = 0`, and the intended read path for consumers.
+  #    Aggregates behave correctly too: AVG/MIN/MAX skip NULLs, whereas the 0 sentinel
+  #    would silently drag an average of term lengths toward zero.
+  juniorTrancheImpermanentLossNAV: BigInt! # Junior Impermanent Loss NAV (0 if not ended, or no loss) <- ABI: JuniorTrancheImpermanentLossReset.jtImpermanentLossErased
+  # ^ NOT previewSyncTrancheAccountingFor().state.jtImpermanentLoss and NOT
+  #   getState().lastJTImpermanentLoss — BOTH are provably ZERO by the instant
   #   FixedTermEnded fires: the Accountant erases into a local and zeroes storage
   #   BEFORE marshalling state. The pre-erase value survives ONLY in the Reset event.
   #
@@ -474,71 +817,108 @@ type DayFixedTermHistory @entity(immutable: false) {
   #   the close-out patches (§8).
 }
 
-# <- ABI: RoycoDayAccountant.JuniorTrancheYieldShareAccrued(uint256 jtYieldShareWAD, uint256 twJTYieldShareAccruedWAD)
+# <- ABI: RoycoDayAccountant.YieldSharesAccrued(uint256 jtYieldShareWAD, uint256 twJTYieldShareAccruedWAD, uint256 lptYieldShareWAD, uint256 twLPTYieldShareAccruedWAD)
+#
+# ONE TABLE, ONE ROW PER ACCRUAL. v1 had two entities and two cursors, fed by two
+# separate events (JuniorTrancheYieldShareAccrued + LiquidityTrancheYieldShareAccrued)
+# that were always emitted together at adjacent log indices. v2 merged them into a
+# single YieldSharesAccrued carrying all four values, so the two accruals are now
+# genuinely one atomic event and get one row — no more rows that can never occur
+# independently, and no more chance of the two cursors drifting apart.
+#
 # The accountant address is NOT the marketId — resolve via ACCOUNTANT.KERNEL() (§6).
-type DayJuniorTrancheYieldSharesAccruedHistory @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayYieldSharesAccruedHistory @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countJuniorTrancheYieldSharesAccruedEntries)
-  yieldShareWAD: BigInt! # Yield Share WAD <- ABI: jtYieldShareWAD
-  timeWeightedYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD
-  # ^ NOT monotonic. This is the accumulator AFTER the increment, and it is zeroed
-  #   whenever premiums are paid out of ST yield. The series is a SAWTOOTH that resets
-  #   per premium payment, NOT a lifetime cumulative — a negative delta between
-  #   consecutive entryIndex rows IS the reset marker, not a data error. It accrues
-  #   only since the last premium payment; DayMarketState.lastPremiumPaymentTimestamp
-  #   holds that boundary for CURRENT state but is deliberately not snapshotted here.
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countYieldSharesAccruedEntries) — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  juniorTrancheYieldShareWAD: BigInt! # Junior Tranche Yield Share WAD <- ABI: jtYieldShareWAD
+  juniorTrancheTimeWeightedYieldShareAccruedWAD: BigInt! # <- ABI: twJTYieldShareAccruedWAD
+  liquidityTrancheYieldShareWAD: BigInt! # Liquidity Tranche Yield Share WAD <- ABI: lptYieldShareWAD
+  liquidityTrancheTimeWeightedYieldShareAccruedWAD: BigInt! # <- ABI: twLPTYieldShareAccruedWAD
+  # ^ NEITHER timeWeighted* IS MONOTONIC. Each is the accumulator AFTER its increment,
+  #   and both are zeroed whenever premiums are paid out of ST yield. The series is a
+  #   SAWTOOTH that resets per premium payment, NOT a lifetime cumulative — a negative
+  #   delta between consecutive entryIndex rows IS the reset marker, not a data error.
+  #   They accrue only since the last premium payment;
+  #   DayMarketState.lastPremiumPaymentTimestamp holds that boundary for CURRENT state
+  #   but is deliberately not snapshotted here.
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# <- ABI: RoycoDayAccountant.LiquidityTrancheYieldShareAccrued(uint256 ltYieldShareWAD, uint256 twLTYieldShareAccruedWAD)
-# The accountant address is NOT the marketId — resolve via ACCOUNTANT.KERNEL() (§6).
-type DayLiquidityTrancheYieldSharesAccruedHistory @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+# <- ABI: RoycoDayKernel.PreOpTrancheAccountingSynced((uint8,uint256 x11,uint32,uint256,uint256,uint256) resultingState)
+#         RoycoDayKernel.PostOpTrancheAccountingSynced(uint8 op, (…same 16-field state…) resultingState)
+#
+# ONE ROW PER (MARKET, BLOCK) — THE LATEST SYNC THAT BLOCK SETTLED ON.
+#
+# BOTH kernel sync events feed this table, and they COLLAPSE rather than accumulate:
+#   - the first sync in a block CREATES the row (and takes the next entryIndex)
+#   - every later sync in that SAME block OVERWRITES it in place
+# So a swap-only block leaves a `preOp` row; a deposit block leaves a `postOp` row,
+# because the post-op fires second and wins. `syncType` records which one the row
+# actually settled on, and `operation` is non-null only when that was a post-op.
+#
+# !! THIS IS THE ONE ENTITY DELIBERATELY KEYED BY BLOCK NUMBER, and the one place
+#    CLAUDE.md §8's "never derive an id from a block number — two writes in one block
+#    collide" is INVERTED ON PURPOSE. That collision IS the dedupe: it is what makes the
+#    second sync in a block find and update the first instead of appending. Because of
+#    that this entity MUST stay `immutable: false` — an immutable entity re-saved on the
+#    same id is a fatal "entity already exists" at INDEX time, which `graph build`
+#    cannot catch (§8). Do not "restore" immutability here.
+#
+# !! entryIndex IS STILL DENSE, and is assigned ONLY when the row is created — never on
+#    an update. Total rows == countTrancheAccountingSyncedEntries, exactly as for every
+#    other market-keyed stream; it just counts BLOCKS-WITH-A-SYNC now rather than
+#    individual sync events. The id keys on the block, not on entryIndex, so the two are
+#    independent: read entryIndex for ordering, the id for lookup.
+#
+# !! ON THE KERNEL, NOT THE ACCOUNTANT. The kernel address IS the marketId (§6), so both
+#    handlers resolve the market directly — no ACCOUNTANT.KERNEL() eth_call per sync,
+#    which v1 paid on the hottest path in the subgraph.
+#
+# !! THE PLACEHOLDER-ZERO PROBLEM IS GONE. In v1 the single sync event carried
+#    `lptRawNAV: ZERO_NAV_UNITS` and `liquidityUtilizationWAD: 0` as placeholders, so
+#    those two columns were permanently zero. Both events now emit AFTER
+#    _commitLPTRawNAV, which refreshes both members in the state packet in place, so
+#    every column below carries a real value.
+#
+# Pre-op fires on EVERY sync — the liquidity venue's swap hook, oracle updates,
+# syncTrancheAccounting, reinvestLiquidityPremium, and the first half of every deposit
+# and redemption. Post-op fires only on the eight deposit/redeem operations. Indexing
+# both is what keeps AMM- and oracle-driven price movement in this table.
+type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityTrancheYieldSharesAccruedEntries)
-  yieldShareWAD: BigInt! # Yield Share WAD <- ABI: ltYieldShareWAD
-  timeWeightedYieldShareAccruedWAD: BigInt! # Time Weighted Liquidity Tranche Yield Share Accrued WAD <- ABI: twLTYieldShareAccruedWAD
-  # ^ NOT monotonic — sawtooth, reset on every premium payment. See the full note on
-  #   DayJuniorTrancheYieldSharesAccruedHistory above.
-  # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
-  createdAtBlockNumber: BigInt! # Created At Block Number
-  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
-}
-
-# <- ABI: RoycoDayAccountant.TrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,bool,uint256,uint256) resultingState)
-#
-# THE FULL SYNC, KEPT FOREVER. Every TrancheAccountingSynced carries the complete
-# 18-field TrancheState (the ABI struct `SyncedAccountingState`); this immutable
-# table stores ALL EIGHTEEN of them, verbatim, one row per sync. It is the
-# unabridged history that DayMarketState deliberately does NOT keep:
-# handleTrancheAccountingSynced writes only ten of these onto the mutable
-# DayMarketState (its LIVE preview block) and DROPS the other eight to avoid the §6
-# divergence traps — this table drops nothing. No contract is called; the event IS
-# the post-state at this log index (§5), so every column is free.
-#
-# !! HOT / HIGH-CARDINALITY STREAM. This is NOT a config event. The LT's Balancer V3
-#    pool hook holds SYNC_ROLE and syncs on EVERY swap (see the hot-path note on
-#    handleTrancheAccountingSynced), so this stream grows at AMM-volume frequency —
-#    one immutable row per sync, by far the highest-cardinality entity in the schema.
-#    That volume is the whole point ("all syncs, historically"); size Neon for it.
-#
-# The accountant address is NOT the marketId — resolve via ACCOUNTANT.KERNEL() (§6).
-# Market-keyed id is SAFE: exactly one accountant, and one sync stream, per market.
-type DayTrancheAccountingSyncedHistory @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
-  chainId: BigInt! # Chain ID
-  marketId: String! # Market ID: <KERNEL_ADDRESS>
-  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countTrancheAccountingSyncedEntries)
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countTrancheAccountingSyncedEntries) — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  syncType: String! # Sync Type ("preOp", "postOp") — which event this row last settled on
+  operation: String # Operation ("stDeposit" … "lptMultiAssetRedeem"). NULL while the row is a preOp row.
+  # ^ NULLABLE ON PURPOSE, and only the second such field in this schema (see
+  #   DayFixedTermHistory.duration). A pre-op sync happens BEFORE any operation is
+  #   chosen, so there is no operation to record — and "" or a "none" sentinel would
+  #   both be lies, since every enum member is a real operation. `syncType == "preOp"`
+  #   and `operation IS NULL` always agree; the two are one fact stored twice, one
+  #   queryable per Neon idiom.
+  #   Enum order is the on-chain `Operation` declaration order
+  #   (contracts/libraries/Types.sol): 0 stDeposit, 1 stRedeem, 2 jtDeposit, 3 jtRedeem,
+  #   4 lptDeposit, 5 lptRedeem, 6 lptMultiAssetDeposit, 7 lptMultiAssetRedeem. EIGHT
+  #   members in v2, six in v1. The ABI carries the enum's TYPE but none of its member
+  #   names, so this ordering is read from source and is not guessable (§4).
   # --- The full SyncedAccountingState, in ABI order. ---
   marketState: String! # Market State ("perpetual" -> 0, "fixed" -> 1) <- ABI: resultingState.marketState (uint8 enum -> i32)
   # ^ !! LIVE state at sync time — NOT the same field as DayMarketState.marketState.
@@ -546,34 +926,45 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: true) {
   #      stores the sync's own state.marketState (the LIVE value). The two disagree
   #      between syncs, and that divergence is precisely why capturing the live one
   #      here is useful — and why it must never be copied onto DayMarketState (§6).
-  #      Enum order is PERPETUAL, FIXED_TERM (contracts/libraries/Types.sol) — 0 is
-  #      perpetual, which reads backwards. Do not "correct" it.
-  seniorTrancheRawNAV: BigInt! # Senior Tranche Raw NAV <- ABI: stRawNAV
-  juniorTrancheRawNAV: BigInt! # Junior Tranche Raw NAV <- ABI: jtRawNAV
-  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV <- ABI: ltRawNAV
+  #      Enum order is PERPETUAL, FIXED_TERM — 0 is perpetual, which reads backwards.
+  #      Do not "correct" it.
+  collateralNAV: BigInt! # Collateral NAV <- ABI: collateralNAV
+  liquidityTrancheRawNAV: BigInt! # Liquidity Tranche Raw NAV <- ABI: lptRawNAV
   seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV <- ABI: stEffectiveNAV
   juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV <- ABI: jtEffectiveNAV
-  juniorTrancheCoverageImpermanentLoss: BigInt! # Junior Tranche Coverage Impermanent Loss (LIVE, point-in-time) <- ABI: jtCoverageImpermanentLoss
-  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium <- ABI: ltLiquidityPremium
+  juniorTrancheImpermanentLoss: BigInt! # Junior Tranche Impermanent Loss (LIVE, point-in-time) <- ABI: jtImpermanentLoss
+  liquidityTrancheLiquidityPremium: BigInt! # Liquidity Tranche Liquidity Premium <- ABI: lptLiquidityPremium
   # The three PER-SYNC protocol-fee AMOUNTS — NAV_UNIT amounts taken on THIS sync.
   # NOT the uint64 RATES on DayMarketState.*ProtocolFeeWAD (from getState()): different
   # type, different unit, one word apart (§6/§7). They have no home on DayMarketState
   # and are dropped there; this table is the only place they are recorded.
+  #
+  # !! A COLLAPSED ROW REPORTS THE LAST SYNC'S FEES, NOT THE BLOCK'S TOTAL. These are
+  #    per-sync deltas, and an overwrite replaces rather than adds. On a deposit block
+  #    the post-op values win — and post-op takes no fees at all, so they are zero there
+  #    by construction. Do NOT SUM this column expecting protocol revenue; it is a
+  #    sample of the surviving sync, not an accumulator.
   seniorTrancheProtocolFee: BigInt! # Senior Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: stProtocolFee
   juniorTrancheProtocolFee: BigInt! # Junior Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: jtProtocolFee
-  liquidityTrancheProtocolFee: BigInt! # Liquidity Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: ltProtocolFee
+  liquidityTrancheProtocolFee: BigInt! # Liquidity Tranche Protocol Fee (NAV_UNIT amount, this sync) <- ABI: lptProtocolFee
   coverageUtilizationWAD: BigInt! # Coverage Utilization WAD <- ABI: coverageUtilizationWAD
   liquidityUtilizationWAD: BigInt! # Liquidity Utilization WAD <- ABI: liquidityUtilizationWAD
   fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp (LIVE) <- ABI: fixedTermEndTimestamp (uint32 -> BigInt, direct)
   minCoverageWAD: BigInt! # Min Coverage WAD (LIVE, recomputed — NOT getState()'s stored one, §6) <- ABI: minCoverageWAD
-  isJuniorTrancheCoinvested: Boolean! # Is Junior Tranche Coinvested <- ABI: jtCoinvested
   coverageLiquidationUtilizationWAD: BigInt! # Coverage Liquidation Utilization WAD (LIVE) <- ABI: coverageLiquidationUtilizationWAD
   minLiquidityWAD: BigInt! # Min Liquidity WAD (LIVE — NOT getState()'s stored one, §6) <- ABI: minLiquidityWAD
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST sync in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the sync this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+  # ^ createdAt* is set once, in the `if (!entity)` branch, and never re-stamped (§8).
+  #   One block can span several transactions, so createdAtTransactionHash and
+  #   updatedAtTransactionHash genuinely differ when a swap and a deposit share a block.
 }
+
 
 # <- ABI: RoycoSeniorTranche.LiquidityPremiumSharesMinted(indexed address holder, uint256 mintedLiquidityPremiumShares, uint256 totalTrancheShares)
 #
@@ -581,12 +972,18 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: true) {
 #    SeniorTranche.KERNEL(), or cheaper: load this tranche's own DayVaultState and
 #    read its marketId, avoiding an eth_call per event.
 #    The market-keyed id is SAFE: exactly one senior tranche per market.
-type DayLiquidityPremiumSharesMintedHistory @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayLiquidityPremiumSharesMintedHistory @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumSharesMintedEntries)
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumSharesMintedEntries) — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   vaultAddress: String! # Vault Address (the SENIOR TRANCHE — event.address)
   vaultId: String! # Vault ID
   accountAddress: String! # Account Address <- ABI: LiquidityPremiumSharesMinted.holder
@@ -598,52 +995,73 @@ type DayLiquidityPremiumSharesMintedHistory @entity(immutable: true) {
   shares: BigInt! # Shares <- ABI: mintedLiquidityPremiumShares
   sharesTotalSupply: BigInt! # Shares Total Supply <- ABI: totalTrancheShares (the SENIOR tranche total supply POST-mint)
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# <- ABI: RoycoDayKernel.LiquidityPremiumReinvested(uint256 stSharesReinvested, uint256 ltAssetsMinted)
+# <- ABI: RoycoDayKernel.LiquidityPremiumReinvested(uint256 stSharesReinvested, uint256 lptAssetsMinted)
 # Kernel handlers resolve the market directly — the kernel address IS the marketId (§6).
-type DayLiquidityPremiumReinvestedHistory @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayLiquidityPremiumReinvestedHistory @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestedEntries)
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestedEntries) — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   shares: BigInt! # Shares <- ABI: stSharesReinvested (senior shares ACTUALLY reinvested)
-  assets: BigInt! # Assets <- ABI: ltAssetsMinted (LT assets ACTUALLY minted)
+  assets: BigInt! # Assets <- ABI: lptAssetsMinted (LPT assets ACTUALLY minted)
   # ^ Both are REALISED amounts. The identically-named fields on
   #   DayLiquidityPremiumReinvestmentFailedHistory are an ATTEMPT and a BOUND — do not
   #   union or sum the two tables' `shares`/`assets` columns.
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# <- ABI: RoycoDayKernel.LiquidityPremiumReinvestmentFailed(uint256 stSharesToReinvest, uint256 minLTAssetsOut, bytes revertData)
+# <- ABI: RoycoDayKernel.LiquidityPremiumReinvestmentFailed(uint256 stSharesToReinvest, uint256 minLPTAssetsOut, bytes revertData)
 # Kernel handlers resolve the market directly — the kernel address IS the marketId (§6).
-type DayLiquidityPremiumReinvestmentFailedHistory @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayLiquidityPremiumReinvestmentFailedHistory @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestmentFailedEntries)
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestmentFailedEntries) — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   shares: BigInt! # Shares <- ABI: stSharesToReinvest (senior shares the reinvestment ATTEMPTED; never moved)
-  assets: BigInt! # Assets <- ABI: minLTAssetsOut (a SLIPPAGE BOUND, never minted)
+  assets: BigInt! # Assets <- ABI: minLPTAssetsOut (a SLIPPAGE BOUND, never minted)
   # ^ !! Same field NAMES as DayLiquidityPremiumReinvestedHistory, DIFFERENT MEANINGS.
   #      There: realised amounts. Here: an attempt and a floor. Nothing was minted.
   revertData: String! # Revert Data <- ABI: revertData (bytes -> Bytes -> .toHexString(), §4)
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# <- ABI: RoycoLiquidityTranche.MultiAssetDeposit(indexed address caller, indexed address receiver, uint256 stAssets, uint256 quoteAssets, uint256 ltAssetsMinted, uint256 shares)
+# <- ABI: RoycoLiquidityProviderTranche.MultiAssetDeposit(indexed address caller, indexed address receiver, uint256 collateralAssets, uint256 quoteAssets, uint256 lptAssetsMinted, uint256 shares)
 #
-# LIQUIDITY-TRANCHE-ONLY event — only RoycoLiquidityTranche declares depositMultiAsset;
+# LIQUIDITY-TRANCHE-ONLY event — only RoycoLiquidityProviderTranche declares depositMultiAsset;
 # the senior/junior tranches never emit it. One firing == one multi-asset LP deposit.
 #
 # !! An ACTIVITY table: the id is <CHAIN_ID>_<TX_HASH>_<LOG_INDEX> — one row per event log,
@@ -672,12 +1090,12 @@ type DayMultiAssetDepositActivity @entity(immutable: true) {
   #   THIS vault's share token") and joins straight to the LP's LT position.
   callerAddress: String! # Caller Address <- ABI: MultiAssetDeposit.caller
   # ^ msg.sender, the LP initiator whose ST+quote legs are pulled to the kernel
-  #   (RoycoLiquidityTranche.sol:60-61,75). MAY be a router/zap distinct from receiver,
+  #   (RoycoLiquidityProviderTranche.sol:60-61,75). MAY be a router/zap distinct from receiver,
   #   and is not recoverable from the Global* token tables (a mid-call contract is not
   #   tx.origin) — this row is the sole on-subgraph record of the initiator.
-  seniorTrancheAssets: BigInt! # Senior Tranche Assets <- ABI: stAssets (raw ST_ASSET leg pulled IN; asset-token units)
+  collateralAssets: BigInt! # Collateral Assets <- ABI: collateralAssets (raw COLLATERAL leg pulled IN; asset-token units)
   quoteAssets: BigInt! # Quote Assets <- ABI: quoteAssets (raw venue QUOTE_ASSET leg pulled IN — the pool's non-senior constituent; NOTE the same column name is paid OUT on redeem)
-  liquidityTrancheAssetsMinted: BigInt! # Liquidity Tranche Assets Minted <- ABI: ltAssetsMinted
+  liquidityTrancheAssetsMinted: BigInt! # Liquidity Tranche Assets Minted <- ABI: lptAssetsMinted
   shares: BigInt! # Shares <- ABI: shares (LT shares MINTED to receiver)
   # ^ These four are a FLAT amount tuple, NOT an AssetClaims quintuple — no claims* prefix
   #   (contrast DayMultiAssetRedeemActivity, whose stClaims IS one). The ST/quote/LT
@@ -694,7 +1112,7 @@ type DayMultiAssetDepositActivity @entity(immutable: true) {
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
 }
 
-# <- ABI: RoycoLiquidityTranche.MultiAssetRedeem(indexed address caller, indexed address receiver, indexed address owner, uint256 shares, (uint256 stAssets, uint256 jtAssets, uint256 ltAssets, uint256 stShares, uint256 nav) stClaims, uint256 quoteAssets)
+# <- ABI: RoycoLiquidityProviderTranche.MultiAssetRedeem(indexed address caller, indexed address receiver, indexed address owner, uint256 shares, (uint256 collateralAssets, uint256 lptAssets, uint256 stShares, uint256 nav) stClaims, uint256 quoteAssets)
 #
 # LIQUIDITY-TRANCHE-ONLY event. NOTE stClaims sits at index 4, AFTER `shares` — unlike
 # Redeem, where the claims struct is at index 2 (§6).
@@ -719,13 +1137,13 @@ type DayMultiAssetRedeemActivity @entity(immutable: true) {
   vaultId: String! # Vault ID
   accountAddress: String! # Account Address <- ABI: MultiAssetRedeem.owner
   # ^ The SHARE-SIDE party: whose LT shares are burned (_burn(owner, shares),
-  #   RoycoLiquidityTranche.sol:105). Chosen over receiver/caller so this column keeps
+  #   RoycoLiquidityProviderTranche.sol:105). Chosen over receiver/caller so this column keeps
   #   DayPositionState.accountAddress semantics and joins straight to the LP's LT
   #   position. Do NOT naively JOIN to DayMultiAssetDepositActivity.accountAddress: there
   #   it is the mint RECEIVER, here the burn OWNER — both share-side, different role.
   callerAddress: String! # Caller Address <- ABI: MultiAssetRedeem.caller
   # ^ msg.sender. When caller != owner it spends owner's LT allowance
-  #   (_spendAllowance(owner, msg.sender, shares), RoycoLiquidityTranche.sol:97-99). MAY
+  #   (_spendAllowance(owner, msg.sender, shares), RoycoLiquidityProviderTranche.sol:97-99). MAY
   #   be a router/zap; only on-subgraph record of the initiator.
   receiverAddress: String! # Receiver Address <- ABI: MultiAssetRedeem.receiver
   # ^ Who the withdrawn ST/JT underlying + quoteAssets are PAID TO. Can differ from owner
@@ -737,30 +1155,30 @@ type DayMultiAssetRedeemActivity @entity(immutable: true) {
   #   Global* by transaction hash but NOT summable. No sharesTotalSupply column:
   #   the event carries no supply arg.
   #
-  # --- The AssetClaims quintuple carried by stClaims. See the full AssetClaims note on
-  #     DayVaultState above for the field mapping and the claims* prefix rationale.
+  # --- The AssetClaims quintuple carried by stClaims. See the "ASSET CLAIMS" block
+  #     above for the field mapping and the claims* prefix rationale.
   #
   # !! PROVENANCE DIFFERS from every other claims* quintuple in this schema, and it is
-  #    NOT the DayVaultState LT convertToAssets asymmetry (stShares->0, nav->ltRawNAV) —
+  #    NOT the DayVaultState LPT convertToAssets asymmetry (stShares->0, nav->lptRawNAV) —
   #    do NOT copy that note here. stClaims is the kernel's SENIOR-tranche claim:
   #    _deriveTrancheAssetClaims(SENIOR, state), scaled by stSharesToRedeem/totalSTShares,
-  #    then the ST self-liquidation bonus (RedemptionLogic.sol:174,189,193). Verified in
-  #    contracts/:
+  #    then the ST self-liquidation bonus. Verified in contracts/:
   #      - claimsSeniorTrancheShares AND claimsLiquidityTrancheAssets are INVARIANTLY 0.
-  #        The SENIOR branch of _deriveTrancheAssetClaims (TrancheClaimsLogic.sol:53-56)
-  #        sets ONLY stAssets/jtAssets/nav and never the two LT-only fields; scaling and
-  #        the bonus (SelfLiquidationLogic.sol:64-66) preserve the zeros. Same zero VALUE
-  #        as an LT row, DIFFERENT cause (a senior claim, not the convertToAssets rewrite).
-  #      - claimsNAV is a SENIOR effective-NAV figure, NOT ltRawNAV.
-  #    Non-zero legs: claimsSeniorTrancheAssets, claimsJuniorTrancheAssets (may include a
-  #    self-liquidation bonus JT leg), claimsNAV. UNITS: these are settled TRANCHE_UNIT
-  #    claims paid OUT — do NOT equate with the deposit stream's raw pulled-in asset legs.
-  claimsSeniorTrancheAssets: BigInt! # Claims Senior Tranche Assets <- ABI: stClaims.stAssets (ST underlying settled to receiver)
-  claimsJuniorTrancheAssets: BigInt! # Claims Junior Tranche Assets <- ABI: stClaims.jtAssets (JT underlying incl. any self-liquidation bonus JT leg)
-  claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets <- ABI: stClaims.ltAssets (INVARIANTLY 0 — LT-only field; a SENIOR claim never sets it)
-  claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares <- ABI: stClaims.stShares (INVARIANTLY 0 — LT-only field; a SENIOR claim never sets it; NOT the LT convertToAssets asymmetry)
-  claimsNAV: BigInt! # Claims NAV <- ABI: stClaims.nav — the redeemer's PRO-RATA slice of the senior effective NAV (scaled by stSharesToRedeem/totalSTShares) PLUS any ST self-liquidation bonus NAV; NOT ltRawNAV, and NOT the market-level state.stEffectiveNAV
-  quoteAssets: BigInt! # Quote Assets <- ABI: quoteAssets (venue QUOTE_ASSET paid OUT to receiver; 0 when userAssetClaims.ltAssets == 0 and venue removal is skipped, RedemptionLogic.sol:181; NOTE the same column name is pulled IN on deposit)
+  #        The SENIOR branch of _deriveTrancheAssetClaims sets ONLY nav +
+  #        collateralAssets and never the two LPT-only fields; scaling and the bonus
+  #        preserve the zeros. Same zero VALUE as a liquidity row, DIFFERENT cause (a
+  #        senior claim, not the convertToAssets rewrite).
+  #      - claimsNAV is a SENIOR effective-NAV figure, NOT lptRawNAV.
+  #    Non-zero legs: claimsCollateralAssets and claimsNAV — just TWO in v2, because the
+  #    separate ST and JT asset legs merged into one collateral leg. Any self-liquidation
+  #    bonus drawn from JT now arrives inside that same collateral figure rather than as
+  #    its own column. UNITS: these are settled TRANCHE_UNIT claims paid OUT — do NOT
+  #    equate with the deposit stream's raw pulled-in asset legs.
+  claimsCollateralAssets: BigInt! # Claims Collateral Assets <- ABI: stClaims.collateralAssets (collateral underlying settled to receiver, incl. any self-liquidation bonus)
+  claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets <- ABI: stClaims.lptAssets (INVARIANTLY 0 — LPT-only field; a SENIOR claim never sets it)
+  claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares <- ABI: stClaims.stShares (INVARIANTLY 0 — LPT-only field; a SENIOR claim never sets it; NOT the LPT convertToAssets asymmetry)
+  claimsNAV: BigInt! # Claims NAV <- ABI: stClaims.nav — the redeemer's PRO-RATA slice of the senior effective NAV (scaled by stSharesToRedeem/totalSTShares) PLUS any ST self-liquidation bonus NAV; NOT lptRawNAV, and NOT the market-level state.stEffectiveNAV
+  quoteAssets: BigInt! # Quote Assets <- ABI: quoteAssets (venue QUOTE_ASSET paid OUT to receiver; 0 when the user's LPT asset claim is 0 and venue removal is skipped; NOTE the same column name is pulled IN on deposit)
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
@@ -779,17 +1197,21 @@ type DayPositionState @entity(immutable: false) {
   accountAddress: String! # Account Address
   shares: BigInt! # Shares (this account's balance of THIS vault's share token)
   # The AssetClaims quintuple from convertToAssets(shares) — the pro-rata breakdown
-  # of what this account's shares represent underneath. See the full note on
-  # DayVaultState above, including the liquidity-tranche asymmetry.
+  # of what this account's shares represent underneath. See the "ASSET CLAIMS" block
+  # above, including the liquidity-tranche asymmetry.
+  #
+  # THIS IS NOW THE ONLY PLACE a plain claims* quintuple is stored (DayVaultState's
+  # two were dropped). A position's claim is not derivable from DayMarketNav's share
+  # price: _scaleAssetClaims floors per call, so price-one-share-and-multiply loses
+  # the truncation. Do not remove these on the theory that they are redundant.
   #
   # `shares` above and `claimsSeniorTrancheShares` below are unrelated: the first is
   # the account's own balance, the second is senior-tranche shares held inside the
   # claim. They were `shares` and `seniorTrancheShares` before the prefix, four lines
   # apart, and read as siblings.
-  claimsSeniorTrancheAssets: BigInt! # Claims Senior Tranche Assets <- ABI: claims.stAssets
-  claimsJuniorTrancheAssets: BigInt! # Claims Junior Tranche Assets <- ABI: claims.jtAssets
-  claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets <- ABI: claims.ltAssets
-  claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares <- ABI: claims.stShares (ALWAYS 0 on the liquidity tranche)
+  claimsCollateralAssets: BigInt! # Claims Collateral Assets <- ABI: claims.collateralAssets (ALWAYS 0 on the liquidity tranche)
+  claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets <- ABI: claims.lptAssets (ALWAYS 0 on senior and junior)
+  claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares <- ABI: claims.stShares (ALWAYS 0 — see the "ASSET CLAIMS" block)
   claimsNAV: BigInt! # Claims NAV <- ABI: claims.nav
   lastHistoricalEntryIndex: BigInt! # Cursor for DayPositionStateHistorical. See "ENTRY INDEX CURSOR" above.
   # => general data
@@ -801,24 +1223,32 @@ type DayPositionState @entity(immutable: false) {
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-type DayPositionStateHistorical @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayPositionStateHistorical @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<BLOCK_NUMBER>
   vaultId: String! # Vault ID
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   accountAddress: String! # Account Address
-  entryIndex: BigInt! # Entry Index
+  entryIndex: BigInt! # Entry Index — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   shares: BigInt! # Shares (this account's balance of THIS vault's share token)
-  # The AssetClaims quintuple — see the full note on DayVaultState above.
-  claimsSeniorTrancheAssets: BigInt! # Claims Senior Tranche Assets
-  claimsJuniorTrancheAssets: BigInt! # Claims Junior Tranche Assets
+  # The AssetClaims quintuple — see the "ASSET CLAIMS" block above.
+  claimsCollateralAssets: BigInt! # Claims Collateral Assets
   claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets
   claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares
   claimsNAV: BigInt! # Claims NAV
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
 # xxx POSITIONS xxx
@@ -881,8 +1311,13 @@ type DayFeeState @entity(immutable: false) {
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-type DayFeeStateHistorical @entity(immutable: true) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<ENTRY_INDEX>
+# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
+# The first write in a block creates the row and takes the next entryIndex; later writes
+# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# the block, so a second write resolves to the same id, which on an immutable entity is
+# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
+type DayFeeStateHistorical @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   vaultId: String! # Vault ID
@@ -891,7 +1326,8 @@ type DayFeeStateHistorical @entity(immutable: true) {
   accountAddress: String! # Account Address
   majorType: String! # Major Type ("day")
   minorType: String! # Minor Type ("senior", "junior", "liquidity") — the tranche, == vault.minorType
-  entryIndex: BigInt! # Entry Index
+  entryIndex: BigInt! # Entry Index — set ONCE, on creation
+  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   shares: BigInt! # Shares — THIS entry's OWN minted shares (mintedProtocolFeeShares for this single fee event). A per-entry DELTA, NOT a running total.
   cumulativeShares: BigInt! # Cumulative Shares — running total of minted shares across all entries UP TO AND INCLUDING this one. Mirrors DayFeeState.cumulativeShares at this snapshot.
   nav: BigInt! # NAV — THIS entry's OWN contribution: convertToAssets(newly minted shares).nav for this single fee event. A per-entry DELTA, NOT a running total.
@@ -909,9 +1345,12 @@ type DayFeeStateHistorical @entity(immutable: true) {
   #             snapshot.cumulativeShares = feeState.cumulativeShares;  (already advanced)
   #             snapshot.cumulativeNav    = feeState.cumulativeNav;
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
+  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
+  updatedAtBlockNumber: BigInt! # Updated At Block Number
+  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
 # xxx FEES xxx

@@ -34,17 +34,18 @@ test("toSnakeCase leaves digits attached to their word", () => {
   assert.equal(toSnakeCase("Erc20Token"), "erc20_token");
 });
 
-test("schema declares the 18 expected entities", () => {
+test("schema declares the 19 expected entities", () => {
   const entities = readEntities(SCHEMA);
   assert.deepEqual(entities, [
     "GlobalTokenTransfer",
     "GlobalTokenActivity",
     "DayMarketState",
+    "DayMarketNav",
+    "DayMarketNavHistorical",
     "DayVaultState",
     "DayVaultStateHistorical",
     "DayFixedTermHistory",
-    "DayJuniorTrancheYieldSharesAccruedHistory",
-    "DayLiquidityTrancheYieldSharesAccruedHistory",
+    "DayYieldSharesAccruedHistory",
     "DayTrancheAccountingSyncedHistory",
     "DayLiquidityPremiumSharesMintedHistory",
     "DayLiquidityPremiumReinvestedHistory",
@@ -70,7 +71,16 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  assert.equal(blocks.length, 13, "expected 13 immutable entities");
+  // 4, not 13. EVERY *History/*Historical entity became MUTABLE in v2 so it can
+  // collapse to one row per block — a later write in the block updates the earlier
+  // rather than appending. They are therefore all correctly outside this check, whose
+  // premise is that an immutable id must never be written twice; their block-keyed ids
+  // are deliberately exactly the collision it exists to prevent. See "BLOCK-KEYED
+  // HISTORY" in schema.graphql.
+  //
+  // What is LEFT immutable is the per-log activity/transfer rows, whose ids carry a
+  // <LOG_INDEX> and genuinely can never repeat.
+  assert.equal(blocks.length, 4, "expected 4 immutable entities");
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {
@@ -84,13 +94,20 @@ test("every immutable entity's id carries a per-write discriminator", () => {
 
 test("every *Historical entity has an entryIndex paired to a parent cursor", () => {
   const src = fs.readFileSync(SCHEMA, "utf8");
+  // Body captured lazily up to a closing brace AT COLUMN 0 (house style for every
+  // entity), not with `[^}]*`. A `}` inside a field comment truncates the latter
+  // mid-entity, and the resulting failure claims a field is missing when it is
+  // declared a few lines below the cut — a genuinely misleading half hour.
   const typeBlock = (name) => {
-    const m = src.match(new RegExp(`^type\\s+${name}\\s+@entity[^{]*\\{([^}]*)\\}`, "m"));
+    const m = src.match(
+      new RegExp(`^type\\s+${name}\\s+@entity[^{]*\\{([\\s\\S]*?)\\n\\}`, "m"),
+    );
     assert.ok(m, `entity ${name} not found`);
     return m[1];
   };
 
   for (const [parent, historical] of [
+    ["DayMarketNav", "DayMarketNavHistorical"],
     ["DayVaultState", "DayVaultStateHistorical"],
     ["DayPositionState", "DayPositionStateHistorical"],
     ["DayFeeState", "DayFeeStateHistorical"],
@@ -121,7 +138,10 @@ test("global entities stay byte-identical to royco-rwa's — frozen shared-table
 
   const fieldsOf = (file, name) => {
     const src = fs.readFileSync(file, "utf8");
-    const m = src.match(new RegExp(`^type\\s+${name}\\s+@entity[^{]*\\{([^}]*)\\}`, "m"));
+    // Same lazy-to-column-0-brace form as typeBlock above, and for the same reason.
+    const m = src.match(
+      new RegExp(`^type\\s+${name}\\s+@entity[^{]*\\{([\\s\\S]*?)\\n\\}`, "m"),
+    );
     assert.ok(m, `${name} not found in ${file}`);
     return m[1]
       .split("\n")

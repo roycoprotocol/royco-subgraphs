@@ -14,7 +14,7 @@ import {
 import {
   MultiAssetDeposit as LiquidityMultiAssetDeposit,
   MultiAssetRedeem as LiquidityMultiAssetRedeem,
-} from "../../generated/templates/RoycoLiquidityTranche/RoycoLiquidityTranche";
+} from "../../generated/templates/RoycoLiquidityProviderTranche/RoycoLiquidityProviderTranche";
 import {
   DeploymentResult,
   createMarketDeploymentCompletedEvent,
@@ -66,9 +66,8 @@ function deployMarket(): void {
 /** A Claims whose five members are distinct, so a field transposition shows. */
 function distinctClaims(): Claims {
   const c = new Claims();
-  c.stAssets = BigInt.fromI32(100);
-  c.jtAssets = BigInt.fromI32(200);
-  c.ltAssets = BigInt.fromI32(300);
+  c.collateralAssets = BigInt.fromI32(100);
+  c.lptAssets = BigInt.fromI32(300);
   c.stShares = BigInt.fromI32(400);
   c.nav = BigInt.fromI32(500);
   return c;
@@ -125,7 +124,7 @@ describe("handleMultiAssetDeposit", () => {
       "callerAddress",
       ADDR_ALICE.toHexString()
     );
-    assert.fieldEquals("DayMultiAssetDepositActivity", id, "seniorTrancheAssets", "11");
+    assert.fieldEquals("DayMultiAssetDepositActivity", id, "collateralAssets", "11");
     assert.fieldEquals("DayMultiAssetDepositActivity", id, "quoteAssets", "22");
     assert.fieldEquals(
       "DayMultiAssetDepositActivity",
@@ -284,8 +283,7 @@ describe("handleMultiAssetRedeem", () => {
     assert.fieldEquals("DayMultiAssetRedeemActivity", id, "shares", "44");
     assert.fieldEquals("DayMultiAssetRedeemActivity", id, "quoteAssets", "99");
     // The quintuple, in order: st/jt/lt assets, st shares, nav.
-    assert.fieldEquals("DayMultiAssetRedeemActivity", id, "claimsSeniorTrancheAssets", "100");
-    assert.fieldEquals("DayMultiAssetRedeemActivity", id, "claimsJuniorTrancheAssets", "200");
+    assert.fieldEquals("DayMultiAssetRedeemActivity", id, "claimsCollateralAssets", "100");
     assert.fieldEquals("DayMultiAssetRedeemActivity", id, "claimsLiquidityTrancheAssets", "300");
     assert.fieldEquals("DayMultiAssetRedeemActivity", id, "claimsSeniorTrancheShares", "400");
     assert.fieldEquals("DayMultiAssetRedeemActivity", id, "claimsNAV", "500");
