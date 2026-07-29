@@ -16,7 +16,11 @@ const abi = (name) => readAbi(path.join(ROOT, "abis", `${name}.json`));
 const TRANCHES = [
   "RoycoSeniorTranche",
   "RoycoJuniorTranche",
-  "RoycoLiquidityTranche",
+  // Renamed from RoycoLiquidityTranche in the v2 contracts (LT -> LPT). The SCHEMA
+  // deliberately keeps its `liquidityTranche*` column names and its
+  // minorType: "liquidity" value — only the contract/ABI identifier moved. See
+  // MIGRATION-v2.md.
+  "RoycoLiquidityProviderTranche",
 ];
 
 /**

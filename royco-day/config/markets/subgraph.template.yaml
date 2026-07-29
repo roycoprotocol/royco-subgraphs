@@ -37,6 +37,10 @@ dataSources:
         - DayMarketState
         - DayVaultState
         - DayVaultStateHistorical
+        # The market's 18-column price vector, seeded at entry 0 from the three vaults
+        # this same handler writes — no extra eth_calls (§ the note in schema.graphql).
+        - DayMarketNav
+        - DayMarketNavHistorical
       abis:
         - name: RoycoFactory
           file: ./abis/RoycoFactory.json
@@ -48,8 +52,8 @@ dataSources:
           file: ./abis/RoycoSeniorTranche.json
         - name: RoycoJuniorTranche
           file: ./abis/RoycoJuniorTranche.json
-        - name: RoycoLiquidityTranche
-          file: ./abis/RoycoLiquidityTranche.json
+        - name: RoycoLiquidityProviderTranche
+          file: ./abis/RoycoLiquidityProviderTranche.json
         - name: ERC20
           file: ./abis/ERC20.json
       eventHandlers:
@@ -100,7 +104,7 @@ templates:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
           receipt: true
-        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256,uint256),uint256)
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256),uint256)
           handler: handleRedeem
           receipt: true
         - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
@@ -155,7 +159,7 @@ templates:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
           receipt: true
-        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256,uint256),uint256)
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256),uint256)
           handler: handleRedeem
           receipt: true
         - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
@@ -163,10 +167,10 @@ templates:
           receipt: true
       file: ./src/royco-junior-tranche.ts
   - kind: ethereum/contract
-    name: RoycoLiquidityTranche
+    name: RoycoLiquidityProviderTranche
     network: {{network}}
     source:
-      abi: RoycoLiquidityTranche
+      abi: RoycoLiquidityProviderTranche
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -185,8 +189,8 @@ templates:
         - GlobalTokenTransfer
         - GlobalTokenActivity
       abis:
-        - name: RoycoLiquidityTranche
-          file: ./abis/RoycoLiquidityTranche.json
+        - name: RoycoLiquidityProviderTranche
+          file: ./abis/RoycoLiquidityProviderTranche.json
         # RoycoSeniorTranche is listed even though this is the Liquidity template, and it is
         # NOT redundant. src/handlers/ shares ONE implementation of Transfer/Deposit/
         # Redeem across all three tranches and binds RoycoSeniorTranche for its
@@ -209,7 +213,7 @@ templates:
         - event: Deposit(indexed address,indexed address,uint256,uint256)
           handler: handleDeposit
           receipt: true
-        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256,uint256),uint256)
+        - event: Redeem(indexed address,indexed address,(uint256,uint256,uint256,uint256),uint256)
           handler: handleRedeem
           receipt: true
         - event: ProtocolFeeSharesMinted(indexed address,uint256,uint256)
@@ -223,7 +227,7 @@ templates:
         - event: MultiAssetDeposit(indexed address,indexed address,uint256,uint256,uint256,uint256)
           handler: handleMultiAssetDeposit
           receipt: true
-        - event: MultiAssetRedeem(indexed address,indexed address,indexed address,uint256,(uint256,uint256,uint256,uint256,uint256),uint256)
+        - event: MultiAssetRedeem(indexed address,indexed address,indexed address,uint256,(uint256,uint256,uint256,uint256),uint256)
           handler: handleMultiAssetRedeem
           receipt: true
       file: ./src/royco-liquidity-tranche.ts
@@ -241,26 +245,15 @@ templates:
         # handleFixedTermCommenced creates these and handleFixedTermEnded /
         # handleFixedTermDurationUpdated(0) close them (§10.3).
         - DayFixedTermHistory
-        # handleJunior/LiquidityTrancheYieldShareAccrued append these + advance the
+        # handleYieldSharesAccrued appends this + advances BOTH
         # DayMarketState.timeWeighted*YieldShareAccruedWAD fields (§10.3).
-        - DayJuniorTrancheYieldSharesAccruedHistory
-        - DayLiquidityTrancheYieldSharesAccruedHistory
-        # handleTrancheAccountingSynced appends one immutable row per sync (the full
-        # 18-field TrancheState) + advances DayMarketState.countTrancheAccountingSyncedEntries.
-        # HOT: this fires on every Balancer swap, not just config changes (§10.3).
-        - DayTrancheAccountingSyncedHistory
+        - DayYieldSharesAccruedHistory
       abis:
         - name: RoycoDayAccountant
           file: ./abis/RoycoDayAccountant.json
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json
       eventHandlers:
-        # Carries the full 18-field TrancheState as its only payload — prefer this
-        # over calling previewSyncTrancheAccounting: it's free, and it's the
-        # post-state at this exact log index.
-        - event: TrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,bool,uint256,uint256))
-          handler: handleTrancheAccountingSynced
-          receipt: true
         - event: MaxYieldSharesUpdated(uint64,uint64)
           handler: handleMaxYieldSharesUpdated
           receipt: true
@@ -276,8 +269,8 @@ templates:
         # and getState() already read 0. Fills
         # DayFixedTermHistory.juniorTrancheCoverageImpermanentLossNAV, which is
         # permanently 0 without this.
-        - event: JuniorTrancheCoverageImpermanentLossReset(uint256)
-          handler: handleJuniorTrancheCoverageImpermanentLossReset
+        - event: JuniorTrancheImpermanentLossReset(uint256)
+          handler: handleJuniorTrancheImpermanentLossReset
           receipt: true
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
@@ -300,26 +293,25 @@ templates:
         - event: JuniorTrancheYieldShareProtocolFeeUpdated(uint64)
           handler: handleJuniorTrancheYieldShareProtocolFeeUpdated
           receipt: true
-        - event: LiquidityTrancheYieldShareProtocolFeeUpdated(uint64)
+        - event: LiquidityProviderTrancheYieldShareProtocolFeeUpdated(uint64)
           handler: handleLiquidityTrancheYieldShareProtocolFeeUpdated
           receipt: true
-        - event: SeniorTrancheDustToleranceUpdated(uint256)
-          handler: handleSeniorTrancheDustToleranceUpdated
-          receipt: true
-        - event: JuniorTrancheDustToleranceUpdated(uint256)
-          handler: handleJuniorTrancheDustToleranceUpdated
+        # MERGED in v2: senior and junior share one collateral asset, so one tolerance
+        # and one event. This also retires v1's effectiveNAVDustTolerance, which had no
+        # event of its own and had to be recomputed inside both handlers.
+        - event: DustToleranceUpdated(uint256)
+          handler: handleDustToleranceUpdated
           receipt: true
         - event: JuniorTrancheYDMUpdated(address)
           handler: handleJuniorTrancheYDMUpdated
           receipt: true
-        - event: LiquidityTrancheYDMUpdated(address)
+        - event: LiquidityProviderTrancheYDMUpdated(address)
           handler: handleLiquidityTrancheYDMUpdated
           receipt: true
-        - event: JuniorTrancheYieldShareAccrued(uint256,uint256)
-          handler: handleJuniorTrancheYieldShareAccrued
-          receipt: true
-        - event: LiquidityTrancheYieldShareAccrued(uint256,uint256)
-          handler: handleLiquidityTrancheYieldShareAccrued
+        # MERGED in v2: one event carries the JT and LPT accruals together, so one
+        # handler and one DayYieldSharesAccruedHistory row replace v1's two of each.
+        - event: YieldSharesAccrued(uint256,uint256,uint256,uint256)
+          handler: handleYieldSharesAccrued
           receipt: true
       file: ./src/royco-day-accountant.ts
   - kind: ethereum/contract
@@ -337,10 +329,37 @@ templates:
         # append these record streams (§10.3).
         - DayLiquidityPremiumReinvestedHistory
         - DayLiquidityPremiumReinvestmentFailedHistory
+        # Both sync events collapse into ONE row per (market, block) here, and also
+        # re-price the market's NAV vector via refreshMarketNav (§10.3).
+        - DayTrancheAccountingSyncedHistory
+        - DayMarketNav
+        - DayMarketNavHistorical
       abis:
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json
+        # RoycoSeniorTranche is listed on the KERNEL template and it is NOT a
+        # copy-paste slip. refreshMarketNav calls convertToAssets on all three tranches
+        # through the one RoycoSeniorTranche class (their ABIs are byte-identical,
+        # guarded by scripts/checks/abi.test.mjs). `bind()` bakes the contract NAME, and
+        # graph-node resolves that name against THIS data source's abis: list at
+        # eth_call time — the import path is irrelevant to it. Without this entry every
+        # sync fails its call and stalls the subgraph, and `graph build` passes either
+        # way. See CLAUDE.md §10.4. (It moved here from the accountant template in v2,
+        # when the sync events moved onto the kernel.)
+        - name: RoycoSeniorTranche
+          file: ./abis/RoycoSeniorTranche.json
       eventHandlers:
+        # BOTH sync events, collapsing into one row per (market, block): pre-op creates
+        # it, post-op overwrites it. Pre-op fires on EVERY sync (swap hook, oracle
+        # updates, syncTrancheAccounting, reinvest, and the first half of each
+        # operation); post-op only on the eight deposit/redeem operations.
+        # event.address is the KERNEL, so these resolve the market with no eth_call.
+        - event: PreOpTrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
+          handler: handlePreOpTrancheAccountingSynced
+          receipt: true
+        - event: PostOpTrancheAccountingSynced(uint8,(uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
+          handler: handlePostOpTrancheAccountingSynced
+          receipt: true
         - event: ProtocolFeeRecipientUpdated(address)
           handler: handleProtocolFeeRecipientUpdated
           receipt: true
@@ -352,5 +371,12 @@ templates:
           receipt: true
         - event: LiquidityPremiumReinvestmentFailed(uint256,uint256,bytes)
           handler: handleLiquidityPremiumReinvestmentFailed
+          receipt: true
+        # New in v2 — the kernel's oracle / sequencer-uptime configuration.
+        - event: CollateralAssetOracleUpdated(indexed address,uint48)
+          handler: handleCollateralAssetOracleUpdated
+          receipt: true
+        - event: SequencerUptimeFeedUpdated(indexed address,uint48)
+          handler: handleSequencerUptimeFeedUpdated
           receipt: true
       file: ./src/royco-day-kernel.ts

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: LicenseRef-PolyForm-Perimeter-1.0.1
 pragma solidity ^0.8.28;
 
 import { Math } from "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -67,6 +67,11 @@ library RoycoUnitsMath {
 
     /// @notice Returns `(_a * _b) / _c` where `_a` is a scalar and `_b`/`_c` are NAV-denominated, with explicit rounding
     function mulDiv(uint256 _a, NAV_UNIT _b, NAV_UNIT _c, Math.Rounding _rounding) internal pure returns (uint256) {
+        return Math.mulDiv(_a, toUint256(_b), toUint256(_c), _rounding);
+    }
+
+    /// @notice Returns `(_a * _b) / _c` where `_a` is a scalar and `_b`/`_c` are tranche-denominated, with explicit rounding
+    function mulDiv(uint256 _a, TRANCHE_UNIT _b, TRANCHE_UNIT _c, Math.Rounding _rounding) internal pure returns (uint256) {
         return Math.mulDiv(_a, toUint256(_b), toUint256(_c), _rounding);
     }
 }

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: LicenseRef-PolyForm-Perimeter-1.0.1
 pragma solidity ^0.8.28;
 
 import { Math } from "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -14,7 +14,8 @@ import { BaseYDM } from "./base/BaseYDM.sol";
  * @dev A general-purpose model for paying a tranche's yield as a premium to a capital pool that provides a service to that tranche
  * @dev It is parameterized purely by the utilization of that service, so the same contract prices any tranche-yield premium
  * @dev Utilization is the fraction of the capital pool's service capacity that is currently in use: the ratio of demand for the service the pool provides to the pool's capacity to supply it, scaled to WAD precision
- * @dev At zero utilization the service is unused and the capital is abundant, so it earns the least. At WAD utilization demand equals the pool's full capacity. Demand beyond capacity is reported above WAD and capped to WAD here
+ * @dev At zero utilization the service is unused and the capital is abundant, so it earns the least
+ * @dev At WAD utilization demand equals the pool's full capacity, demand beyond capacity is reported above WAD and capped to WAD here
  * @dev The premium rises with utilization so scarcer service is paid more, pulling additional capital into the pool
  * @dev The curve is a piece-wise function parameterized by the utilization and a per-instance target utilization (the kink) supplied at construction
  */
@@ -57,7 +58,7 @@ contract StaticCurveYDM is BaseYDM {
 
     /**
      * @notice Sets the per-instance target utilization (the kink) shared by every market this YDM serves
-     * @dev Must be greater than zero so the curve regions are well defined when utilization is zero. Concrete models may further constrain it
+     * @dev Must be greater than zero so the curve regions are well defined when utilization is zero
      * @param _targetUtilizationWAD The target utilization (the kink) for this model, in the range (0, 100%], scaled to WAD precision
      */
     constructor(uint256 _targetUtilizationWAD) BaseYDM(_targetUtilizationWAD) { }
@@ -78,7 +79,7 @@ contract StaticCurveYDM is BaseYDM {
             INVALID_YDM_INITIALIZATION()
         );
 
-        // Initialize the YDM curve for this market (2 SSTOREs: slot0 = y0 + slopeLt, slot1 = yT + slopeGte)
+        // Initialize the YDM curve for this market (all four fields pack into one storage slot)
         StaticYieldCurve storage curve = accountantToCurve[msg.sender];
         curve.yieldShareAtZeroUtilWAD = _yieldShareAtZeroUtilWAD;
         curve.slopeLtTargetUtilWAD = _computeSlope(_yieldShareAtZeroUtilWAD, _yieldShareAtTargetWAD, 0, TARGET_UTILIZATION_WAD);
@@ -115,9 +116,9 @@ contract StaticCurveYDM is BaseYDM {
          * S_lt  → Slope below target utilization: (Y_T - Y_0) / U_T
          * S_gte → Slope at or above target utilization: (Y_full - Y_T) / (1 - U_T)
          *
-         * Below the target, the yield allocation rises from Y_0 based on S_lt.
+         * Below the target, the yield allocation rises from Y_0 based on S_lt
          * At or above the target, the allocation rises from Y_T based on S_gte, penalizing high utilization and
-         * incentivizing more capital into the pool or less demand on its service.
+         * incentivizing more capital into the pool or less demand on its service
          * Output is capped at 100% when utilization reaches or exceeds 100%.
          */
 

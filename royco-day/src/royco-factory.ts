@@ -8,7 +8,7 @@ import {
 import {
   RoycoSeniorTranche,
   RoycoJuniorTranche,
-  RoycoLiquidityTranche,
+  RoycoLiquidityProviderTranche,
   RoycoDayAccountant,
   RoycoDayKernel,
 } from "../generated/templates";
@@ -24,14 +24,18 @@ import {
   TRANCHE_TYPE_SENIOR,
   TRANCHE_TYPE_JUNIOR,
   TRANCHE_TYPE_LIQUIDITY,
+  ZERO_ADDRESS,
 } from "./constants";
 import {
   generateMarketId,
   generateTokenId,
   generateVaultId,
 } from "./utils";
-import { assetPriceNAV } from "./handlers/base/asset-price-nav";
 import { snapshotVault } from "./handlers/base/update-vault";
+import {
+  marketNavPricesFromVaults,
+  writeMarketNav,
+} from "./handlers/base/market-nav";
 
 /**
  * The entry point for the whole subgraph.
@@ -56,7 +60,7 @@ export function handleMarketDeploymentCompleted(
   // indexes no YDM events, it only records their addresses.
   RoycoSeniorTranche.create(result.seniorTranche);
   RoycoJuniorTranche.create(result.juniorTranche);
-  RoycoLiquidityTranche.create(result.liquidityTranche);
+  RoycoLiquidityProviderTranche.create(result.liquidityProviderTranche);
   RoycoDayAccountant.create(result.accountant);
   RoycoDayKernel.create(result.kernel);
 
@@ -64,7 +68,7 @@ export function handleMarketDeploymentCompleted(
   const kernel = RoycoDayKernelContract.bind(result.kernel);
 
   // getState() on both is a plain storage read that cannot revert, so raw is
-  // fine (§5). previewSyncTrancheAccounting below is NOT — it computes.
+  // fine (§5). previewSyncTrancheAccountingFor below is NOT — it computes.
   const accountantState = accountant.getState();
   const kernelState = kernel.getState();
 
@@ -78,16 +82,16 @@ export function handleMarketDeploymentCompleted(
   market.deployerAddress = event.params.deployer.toHexString();
   market.seniorTrancheAddress = result.seniorTranche.toHexString();
   market.juniorTrancheAddress = result.juniorTranche.toHexString();
-  market.liquidityTrancheAddress = result.liquidityTranche.toHexString();
+  market.liquidityTrancheAddress = result.liquidityProviderTranche.toHexString();
   market.seniorTrancheId = generateVaultId(market.seniorTrancheAddress);
   market.juniorTrancheId = generateVaultId(market.juniorTrancheAddress);
   market.liquidityTrancheId = generateVaultId(market.liquidityTrancheAddress);
   market.kernelAddress = marketId;
   market.accountantAddress = result.accountant.toHexString();
-  // `ydm` is the JUNIOR ydm and `ltYdm` is the liquidity one. The ABI does not
+  // `ydm` is the JUNIOR ydm and `lptYdm` is the liquidity one. The ABI does not
   // name the first `jtYdm` — this is the transposition trap in §6.
   market.juniorTrancheYdmAddress = result.ydm.toHexString();
-  market.liquidityTrancheYdmAddress = result.ltYdm.toHexString();
+  market.liquidityTrancheYdmAddress = result.lptYdm.toHexString();
   market.creationEncodedData = result.extras.toHexString();
 
   // === from RoycoDayAccountant.getState() ===
@@ -96,8 +100,8 @@ export function handleMarketDeploymentCompleted(
   market.juniorTrancheYieldShareProtocolFeeWAD =
     accountantState.jtYieldShareProtocolFeeWAD;
   market.liquidityTrancheYieldShareProtocolFeeWAD =
-    accountantState.ltYieldShareProtocolFeeWAD;
-  // The STORED thresholds. previewSyncTrancheAccounting's TrancheState carries
+    accountantState.lptYieldShareProtocolFeeWAD;
+  // The STORED thresholds. previewSyncTrancheAccountingFor's state carries
   // members with these exact same names holding the LIVE values, and the two
   // disagree between syncs — the schema deliberately stores these (§6). Same
   // name, different contract, different width (uint64 here, uint256 there), so
@@ -117,49 +121,80 @@ export function handleMarketDeploymentCompleted(
     accountantState.twJTYieldShareAccruedWAD;
   market.maxJuniorTrancheYieldShareAccruedWAD = accountantState.maxJTYieldShareWAD;
   market.timeWeightedLiquidityTrancheYieldShareAccruedWAD =
-    accountantState.twLTYieldShareAccruedWAD;
+    accountantState.twLPTYieldShareAccruedWAD;
   market.maxLiquidityTrancheYieldShareAccruedWAD =
-    accountantState.maxLTYieldShareWAD;
+    accountantState.maxLPTYieldShareWAD;
   market.coverageLiquidationUtilizationWAD =
     accountantState.coverageLiquidationUtilizationWAD;
-  market.seniorTrancheDustTolerance = accountantState.stNAVDustTolerance;
-  market.juniorTrancheDustTolerance = accountantState.jtNAVDustTolerance;
-  market.effectiveNAVDustTolerance = accountantState.effectiveNAVDustTolerance;
+  // ONE tolerance in v2 where v1 read three (st, jt, and a cached effective sum).
+  market.dustTolerance = accountantState.dustTolerance;
 
   // === from RoycoDayKernel.getState() ===
   market.protocolFeeRecipientAddress =
     kernelState.protocolFeeRecipient.toHexString();
   market.seniorTrancheSelfLiquidationBonusWAD =
     kernelState.stSelfLiquidationBonusWAD;
-  market.seniorTrancheOwnedYieldBearingAssets =
-    kernelState.stOwnedYieldBearingAssets;
-  market.juniorTrancheOwnedYieldBearingAssets =
-    kernelState.jtOwnedYieldBearingAssets;
-  market.liquidityTrancheOwnedYieldBearingAssets =
-    kernelState.ltOwnedYieldBearingAssets;
+  // st + jt owned assets merged into ONE totalCollateralAssets in v2.
+  market.totalCollateralAssets = kernelState.totalCollateralAssets;
+  market.totalLiquidityTrancheAssets = kernelState.totalLPTAssets;
   market.liquidityTrancheOwnedSeniorTrancheShares =
-    kernelState.ltOwnedSeniorTrancheShares;
+    kernelState.lptOwnedSeniorTrancheShares;
+  // New in v2: the oracle + sequencer-uptime configuration. uint48 -> BigInt direct;
+  // only uint24-and-below decode to i32 and need BigInt.fromI32 (§4).
+  market.collateralAssetOracleAddress =
+    kernelState.collateralAssetOracle.toHexString();
+  market.collateralAssetOracleStalenessThresholdSeconds =
+    kernelState.stalenessThresholdSeconds;
+  market.sequencerUptimeFeedAddress = kernelState.sequencerUptimeFeed.toHexString();
+  market.sequencerUptimeFeedGracePeriodSeconds = kernelState.gracePeriodSeconds;
 
-  // === from RoycoDayKernel.previewSyncTrancheAccounting(_trancheType) ===
+  // === the market's three asset tokens, from dedicated Kernel views ===
+  //
+  // Three separate calls, not getState() members. Read once here and never again:
+  // all three are `immutable` on chain and no event exists for any of them.
+  //
+  // COLLATERAL_ASSET and LPT_ASSET are declared `public immutable` on RoycoDayKernel
+  // itself, so raw is correct — §5's "immutable metadata read once at deployment".
+  // The kernel's own constructor requires senior.asset() == junior.asset() ==
+  // COLLATERAL_ASSET and liquidity.asset() == LPT_ASSET, so these must agree with the
+  // per-vault assetTokenAddress that createVault reads below; storing them at market
+  // level saves a three-way join and gives Neon a free consistency check.
+  const collateralAsset = kernel.COLLATERAL_ASSET().toHexString();
+  market.collateralTokenAddress = collateralAsset;
+  market.collateralTokenId = generateTokenId(collateralAsset);
+
+  const lptAsset = kernel.LPT_ASSET().toHexString();
+  market.liquidityTrancheAssetTokenAddress = lptAsset;
+  market.liquidityTrancheAssetTokenId = generateTokenId(lptAsset);
+
+  // QUOTE_ASSET is the ONE that needs try_. It is `virtual` and BODYLESS on the base
+  // kernel — only the liquidity venue concretises it — so a kernel variant without a
+  // venue need not implement it. A raw revert here would take down this handler, and
+  // with it the market, all three vaults and every row that ever hangs off them. The
+  // zero address is the truthful answer for a venue-less market.
+  const quote = kernel.try_QUOTE_ASSET();
+  const quoteAsset = quote.reverted ? ZERO_ADDRESS : quote.value.toHexString();
+  market.quoteAssetTokenAddress = quoteAsset;
+  market.quoteAssetTokenId = generateTokenId(quoteAsset);
+
+  // === from RoycoDayKernel.previewSyncTrancheAccountingFor(_trancheType) ===
   //
   // `state` is tranche-INDEPENDENT, so any tranche type returns the same values
   // here. We still read the senior tranche's own TRANCHE_TYPE() rather than pass
   // a literal 0 — the ABI carries no enum member names, so 0/1/2 is an inference
   // (§6). Only `claims`, which this entity does not consume, varies by type.
   const seniorTrancheType = TrancheContract.bind(result.seniorTranche).TRANCHE_TYPE();
-  const preview = kernel.try_previewSyncTrancheAccounting(seniorTrancheType);
+  const preview = kernel.try_previewSyncTrancheAccountingFor(seniorTrancheType);
   if (!preview.reverted) {
     const state = preview.value.getState();
-    market.seniorTrancheRawNAV = state.stRawNAV;
-    market.juniorTrancheRawNAV = state.jtRawNAV;
-    market.liquidityTrancheRawNAV = state.ltRawNAV;
+    market.collateralNAV = state.collateralNAV;
+    market.liquidityTrancheRawNAV = state.lptRawNAV;
     market.seniorTrancheEffectiveNAV = state.stEffectiveNAV;
     market.juniorTrancheEffectiveNAV = state.jtEffectiveNAV;
-    market.juniorTrancheCoverageImpermanentLoss = state.jtCoverageImpermanentLoss;
-    market.liquidityTrancheLiquidityPremium = state.ltLiquidityPremium;
+    market.juniorTrancheImpermanentLoss = state.jtImpermanentLoss;
+    market.liquidityTrancheLiquidityPremium = state.lptLiquidityPremium;
     market.coverageUtilizationWAD = state.coverageUtilizationWAD;
     market.liquidityUtilizationWAD = state.liquidityUtilizationWAD;
-    market.isJuniorTrancheCoinvested = state.jtCoinvested;
     // NOTE: `state` also carries minCoverageWAD / minLiquidityWAD. Do NOT read
     // them here — those are the LIVE values and the schema stores the Accountant's
     // stored ones, set above (§6).
@@ -167,16 +202,14 @@ export function handleMarketDeploymentCompleted(
     // No previous value to fall back on at creation, and every field is non-null
     // — an unset one is fatal at index time (§8). A market this young has no NAV
     // to speak of, so zero is also the truthful answer.
-    market.seniorTrancheRawNAV = BigInt.zero();
-    market.juniorTrancheRawNAV = BigInt.zero();
+    market.collateralNAV = BigInt.zero();
     market.liquidityTrancheRawNAV = BigInt.zero();
     market.seniorTrancheEffectiveNAV = BigInt.zero();
     market.juniorTrancheEffectiveNAV = BigInt.zero();
-    market.juniorTrancheCoverageImpermanentLoss = BigInt.zero();
+    market.juniorTrancheImpermanentLoss = BigInt.zero();
     market.liquidityTrancheLiquidityPremium = BigInt.zero();
     market.coverageUtilizationWAD = BigInt.zero();
     market.liquidityUtilizationWAD = BigInt.zero();
-    market.isJuniorTrancheCoinvested = false;
     // minCoverageWAD / minLiquidityWAD are deliberately absent from this branch:
     // they come from the raw getState() above, which cannot revert, so a known-good
     // value is always in hand. Zeroing them here would discard it — and a zero
@@ -187,8 +220,7 @@ export function handleMarketDeploymentCompleted(
   // Counts, not last-indices: every stream is born empty. See the "=> records"
   // block in schema.graphql.
   market.countFixedTermEntries = BigInt.zero();
-  market.countJuniorTrancheYieldSharesAccruedEntries = BigInt.zero();
-  market.countLiquidityTrancheYieldSharesAccruedEntries = BigInt.zero();
+  market.countYieldSharesAccruedEntries = BigInt.zero();
   market.countTrancheAccountingSyncedEntries = BigInt.zero();
   market.countLiquidityPremiumSharesMintedEntries = BigInt.zero();
   market.countLiquidityPremiumReinvestedEntries = BigInt.zero();
@@ -198,7 +230,7 @@ export function handleMarketDeploymentCompleted(
   // Zero is the only truthful seed — nothing has been erased yet, and unlike every
   // other contract-sourced field on this entity there is no getState() member to
   // read it from. The subgraph is the only thing that tracks this total.
-  market.juniorTrancheCoverageLossNAV = BigInt.zero();
+  market.juniorTrancheImpermanentLossNAV = BigInt.zero();
 
   market.createdAtTransactionHash = event.transaction.hash.toHexString();
   market.createdAtBlockNumber = event.block.number;
@@ -209,9 +241,36 @@ export function handleMarketDeploymentCompleted(
 
   market.save();
 
-  createVault(event, result.seniorTranche, TRANCHE_TYPE_SENIOR, market);
+  const senior = createVault(
+    event,
+    result.seniorTranche,
+    TRANCHE_TYPE_SENIOR,
+    market
+  );
+  // The junior vault is still written, but its return value is not needed: the
+  // collateral price covers senior AND junior, so marketNavPricesFromVaults only takes
+  // one of the two.
   createVault(event, result.juniorTranche, TRANCHE_TYPE_JUNIOR, market);
-  createVault(event, result.liquidityTranche, TRANCHE_TYPE_LIQUIDITY, market);
+  const liquidity = createVault(
+    event,
+    result.liquidityProviderTranche,
+    TRANCHE_TYPE_LIQUIDITY,
+    market
+  );
+
+  // DayMarketNav entry 0, assembled from the three vaults just written — ZERO extra
+  // eth_calls. Both halves are already in hand and already correct:
+  //   assetPrice* — each createVault call read its own tranche's converter.
+  //   sharePrice* — all five legs provably 0 here, for the same reason the claims
+  //                 quintuples are: supply is 0, so _scaleAssetClaims returns the
+  //                 zero struct for any input, including one whole share.
+  // The sync path CANNOT do this — those copies go stale between mints/burns — so it
+  // re-reads all three quintuples live. See refreshMarketNav.
+  writeMarketNav(
+    event,
+    market,
+    marketNavPricesFromVaults(market, senior, liquidity)
+  );
 }
 
 /**
@@ -227,6 +286,10 @@ function marketStateName(lastMarketState: i32): string {
 
 /**
  * Write one tranche's DayVaultState plus its creation snapshot.
+ *
+ * RETURNS the saved vault so the caller can pass the three to
+ * marketNavPricesFromVaults, which needs their addresses and decimals. It no longer
+ * carries any price of its own — DayVaultState stores none.
  *
  * `minorType` comes from which slot of the DeploymentResult tuple the address
  * arrived in, which is authoritative by construction — it is NOT derived from
@@ -257,7 +320,7 @@ function createVault(
   trancheAddress: Address,
   minorType: string,
   market: DayMarketState
-): void {
+): DayVaultState {
   const tranche = TrancheContract.bind(trancheAddress);
   const vaultAddress = trancheAddress.toHexString();
 
@@ -293,41 +356,10 @@ function createVault(
   // handled. Silent, permanent, and it corrupts every claims* derived from it.
   vault.sharesTotalSupply = BigInt.zero();
 
-  // BOTH AssetClaims quintuples are provably ALL ZERO at deployment, so there is
-  // nothing to call. convertToAssets -> _scaleAssetClaims returns the zero struct
-  // whenever the tranche's total shares is zero, for ANY input — including the
-  // one-whole-share input behind sharePrice*. And the supply IS zero here: every
-  // _mint in the contracts lives in deposit / depositMultiAsset / mint /
-  // mintProtocolFeeShares / mintLiquidityPremiumShares, none of which is reachable
-  // from deployMarket or initialize.
+  // No claims* / sharePrice* to seed: DayVaultState carries neither quintuple any
+  // more (see its schema note). Both moved to DayMarketNav, written once per market
+  // at the bottom of handleMarketDeploymentCompleted rather than three times here.
   //
-  // So two try_convertToAssets calls per tranche (six per market) would spend an
-  // eth_call each to be told zero. The handlers in src/handlers/base/update-vault.ts
-  // own these fields from the first mint onward.
-  //
-  // If a future template CAN seed supply during deployMarket, this becomes wrong
-  // silently — the zero guard in _scaleAssetClaims is the only thing holding it up.
-  vault.claimsSeniorTrancheAssets = BigInt.zero();
-  vault.claimsJuniorTrancheAssets = BigInt.zero();
-  vault.claimsLiquidityTrancheAssets = BigInt.zero();
-  vault.claimsSeniorTrancheShares = BigInt.zero();
-  vault.claimsNAV = BigInt.zero();
-  vault.sharePriceSeniorTrancheAssets = BigInt.zero();
-  vault.sharePriceJuniorTrancheAssets = BigInt.zero();
-  vault.sharePriceLiquidityTrancheAssets = BigInt.zero();
-  vault.sharePriceSeniorTrancheShares = BigInt.zero();
-  vault.sharePriceNAV = BigInt.zero();
-
-  // NOT supply-scaled, so this one CAN be non-zero at creation — it is a unit
-  // conversion on the Kernel, not a claim. No previous value yet, so the fallback
-  // is zero (§5/§8).
-  vault.assetPriceNAV = assetPriceNAV(
-    market.kernelAddress,
-    minorType,
-    vault.assetTokenDecimals,
-    BigInt.zero()
-  );
-
   // The creation snapshot IS entry 0, so the cursor starts at 0 and the next
   // snapshot writes 1. Total snapshots == lastHistoricalEntryIndex + 1.
   vault.lastHistoricalEntryIndex = BigInt.zero();
@@ -342,4 +374,6 @@ function createVault(
   vault.save();
 
   snapshotVault(event, vault);
+
+  return vault;
 }

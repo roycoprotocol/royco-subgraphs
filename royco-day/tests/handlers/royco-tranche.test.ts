@@ -22,7 +22,7 @@ import {
   Redeem as SeniorRedeem,
 } from "../../generated/templates/RoycoSeniorTranche/RoycoSeniorTranche";
 import { Transfer as JuniorTransfer } from "../../generated/templates/RoycoJuniorTranche/RoycoJuniorTranche";
-import { Transfer as LiquidityTransfer } from "../../generated/templates/RoycoLiquidityTranche/RoycoLiquidityTranche";
+import { Transfer as LiquidityTransfer } from "../../generated/templates/RoycoLiquidityProviderTranche/RoycoLiquidityProviderTranche";
 import {
   DeploymentResult,
   createMarketDeploymentCompletedEvent,
@@ -37,15 +37,18 @@ import {
   mockDayMarket,
   mockConvertToAssets,
   mockConvertToAssetsReverts,
+  mockAssetPriceNAV,
 } from "../mocks";
 import { Claims } from "../builders/shared";
 import { ctx } from "../helpers/event";
 import {
+  BLOCK_NUMBER,
   ADDR_ALICE,
   ADDR_ASSET,
   ADDR_BOB,
   ADDR_DEPLOYER,
   ADDR_JUNIOR,
+  ADDR_KERNEL,
   ADDR_LIQUIDITY,
   ADDR_SENIOR,
   ADDR_TEMPLATE,
@@ -83,6 +86,12 @@ const BOB = ADDR_BOB.toHexString();
 
 /** 1e18 — one whole share at the fixture's 18 decimals. */
 const ONE_SHARE = WAD;
+/**
+ * 1e18 — one whole ASSET token. Numerically equal to ONE_SHARE only because the
+ * standard fixture is 18/18; they are different denominators and the two names are
+ * kept apart so a decimals bug stays visible (see the factory suite's 6-decimal test).
+ */
+const ONE_ASSET_TOKEN = WAD;
 const MINT_AMOUNT = WAD.times(BigInt.fromI32(10));
 
 function deployMarket(market: DayMarketFixture): void {
@@ -123,9 +132,8 @@ function mockFirstMint(
 
 function claimsOf(base: i32): Claims {
   const c = new Claims();
-  c.stAssets = BigInt.fromI32(base + 1);
-  c.jtAssets = BigInt.fromI32(base + 2);
-  c.ltAssets = BigInt.fromI32(base + 3);
+  c.collateralAssets = BigInt.fromI32(base + 1);
+  c.lptAssets = BigInt.fromI32(base + 3);
   c.stShares = BigInt.fromI32(base + 4);
   c.nav = BigInt.fromI32(base + 5);
   return c;
@@ -171,36 +179,34 @@ describe("processTransfer", () => {
     );
     assert.entityCount("DayPositionState", 1);
 
-    // The claims MUST move with the supply, in the same write. claims* IS
-    // convertToAssets(sharesTotalSupply) — the supply is its literal input — so a
-    // row carrying the new supply beside claims priced at the old one is strictly
-    // worse than both being stale together: claimsNAV / sharesTotalSupply would
-    // then mix two different instants. Before the mint these were all 0 (a fresh
-    // market), so a missing refresh leaves 0 here and this catches it.
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "claimsNAV", "4105");
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "sharePriceNAV", "4205");
-    assert.fieldEquals(
-      "DayVaultState",
-      SENIOR_ID,
-      "claimsSeniorTrancheAssets",
-      "4101"
-    );
-    // Same value, and that is correct rather than a coincidence: on a first mint
-    // alice holds the entire supply, so her claim IS the vault's claim.
+    // The POSITION's claim must move with its balance, in the same write —
+    // DayPositionState is now the only entity carrying a plain claims* quintuple
+    // (DayVaultState's two were dropped for DayMarketNav). Before the mint alice had
+    // no row at all, so a missing refresh leaves the seeded 0 here and this catches it.
     assert.fieldEquals(
       "DayPositionState",
       generatePositionStateId(ADDR_SENIOR.toHexString(), ALICE),
       "claimsNAV",
       "4105"
     );
+    assert.fieldEquals(
+      "DayPositionState",
+      generatePositionStateId(ADDR_SENIOR.toHexString(), ALICE),
+      "claimsCollateralAssets",
+      "4101"
+    );
   });
 
-  test("a second mint prices the vault and the position apart", () => {
-    // Only observable once a second account holds shares: the vault's claim comes
-    // from convertToAssets(TOTAL supply) and each position's from
-    // convertToAssets(ITS OWN balance) — two different inputs, two different
-    // answers. A handler that reused the vault's result for the position (or vice
-    // versa) passes every first-mint test and fails here.
+  test("a second mint prices each position by its OWN balance, not the supply", () => {
+    // Only observable once a second account holds shares. Each position's claim comes
+    // from convertToAssets(ITS OWN balance), never from the total supply — a handler
+    // that priced positions off the supply passes every first-mint test (where the two
+    // inputs coincide) and fails here.
+    //
+    // The vault half of this comparison is gone: DayVaultState no longer stores a
+    // claim, so convertToAssets(TOTAL supply) is not called on the mint path at all.
+    // The `doubled` mock below therefore exists only to prove the negative — if a
+    // supply-priced claim ever comes back, 4_800 is the value that would show up.
     const market = DayMarketFixture.standard();
     deployMarket(market);
     mockFirstMint(ADDR_SENIOR, MINT_AMOUNT, claimsOf(4_100), claimsOf(4_200));
@@ -224,9 +230,9 @@ describe("processTransfer", () => {
     );
 
     assert.fieldEquals("DayVaultState", SENIOR_ID, "sharesTotalSupply", doubled.toString());
-    // The vault: priced at the TOTAL supply.
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "claimsNAV", "4805");
-    // Both positions: priced at their OWN balance, which is still MINT_AMOUNT.
+    // Both positions: priced at their OWN balance, which is still MINT_AMOUNT — NOT
+    // 4_805, which is what the doubled supply would have produced.
+    
     assert.fieldEquals(
       "DayPositionState",
       generatePositionStateId(ADDR_SENIOR.toHexString(), BOB),
@@ -242,9 +248,14 @@ describe("processTransfer", () => {
     );
   });
 
-  test("the mint snapshot records the refreshed claims, not the pre-mint ones", () => {
-    // The snapshot is immutable and write-once: whatever lands at entryIndex 1 is
-    // what Neon reports for that block forever.
+  test("the mint snapshot records the POST-mint supply, not the pre-mint one", () => {
+    // Whatever lands on the mint's block row is what Neon reports for that block, so it
+    // must be built AFTER the delta is applied, not before. The mint takes its own block
+    // so the creation row survives alongside it to be compared against.
+    //
+    // v1 also asserted assetPriceNAV here. DayVaultState now stores no price at all, so
+    // sharesTotalSupply is the only value on this entity that can be stale — and with
+    // the price reads gone, applySharesDelta makes ZERO eth_calls.
     const market = DayMarketFixture.standard();
     deployMarket(market);
     mockFirstMint(
@@ -256,13 +267,14 @@ describe("processTransfer", () => {
 
     const c = ctx();
     c.emitter = ADDR_SENIOR;
+    c.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     handleTransfer(
       createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c)
     );
 
     const snapshotId = generateVaultStateHistoricalId(
       ADDR_SENIOR.toHexString(),
-      BigInt.fromI32(1)
+      BLOCK_NUMBER.plus(BigInt.fromI32(1))
     );
     assert.fieldEquals(
       "DayVaultStateHistorical",
@@ -270,8 +282,15 @@ describe("processTransfer", () => {
       "sharesTotalSupply",
       MINT_AMOUNT.toString()
     );
-    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "claimsNAV", "4105");
     assert.fieldEquals("DayVaultStateHistorical", snapshotId, "entryIndex", "1");
+    // The creation block's row still holds the pre-mint zero — the snapshot stream is a
+    // real time series, not a repeated view of the latest state.
+    assert.fieldEquals(
+      "DayVaultStateHistorical",
+      generateVaultStateHistoricalId(ADDR_SENIOR.toHexString(), BLOCK_NUMBER),
+      "sharesTotalSupply",
+      "0"
+    );
   });
 
   test("supply is an accumulator: mint then burn nets out", () => {
@@ -357,8 +376,10 @@ describe("processTransfer", () => {
   });
 
   test("a plain transfer writes NO new vault snapshot", () => {
-    // Supply is unchanged, so a snapshot would duplicate the previous row and burn
-    // a write-once entryIndex forever.
+    // Supply is unchanged, so a snapshot would duplicate the previous row and advance
+    // the cursor over nothing. Each event gets its OWN block here: under block keying a
+    // same-block transfer could not add a row regardless, so it would pass whether or
+    // not the no-op guard exists.
     const market = DayMarketFixture.standard();
     deployMarket(market);
     mockFirstMint(
@@ -370,8 +391,9 @@ describe("processTransfer", () => {
 
     const c = ctx();
     c.emitter = ADDR_SENIOR;
+    c.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c));
-    // 3 creation snapshots (one per tranche) + 1 for this mint.
+    // 3 creation snapshots (one per tranche) + 1 for this mint, in its own block.
     assert.entityCount("DayVaultStateHistorical", 4);
     assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
 
@@ -380,8 +402,10 @@ describe("processTransfer", () => {
     const c2 = ctx();
     c2.emitter = ADDR_SENIOR;
     c2.logIndex = BigInt.fromI32(2);
+    c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(2));
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ALICE, ADDR_BOB, half, c2));
 
+    // A THIRD block went by and still no fourth senior row: the guard, not the key.
     assert.entityCount("DayVaultStateHistorical", 4);
     assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
   });
@@ -441,7 +465,9 @@ describe("processTransfer", () => {
   test("the position cursor starts at 0 and is dense", () => {
     // A position is born on its FIRST transfer, not seeded by the factory the way
     // a vault is — so its entry 0 is that first write. Getting this wrong writes
-    // entry 1 first and leaves 0 absent forever.
+    // entry 1 first and leaves 0 absent forever. The rows are keyed by BLOCK, so the
+    // second mint gets its own block; two mints in ONE block would collapse to one row
+    // (asserted separately) and this test would prove nothing about density.
     const market = DayMarketFixture.standard();
     deployMarket(market);
     mockFirstMint(
@@ -461,6 +487,7 @@ describe("processTransfer", () => {
     const c2 = ctx();
     c2.emitter = ADDR_SENIOR;
     c2.logIndex = BigInt.fromI32(2);
+    c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
     handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c2));
 
     const positionId = generatePositionStateId(ADDR_SENIOR.toHexString(), ALICE);
@@ -471,7 +498,7 @@ describe("processTransfer", () => {
       generatePositionStateHistoricalId(
         ADDR_SENIOR.toHexString(),
         ALICE,
-        BigInt.zero()
+        BLOCK_NUMBER
       ),
       "entryIndex",
       "0"
@@ -481,7 +508,7 @@ describe("processTransfer", () => {
       generatePositionStateHistoricalId(
         ADDR_SENIOR.toHexString(),
         ALICE,
-        BigInt.fromI32(1)
+        BLOCK_NUMBER.plus(BigInt.fromI32(1))
       ),
       "entryIndex",
       "1"
@@ -731,20 +758,21 @@ describe("processRedeem", () => {
     deployMarket(market);
 
     const claims = new Claims();
-    claims.stAssets = BigInt.fromI32(7_101);
-    claims.jtAssets = BigInt.fromI32(7_102);
-    claims.ltAssets = BigInt.fromI32(7_103);
-    claims.stShares = BigInt.fromI32(7_104);
-    claims.nav = BigInt.fromI32(7_105);
+    claims.collateralAssets = BigInt.fromI32(7_101);
+    claims.lptAssets = BigInt.fromI32(7_102);
+    claims.stShares = BigInt.fromI32(7_103);
+    claims.nav = BigInt.fromI32(7_104);
 
     const c = ctx();
     c.emitter = ADDR_SENIOR;
     handleRedeem(createRedeemEvent<SeniorRedeem>(ADDR_ALICE, ADDR_BOB, claims, MINT_AMOUNT, c));
 
-    assert.entityCount("GlobalTokenTransfer", 3);
-    assert.entityCount("GlobalTokenActivity", 3);
+    // TWO legs in v2, not three — the senior and junior asset legs merged into one
+    // collateral leg. stShares still gets no row (the senior Transfer carries it).
+    assert.entityCount("GlobalTokenTransfer", 2);
+    assert.entityCount("GlobalTokenActivity", 2);
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       const id = generateGlobalTokenTransferId(
         TX_HASH.toHexString(),
         c.logIndex,
@@ -767,40 +795,31 @@ describe("processRedeem", () => {
   });
 
   test("a zero leg is SKIPPED and the indices stay positional", () => {
-    // THE HIGHEST-VALUE ASSERTION HERE. A running counter over the non-zero legs
-    // would put ltAssets at tokenIndex 1, and the leg would then be unrecoverable
-    // from Neon: tokenAddress is the only other clue, and the shipped kernel gives
-    // the senior and junior legs the SAME asset token.
+    // THE HIGHEST-VALUE ASSERTION HERE. The indices are POSITIONAL: index 0 is always
+    // the collateral leg and 1 always the liquidity leg, whether or not either is
+    // present. A running counter over the NON-ZERO legs would slide the liquidity leg
+    // down to index 0 when collateral is absent, and the leg would then be
+    // unrecoverable from Neon — tokenAddress is the only other clue.
     const market = DayMarketFixture.standard();
     deployMarket(market);
 
     const claims = new Claims();
-    claims.stAssets = BigInt.fromI32(7_101);
-    claims.jtAssets = BigInt.zero(); // skipped on-chain too
-    claims.ltAssets = BigInt.fromI32(7_103);
+    claims.collateralAssets = BigInt.zero(); // skipped on-chain too
+    claims.lptAssets = BigInt.fromI32(7_103);
 
     const c = ctx();
     c.emitter = ADDR_SENIOR;
     handleRedeem(createRedeemEvent<SeniorRedeem>(ADDR_ALICE, ADDR_BOB, claims, MINT_AMOUNT, c));
 
-    assert.entityCount("GlobalTokenTransfer", 2);
+    assert.entityCount("GlobalTokenTransfer", 1);
+    // The liquidity leg keeps tokenIndex 1 even though it is the ONLY row written —
+    // a counter would have put it at 0.
     assert.fieldEquals(
       "GlobalTokenTransfer",
       generateGlobalTokenTransferId(
         TX_HASH.toHexString(),
         c.logIndex,
-        BigInt.zero()
-      ),
-      "value",
-      "7101"
-    );
-    // tokenIndex 2, NOT 1.
-    assert.fieldEquals(
-      "GlobalTokenTransfer",
-      generateGlobalTokenTransferId(
-        TX_HASH.toHexString(),
-        c.logIndex,
-        BigInt.fromI32(2)
+        BigInt.fromI32(1)
       ),
       "value",
       "7103"
@@ -810,7 +829,7 @@ describe("processRedeem", () => {
       generateGlobalTokenTransferId(
         TX_HASH.toHexString(),
         c.logIndex,
-        BigInt.fromI32(1)
+        BigInt.zero()
       )
     );
   });
@@ -841,7 +860,7 @@ describe("processRedeem", () => {
     deployMarket(market);
 
     const claims = new Claims();
-    claims.stAssets = BigInt.fromI32(7_101);
+    claims.collateralAssets = BigInt.fromI32(7_101);
 
     const c = ctx();
     c.emitter = ADDR_SENIOR;
@@ -849,5 +868,58 @@ describe("processRedeem", () => {
 
     assert.entityCount("DayPositionState", 0);
     assert.fieldEquals("DayVaultState", SENIOR_ID, "sharesTotalSupply", "0");
+  });
+
+  test("the vault cursor does NOT advance on a same-block update, so entryIndex stays dense", () => {
+    // The cursor bump belongs to CREATING a block's row, not to writing one. If it fired
+    // on every write, a second mint in the same block would push the cursor to 2 while
+    // still only 2 rows existed, and the NEXT block's row would be stamped entryIndex 3 —
+    // a hole in the stream. Nothing errors; ordering and dense-index readers just break.
+    const market = DayMarketFixture.standard();
+    deployMarket(market); // creation row for BLOCK_NUMBER, entryIndex 0, cursor 0
+
+    const c1 = ctx();
+    c1.emitter = ADDR_SENIOR;
+    c1.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c1));
+    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
+
+    // SECOND mint, SAME block: updates that row. The cursor must not move.
+    const c2 = ctx();
+    c2.emitter = ADDR_SENIOR;
+    c2.logIndex = BigInt.fromI32(2);
+    c2.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_BOB, MINT_AMOUNT, c2));
+    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "1");
+
+    // Third mint, NEW block: this is where the drift would surface as entryIndex 3.
+    const c3 = ctx();
+    c3.emitter = ADDR_SENIOR;
+    c3.logIndex = BigInt.fromI32(3);
+    c3.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(2));
+    handleTransfer(createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c3));
+
+    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "2");
+    assert.fieldEquals(
+      "DayVaultStateHistorical",
+      generateVaultStateHistoricalId(
+        ADDR_SENIOR.toHexString(),
+        BLOCK_NUMBER.plus(BigInt.fromI32(2))
+      ),
+      "entryIndex",
+      "2"
+    );
+    // Three senior rows (one per block) + two untouched sibling creation rows.
+    assert.entityCount("DayVaultStateHistorical", 5);
+    // The collapsed block's row holds BOTH of its mints.
+    assert.fieldEquals(
+      "DayVaultStateHistorical",
+      generateVaultStateHistoricalId(
+        ADDR_SENIOR.toHexString(),
+        BLOCK_NUMBER.plus(BigInt.fromI32(1))
+      ),
+      "sharesTotalSupply",
+      MINT_AMOUNT.times(BigInt.fromI32(2)).toString()
+    );
   });
 });

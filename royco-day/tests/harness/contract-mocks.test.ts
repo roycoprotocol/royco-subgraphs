@@ -48,7 +48,7 @@ describe("RoycoDayAccountant.getState mock", () => {
     s.stProtocolFeeWAD = BigInt.fromI32(2000);
     s.jtProtocolFeeWAD = BigInt.fromI32(2001);
     s.jtYieldShareProtocolFeeWAD = BigInt.fromI32(2002);
-    s.ltYieldShareProtocolFeeWAD = BigInt.fromI32(2003);
+    s.lptYieldShareProtocolFeeWAD = BigInt.fromI32(2003);
     s.minCoverageWAD = BigInt.fromI32(2004);
     s.fixedTermDurationSeconds = 2005; // uint24 -> i32
     s.lastMarketState = 1; // uint8  -> i32
@@ -58,18 +58,14 @@ describe("RoycoDayAccountant.getState mock", () => {
     s.minLiquidityWAD = BigInt.fromI32(2012);
     s.twJTYieldShareAccruedWAD = BigInt.fromI32(2013);
     s.maxJTYieldShareWAD = BigInt.fromI32(2014);
-    s.twLTYieldShareAccruedWAD = BigInt.fromI32(2015);
-    s.maxLTYieldShareWAD = BigInt.fromI32(2016);
+    s.twLPTYieldShareAccruedWAD = BigInt.fromI32(2015);
+    s.maxLPTYieldShareWAD = BigInt.fromI32(2016);
     s.coverageLiquidationUtilizationWAD = BigInt.fromI32(2017);
-    s.lastSTRawNAV = BigInt.fromI32(2018);
-    s.lastJTRawNAV = BigInt.fromI32(2019);
+    s.lastCollateralNAV = BigInt.fromI32(2018);
     s.lastSTEffectiveNAV = BigInt.fromI32(2020);
     s.lastJTEffectiveNAV = BigInt.fromI32(2021);
-    s.lastJTCoverageImpermanentLoss = BigInt.fromI32(2022);
-    s.lastLTRawNAV = BigInt.fromI32(2023);
-    s.stNAVDustTolerance = BigInt.fromI32(2024);
-    s.jtNAVDustTolerance = BigInt.fromI32(2025);
-    s.effectiveNAVDustTolerance = BigInt.fromI32(2026);
+    s.lastLPTRawNAV = BigInt.fromI32(2023);
+    s.dustTolerance = BigInt.fromI32(2024);
 
     mockAccountantGetState(ADDR_ACCOUNTANT, s);
 
@@ -78,7 +74,7 @@ describe("RoycoDayAccountant.getState mock", () => {
     assert.bigIntEquals(got.stProtocolFeeWAD, BigInt.fromI32(2000));
     assert.bigIntEquals(got.jtProtocolFeeWAD, BigInt.fromI32(2001));
     assert.bigIntEquals(got.jtYieldShareProtocolFeeWAD, BigInt.fromI32(2002));
-    assert.bigIntEquals(got.ltYieldShareProtocolFeeWAD, BigInt.fromI32(2003));
+    assert.bigIntEquals(got.lptYieldShareProtocolFeeWAD, BigInt.fromI32(2003));
     assert.bigIntEquals(got.minCoverageWAD, BigInt.fromI32(2004));
     // These two are i32, NOT BigInt — the uint24/uint8 boundary.
     assert.i32Equals(got.fixedTermDurationSeconds, 2005);
@@ -88,25 +84,21 @@ describe("RoycoDayAccountant.getState mock", () => {
     assert.bigIntEquals(got.lastYieldShareAccrualTimestamp, BigInt.fromI32(2008));
     assert.bigIntEquals(got.lastPremiumPaymentTimestamp, BigInt.fromI32(2009));
     assert.addressEquals(got.jtYDM, ADDR_JT_YDM);
-    assert.addressEquals(got.ltYDM, ADDR_LT_YDM);
+    assert.addressEquals(got.lptYDM, ADDR_LT_YDM);
     assert.bigIntEquals(got.minLiquidityWAD, BigInt.fromI32(2012));
     assert.bigIntEquals(got.twJTYieldShareAccruedWAD, BigInt.fromI32(2013));
     assert.bigIntEquals(got.maxJTYieldShareWAD, BigInt.fromI32(2014));
-    assert.bigIntEquals(got.twLTYieldShareAccruedWAD, BigInt.fromI32(2015));
-    assert.bigIntEquals(got.maxLTYieldShareWAD, BigInt.fromI32(2016));
+    assert.bigIntEquals(got.twLPTYieldShareAccruedWAD, BigInt.fromI32(2015));
+    assert.bigIntEquals(got.maxLPTYieldShareWAD, BigInt.fromI32(2016));
     assert.bigIntEquals(
       got.coverageLiquidationUtilizationWAD,
       BigInt.fromI32(2017)
     );
-    assert.bigIntEquals(got.lastSTRawNAV, BigInt.fromI32(2018));
-    assert.bigIntEquals(got.lastJTRawNAV, BigInt.fromI32(2019));
+    assert.bigIntEquals(got.lastCollateralNAV, BigInt.fromI32(2018));
     assert.bigIntEquals(got.lastSTEffectiveNAV, BigInt.fromI32(2020));
     assert.bigIntEquals(got.lastJTEffectiveNAV, BigInt.fromI32(2021));
-    assert.bigIntEquals(got.lastJTCoverageImpermanentLoss, BigInt.fromI32(2022));
-    assert.bigIntEquals(got.lastLTRawNAV, BigInt.fromI32(2023));
-    assert.bigIntEquals(got.stNAVDustTolerance, BigInt.fromI32(2024));
-    assert.bigIntEquals(got.jtNAVDustTolerance, BigInt.fromI32(2025));
-    assert.bigIntEquals(got.effectiveNAVDustTolerance, BigInt.fromI32(2026));
+    assert.bigIntEquals(got.lastLPTRawNAV, BigInt.fromI32(2023));
+    assert.bigIntEquals(got.dustTolerance, BigInt.fromI32(2024));
   });
 });
 
@@ -118,10 +110,9 @@ describe("RoycoDayKernel mocks", () => {
   test("getState round-trips all 7 fields", () => {
     const s = new KernelState();
     s.stSelfLiquidationBonusWAD = BigInt.fromI32(4001);
-    s.stOwnedYieldBearingAssets = BigInt.fromI32(4002);
-    s.jtOwnedYieldBearingAssets = BigInt.fromI32(4003);
-    s.ltOwnedYieldBearingAssets = BigInt.fromI32(4004);
-    s.ltOwnedSeniorTrancheShares = BigInt.fromI32(4005);
+    s.totalCollateralAssets = BigInt.fromI32(4002);
+    s.totalLPTAssets = BigInt.fromI32(4004);
+    s.lptOwnedSeniorTrancheShares = BigInt.fromI32(4005);
 
     mockKernelGetState(ADDR_KERNEL, s);
 
@@ -129,10 +120,9 @@ describe("RoycoDayKernel mocks", () => {
 
     assert.addressEquals(got.protocolFeeRecipient, ADDR_FEE_RECIPIENT);
     assert.bigIntEquals(got.stSelfLiquidationBonusWAD, BigInt.fromI32(4001));
-    assert.bigIntEquals(got.stOwnedYieldBearingAssets, BigInt.fromI32(4002));
-    assert.bigIntEquals(got.jtOwnedYieldBearingAssets, BigInt.fromI32(4003));
-    assert.bigIntEquals(got.ltOwnedYieldBearingAssets, BigInt.fromI32(4004));
-    assert.bigIntEquals(got.ltOwnedSeniorTrancheShares, BigInt.fromI32(4005));
+    assert.bigIntEquals(got.totalCollateralAssets, BigInt.fromI32(4002));
+    assert.bigIntEquals(got.totalLPTAssets, BigInt.fromI32(4004));
+    assert.bigIntEquals(got.lptOwnedSeniorTrancheShares, BigInt.fromI32(4005));
     assert.addressEquals(got.roycoBlacklist, ADDR_BLACKLIST);
   });
 
@@ -142,13 +132,12 @@ describe("RoycoDayKernel mocks", () => {
     // mock and the test would abort with "function not mocked".
     const state = new TrancheState();
     state.marketState = 1;
-    state.stRawNAV = BigInt.fromI32(5001);
-    state.jtCoinvested = true;
+    state.collateralNAV = BigInt.fromI32(5001);
 
     const claims = new Claims();
-    claims.stAssets = BigInt.fromI32(6001);
-    claims.jtAssets = BigInt.fromI32(6002);
-    claims.ltAssets = BigInt.fromI32(6003);
+    claims.collateralAssets = BigInt.fromI32(6001);
+    claims.lptAssets = BigInt.fromI32(6002);
+    claims.lptAssets = BigInt.fromI32(6003);
     claims.stShares = BigInt.fromI32(6004);
     claims.nav = BigInt.fromI32(6005);
 
@@ -160,16 +149,14 @@ describe("RoycoDayKernel mocks", () => {
       BigInt.fromI32(7001)
     );
 
-    const got = RoycoDayKernel.bind(ADDR_KERNEL).previewSyncTrancheAccounting(0);
+    const got = RoycoDayKernel.bind(ADDR_KERNEL).previewSyncTrancheAccountingFor(0);
 
     // out 0: TrancheState
     assert.i32Equals(got.value0.marketState, 1);
-    assert.bigIntEquals(got.value0.stRawNAV, BigInt.fromI32(5001));
-    assert.booleanEquals(got.value0.jtCoinvested, true);
+    assert.bigIntEquals(got.value0.collateralNAV, BigInt.fromI32(5001));
     // out 1: Claims — the quintuple DayVaultState's asset fields come from
-    assert.bigIntEquals(got.value1.stAssets, BigInt.fromI32(6001));
-    assert.bigIntEquals(got.value1.jtAssets, BigInt.fromI32(6002));
-    assert.bigIntEquals(got.value1.ltAssets, BigInt.fromI32(6003));
+    assert.bigIntEquals(got.value1.collateralAssets, BigInt.fromI32(6001));
+    assert.bigIntEquals(got.value1.lptAssets, BigInt.fromI32(6003));
     assert.bigIntEquals(got.value1.stShares, BigInt.fromI32(6004));
     assert.bigIntEquals(got.value1.nav, BigInt.fromI32(6005));
     // out 2: uint256
@@ -201,11 +188,11 @@ describe("RoycoDayKernel mocks", () => {
 
     const k = RoycoDayKernel.bind(ADDR_KERNEL);
     assert.bigIntEquals(
-      k.previewSyncTrancheAccounting(0).value1.nav,
+      k.previewSyncTrancheAccountingFor(0).value1.nav,
       BigInt.fromI32(111)
     );
     assert.bigIntEquals(
-      k.previewSyncTrancheAccounting(1).value1.nav,
+      k.previewSyncTrancheAccountingFor(1).value1.nav,
       BigInt.fromI32(222)
     );
   });

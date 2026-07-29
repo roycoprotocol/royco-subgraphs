@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: LicenseRef-PolyForm-Perimeter-1.0.1
 pragma solidity ^0.8.28;
 
 import { IRoycoSeniorTranche } from "../interfaces/IRoycoSeniorTranche.sol";
@@ -27,20 +27,17 @@ contract RoycoSeniorTranche is RoycoVaultTranche, IRoycoSeniorTranche {
     }
 
     /// @inheritdoc IRoycoSeniorTranche
-    function mintLiquidityPremiumShares(
-        address _to,
-        uint256 _liquidityPremiumShares
-    )
+    function mintLiquidityPremiumShares(uint256 _liquidityPremiumShares)
         external
         virtual
         override(IRoycoSeniorTranche)
         onlyKernel
         returns (uint256 totalTrancheShares)
     {
-        // Mint the precomputed liquidity premium shares to the holder (the kernel custodies them for the liquidity tranche)
-        if (_liquidityPremiumShares != 0) _mint(_to, _liquidityPremiumShares);
+        // Mint the precomputed liquidity premium shares to the kernel, which custodies them for the liquidity provider tranche
+        if (_liquidityPremiumShares != 0) _mint(KERNEL, _liquidityPremiumShares);
 
         totalTrancheShares = totalSupply();
-        emit LiquidityPremiumSharesMinted(_to, _liquidityPremiumShares, totalTrancheShares);
+        emit LiquidityPremiumSharesMinted(KERNEL, _liquidityPremiumShares, totalTrancheShares);
     }
 }

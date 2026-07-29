@@ -72,9 +72,8 @@ export function handleRedeem(event: RedeemEvent): void {
   // across the shared boundary would put the one payload that matters most (§6's
   // quintuple) back under another tranche's slots.
   const claims = new RedeemClaims();
-  claims.stAssets = event.params.claims.stAssets;
-  claims.jtAssets = event.params.claims.jtAssets;
-  claims.ltAssets = event.params.claims.ltAssets;
+  claims.collateralAssets = event.params.claims.collateralAssets;
+  claims.lptAssets = event.params.claims.lptAssets;
   claims.stShares = event.params.claims.stShares;
   claims.nav = event.params.claims.nav;
 

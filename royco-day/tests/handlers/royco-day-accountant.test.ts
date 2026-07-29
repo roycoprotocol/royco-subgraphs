@@ -19,16 +19,16 @@ import {
   handleJuniorTrancheProtocolFeeUpdated,
   handleJuniorTrancheYieldShareProtocolFeeUpdated,
   handleLiquidityTrancheYieldShareProtocolFeeUpdated,
-  handleSeniorTrancheDustToleranceUpdated,
-  handleJuniorTrancheDustToleranceUpdated,
+  handleDustToleranceUpdated,
   handleJuniorTrancheYDMUpdated,
   handleLiquidityTrancheYDMUpdated,
-  handleJuniorTrancheCoverageImpermanentLossReset,
-  handleTrancheAccountingSynced,
+  handleJuniorTrancheImpermanentLossReset,
 } from "../../src/royco-day-accountant";
 import {
   handleProtocolFeeRecipientUpdated,
   handleSeniorTrancheSelfLiquidationBonusUpdated,
+  handlePreOpTrancheAccountingSynced,
+  handlePostOpTrancheAccountingSynced,
 } from "../../src/royco-day-kernel";
 import {
   CoverageUpdated,
@@ -41,12 +41,11 @@ import {
   SeniorTrancheProtocolFeeUpdated,
   JuniorTrancheProtocolFeeUpdated,
   JuniorTrancheYieldShareProtocolFeeUpdated,
-  LiquidityTrancheYieldShareProtocolFeeUpdated,
-  SeniorTrancheDustToleranceUpdated,
-  JuniorTrancheDustToleranceUpdated,
+  LiquidityProviderTrancheYieldShareProtocolFeeUpdated,
+  DustToleranceUpdated,
   JuniorTrancheYDMUpdated,
-  LiquidityTrancheYDMUpdated,
-  JuniorTrancheCoverageImpermanentLossReset,
+  LiquidityProviderTrancheYDMUpdated,
+  JuniorTrancheImpermanentLossReset,
 } from "../../generated/templates/RoycoDayAccountant/RoycoDayAccountant";
 import {
   ProtocolFeeRecipientUpdated,
@@ -62,8 +61,8 @@ import {
   createAddressEvent,
   createTwoUintEvent,
   createEmptyEvent,
-  createTrancheAccountingSyncedEvent,
 } from "../builders/accountant";
+import { createPreOpSyncEvent, createPostOpSyncEvent } from "../builders/kernel";
 import { TrancheState } from "../builders/shared";
 import { DayMarketFixture, mockDayMarket } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
@@ -75,6 +74,7 @@ import {
   ADDR_KERNEL,
   ADDR_SENIOR,
   ADDR_TEMPLATE,
+  BLOCK_NUMBER,
   BLOCK_TIMESTAMP,
   TX_HASH_2,
   WAD,
@@ -82,6 +82,7 @@ import {
 import {
   generateMarketRecordId,
   generateMarketId,
+  generateMarketBlockRecordId,
   generateVaultId,
 } from "../../src/utils";
 
@@ -181,8 +182,8 @@ describe("accountant config handlers", () => {
       )
     );
     handleLiquidityTrancheYieldShareProtocolFeeUpdated(
-      createUintEvent<LiquidityTrancheYieldShareProtocolFeeUpdated>(
-        "ltYieldShareProtocolFeeWAD",
+      createUintEvent<LiquidityProviderTrancheYieldShareProtocolFeeUpdated>(
+        "lptYieldShareProtocolFeeWAD",
         BigInt.fromI32(9_007),
         accountantCtx()
       )
@@ -233,7 +234,7 @@ describe("accountant config handlers", () => {
       createTwoUintEvent<MaxYieldSharesUpdated>(
         "maxJTYieldShareWAD",
         BigInt.fromI32(9_101),
-        "maxLTYieldShareWAD",
+        "maxLPTYieldShareWAD",
         BigInt.fromI32(9_102),
         accountantCtx()
       )
@@ -287,37 +288,28 @@ describe("accountant config handlers", () => {
     );
   });
 
-  test("BOTH dust handlers recompute effectiveNAVDustTolerance — it has no event", () => {
-    // THE SILENT ONE. setSeniorTrancheDustTolerance and
-    // setJuniorTrancheDustTolerance each recompute a cached
-    // effectiveNAVDustTolerance = st + jt on-chain, and the contract emits NOTHING
-    // for it. Without this recompute the column, seeded from getState() at
-    // creation, drifts stale the first time either tolerance moves — and nothing
-    // anywhere reports a problem.
+  test("ONE dust tolerance now, carried by its own event", () => {
+    // v1's SILENT ONE, now retired. There used to be TWO events (senior + junior)
+    // writing THREE columns, because the accountant cached
+    // effectiveNAVDustTolerance = st + jt and emitted NOTHING for it — so both
+    // handlers had to recompute that sum or the column drifted stale the moment
+    // either tolerance moved, with nothing anywhere reporting a problem.
+    //
+    // v2 deletes the hazard rather than guarding it: senior and junior share one
+    // collateral asset, so there is one tolerance, it has its own event, and the
+    // event carries the new value. Nothing to recompute, nothing to keep in sync.
     deployMarket();
 
-    handleSeniorTrancheDustToleranceUpdated(
-      createUintEvent<SeniorTrancheDustToleranceUpdated>(
-        "stNAVDustTolerance",
+    // The factory seeded 6101 from getState(); this must overwrite it.
+    handleDustToleranceUpdated(
+      createUintEvent<DustToleranceUpdated>(
+        "dustTolerance",
         BigInt.fromI32(400),
         accountantCtx()
       )
     );
-    // 400 + the factory's seeded jt (6102).
-    assert.fieldEquals("DayMarketState", MARKET_ID, "seniorTrancheDustTolerance", "400");
-    assert.fieldEquals("DayMarketState", MARKET_ID, "effectiveNAVDustTolerance", "6502");
 
-    handleJuniorTrancheDustToleranceUpdated(
-      createUintEvent<JuniorTrancheDustToleranceUpdated>(
-        "jtNAVDustTolerance",
-        BigInt.fromI32(600),
-        accountantCtx()
-      )
-    );
-    // Now 400 + 600 — proving the JT handler reads the ST value the FIRST handler
-    // wrote, not the factory's stale seed.
-    assert.fieldEquals("DayMarketState", MARKET_ID, "juniorTrancheDustTolerance", "600");
-    assert.fieldEquals("DayMarketState", MARKET_ID, "effectiveNAVDustTolerance", "1000");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "dustTolerance", "400");
   });
 
   test("the YDM handlers write their own side", () => {
@@ -327,7 +319,7 @@ describe("accountant config handlers", () => {
       createAddressEvent<JuniorTrancheYDMUpdated>("jtYDM", ADDR_ALICE, accountantCtx())
     );
     handleLiquidityTrancheYDMUpdated(
-      createAddressEvent<LiquidityTrancheYDMUpdated>("ltYDM", ADDR_BOB, accountantCtx())
+      createAddressEvent<LiquidityProviderTrancheYDMUpdated>("lptYDM", ADDR_BOB, accountantCtx())
     );
 
     assert.fieldEquals(
@@ -392,7 +384,7 @@ describe("accountant config handlers", () => {
   });
 });
 
-describe("handleTrancheAccountingSynced", () => {
+describe("the kernel sync handlers", () => {
   beforeEach(() => {
     clearStore();
   });
@@ -404,25 +396,22 @@ describe("handleTrancheAccountingSynced", () => {
     deployMarket();
 
     const s = new TrancheState();
-    s.stRawNAV = BigInt.fromI32(1_001);
-    s.jtRawNAV = BigInt.fromI32(1_002);
-    s.ltRawNAV = BigInt.fromI32(1_003);
+    s.collateralNAV = BigInt.fromI32(1_001);
+    s.lptRawNAV = BigInt.fromI32(1_003);
     s.stEffectiveNAV = BigInt.fromI32(1_004);
     s.jtEffectiveNAV = BigInt.fromI32(1_005);
-    s.jtCoverageImpermanentLoss = BigInt.fromI32(1_006);
-    s.ltLiquidityPremium = BigInt.fromI32(1_007);
+    s.jtImpermanentLoss = BigInt.fromI32(1_006);
+    s.lptLiquidityPremium = BigInt.fromI32(1_007);
     s.coverageUtilizationWAD = BigInt.fromI32(1_008);
     s.liquidityUtilizationWAD = BigInt.fromI32(1_009);
-    s.jtCoinvested = true;
 
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(s, accountantCtx())
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, s, kernelCtx())
     );
 
     // Ten distinct sentinels: any transposition among these same-typed neighbours
     // lands the wrong number in the wrong column, plausibly.
-    assert.fieldEquals("DayMarketState", MARKET_ID, "seniorTrancheRawNAV", "1001");
-    assert.fieldEquals("DayMarketState", MARKET_ID, "juniorTrancheRawNAV", "1002");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "collateralNAV", "1001");
     assert.fieldEquals("DayMarketState", MARKET_ID, "liquidityTrancheRawNAV", "1003");
     assert.fieldEquals(
       "DayMarketState",
@@ -439,7 +428,7 @@ describe("handleTrancheAccountingSynced", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageImpermanentLoss",
+      "juniorTrancheImpermanentLoss",
       "1006"
     );
     assert.fieldEquals(
@@ -450,12 +439,6 @@ describe("handleTrancheAccountingSynced", () => {
     );
     assert.fieldEquals("DayMarketState", MARKET_ID, "coverageUtilizationWAD", "1008");
     assert.fieldEquals("DayMarketState", MARKET_ID, "liquidityUtilizationWAD", "1009");
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "isJuniorTrancheCoinvested",
-      "true"
-    );
   });
 
   test("does NOT touch the five fields other handlers own", () => {
@@ -465,7 +448,9 @@ describe("handleTrancheAccountingSynced", () => {
     // new one — this handler writing them would silently revert config changes.
     deployMarket();
 
-    // The config handler sets the truth first...
+    // The config handler sets the truth first. NOTE these four are ACCOUNTANT events
+    // and still hop ACCOUNTANT.KERNEL() to find their market, so they emit from the
+    // accountant — only the sync moved onto the kernel in v2.
     handleCoverageUpdated(
       createUintEvent<CoverageUpdated>(
         "minCoverageWAD",
@@ -502,8 +487,8 @@ describe("handleTrancheAccountingSynced", () => {
     s.coverageLiquidationUtilizationWAD = BigInt.fromI32(9_997);
     s.fixedTermEndTimestamp = BigInt.fromI32(9_996);
     s.marketState = 0; // "perpetual" — contradicts the live fixed term
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(s, accountantCtx())
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, s, kernelCtx())
     );
 
     // All five untouched. The sync must not have opinions about these.
@@ -527,7 +512,7 @@ describe("handleTrancheAccountingSynced", () => {
     // ones DayMarketState refuses. This is the LIVE-vs-STORED split (§6) made visible:
     // the row's marketState is "perpetual" (state.marketState = 0), and its
     // minCoverageWAD is the live 9_999, while DayMarketState kept the stored 5_001.
-    const histId = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    const histId = generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER);
     assert.fieldEquals(
       "DayTrancheAccountingSyncedHistory",
       histId,
@@ -559,9 +544,9 @@ describe("handleTrancheAccountingSynced", () => {
     const s = new TrancheState();
     s.stProtocolFee = BigInt.fromI32(4_444);
     s.jtProtocolFee = BigInt.fromI32(4_445);
-    s.ltProtocolFee = BigInt.fromI32(4_446);
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(s, accountantCtx())
+    s.lptProtocolFee = BigInt.fromI32(4_446);
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, s, kernelCtx())
     );
 
     // Still the factory's seeded RATES on DayMarketState, untouched by the amounts.
@@ -579,7 +564,7 @@ describe("handleTrancheAccountingSynced", () => {
     );
 
     // The AMOUNTS reach the history row's own amount columns — their proper home.
-    const histId = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    const histId = generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER);
     assert.fieldEquals(
       "DayTrancheAccountingSyncedHistory",
       histId,
@@ -606,9 +591,9 @@ describe("handleTrancheAccountingSynced", () => {
     deployMarket();
 
     const s = new TrancheState();
-    s.stRawNAV = BigInt.fromI32(1_001);
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(s, accountantCtx())
+    s.collateralNAV = BigInt.fromI32(1_001);
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, s, kernelCtx())
     );
 
     // 3 creation snapshots and no more — the sync added nothing.
@@ -621,7 +606,7 @@ describe("handleTrancheAccountingSynced", () => {
     );
   });
 
-  test("records the full 18-field sync as an immutable history row (entry 0)", () => {
+  test("records the full 16-field sync as the block's row (entry 0)", () => {
     // ALL eighteen fields, verbatim — the unabridged history DayMarketState does not
     // keep. Distinct sentinels for every field: a transposition among same-typed
     // neighbours lands the wrong number in the wrong column, plausibly.
@@ -629,26 +614,24 @@ describe("handleTrancheAccountingSynced", () => {
 
     const s = new TrancheState();
     s.marketState = 1; // LIVE state -> "fixed"
-    s.stRawNAV = BigInt.fromI32(3_001);
-    s.jtRawNAV = BigInt.fromI32(3_002);
-    s.ltRawNAV = BigInt.fromI32(3_003);
+    s.collateralNAV = BigInt.fromI32(3_001);
+    s.lptRawNAV = BigInt.fromI32(3_003);
     s.stEffectiveNAV = BigInt.fromI32(3_004);
     s.jtEffectiveNAV = BigInt.fromI32(3_005);
-    s.jtCoverageImpermanentLoss = BigInt.fromI32(3_006);
-    s.ltLiquidityPremium = BigInt.fromI32(3_007);
+    s.jtImpermanentLoss = BigInt.fromI32(3_006);
+    s.lptLiquidityPremium = BigInt.fromI32(3_007);
     s.stProtocolFee = BigInt.fromI32(3_008);
     s.jtProtocolFee = BigInt.fromI32(3_009);
-    s.ltProtocolFee = BigInt.fromI32(3_010);
+    s.lptProtocolFee = BigInt.fromI32(3_010);
     s.coverageUtilizationWAD = BigInt.fromI32(3_011);
     s.liquidityUtilizationWAD = BigInt.fromI32(3_012);
     s.fixedTermEndTimestamp = BigInt.fromI32(3_013);
     s.minCoverageWAD = BigInt.fromI32(3_014);
-    s.jtCoinvested = true;
     s.coverageLiquidationUtilizationWAD = BigInt.fromI32(3_016);
     s.minLiquidityWAD = BigInt.fromI32(3_017);
 
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(s, accountantCtx())
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, s, kernelCtx())
     );
 
     // Use-then-increment: the first sync is entry 0 and the count becomes 1.
@@ -660,19 +643,18 @@ describe("handleTrancheAccountingSynced", () => {
     );
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
 
-    const id = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    const id = generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER);
     const E = "DayTrancheAccountingSyncedHistory";
     assert.fieldEquals(E, id, "entryIndex", "0");
     assert.fieldEquals(E, id, "marketId", ADDR_KERNEL.toHexString());
     assert.fieldEquals(E, id, "marketRefId", MARKET_ID);
     // LIVE market state from the payload — the value DayMarketState deliberately drops.
     assert.fieldEquals(E, id, "marketState", "fixed");
-    assert.fieldEquals(E, id, "seniorTrancheRawNAV", "3001");
-    assert.fieldEquals(E, id, "juniorTrancheRawNAV", "3002");
+    assert.fieldEquals(E, id, "collateralNAV", "3001");
     assert.fieldEquals(E, id, "liquidityTrancheRawNAV", "3003");
     assert.fieldEquals(E, id, "seniorTrancheEffectiveNAV", "3004");
     assert.fieldEquals(E, id, "juniorTrancheEffectiveNAV", "3005");
-    assert.fieldEquals(E, id, "juniorTrancheCoverageImpermanentLoss", "3006");
+    assert.fieldEquals(E, id, "juniorTrancheImpermanentLoss", "3006");
     assert.fieldEquals(E, id, "liquidityTrancheLiquidityPremium", "3007");
     assert.fieldEquals(E, id, "seniorTrancheProtocolFee", "3008");
     assert.fieldEquals(E, id, "juniorTrancheProtocolFee", "3009");
@@ -681,48 +663,106 @@ describe("handleTrancheAccountingSynced", () => {
     assert.fieldEquals(E, id, "liquidityUtilizationWAD", "3012");
     assert.fieldEquals(E, id, "fixedTermEndTimestamp", "3013");
     assert.fieldEquals(E, id, "minCoverageWAD", "3014");
-    assert.fieldEquals(E, id, "isJuniorTrancheCoinvested", "true");
     assert.fieldEquals(E, id, "coverageLiquidationUtilizationWAD", "3016");
     assert.fieldEquals(E, id, "minLiquidityWAD", "3017");
     // Immutable: createdAt* is set; there is no updatedAt* on this entity.
     assert.fieldEquals(E, id, "createdAtBlockTimestamp", BLOCK_TIMESTAMP.toString());
   });
 
-  test("a second sync opens entry 1 — the stream is dense", () => {
-    // A count, not a last-index (§ ENTRY INDEX CURSOR). The second sync in the same
-    // block gets the next dense entryIndex off the counter — no reliance on the
-    // block timestamp, which would collide for two syncs in one block (§8).
+  test("a SECOND sync in the SAME BLOCK updates the row instead of appending", () => {
+    // THE COLLAPSE RULE. v1 appended one immutable row per sync; v2 keys the row on
+    // (market, block) so the later sync overwrites the earlier. Two syncs in one block
+    // therefore leave ONE row, and the cursor advances ONCE — if entryIndex were
+    // bumped on the update too, the count would drift past the row count forever.
     deployMarket();
 
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(new TrancheState(), accountantCtx())
+    // Pre-op first, as the kernel emits it.
+    handlePreOpTrancheAccountingSynced(
+      createPreOpSyncEvent(new TrancheState(), kernelCtx())
     );
 
-    const second = accountantCtx();
-    second.logIndex = BigInt.fromI32(7); // same block, later log index
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(new TrancheState(), second)
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countTrancheAccountingSyncedEntries",
+      "1"
+    );
+    const blockId = generateMarketBlockRecordId(
+      ADDR_KERNEL.toHexString(),
+      BLOCK_NUMBER
+    );
+    assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "syncType", "preOp");
+    // No operation yet — a pre-op sync runs before one is chosen.
+    assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "operation", "null");
+
+    // Post-op lands in the SAME block, at a later log index.
+    const post = kernelCtx();
+    post.logIndex = BigInt.fromI32(7);
+    const state = new TrancheState();
+    state.collateralNAV = BigInt.fromI32(4_242);
+    handlePostOpTrancheAccountingSynced(createPostOpSyncEvent(3, state, post));
+
+    // STILL ONE ROW, cursor STILL 1.
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countTrancheAccountingSyncedEntries",
+      "1"
+    );
+    assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "entryIndex", "0");
+    // ...now carrying the post-op's values and its operation (3 == jtRedeem).
+    assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "syncType", "postOp");
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      blockId,
+      "operation",
+      "jtRedeem"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      blockId,
+      "collateralNAV",
+      "4242"
+    );
+  });
+
+  test("a sync in a NEW BLOCK opens a new row and advances the cursor", () => {
+    // The flip side: collapsing is per BLOCK, not per market. A later block must get
+    // its own row, or the table would only ever hold one row per market.
+    deployMarket();
+
+    handlePreOpTrancheAccountingSynced(
+      createPreOpSyncEvent(new TrancheState(), kernelCtx())
     );
 
+    const later = kernelCtx();
+    later.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    handlePreOpTrancheAccountingSynced(createPreOpSyncEvent(new TrancheState(), later));
+
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 2);
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
       "countTrancheAccountingSyncedEntries",
       "2"
     );
-    assert.entityCount("DayTrancheAccountingSyncedHistory", 2);
+    // Dense entryIndex, ordered by block.
     assert.fieldEquals(
       "DayTrancheAccountingSyncedHistory",
-      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.fromI32(1)),
-      "entryIndex",
-      "1"
-    );
-    // Entry 0 is immutable and still present, untouched by the second sync.
-    assert.fieldEquals(
-      "DayTrancheAccountingSyncedHistory",
-      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
+      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
       "entryIndex",
       "0"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      generateMarketBlockRecordId(
+        ADDR_KERNEL.toHexString(),
+        BLOCK_NUMBER.plus(BigInt.fromI32(1))
+      ),
+      "entryIndex",
+      "1"
     );
   });
 
@@ -731,17 +771,15 @@ describe("handleTrancheAccountingSynced", () => {
     const market = DayMarketFixture.standard();
     mockDayMarket(market); // KERNEL() resolvable; the market ENTITY is absent
 
-    handleTrancheAccountingSynced(
-      createTrancheAccountingSyncedEvent(new TrancheState(), accountantCtx())
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
     );
 
     assert.entityCount("DayMarketState", 0);
     // The early return also means no history row was written.
     assert.entityCount("DayTrancheAccountingSyncedHistory", 0);
   });
-});
-
-describe("the fixed-term lifecycle", () => {
+});describe("the fixed-term lifecycle", () => {
   beforeEach(() => {
     clearStore();
   });
@@ -787,6 +825,71 @@ describe("the fixed-term lifecycle", () => {
     );
     // Open.
     assert.fieldEquals("DayFixedTermHistory", entryId, "endBlockTimestamp", "0");
+    // ...and `duration` is genuinely NULL, not 0. It is the one nullable column in the
+    // schema, precisely so a running term is distinguishable from one that opened and
+    // closed inside a single block (a real 0-second duration).
+    //
+    // Asserted via fieldEquals rather than assert.assertNull: that helper is
+    // `assertNull<T>(value)` doing `value == null` internally, and instantiating it at
+    // `BigInt | null` selects BigInt's `==` operator overload against a null operand,
+    // which CRASHES the AssemblyScript compiler (compileBinaryOverload). Not a bug in
+    // this code — just do not reach for assertNull on a nullable BigInt.
+    assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "null");
+  });
+
+  test("duration fills in on close: endBlockTimestamp - startBlockTimestamp", () => {
+    deployMarket();
+    handleFixedTermCommenced(
+      createUintEvent<FixedTermCommenced>(
+        "fixedTermEndTimestamp",
+        TERM_END,
+        accountantCtx()
+      )
+    );
+
+    const end = accountantCtx();
+    end.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(600));
+    handleFixedTermEnded(createEmptyEvent<FixedTermEnded>(end));
+
+    const entryId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
+    );
+    // 600 seconds — the ACTUAL elapsed time, not the scheduled term length. This term
+    // was scheduled to run until TERM_END and was cut short, so a `duration` derived
+    // from scheduledEndBlockTimestamp would report something quite different.
+    assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "600");
+  });
+
+  test("a term that opens and closes in ONE BLOCK stores duration 0, not null", () => {
+    // THE ENCODING TEST, and the reason `duration` is nullable rather than
+    // 0-sentinelled. 0 is a legitimate duration, so it must survive as 0 and stay
+    // distinguishable from a running term.
+    //
+    // It also pins down a real hazard in the generated setter, which reads
+    // `if (!value) { this.unset("duration") }`. That is only correct because
+    // AssemblyScript's `!` on a reference type is a NULL check — if it were numeric
+    // truthiness, a zero BigInt would silently unset the column and a same-block term
+    // would be indistinguishable from one still running.
+    deployMarket();
+    handleFixedTermCommenced(
+      createUintEvent<FixedTermCommenced>(
+        "fixedTermEndTimestamp",
+        TERM_END,
+        accountantCtx()
+      )
+    );
+
+    // Same block, same timestamp — only the log index moves.
+    const sameBlock = accountantCtx();
+    sameBlock.logIndex = BigInt.fromI32(9);
+    handleFixedTermEnded(createEmptyEvent<FixedTermEnded>(sameBlock));
+
+    const entryId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
+    );
+    assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "0");
   });
 
   test("FixedTermEnded closes the open row and flips the market perpetual", () => {
@@ -863,6 +966,15 @@ describe("the fixed-term lifecycle", () => {
       "endBlockTimestamp",
       zeroed.blockTimestamp.toString()
     );
+    // duration is filled by closeOpenFixedTerm, so BOTH close paths set it — not just
+    // FixedTermEnded. Closing only on that one would leave duration null forever on a
+    // provably-perpetual market, the same silent gap endBlockTimestamp had.
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
+      "duration",
+      "900"
+    );
   });
 
   test("a non-zero duration change does NOT close an open term", () => {
@@ -884,12 +996,13 @@ describe("the fixed-term lifecycle", () => {
     );
 
     assert.fieldEquals("DayMarketState", MARKET_ID, "marketState", "fixed");
-    assert.fieldEquals(
-      "DayFixedTermHistory",
-      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
-      "endBlockTimestamp",
-      "0"
+    const stillOpenId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
     );
+    assert.fieldEquals("DayFixedTermHistory", stillOpenId, "endBlockTimestamp", "0");
+    // Still running, so still no duration.
+    assert.fieldEquals("DayFixedTermHistory", stillOpenId, "duration", "null");
   });
 
   test("Ended then Duration(0) in one tx: the FIRST close wins", () => {
@@ -969,9 +1082,9 @@ describe("the fixed-term lifecycle", () => {
     const reset = accountantCtx();
     reset.blockTimestamp = ended.blockTimestamp;
     reset.logIndex = BigInt.fromI32(4); // same tx, higher log
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(9_301),
         reset
       )
@@ -980,7 +1093,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayFixedTermHistory",
       generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
-      "juniorTrancheCoverageImpermanentLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "9301"
     );
   });
@@ -1004,9 +1117,9 @@ describe("the fixed-term lifecycle", () => {
     const reset = accountantCtx();
     reset.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(900));
     reset.logIndex = BigInt.fromI32(3);
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(9_302),
         reset
       )
@@ -1031,7 +1144,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayFixedTermHistory",
       entryId,
-      "juniorTrancheCoverageImpermanentLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "9302"
     );
     assert.fieldEquals(
@@ -1060,9 +1173,9 @@ describe("the fixed-term lifecycle", () => {
 
     const reset = accountantCtx();
     reset.blockTimestamp = ended.blockTimestamp;
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(9_303),
         reset
       )
@@ -1072,9 +1185,9 @@ describe("the fixed-term lifecycle", () => {
     const later = accountantCtx();
     later.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(99_999));
     later.txHash = TX_HASH_2;
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(7_777),
         later
       )
@@ -1083,7 +1196,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayFixedTermHistory",
       generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
-      "juniorTrancheCoverageImpermanentLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "9303"
     );
   });
@@ -1107,9 +1220,9 @@ describe("the fixed-term lifecycle", () => {
 
     const real = accountantCtx();
     real.blockTimestamp = ended.blockTimestamp;
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(9_304),
         real
       )
@@ -1118,9 +1231,9 @@ describe("the fixed-term lifecycle", () => {
     // The body's second Reset, same tx, now zero. Must not clobber.
     const zeroReset = accountantCtx();
     zeroReset.blockTimestamp = ended.blockTimestamp;
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.zero(),
         zeroReset
       )
@@ -1129,12 +1242,12 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayFixedTermHistory",
       generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
-      "juniorTrancheCoverageImpermanentLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "9304"
     );
   });
 
-  test("juniorTrancheCoverageLossNAV accumulates and never decreases", () => {
+  test("juniorTrancheImpermanentLossNAV accumulates and never decreases", () => {
     // A LIFETIME TOTAL, and the only place this number exists — no contract tracks
     // it. It must add, not overwrite: a handler that assigned instead of summing
     // would look right on the first erase and be wrong forever after.
@@ -1142,7 +1255,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "0"
     );
 
@@ -1154,9 +1267,9 @@ describe("the fixed-term lifecycle", () => {
       )
     );
     handleFixedTermEnded(createEmptyEvent<FixedTermEnded>(accountantCtx()));
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(100),
         accountantCtx()
       )
@@ -1164,7 +1277,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "100"
     );
 
@@ -1173,9 +1286,9 @@ describe("the fixed-term lifecycle", () => {
     const later = accountantCtx();
     later.txHash = TX_HASH_2;
     later.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(50_000));
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(30),
         later
       )
@@ -1183,7 +1296,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "130"
     );
   });
@@ -1208,9 +1321,9 @@ describe("the fixed-term lifecycle", () => {
     // The term-ending erase: hits BOTH the total and the row.
     const atEnd = accountantCtx();
     atEnd.blockTimestamp = ended.blockTimestamp;
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(100),
         atEnd
       )
@@ -1220,9 +1333,9 @@ describe("the fixed-term lifecycle", () => {
     const incidental = accountantCtx();
     incidental.txHash = TX_HASH_2;
     incidental.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(70_000));
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(7),
         incidental
       )
@@ -1232,7 +1345,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "107"
     );
     // ...but the concluded term still reports only its own 100. The 7 belongs to
@@ -1240,7 +1353,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayFixedTermHistory",
       generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
-      "juniorTrancheCoverageImpermanentLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "100"
     );
   });
@@ -1254,9 +1367,9 @@ describe("the fixed-term lifecycle", () => {
     const zero = accountantCtx();
     zero.txHash = TX_HASH_2;
     zero.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(60_000));
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.zero(),
         zero
       )
@@ -1265,7 +1378,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "0"
     );
     assert.fieldEquals(
@@ -1278,12 +1391,12 @@ describe("the fixed-term lifecycle", () => {
 
   test("the lifetime total does not disturb the LIVE coverage-IL field", () => {
     // The two differ by one word and mean opposite things:
-    // juniorTrancheCoverageImpermanentLoss is the live, point-in-time value from
-    // the preview block; juniorTrancheCoverageLossNAV is the lifetime total erased.
+    // juniorTrancheImpermanentLoss is the live, point-in-time value from
+    // the preview block; juniorTrancheImpermanentLossNAV is the lifetime total erased.
     deployMarket();
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(100),
         accountantCtx()
       )
@@ -1292,14 +1405,14 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "100"
     );
     // Still the factory's seeded live value — this handler must not touch it.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageImpermanentLoss",
+      "juniorTrancheImpermanentLoss",
       "7201"
     );
   });
@@ -1311,9 +1424,9 @@ describe("the fixed-term lifecycle", () => {
     // total. Writing only the row would silently lose it.
     deployMarket();
 
-    handleJuniorTrancheCoverageImpermanentLossReset(
-      createUintEvent<JuniorTrancheCoverageImpermanentLossReset>(
-        "jtCoverageImpermanentLossErased",
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
         BigInt.fromI32(9_305),
         accountantCtx()
       )
@@ -1323,7 +1436,7 @@ describe("the fixed-term lifecycle", () => {
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
-      "juniorTrancheCoverageLossNAV",
+      "juniorTrancheImpermanentLossNAV",
       "9305"
     );
   });

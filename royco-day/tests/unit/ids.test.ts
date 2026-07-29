@@ -20,6 +20,7 @@ import {
   VAULT_MAJOR_TYPE,
 } from "../../src/constants";
 import {
+  BLOCK_NUMBER,
   ADDR_ALICE,
   ADDR_KERNEL,
   ADDR_SENIOR,
@@ -73,27 +74,44 @@ describe("cross-entity references resolve", () => {
   });
 });
 
-describe("immutable ids carry a per-write discriminator", () => {
-  test("DayVaultStateHistorical differs per entryIndex", () => {
-    const e0 = generateVaultStateHistoricalId(SENIOR, BigInt.fromI32(0));
-    const e1 = generateVaultStateHistoricalId(SENIOR, BigInt.fromI32(1));
-    assert.assertTrue(e0 != e1);
-    assert.stringEquals(e0, generateVaultId(SENIOR).concat("_0"));
+describe("block-keyed history ids collapse within a block, differ across blocks", () => {
+  test("DayVaultStateHistorical: same block SAME id, next block a NEW one", () => {
+    // The collapse, at the id level. Two writes in one block MUST resolve to the same
+    // id — that is what makes the second update the first instead of appending — and
+    // the entity is mutable precisely so that is legal (§8 inverted; see
+    // "BLOCK-KEYED HISTORY" in schema.graphql).
+    const a = generateVaultStateHistoricalId(SENIOR, BLOCK_NUMBER);
+    const b = generateVaultStateHistoricalId(SENIOR, BLOCK_NUMBER);
+    assert.stringEquals(a, b);
+
+    const next = generateVaultStateHistoricalId(
+      SENIOR,
+      BLOCK_NUMBER.plus(BigInt.fromI32(1))
+    );
+    assert.assertTrue(a != next);
+    assert.stringEquals(
+      a,
+      generateVaultId(SENIOR).concat("_").concat(BLOCK_NUMBER.toString())
+    );
   });
 
-  test("DayPositionStateHistorical differs per entryIndex — the draft-schema bug", () => {
-    // The draft had this id identical to DayPositionState's, on an
-    // immutable entity. Snapshot #2 for any account = fatal
-    // "entity already exists" at index time. Builds clean, dies in production.
-    const e0 = generatePositionStateHistoricalId(SENIOR, ALICE, BigInt.fromI32(0));
-    const e1 = generatePositionStateHistoricalId(SENIOR, ALICE, BigInt.fromI32(1));
+  test("DayPositionStateHistorical differs per BLOCK, and from its parent", () => {
+    // The draft had this id identical to DayPositionState's. Even now that the entity
+    // is mutable, colliding with the PARENT would be catastrophic — two different
+    // entities writing one row.
+    const e0 = generatePositionStateHistoricalId(SENIOR, ALICE, BLOCK_NUMBER);
+    const e1 = generatePositionStateHistoricalId(
+      SENIOR,
+      ALICE,
+      BLOCK_NUMBER.plus(BigInt.fromI32(1))
+    );
     assert.assertTrue(e0 != e1);
 
     // ...and it must not collide with its own mutable parent either.
     assert.assertTrue(e0 != generatePositionStateId(SENIOR, ALICE));
   });
 
-  test("DayFeeStateHistorical differs per entryIndex and from its parent", () => {
+  test("DayFeeStateHistorical differs per BLOCK and from its parent", () => {
     // The fee id is MARKET-scoped: the leading discriminator is the kernel, not the
     // vault, and minorType separates the tranche stream.
     const parent = generateFeeStateId(

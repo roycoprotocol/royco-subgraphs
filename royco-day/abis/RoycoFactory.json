@@ -1,12 +1,31 @@
 [
   {
     "type": "constructor",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "_roycoFactoryGatekeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "ROYCO_AUTHORITY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "ROYCO_FACTORY_GATEKEEPER",
     "inputs": [],
     "outputs": [
       {
@@ -45,10 +64,15 @@
   },
   {
     "type": "function",
-    "name": "deployDeterministicContract",
+    "name": "deployDeterministicProxy",
     "inputs": [
       {
-        "name": "_creationCode",
+        "name": "_implementation",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_initData",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -63,18 +87,13 @@
         "name": "deployed",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "alreadyDeployed",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "deployDeterministicProxy",
+    "name": "deployDeterministicProxyFromTemplate",
     "inputs": [
       {
         "name": "_implementation",
@@ -175,7 +194,7 @@
             "internalType": "address"
           },
           {
-            "name": "liquidityTranche",
+            "name": "liquidityProviderTranche",
             "type": "address",
             "internalType": "address"
           },
@@ -195,7 +214,7 @@
             "internalType": "address"
           },
           {
-            "name": "ltYdm",
+            "name": "lptYdm",
             "type": "address",
             "internalType": "address"
           },
@@ -231,7 +250,7 @@
         "internalType": "address"
       },
       {
-        "name": "liquidityTranche",
+        "name": "liquidityProviderTranche",
         "type": "address",
         "internalType": "address"
       },
@@ -248,19 +267,19 @@
     "name": "grantMarketRole",
     "inputs": [
       {
-        "name": "_roleId",
-        "type": "uint64",
-        "internalType": "uint64"
+        "name": "_roleIds",
+        "type": "uint64[]",
+        "internalType": "uint64[]"
       },
       {
-        "name": "_account",
-        "type": "address",
-        "internalType": "address"
+        "name": "_accounts",
+        "type": "address[]",
+        "internalType": "address[]"
       },
       {
-        "name": "_executionDelay",
-        "type": "uint32",
-        "internalType": "uint32"
+        "name": "_executionDelays",
+        "type": "uint32[]",
+        "internalType": "uint32[]"
       }
     ],
     "outputs": [],
@@ -399,14 +418,14 @@
         "internalType": "address"
       },
       {
-        "name": "_selector",
-        "type": "bytes4",
-        "internalType": "bytes4"
+        "name": "_selectors",
+        "type": "bytes4[]",
+        "internalType": "bytes4[]"
       },
       {
-        "name": "_roleId",
-        "type": "uint64",
-        "internalType": "uint64"
+        "name": "_roleIds",
+        "type": "uint64[]",
+        "internalType": "uint64[]"
       }
     ],
     "outputs": [],
@@ -515,7 +534,7 @@
             "internalType": "address"
           },
           {
-            "name": "liquidityTranche",
+            "name": "liquidityProviderTranche",
             "type": "address",
             "internalType": "address"
           },
@@ -535,7 +554,7 @@
             "internalType": "address"
           },
           {
-            "name": "ltYdm",
+            "name": "lptYdm",
             "type": "address",
             "internalType": "address"
           },
@@ -558,6 +577,31 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ProxyDeployed",
+    "inputs": [
+      {
+        "name": "proxy",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "implementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "salt",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -701,18 +745,22 @@
   },
   {
     "type": "error",
-    "name": "FACTORY_CALL_FAILED",
-    "inputs": [
-      {
-        "name": "returnData",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ]
+    "name": "FACTORY_CALL_TARGET_FORBIDDEN",
+    "inputs": []
   },
   {
     "type": "error",
-    "name": "FACTORY_NOT_ADMIN_ON_ACCESS_MANAGER",
+    "name": "FACTORY_GATEKEEPER_CANNOT_BE_ZERO_ADDRESS",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FACTORY_GATEKEEPER_MISMATCH",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FACTORY_GRANT_ROLE_FORBIDDEN",
     "inputs": []
   },
   {
@@ -737,6 +785,11 @@
   },
   {
     "type": "error",
+    "name": "LENGTH_MISMATCH",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NO_ACTIVE_TEMPLATE",
     "inputs": []
   },
@@ -757,6 +810,27 @@
   },
   {
     "type": "error",
+    "name": "PROXY_ALREADY_DEPLOYED",
+    "inputs": [
+      {
+        "name": "deployed",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "salt",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SIMULATION_CANNOT_MUTATE_STATE",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "TEMPLATE_ALREADY_REGISTERED",
     "inputs": []
   },
@@ -773,11 +847,6 @@
   {
     "type": "error",
     "name": "TEMPLATE_NOT_ENABLED",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TEMPLATE_NOT_INITIALIZED",
     "inputs": []
   },
   {

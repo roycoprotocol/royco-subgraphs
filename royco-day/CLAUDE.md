@@ -237,22 +237,33 @@ previewRedeem(uint256)   -> AssetClaims  // NOT uint256
 previewDeposit(uint256)  -> uint256      // this one IS a scalar
 ```
 
-`AssetClaims = (stAssets, jtAssets, ltAssets, stShares, nav)` (`libraries/Types.sol`
+`AssetClaims = (collateralAssets, lptAssets, stShares, nav)` (`libraries/Types.sol`
 — the struct is `AssetClaims`; `claims` is only the variable name). That struct is
-*why* six entities repeat the same five fields. The mapping is fixed:
+*why* five entities repeat the same four fields — `DayMarketNav`(+`Historical`) with
+three quadruples each, `DayPositionState`(+`Historical`), and
+`DayMultiAssetRedeemActivity`. The canonical note is the **ASSET CLAIMS** block in
+`schema.graphql`; it lives there, not on an entity, because the entities carrying the
+struct change (`DayVaultState` used to and no longer does). The mapping is fixed:
 
 | `AssetClaims` | schema field |
 |---|---|
-| `.stAssets` | `claimsSeniorTrancheAssets` |
-| `.jtAssets` | `claimsJuniorTrancheAssets` |
-| `.ltAssets` | `claimsLiquidityTrancheAssets` |
+| `.collateralAssets` | `claimsCollateralAssets` |
+| `.lptAssets` | `claimsLiquidityTrancheAssets` |
 | `.stShares` | `claimsSeniorTrancheShares` |
 | `.nav` | `claimsNAV` |
 
+**v2 merged `stAssets` + `jtAssets` into one `collateralAssets`** — senior and junior are
+coinvested in a single collateral token. Knock-on: `Redeem` and `MultiAssetRedeem` embed
+this struct, so their **topic0 changed** even though their names and parameter lists did
+not. The schema keeps `liquidityTranche*` column names and `minorType: "liquidity"`
+where the contracts now say `lpt`/`LIQUIDITY_PROVIDER`; the `<- ABI:` annotations bridge
+the two. See `MIGRATION-v2.md`.
+
 The `claims` prefix is load-bearing, not decoration: it separates the claim's
 `claimsSeniorTrancheShares` from the row's own `shares` / `sharesTotalSupply`,
-which are unrelated and sit right beside it. `DayVaultState`'s second quintuple
-(`sharePrice*`) is the same struct at a different input and keeps its own prefix.
+which are unrelated and sit right beside it. `DayMarketNav` carries three of these
+structs at once, so it prefixes by tranche instead —
+`<tranche>SharePrice<leg>`, e.g. `seniorTrancheSharePriceCollateralAssets`.
 
 **`convertToAssets` is NOT `previewRedeem`.** Different call, different kernel path
 (`stPreviewRedeem`/`jt`/`lt`). `convertToAssets` is the pro-rata accounting claim —
@@ -268,19 +279,36 @@ every tranche — the total NAV of the claim; the LT claim just contains no ST s
 All three tranches declare byte-identical `convertToAssets` signatures, so this is
 invisible from the ABI (§4).
 
+More generally, **which legs are zero is decided by the branch in
+`TrancheClaimsLogic._deriveTrancheAssetClaims`**, and it fills only some: SENIOR and
+JUNIOR never set `ltAssets`/`stShares`; LIQUIDITY never sets `stAssets`/`jtAssets`.
+`_scaleAssetClaims` multiplies every leg through, so the zeros survive scaling. Of
+`DayMarketNav`'s fifteen share-price legs, **seven are structurally zero** — see its
+field comments. A zero there is the contract's answer, never a failed read.
+
 It also arrives via events: `Redeem(sender, receiver, claims, shares)` (claims at
 index **2**) and LT's `MultiAssetRedeem(caller, receiver, owner, shares,
 stClaims, quoteAssets)` (stClaims at index **4** — after `shares`).
 
-`DayVaultState`'s two quintuples are the same call at two inputs:
-`convertToAssets(sharesTotalSupply)` and `convertToAssets(10 ** shareTokenDecimals)`.
+**`DayVaultState` carries NO quintuple.** It used to hold two —
+`convertToAssets(sharesTotalSupply)` and `convertToAssets(10 ** shareTokenDecimals)` —
+and both were dropped for `DayMarketNav`, which holds all three tranches' share prices
+in one row at one instant instead of on three independent per-vault cursors. The
+per-vault reads went with them, so `refreshVaultClaims` became
+`refreshVaultAssetPrice` and a mint/burn now costs 1 eth_call per vault, not 3.
+Consequence: `convertToAssets(sharesTotalSupply)` is recorded nowhere and is **not**
+exactly recoverable (`_scaleAssetClaims` floors per call, so pricing one share and
+multiplying back loses the truncation).
 
-### `TrancheState` — 18 fields
+### `SyncedAccountingState` — 16 fields
 
-`Kernel.previewSyncTrancheAccounting(uint8 trancheType)` → `(TrancheState state,
-Claims claims, uint256 totalTrancheShares)`. **Use this one**, not the
-Accountant's `previewSyncTrancheAccounting(uint256 stRawNAV, uint256 jtRawNAV)`,
-which makes you supply the very NAVs you're trying to read and returns no claims.
+`Kernel.previewSyncTrancheAccountingFor(uint8 trancheType)` → `(SyncedAccountingState
+state, AssetClaims claims, uint256 totalTrancheShares)`. **Use this one**, not the
+Accountant's `previewSyncTrancheAccounting(NAV_UNIT)`, which makes you supply the very
+NAV you're trying to read and returns no claims.
+
+v1 had 18 members: `stRawNAV`+`jtRawNAV` merged into `collateralNAV`, and `jtCoinvested`
+was removed outright.
 
 `state` is **tranche-independent**; only `claims`/`totalTrancheShares` vary by
 `trancheType`. Read each tranche's own `TRANCHE_TYPE()` — never hardcode 0/1/2
@@ -327,15 +355,19 @@ Every id has a generator in `src/utils/global.ts`. **Never inline an id.**
 
 | Entity | id | immutable |
 |---|---|---|
-| `GlobalTokenTransfer` | `<CHAIN>_<TX>_<LOG_IDX>` | ✅ |
+| `GlobalTokenTransfer` | `<CHAIN>_<TX>_<LOG_IDX>_<TOKEN_IDX>` | ✅ |
 | `GlobalTokenActivity` | `<CHAIN>_<TX>_<LOG_IDX>_<VAULT>_<CAT>_<SUBCAT>_<TOKEN_IDX>` | ✅ |
 | `DayMarketState` | `<CHAIN>_<KERNEL>` | ❌ |
+| `DayMarketNav` | `<CHAIN>_<KERNEL>` | ❌ |
+| `DayMarketNavHistorical` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
 | `DayVaultState` | `<CHAIN>_<VAULT>` | ❌ |
-| `DayVaultStateHistorical` | `<CHAIN>_<VAULT>_<ENTRY_IDX>` | ✅ |
+| `DayVaultStateHistorical` | `<CHAIN>_<VAULT>_<BLOCK>` | ❌ |
 | `DayPositionState` | `<CHAIN>_<VAULT>_<ACCOUNT>` | ❌ |
-| `DayPositionStateHistorical` | `<CHAIN>_<VAULT>_<ACCOUNT>_<ENTRY_IDX>` | ✅ |
-| `DayFeeState` | `<CHAIN>_<VAULT>_<ACCOUNT>_<MAJOR>_<MINOR>` | ❌ |
-| `DayFeeStateHistorical` | `<CHAIN>_<VAULT>_<ACCOUNT>_<MAJOR>_<MINOR>_<ENTRY_IDX>` | ✅ |
+| `DayPositionStateHistorical` | `<CHAIN>_<VAULT>_<ACCOUNT>_<BLOCK>` | ❌ |
+| `DayFeeState` | `<CHAIN>_<MARKET>_<ACCOUNT>_<MAJOR>_<MINOR>` | ❌ |
+| `DayFeeStateHistorical` | `<CHAIN>_<MARKET>_<ACCOUNT>_<MAJOR>_<MINOR>_<BLOCK>` | ❌ |
+| `DayFixedTermHistory` | `<CHAIN>_<KERNEL>_<ENTRY_IDX>` | ❌ |
+| every other `*History` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
 
 **The failure mode that matters:** an `@entity(immutable: true)` is **write-once**.
 A second `.save()` on the same id is a fatal `entity already exists` **at index
@@ -347,11 +379,35 @@ nothing**; that's why the test harness exists.
   checksummed address won't match on `load()` and silently creates a duplicate.
 - Mutable: `load()` → if null `new` + seed **every** non-null field → mutate →
   `save()`.
+- `DayMarketNav.id` is byte-identical to `DayMarketState.id` — one live NAV row per
+  market, hanging off the same key. It still gets its own generator
+  (`generateMarketNavId`), so a call site names the table it addresses.
 - **Entry index cursor**: the `*State` parent owns `lastHistoricalEntryIndex`.
   Creation snapshot is entry `0`. Each later snapshot writes `+1`, then stores
   it. Never derive an entry index from block number or timestamp — two writes in
   one block collide. (royco-rwa's `PositionStateHistorical` uses
-  `_<BLOCK_TIMESTAMP>` and has exactly that bug. Don't copy it.)
+  `_<BLOCK_TIMESTAMP>` and has exactly that bug. Don't copy it.) The `count*Entries`
+  cursors are the *other* shape — a count, not a last-index: read, use, **then**
+  increment. Both shapes are spelled out in `schema.graphql`'s "ENTRY INDEX CURSOR".
+- **Block keying**: every `*Historical` and `*History` stream except
+  `DayFixedTermHistory` collapses to **one row per (subject, block)** — the id ends in
+  the block number and the later write in a block **updates** the earlier one. That
+  inverts the bullet above *for the id only*: the collision is deliberate, it is the
+  dedupe. Two consequences that are easy to get wrong and impossible to see at index
+  time:
+    - **These entities MUST be `immutable: false`.** An immutable one dies on the
+      second write in a block.
+    - **`entryIndex` is assigned once, when the row is created, and the cursor advances
+      only then.** Bumping it on an update leaves holes in the stream.
+    - **Delta columns ACCUMULATE within a block; snapshot columns overwrite.** A fee
+      mint's `shares`, a premium mint's `shares`, an accrual's `yieldShareWAD` are
+      per-event deltas and get `.plus()`-ed on each write in the block, so
+      `SUM(delta)` still equals the lifetime total. A state, a cumulative total, or a
+      price is a snapshot and is simply overwritten.
+  `DayFixedTermHistory` is the one exception: a term **opens in one block and closes in
+  a later one**, so the close-out patches a row opened earlier. Block keying would send
+  the close to a different id and orphan it, so that stream keeps `<ENTRY_IDX>` and
+  `generateMarketRecordId`. See "BLOCK-KEYED HISTORY" in `schema.graphql`.
 
 **`createdAt*` / `updatedAt*`:** set `createdAt*` **exactly once**, inside the
 `if (!entity)` branch — never touch it again. Re-stamping it on update is the

@@ -48,14 +48,13 @@ export function updatePosition(
     position.vaultAddress = vault.vaultAddress;
     position.accountAddress = accountAddress;
     position.shares = BigInt.zero();
-    // Seed all five: unlike a vault, a position is born HERE, on its first
+    // Seed all four: unlike a vault, a position is born HERE, on its first
     // Transfer — not by the factory. If convertToAssets reverts on that very
-    // first event there is no previous value to keep, and five unset non-null
+    // first event there is no previous value to keep, and four unset non-null
     // fields are fatal at index time (§8). Zero-on-first-touch is a known lie
     // (a real mint reporting a zero claim) and it is the same compromise the
     // factory's creation path already documents and accepts.
-    position.claimsSeniorTrancheAssets = BigInt.zero();
-    position.claimsJuniorTrancheAssets = BigInt.zero();
+    position.claimsCollateralAssets = BigInt.zero();
     position.claimsLiquidityTrancheAssets = BigInt.zero();
     position.claimsSeniorTrancheShares = BigInt.zero();
     position.claimsNAV = BigInt.zero();
@@ -71,9 +70,21 @@ export function updatePosition(
   // is born here, so ITS entry 0 is this very write — hence the isNew branch.
   // Getting this wrong writes entry 1 first and leaves 0 absent forever, breaking
   // the dense "total == lastHistoricalEntryIndex + 1" contract the schema states.
-  const entryIndex = isNew
-    ? BigInt.zero()
-    : position.lastHistoricalEntryIndex.plus(BigInt.fromI32(1));
+  // ONE ROW PER (VAULT, ACCOUNT, BLOCK): several transfers can touch one account in a
+  // block, and the row keeps its END-of-block position. The cursor advances only when
+  // the block has no row yet (rule 2 of "BLOCK-KEYED HISTORY").
+  const snapshotId = generatePositionStateHistoricalId(
+    vault.vaultAddress,
+    accountAddress,
+    event.block.number
+  );
+  let snapshot = DayPositionStateHistorical.load(snapshotId);
+  const isNewBlock = snapshot == null;
+  const entryIndex = isNewBlock
+    ? isNew
+      ? BigInt.zero()
+      : position.lastHistoricalEntryIndex.plus(BigInt.fromI32(1))
+    : position.lastHistoricalEntryIndex;
 
   position.shares = position.shares.plus(sharesDelta);
 
@@ -82,9 +93,8 @@ export function updatePosition(
   const tranche = TrancheContract.bind(Address.fromString(vault.vaultAddress));
   const claims = tranche.try_convertToAssets(position.shares);
   if (!claims.reverted) {
-    position.claimsSeniorTrancheAssets = claims.value.stAssets;
-    position.claimsJuniorTrancheAssets = claims.value.jtAssets;
-    position.claimsLiquidityTrancheAssets = claims.value.ltAssets;
+    position.claimsCollateralAssets = claims.value.collateralAssets;
+    position.claimsLiquidityTrancheAssets = claims.value.lptAssets;
     position.claimsSeniorTrancheShares = claims.value.stShares;
     position.claimsNAV = claims.value.nav;
   }
@@ -93,27 +103,26 @@ export function updatePosition(
   position.updatedAtBlockNumber = event.block.number;
   position.updatedAtBlockTimestamp = event.block.timestamp;
 
-  const snapshot = new DayPositionStateHistorical(
-    generatePositionStateHistoricalId(
-      vault.vaultAddress,
-      accountAddress,
-      entryIndex
-    )
-  );
+  if (!snapshot) {
+    snapshot = new DayPositionStateHistorical(snapshotId);
+    snapshot.entryIndex = entryIndex;
+    snapshot.blockNumber = event.block.number;
+    snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
+    snapshot.createdAtBlockNumber = event.block.number;
+    snapshot.createdAtBlockTimestamp = event.block.timestamp;
+  }
   snapshot.vaultId = position.vaultId;
   snapshot.chainId = position.chainId;
   snapshot.vaultAddress = position.vaultAddress;
   snapshot.accountAddress = position.accountAddress;
-  snapshot.entryIndex = entryIndex;
   snapshot.shares = position.shares;
-  snapshot.claimsSeniorTrancheAssets = position.claimsSeniorTrancheAssets;
-  snapshot.claimsJuniorTrancheAssets = position.claimsJuniorTrancheAssets;
+  snapshot.claimsCollateralAssets = position.claimsCollateralAssets;
   snapshot.claimsLiquidityTrancheAssets = position.claimsLiquidityTrancheAssets;
   snapshot.claimsSeniorTrancheShares = position.claimsSeniorTrancheShares;
   snapshot.claimsNAV = position.claimsNAV;
-  snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
-  snapshot.createdAtBlockNumber = event.block.number;
-  snapshot.createdAtBlockTimestamp = event.block.timestamp;
+  snapshot.updatedAtTransactionHash = event.transaction.hash.toHexString();
+  snapshot.updatedAtBlockNumber = event.block.number;
+  snapshot.updatedAtBlockTimestamp = event.block.timestamp;
   snapshot.save();
 
   position.lastHistoricalEntryIndex = entryIndex;

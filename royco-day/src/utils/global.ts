@@ -63,6 +63,70 @@ export const generateMarketRecordId = (
   return generateMarketId(marketId).concat("_").concat(entryIndex.toString());
 };
 
+/**
+ * DayMarketNav.id = <CHAIN_ID>_<MARKET_ID>
+ *
+ * Byte-identical to generateMarketId — one live NAV row per market, keyed exactly
+ * like the DayMarketState it hangs off. It gets its OWN generator anyway (rule 1):
+ * `generateMarketNavId(market.marketId)` at the call site says which table is being
+ * addressed, and if either id shape ever moves, only one of them moves.
+ *
+ * Pass the bare KERNEL ADDRESS (market.marketId), never the composite
+ * DayMarketState.id — that yields "1_1_0xkernel", which builds and indexes.
+ */
+export const generateMarketNavId = (marketId: string): string => {
+  return generateMarketId(marketId);
+};
+
+/**
+ * DayMarketNavHistorical.id = <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+ *
+ * KEYED BY BLOCK, not by entryIndex — the second of the two ids in this file that are
+ * (see generateMarketBlockRecordId, which does the same for the sync stream). The nav
+ * history collapses to one row per block, so both writes of a deposit block resolve to
+ * the SAME id and the later one updates the earlier. That requires the entity to be
+ * `immutable: false`; on an immutable entity the second save is fatal at index time.
+ *
+ * `entryIndex` still exists on the row and is still dense — it is just no longer what
+ * the id is built from. Read entryIndex for ordering, the id for lookup.
+ *
+ * Same string SHAPE as generateMarketRecordId and generateMarketBlockRecordId, and
+ * deliberately its own function: shape is not meaning, and which cursor (or block) fills
+ * the last component is exactly the thing a call site must not have to guess.
+ */
+export const generateMarketNavHistoricalId = (
+  marketId: string,
+  blockNumber: BigInt
+): string => {
+  return generateMarketNavId(marketId).concat("_").concat(blockNumber.toString());
+};
+
+/**
+ * The shared id shape for every BLOCK-COLLAPSED market-keyed stream:
+ *   <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+ * DayTrancheAccountingSyncedHistory, DayYieldSharesAccruedHistory and the three
+ * liquidity-premium streams all key on it.
+ *
+ * The BLOCK-KEYED counterpart to generateMarketRecordId, and deliberately a separate
+ * function from it: the two produce the same SHAPE from different things — an
+ * entryIndex from a use-then-increment cursor there, a block number here — and which
+ * one a call site is asking for must not be a guess. §8's "never key an id on a block
+ * number" is inverted for these: the collision IS the dedupe, which is only safe
+ * because every entity using this is `immutable: false`. See "BLOCK-KEYED HISTORY" in
+ * schema.graphql.
+ *
+ * DayFixedTermHistory does NOT use this — a term spans blocks, so it keeps
+ * generateMarketRecordId.
+ *
+ * Pass the bare KERNEL ADDRESS (market.marketId), never the composite DayMarketState.id.
+ */
+export const generateMarketBlockRecordId = (
+  marketId: string,
+  blockNumber: BigInt
+): string => {
+  return generateMarketId(marketId).concat("_").concat(blockNumber.toString());
+};
+
 // === TOKENS / VAULTS ===
 
 /** <CHAIN_ID>_<TOKEN_ADDRESS> */
@@ -75,12 +139,12 @@ export const generateVaultId = (vaultAddress: string): string => {
   return CHAIN_ID.toString().concat("_").concat(vaultAddress);
 };
 
-/** DayVaultStateHistorical.id = <CHAIN_ID>_<VAULT_ADDRESS>_<ENTRY_INDEX> */
+/** DayVaultStateHistorical.id = <CHAIN_ID>_<VAULT_ADDRESS>_<BLOCK_NUMBER> (block-collapsed) */
 export const generateVaultStateHistoricalId = (
   vaultAddress: string,
-  entryIndex: BigInt
+  blockNumber: BigInt
 ): string => {
-  return generateVaultId(vaultAddress).concat("_").concat(entryIndex.toString());
+  return generateVaultId(vaultAddress).concat("_").concat(blockNumber.toString());
 };
 
 // === POSITIONS ===
@@ -99,7 +163,7 @@ export const generatePositionStateId = (
 
 /**
  * DayPositionStateHistorical.id
- *   = <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<ENTRY_INDEX>
+ *   = <CHAIN_ID>_<VAULT_ADDRESS>_<ACCOUNT_ADDRESS>_<BLOCK_NUMBER>
  *
  * The trailing entryIndex is what makes this immutable entity writable more than
  * once per account. The draft schema omitted it and would have died on the 2nd
@@ -108,11 +172,11 @@ export const generatePositionStateId = (
 export const generatePositionStateHistoricalId = (
   vaultAddress: string,
   accountAddress: string,
-  entryIndex: BigInt
+  blockNumber: BigInt
 ): string => {
   return generatePositionStateId(vaultAddress, accountAddress)
     .concat("_")
-    .concat(entryIndex.toString());
+    .concat(blockNumber.toString());
 };
 
 // === FEES ===
@@ -148,18 +212,18 @@ export const generateFeeStateId = (
 
 /**
  * DayFeeStateHistorical.id
- *   = <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<ENTRY_INDEX>
+ *   = <CHAIN_ID>_<MARKET_ID>_<ACCOUNT_ADDRESS>_<MAJOR_TYPE>_<MINOR_TYPE>_<BLOCK_NUMBER>
  */
 export const generateFeeStateHistoricalId = (
   marketId: string,
   accountAddress: string,
   majorType: string,
   minorType: string,
-  entryIndex: BigInt
+  blockNumber: BigInt
 ): string => {
   return generateFeeStateId(marketId, accountAddress, majorType, minorType)
     .concat("_")
-    .concat(entryIndex.toString());
+    .concat(blockNumber.toString());
 };
 
 // === GLOBAL (shared Neon tables — see the banner in schema.graphql) ===

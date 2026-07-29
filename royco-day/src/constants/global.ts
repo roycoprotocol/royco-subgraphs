@@ -51,9 +51,11 @@ export const MARKET_STATE_FIXED = "fixed"; // enum 1
 // tokenAddress is the only other clue, and the shipped identical-ST/JT kernel
 // gives the senior and junior legs the SAME asset token.
 export const TOKEN_INDEX_SINGLE: i32 = 0; // logs that move exactly one token
-export const REDEEM_TOKEN_INDEX_SENIOR_TRANCHE_ASSETS: i32 = 0;
-export const REDEEM_TOKEN_INDEX_JUNIOR_TRANCHE_ASSETS: i32 = 1;
-export const REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS: i32 = 2;
+// TWO legs in v2, not three: AssetClaims merged its separate senior and junior asset
+// legs into one `collateralAssets`. The indices stay POSITIONAL — index 0 is always the
+// collateral leg and 1 always the liquidity leg, even when one of them is absent.
+export const REDEEM_TOKEN_INDEX_COLLATERAL_ASSETS: i32 = 0;
+export const REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS: i32 = 1;
 
 // === ACTIVITY TYPES ===
 // GlobalTokenActivity.type
@@ -64,11 +66,38 @@ export const ACTIVITY_TYPE_TRANSFER = "transfer";
 // royco-rwa's AsyncVault), so a token activity is only ever "completed".
 export const STATUS_COMPLETED = "completed";
 
+// === SYNC TYPES ===
+// DayTrancheAccountingSyncedHistory.syncType — which of the kernel's two sync events a
+// collapsed row last settled on. A block's row starts as "preOp" and is overwritten to
+// "postOp" if an operation settles in the same block.
+export const SYNC_TYPE_PRE_OP = "preOp";
+export const SYNC_TYPE_POST_OP = "postOp";
+
+// === OPERATIONS ===
+// DayTrancheAccountingSyncedHistory.operation, from
+// PostOpTrancheAccountingSynced's `op` (uint8 enum -> i32).
+//
+// Order is the on-chain `Operation` enum's declaration order
+// (contracts/libraries/Types.sol) — EIGHT members in v2, where v1 had six; the two
+// multi-asset LP operations are new. The ABI carries the enum's TYPE name but none of
+// its member names, so this ordering comes from the source and is not guessable (§4).
+export const OPERATION_ST_DEPOSIT = "stDeposit"; // enum 0
+export const OPERATION_ST_REDEEM = "stRedeem"; // enum 1
+export const OPERATION_JT_DEPOSIT = "jtDeposit"; // enum 2
+export const OPERATION_JT_REDEEM = "jtRedeem"; // enum 3
+export const OPERATION_LPT_DEPOSIT = "lptDeposit"; // enum 4
+export const OPERATION_LPT_REDEEM = "lptRedeem"; // enum 5
+export const OPERATION_LPT_MULTI_ASSET_DEPOSIT = "lptMultiAssetDeposit"; // enum 6
+export const OPERATION_LPT_MULTI_ASSET_REDEEM = "lptMultiAssetRedeem"; // enum 7
+// An out-of-range ordinal means the enum grew and this list did not — surfaced as
+// "unknown" rather than silently mapped to a neighbour.
+export const OPERATION_UNKNOWN = "unknown";
+
 // === TRANCHE TYPES ===
 // DayVaultState.minorType / DayVaultStateHistorical.minorType.
 //
 // These also correspond to the on-chain `TrancheType` enum accepted by
-// RoycoDayKernel.previewSyncTrancheAccounting(uint8). Do NOT hardcode the
+// RoycoDayKernel.previewSyncTrancheAccountingFor(uint8). Do NOT hardcode the
 // numeric value — read it from the tranche's own TRANCHE_TYPE() view. The ABI
 // carries no enum names, so the ordering below is a naming convention only, not
 // a claim about the on-chain enum. See CLAUDE.md §6.

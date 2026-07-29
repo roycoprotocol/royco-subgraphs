@@ -10,7 +10,7 @@
 # A hand-edit here is reverted by the next generate and caught by
 # `npm run check:drift`.
 #
-# Entities wired: 18
+# Entities wired: 19
 # =============================================================================
 apiVersion: 3
 name: royco-day-markets-pipeline
@@ -34,6 +34,18 @@ sources:
       - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
+  royco_day_markets_day_market_nav_reference:
+    name: day_market_nav
+    subgraphs:
+      - name: royco-day-markets-staging
+        version: 1.0.0
+    type: subgraph_entity
+  royco_day_markets_day_market_nav_historical_reference:
+    name: day_market_nav_historical
+    subgraphs:
+      - name: royco-day-markets-staging
+        version: 1.0.0
+    type: subgraph_entity
   royco_day_markets_day_vault_state_reference:
     name: day_vault_state
     subgraphs:
@@ -52,14 +64,8 @@ sources:
       - name: royco-day-markets-staging
         version: 1.0.0
     type: subgraph_entity
-  royco_day_markets_day_junior_tranche_yield_shares_accrued_history_reference:
-    name: day_junior_tranche_yield_shares_accrued_history
-    subgraphs:
-      - name: royco-day-markets-staging
-        version: 1.0.0
-    type: subgraph_entity
-  royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference:
-    name: day_liquidity_tranche_yield_shares_accrued_history
+  royco_day_markets_day_yield_shares_accrued_history_reference:
+    name: day_yield_shares_accrued_history
     subgraphs:
       - name: royco-day-markets-staging
         version: 1.0.0
@@ -147,6 +153,20 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_market_state"
     from: royco_day_markets_day_market_state_reference
+  royco_day_markets_day_market_nav_postgres:
+    type: postgres
+    table: day_market_nav
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_market_nav"
+    from: royco_day_markets_day_market_nav_reference
+  royco_day_markets_day_market_nav_historical_postgres:
+    type: postgres
+    table: day_market_nav_historical
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_market_nav_historical"
+    from: royco_day_markets_day_market_nav_historical_reference
   royco_day_markets_day_vault_state_postgres:
     type: postgres
     table: day_vault_state
@@ -168,20 +188,13 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_fixed_term_history"
     from: royco_day_markets_day_fixed_term_history_reference
-  royco_day_markets_day_junior_tranche_yield_shares_accrued_history_postgres:
+  royco_day_markets_day_yield_shares_accrued_history_postgres:
     type: postgres
-    table: day_junior_tranche_yield_shares_accrued_history
+    table: day_yield_shares_accrued_history
     schema: public
     secret_name: NEON_ROYCO_ESTATE
-    description: "Postgres sink for: day_junior_tranche_yield_shares_accrued_history"
-    from: royco_day_markets_day_junior_tranche_yield_shares_accrued_history_reference
-  royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_postgres:
-    type: postgres
-    table: day_liquidity_tranche_yield_shares_accrued_history
-    schema: public
-    secret_name: NEON_ROYCO_ESTATE
-    description: "Postgres sink for: day_liquidity_tranche_yield_shares_accrued_history"
-    from: royco_day_markets_day_liquidity_tranche_yield_shares_accrued_history_reference
+    description: "Postgres sink for: day_yield_shares_accrued_history"
+    from: royco_day_markets_day_yield_shares_accrued_history_reference
   royco_day_markets_day_tranche_accounting_synced_history_postgres:
     type: postgres
     table: day_tranche_accounting_synced_history

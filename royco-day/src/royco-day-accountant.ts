@@ -1,9 +1,7 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 import {
-  TrancheAccountingSynced as TrancheAccountingSyncedEvent,
   MaxYieldSharesUpdated as MaxYieldSharesUpdatedEvent,
-  JuniorTrancheYieldShareAccrued as JuniorTrancheYieldShareAccruedEvent,
-  LiquidityTrancheYieldShareAccrued as LiquidityTrancheYieldShareAccruedEvent,
+  YieldSharesAccrued as YieldSharesAccruedEvent,
   FixedTermCommenced as FixedTermCommencedEvent,
   FixedTermEnded as FixedTermEndedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
@@ -13,18 +11,15 @@ import {
   SeniorTrancheProtocolFeeUpdated as SeniorTrancheProtocolFeeUpdatedEvent,
   JuniorTrancheProtocolFeeUpdated as JuniorTrancheProtocolFeeUpdatedEvent,
   JuniorTrancheYieldShareProtocolFeeUpdated as JuniorTrancheYieldShareProtocolFeeUpdatedEvent,
-  LiquidityTrancheYieldShareProtocolFeeUpdated as LiquidityTrancheYieldShareProtocolFeeUpdatedEvent,
-  SeniorTrancheDustToleranceUpdated as SeniorTrancheDustToleranceUpdatedEvent,
-  JuniorTrancheDustToleranceUpdated as JuniorTrancheDustToleranceUpdatedEvent,
-  JuniorTrancheCoverageImpermanentLossReset as JuniorTrancheCoverageImpermanentLossResetEvent,
+  LiquidityProviderTrancheYieldShareProtocolFeeUpdated as LiquidityProviderTrancheYieldShareProtocolFeeUpdatedEvent,
+  DustToleranceUpdated as DustToleranceUpdatedEvent,
+  JuniorTrancheImpermanentLossReset as JuniorTrancheImpermanentLossResetEvent,
   JuniorTrancheYDMUpdated as JuniorTrancheYDMUpdatedEvent,
-  LiquidityTrancheYDMUpdated as LiquidityTrancheYDMUpdatedEvent,
+  LiquidityProviderTrancheYDMUpdated as LiquidityProviderTrancheYDMUpdatedEvent,
 } from "../generated/templates/RoycoDayAccountant/RoycoDayAccountant";
 import {
   DayFixedTermHistory,
-  DayJuniorTrancheYieldSharesAccruedHistory,
-  DayLiquidityTrancheYieldSharesAccruedHistory,
-  DayTrancheAccountingSyncedHistory,
+  DayYieldSharesAccruedHistory,
 } from "../generated/schema";
 import {
   resolveMarketFromAccountant,
@@ -34,7 +29,7 @@ import {
   closeOpenFixedTerm,
   recordFixedTermCoverageLoss,
 } from "./handlers/base/fixed-term";
-import { generateMarketRecordId } from "./utils";
+import { generateMarketRecordId, generateMarketBlockRecordId } from "./utils";
 import { CHAIN_ID, MARKET_STATE_FIXED, MARKET_STATE_PERPETUAL } from "./constants";
 
 /**
@@ -58,144 +53,12 @@ import { CHAIN_ID, MARKET_STATE_FIXED, MARKET_STATE_PERPETUAL } from "./constant
  *   the dust tolerances (uint256)    -> BigInt, direct
  *   the YDM events (address)         -> .toHexString()
  *
- * handleTrancheAccountingSynced is the one HOT handler here — see its own note.
+ * THE SYNC HANDLER NO LONGER LIVES HERE. v2 replaced the accountant's
+ * TrancheAccountingSynced with the kernel's PreOp/PostOpTrancheAccountingSynced pair,
+ * so it moved to src/royco-day-kernel.ts — where event.address IS the marketId, making
+ * the ACCOUNTANT.KERNEL() hop every handler below still pays unnecessary for it.
+ * Everything left in this file is a config or lifecycle event.
  */
-
-/**
- * The market's accounting was re-synced. TWO writes, and only two:
- *
- *   A. DayMarketState's PREVIEW BLOCK — exactly TEN of the event's eighteen fields.
- *   B. DayTrancheAccountingSyncedHistory — ALL EIGHTEEN, verbatim, one immutable
- *      row per sync (the full unabridged history this event carries).
- *
- * The asymmetry is deliberate. (B) is a fresh, write-once row keyed by a per-sync
- * entryIndex, so copying the whole payload into it is not just safe but the point.
- * (A) is a shared MUTABLE row, and copying the payload there is wrong three ways —
- * the reasons the other eight fields are dropped FROM DayMarketState (never from B):
- *
- *   1. ALREADY OWNED — marketState and fixedTermEndTimestamp belong to the
- *      fixed-term handlers; minCoverageWAD, minLiquidityWAD and
- *      coverageLiquidationUtilizationWAD to the config handlers above. Writing
- *      them onto DayMarketState here would make each field's value depend on log
- *      ORDER. The hazard is real, not theoretical: setCoverage carries
- *      `withSyncedAccounting`, so it emits TrancheAccountingSynced (carrying the
- *      OLD coverage) BEFORE CoverageUpdated (the new one). Today the config handler
- *      runs second and wins. Swap those two emits in the contract and this handler
- *      would silently revert every config change. One writer per DayMarketState field.
- *
- *   2. THE §6 DIVERGENCE TRAP — minCoverageWAD exists in BOTH this struct and
- *      Accountant.getState(), under the SAME NAME and a different width. The
- *      schema deliberately stores the getState() one on DayMarketState. Reading it
- *      from here into DayMarketState compiles, indexes, and is wrong forever; it is
- *      exactly the bug the factory handler shipped with. (B) records the LIVE
- *      struct value under its own column — the two live in different tables and do
- *      not collide. The `<- ABI:` annotations in schema.graphql are the authority.
- *
- *   3. NO DayMarketState HOME — state.stProtocolFee / jtProtocolFee / ltProtocolFee
- *      are NAV_UNIT AMOUNTS ("protocol fee taken on ST yield ON THIS SYNC"). The
- *      schema's seniorTrancheProtocolFeeWAD is a uint64 RATE from
- *      getState().stProtocolFeeWAD. Different type, different unit, one word apart.
- *      They are per-sync deltas and DayMarketState is a current-state snapshot, so
- *      they are dropped THERE — but they DO have a home now: (B)'s
- *      seniorTrancheProtocolFee / juniorTrancheProtocolFee / liquidityTrancheProtocolFee.
- *      That history row is the "own entity" the previous note said they needed.
- *
- * ZERO CONTRACT CALLS by design. The event IS the post-state at this log index,
- * which is why §5 says prefer it over previewSyncTrancheAccounting.
- *
- * !! HOT PATH. This is not a config event. The LT's Balancer V3 pool hook holds
- *    SYNC_ROLE and its onBeforeSwap calls syncTrancheAccounting()
- *    unconditionally, so EVERY SWAP against that pool — including a
- *    permissionless arb bot's — lands here. It is immune to share-transfer volume
- *    (a plain ERC20 transfer never syncs: that path dead-ends in an empty
- *    _preTrancheBalanceUpdate) but fully exposed to AMM volume. That makes
- *    DayTrancheAccountingSyncedHistory the highest-cardinality entity in the
- *    schema, and the per-event KERNEL() hop in resolveMarketFromAccountant the one
- *    eth_call cost in this file — see the note there.
- *
- * Deliberately does NOT refresh DayVaultState. At swap frequency that would be
- * ~6 eth_calls and 3 immutable history rows PER SWAP. The split is intentional:
- * market-level accounting is live (free, from this payload) and (B) is one cheap
- * call-free immutable row; per-vault claims stay sampled at mint/burn.
- */
-export function handleTrancheAccountingSynced(
-  event: TrancheAccountingSyncedEvent
-): void {
-  const market = resolveMarketFromAccountant(event);
-  if (!market) return;
-
-  const state = event.params.resultingState;
-
-  // (A) DayMarketState LIVE preview block — TEN fields; the other eight are owned
-  //     elsewhere or have no current-state home (see the docstring). Do NOT add to
-  //     this list without re-reading it.
-  market.seniorTrancheRawNAV = state.stRawNAV;
-  market.juniorTrancheRawNAV = state.jtRawNAV;
-  market.liquidityTrancheRawNAV = state.ltRawNAV;
-  market.seniorTrancheEffectiveNAV = state.stEffectiveNAV;
-  market.juniorTrancheEffectiveNAV = state.jtEffectiveNAV;
-  market.juniorTrancheCoverageImpermanentLoss = state.jtCoverageImpermanentLoss;
-  market.liquidityTrancheLiquidityPremium = state.ltLiquidityPremium;
-  market.coverageUtilizationWAD = state.coverageUtilizationWAD;
-  market.liquidityUtilizationWAD = state.liquidityUtilizationWAD;
-  market.isJuniorTrancheCoinvested = state.jtCoinvested;
-
-  // (B) DayTrancheAccountingSyncedHistory — the full 18-field struct, verbatim.
-  //     Use-then-increment: the count IS the next entryIndex, so the first sync is
-  //     entry 0 and the count becomes 1 (§ ENTRY INDEX CURSOR in schema.graphql).
-  const entryIndex = market.countTrancheAccountingSyncedEntries;
-  const entry = new DayTrancheAccountingSyncedHistory(
-    generateMarketRecordId(market.marketId, entryIndex)
-  );
-  entry.chainId = CHAIN_ID;
-  entry.marketId = market.marketId;
-  entry.marketRefId = market.id;
-  entry.entryIndex = entryIndex;
-  // The LIVE market state carried by the sync — NOT market.marketState, which is the
-  // STORED lastMarketState owned by the fixed-term handlers (§6). uint8 -> i32.
-  entry.marketState = liveMarketStateName(state.marketState);
-  entry.seniorTrancheRawNAV = state.stRawNAV;
-  entry.juniorTrancheRawNAV = state.jtRawNAV;
-  entry.liquidityTrancheRawNAV = state.ltRawNAV;
-  entry.seniorTrancheEffectiveNAV = state.stEffectiveNAV;
-  entry.juniorTrancheEffectiveNAV = state.jtEffectiveNAV;
-  entry.juniorTrancheCoverageImpermanentLoss = state.jtCoverageImpermanentLoss;
-  entry.liquidityTrancheLiquidityPremium = state.ltLiquidityPremium;
-  // The per-sync protocol-fee AMOUNTS (NAV_UNIT) — dropped from DayMarketState (case
-  // 3 in the docstring), recorded here. NOT the getState() *ProtocolFeeWAD rates.
-  entry.seniorTrancheProtocolFee = state.stProtocolFee;
-  entry.juniorTrancheProtocolFee = state.jtProtocolFee;
-  entry.liquidityTrancheProtocolFee = state.ltProtocolFee;
-  entry.coverageUtilizationWAD = state.coverageUtilizationWAD;
-  entry.liquidityUtilizationWAD = state.liquidityUtilizationWAD;
-  // uint32 -> BigInt, direct (§4).
-  entry.fixedTermEndTimestamp = state.fixedTermEndTimestamp;
-  entry.minCoverageWAD = state.minCoverageWAD;
-  entry.isJuniorTrancheCoinvested = state.jtCoinvested;
-  entry.coverageLiquidationUtilizationWAD = state.coverageLiquidationUtilizationWAD;
-  entry.minLiquidityWAD = state.minLiquidityWAD;
-  // Immutable — createdAt* only, no updatedAt* (§8).
-  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-  entry.createdAtBlockNumber = event.block.number;
-  entry.createdAtBlockTimestamp = event.block.timestamp;
-  entry.save();
-
-  market.countTrancheAccountingSyncedEntries = entryIndex.plus(BigInt.fromI32(1));
-
-  touchMarket(event, market);
-}
-
-/**
- * Map the sync's LIVE state.marketState (uint8 -> i32) onto its schema string, for
- * DayTrancheAccountingSyncedHistory. The enum is `MarketState { PERPETUAL, FIXED_TERM }`
- * (contracts/libraries/Types.sol), so 0 is PERPETUAL — it reads backwards (§6). This
- * is the factory's marketStateName twin, but for the LIVE value; the factory maps the
- * STORED lastMarketState. Kept local rather than shared so neither file's meaning is
- * silently coupled to the other's.
- */
-function liveMarketStateName(marketState: i32): string {
-  return marketState == 0 ? MARKET_STATE_PERPETUAL : MARKET_STATE_FIXED;
-}
 
 // =============================================================================
 // FIXED TERM
@@ -237,11 +100,18 @@ export function handleFixedTermCommenced(event: FixedTermCommencedEvent): void {
   entry.scheduledEndBlockTimestamp = event.params.fixedTermEndTimestamp;
   // Open. closeOpenFixedTerm keys off exactly this, and so do consumers.
   entry.endBlockTimestamp = BigInt.zero();
+  // Explicitly null, not merely left unset. Both produce the same absent column (a
+  // nullable setter calls unset() on null), but writing it states the intent: the term
+  // is RUNNING and has no duration yet. closeOpenFixedTerm is the only place it is
+  // filled in. Note this is the one field here that must NOT be seeded to zero — §8's
+  // "an unset non-null field is fatal" does not apply to a nullable one, and 0 is a real
+  // duration (a term opened and closed in one block).
+  entry.duration = null;
   // Seeded because it is non-null and unset is fatal at index time (§8). It stays
   // zero unless the term ends with a real coverage loss, which arrives later and
-  // out-of-band via handleJuniorTrancheCoverageImpermanentLossReset — the erased
+  // out-of-band via handleJuniorTrancheImpermanentLossReset — the erased
   // value exists in that event and nowhere else.
-  entry.juniorTrancheCoverageImpermanentLossNAV = BigInt.zero();
+  entry.juniorTrancheImpermanentLossNAV = BigInt.zero();
 
   entry.createdAtTransactionHash = event.transaction.hash.toHexString();
   entry.createdAtBlockNumber = event.block.number;
@@ -307,7 +177,7 @@ export function handleFixedTermDurationUpdated(
 }
 
 /**
- * The JT coverage impermanent loss that was erased — the ONLY witness to that
+ * The JT impermanent loss that was erased — the ONLY witness to that
  * number anywhere on chain. The Accountant copies it into a local and zeroes
  * storage BEFORE marshalling state, so by the time anything else can observe the
  * market, both the preview and getState() already read 0.
@@ -318,7 +188,7 @@ export function handleFixedTermDurationUpdated(
  *      erase adds to it, term-end or not, so it only ever grows. No contract
  *      tracks this; the subgraph is the only place it exists.
  *
- *   2. DayFixedTermHistory.juniorTrancheCoverageImpermanentLossNAV — PER-TERM, and
+ *   2. DayFixedTermHistory.juniorTrancheImpermanentLossNAV — PER-TERM, and
  *      only for the erase that ended THAT term. An erase does NOT imply a term
  *      ended (the erase branch has four disjuncts and three of them fire on
  *      already-perpetual markets), so this one is guarded. All the subtlety is in
@@ -333,25 +203,25 @@ export function handleFixedTermDurationUpdated(
  * erase, only the body's Reset fires. Two non-zero Resets in one tx would mean two
  * genuinely distinct erasures, and adding both is correct.
  *
- * It does NOT touch juniorTrancheCoverageImpermanentLoss — that is the LIVE value
+ * It does NOT touch juniorTrancheImpermanentLoss — that is the LIVE value
  * from the preview block and belongs to handleTrancheAccountingSynced (still a
  * stub). See the schema note: the two names differ by one word and mean opposite
  * things.
  */
-export function handleJuniorTrancheCoverageImpermanentLossReset(
-  event: JuniorTrancheCoverageImpermanentLossResetEvent
+export function handleJuniorTrancheImpermanentLossReset(
+  event: JuniorTrancheImpermanentLossResetEvent
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
-  const erased = event.params.jtCoverageImpermanentLossErased;
+  const erased = event.params.jtImpermanentLossErased;
   // Nothing was erased — only the UNGUARDED setFixedTermDuration(0) site emits
   // this, and it never means anything happened. Returning keeps updatedAt* honest:
   // no field changed.
   if (erased.isZero()) return;
 
-  market.juniorTrancheCoverageLossNAV =
-    market.juniorTrancheCoverageLossNAV.plus(erased);
+  market.juniorTrancheImpermanentLossNAV =
+    market.juniorTrancheImpermanentLossNAV.plus(erased);
   touchMarket(event, market);
 
   recordFixedTermCoverageLoss(event, market, erased);
@@ -406,88 +276,77 @@ export function handleMaxYieldSharesUpdated(
   if (!market) return;
 
   market.maxJuniorTrancheYieldShareAccruedWAD = event.params.maxJTYieldShareWAD;
-  market.maxLiquidityTrancheYieldShareAccruedWAD = event.params.maxLTYieldShareWAD;
+  market.maxLiquidityTrancheYieldShareAccruedWAD = event.params.maxLPTYieldShareWAD;
   touchMarket(event, market);
 }
 
 /**
- * A junior yield-share accrual tick. Emitted whenever a tranche interaction advances
- * the clock (elapsed > 0 — RoycoDayAccountant.sol:755,767), always paired with its
- * liquidity twin at an adjacent log index.
+ * A yield-share accrual tick — BOTH tranches, in ONE event.
  *
- * SOLE UPDATER of DayMarketState.timeWeightedJuniorTrancheYieldShareAccruedWAD. The
- * running total (twJTYieldShareAccruedWAD) rides on THIS event and is NOT in the
- * TrancheAccountingSynced state tuple, so nothing else can advance the field — it
- * would otherwise freeze at the factory's deploy seed. Also appends the per-tick
- * history row. No zero guard: a tick with a 0 instantaneous share still reports the
- * authoritative running total and is a real accrual step.
+ * v1 had two events (JuniorTrancheYieldShareAccrued + LiquidityTrancheYieldShareAccrued)
+ * emitted together at adjacent log indices, two handlers, two entities and two cursors.
+ * v2 merged them into YieldSharesAccrued carrying all four values, so this is now a
+ * single atomic write: one DayYieldSharesAccruedHistory row, one cursor, and both
+ * timeWeighted* fields on DayMarketState advanced together. They can no longer drift
+ * apart, which was structurally possible before.
+ *
+ * SOLE UPDATER of both DayMarketState.timeWeighted*YieldShareAccruedWAD fields. The
+ * running totals ride on THIS event and are NOT in the TrancheAccountingSynced state
+ * tuple, so nothing else can advance them — they would otherwise freeze at the
+ * factory's deploy seed.
+ *
+ * No zero guard: a tick with a 0 instantaneous share still reports the authoritative
+ * running totals and is a real accrual step.
  */
-export function handleJuniorTrancheYieldShareAccrued(
-  event: JuniorTrancheYieldShareAccruedEvent
-): void {
+export function handleYieldSharesAccrued(event: YieldSharesAccruedEvent): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
   market.timeWeightedJuniorTrancheYieldShareAccruedWAD =
     event.params.twJTYieldShareAccruedWAD;
-
-  // Use-then-increment: the count IS the next entryIndex; the first tick is 0.
-  const entryIndex = market.countJuniorTrancheYieldSharesAccruedEntries;
-
-  const entry = new DayJuniorTrancheYieldSharesAccruedHistory(
-    generateMarketRecordId(market.marketId, entryIndex)
-  );
-  entry.chainId = CHAIN_ID;
-  entry.marketId = market.marketId;
-  entry.marketRefId = market.id;
-  entry.entryIndex = entryIndex;
-  entry.yieldShareWAD = event.params.jtYieldShareWAD; // <- ABI: jtYieldShareWAD
-  entry.timeWeightedYieldShareAccruedWAD =
-    event.params.twJTYieldShareAccruedWAD; // <- ABI: twJTYieldShareAccruedWAD
-  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-  entry.createdAtBlockNumber = event.block.number;
-  entry.createdAtBlockTimestamp = event.block.timestamp;
-  entry.save();
-
-  market.countJuniorTrancheYieldSharesAccruedEntries = entryIndex.plus(
-    BigInt.fromI32(1)
-  );
-  touchMarket(event, market);
-}
-
-/**
- * The liquidity-tranche twin of handleJuniorTrancheYieldShareAccrued — identical
- * shape, its own event params (lt*), entity, cursor and timeWeighted* field.
- */
-export function handleLiquidityTrancheYieldShareAccrued(
-  event: LiquidityTrancheYieldShareAccruedEvent
-): void {
-  const market = resolveMarketFromAccountant(event);
-  if (!market) return;
-
   market.timeWeightedLiquidityTrancheYieldShareAccruedWAD =
-    event.params.twLTYieldShareAccruedWAD;
+    event.params.twLPTYieldShareAccruedWAD;
 
-  const entryIndex = market.countLiquidityTrancheYieldSharesAccruedEntries;
+  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
+  const id = generateMarketBlockRecordId(market.marketId, event.block.number);
+  let entry = DayYieldSharesAccruedHistory.load(id);
 
-  const entry = new DayLiquidityTrancheYieldSharesAccruedHistory(
-    generateMarketRecordId(market.marketId, entryIndex)
+  if (!entry) {
+    entry = new DayYieldSharesAccruedHistory(id);
+    // Use-then-increment, and ONLY for a new block.
+    const entryIndex = market.countYieldSharesAccruedEntries;
+    entry.entryIndex = entryIndex;
+    entry.blockNumber = event.block.number;
+    entry.chainId = CHAIN_ID;
+    entry.marketId = market.marketId;
+    entry.marketRefId = market.id;
+    // The two instantaneous shares are DELTAS — seeded so they can accumulate.
+    entry.juniorTrancheYieldShareWAD = BigInt.zero();
+    entry.liquidityTrancheYieldShareWAD = BigInt.zero();
+    entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+    entry.createdAtBlockNumber = event.block.number;
+    entry.createdAtBlockTimestamp = event.block.timestamp;
+    market.countYieldSharesAccruedEntries = entryIndex.plus(BigInt.fromI32(1));
+  }
+
+  // The instantaneous shares ACCUMULATE across the block; the timeWeighted* pair are
+  // running accumulators already, so the latest tick simply wins. Mixing the two rules
+  // in one row is the whole point of the delta-vs-snapshot distinction.
+  entry.juniorTrancheYieldShareWAD = entry.juniorTrancheYieldShareWAD.plus(
+    event.params.jtYieldShareWAD
   );
-  entry.chainId = CHAIN_ID;
-  entry.marketId = market.marketId;
-  entry.marketRefId = market.id;
-  entry.entryIndex = entryIndex;
-  entry.yieldShareWAD = event.params.ltYieldShareWAD; // <- ABI: ltYieldShareWAD
-  entry.timeWeightedYieldShareAccruedWAD =
-    event.params.twLTYieldShareAccruedWAD; // <- ABI: twLTYieldShareAccruedWAD
-  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-  entry.createdAtBlockNumber = event.block.number;
-  entry.createdAtBlockTimestamp = event.block.timestamp;
+  entry.liquidityTrancheYieldShareWAD = entry.liquidityTrancheYieldShareWAD.plus(
+    event.params.lptYieldShareWAD
+  );
+  entry.juniorTrancheTimeWeightedYieldShareAccruedWAD =
+    event.params.twJTYieldShareAccruedWAD;
+  entry.liquidityTrancheTimeWeightedYieldShareAccruedWAD =
+    event.params.twLPTYieldShareAccruedWAD;
+  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
+  entry.updatedAtBlockNumber = event.block.number;
+  entry.updatedAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
-  market.countLiquidityTrancheYieldSharesAccruedEntries = entryIndex.plus(
-    BigInt.fromI32(1)
-  );
   touchMarket(event, market);
 }
 
@@ -523,57 +382,35 @@ export function handleJuniorTrancheYieldShareProtocolFeeUpdated(
 }
 
 export function handleLiquidityTrancheYieldShareProtocolFeeUpdated(
-  event: LiquidityTrancheYieldShareProtocolFeeUpdatedEvent
+  event: LiquidityProviderTrancheYieldShareProtocolFeeUpdatedEvent
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
   market.liquidityTrancheYieldShareProtocolFeeWAD =
-    event.params.ltYieldShareProtocolFeeWAD;
+    event.params.lptYieldShareProtocolFeeWAD;
   touchMarket(event, market);
 }
 
 /**
- * !! THIS HANDLER WRITES TWO FIELDS, AND THE SECOND ONE HAS NO EVENT.
+ * The market's dust tolerance.
  *
- * setSeniorTrancheDustTolerance also recomputes a cached
- * `effectiveNAVDustTolerance = stNAVDustTolerance + jtNAVDustTolerance` in the
- * same call — and the contract emits NOTHING for it. There is no
- * EffectiveNAVDustToleranceUpdated event anywhere in the ABI.
+ * ONE handler, one field. v1 had TWO events (senior + junior) writing three columns,
+ * because the accountant kept a per-tranche tolerance plus a cached
+ * `effectiveNAVDustTolerance = st + jt` that had NO event of its own — so both handlers
+ * had to recompute that sum or the column drifted permanently stale, silently.
  *
- * So DayMarketState.effectiveNAVDustTolerance, seeded from getState() at
- * creation, would drift permanently stale the first time either tolerance moved.
- * Nothing would error; the column would simply stop matching the chain.
- *
- * We recompute it here from the event's new ST value and the market's current JT
- * value rather than calling getState(): the entity already holds the JT value, so
- * the sum is exact and free. The mirror of this lives on the JT handler below —
- * change one and you must change the other.
+ * v2 deletes the whole hazard: senior and junior share one collateral asset, so there is
+ * one tolerance, it has its own event, and it carries its new value. Nothing to
+ * recompute and nothing to keep in sync.
  */
-export function handleSeniorTrancheDustToleranceUpdated(
-  event: SeniorTrancheDustToleranceUpdatedEvent
+export function handleDustToleranceUpdated(
+  event: DustToleranceUpdatedEvent
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
-  market.seniorTrancheDustTolerance = event.params.stNAVDustTolerance;
-  market.effectiveNAVDustTolerance = event.params.stNAVDustTolerance.plus(
-    market.juniorTrancheDustTolerance
-  );
-  touchMarket(event, market);
-}
-
-/** The mirror of the ST handler above — read its note; the same silent field applies. */
-export function handleJuniorTrancheDustToleranceUpdated(
-  event: JuniorTrancheDustToleranceUpdatedEvent
-): void {
-  const market = resolveMarketFromAccountant(event);
-  if (!market) return;
-
-  market.juniorTrancheDustTolerance = event.params.jtNAVDustTolerance;
-  market.effectiveNAVDustTolerance = market.seniorTrancheDustTolerance.plus(
-    event.params.jtNAVDustTolerance
-  );
+  market.dustTolerance = event.params.dustTolerance;
   touchMarket(event, market);
 }
 
@@ -595,11 +432,11 @@ export function handleJuniorTrancheYDMUpdated(
 }
 
 export function handleLiquidityTrancheYDMUpdated(
-  event: LiquidityTrancheYDMUpdatedEvent
+  event: LiquidityProviderTrancheYDMUpdatedEvent
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
-  market.liquidityTrancheYdmAddress = event.params.ltYDM.toHexString();
+  market.liquidityTrancheYdmAddress = event.params.lptYDM.toHexString();
   touchMarket(event, market);
 }

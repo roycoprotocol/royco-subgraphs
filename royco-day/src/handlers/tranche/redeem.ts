@@ -2,9 +2,8 @@ import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import { DayMarketState, DayVaultState } from "../../../generated/schema";
 import {
   CATEGORY_ASSETS,
-  REDEEM_TOKEN_INDEX_JUNIOR_TRANCHE_ASSETS,
+  REDEEM_TOKEN_INDEX_COLLATERAL_ASSETS,
   REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS,
-  REDEEM_TOKEN_INDEX_SENIOR_TRANCHE_ASSETS,
   SUB_CATEGORY_WITHDRAW,
 } from "../../constants";
 import { generateVaultId } from "../../utils";
@@ -13,7 +12,9 @@ import { addTransferActivity } from "../activities/transfer";
 import { RedeemClaims } from "./claims";
 
 /**
- * The ASSET legs of a redeem. Up to three of them, one per non-zero claim.
+ * The ASSET legs of a redeem. Up to TWO of them in v2, one per non-zero claim —
+ * AssetClaims merged its separate senior and junior asset legs into one
+ * `collateralAssets` when the two tranches became coinvested in a single token.
  *
  * NO DayPositionState, NO DayVaultState — and it could not do them correctly
  * anyway. redeem() calls the kernel (which performs the asset transfers), THEN
@@ -50,12 +51,13 @@ export function processRedeem(
   const market = DayMarketState.load(vault.marketRefId);
   if (!market) return;
 
-  // Each leg pays out a DIFFERENT tranche's asset token, so each token comes from
-  // that tranche's own vault row. Four entity loads, zero eth_calls.
+  // The collateral leg's token is read off the SENIOR vault, but it is equally the
+  // junior's — they share one asset in v2, which is why the two legs merged. The
+  // liquidity leg pays a different token, so it comes from its own vault row.
+  // Three entity loads, zero eth_calls.
   const senior = DayVaultState.load(market.seniorTrancheId);
-  const junior = DayVaultState.load(market.juniorTrancheId);
   const liquidity = DayVaultState.load(market.liquidityTrancheId);
-  if (!senior || !junior || !liquidity) return;
+  if (!senior || !liquidity) return;
 
   // Unrolled, not a loop over a lookup table: AS has no closures (§3).
   emitLeg(
@@ -63,23 +65,15 @@ export function processRedeem(
     vault,
     receiver,
     senior,
-    claims.stAssets,
-    REDEEM_TOKEN_INDEX_SENIOR_TRANCHE_ASSETS
-  );
-  emitLeg(
-    event,
-    vault,
-    receiver,
-    junior,
-    claims.jtAssets,
-    REDEEM_TOKEN_INDEX_JUNIOR_TRANCHE_ASSETS
+    claims.collateralAssets,
+    REDEEM_TOKEN_INDEX_COLLATERAL_ASSETS
   );
   emitLeg(
     event,
     vault,
     receiver,
     liquidity,
-    claims.ltAssets,
+    claims.lptAssets,
     REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS
   );
 }
@@ -90,11 +84,10 @@ export function processRedeem(
  * `tokenIndex` is POSITIONAL — it says WHICH claim this is, and it is what makes
  * the three legs' ids distinct on one log. Never derive it from a running counter
  * over the non-zero legs: the leg would then be unrecoverable from Neon, because
- * tokenAddress is the only other clue and the shipped identical-ST/JT kernel gives
- * the senior and junior legs the SAME asset token.
- *
- * For that same reason, never merge two legs that share a token. They are
- * distinct claims; the rows describe claims, which is what Redeem describes.
+ * tokenAddress is the only other clue. In v1 that mattered because the senior and
+ * junior legs shared one asset token; v2 merged those two legs outright, but the
+ * positional rule stands — index 0 is the collateral leg and 1 the liquidity leg
+ * whether or not either is present on a given redeem.
  */
 function emitLeg(
   event: ethereum.Event,

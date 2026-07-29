@@ -11,14 +11,16 @@ import { BigInt } from "@graphprotocol/graph-ts";
  * exists to avoid. Each entry file copies into this class BY NAME instead, so
  * `asc` fails in the drifting tranche's own file if a member is renamed.
  *
- * Mutable fields with defaults, never a positional constructor: five same-typed
+ * FOUR members in v2, not five: the senior and junior asset legs merged into one
+ * `collateralAssets` when the two tranches became coinvested in a single token.
+ *
+ * Mutable fields with defaults, never a positional constructor: four same-typed
  * BigInts in a row guarantee a transposition eventually. Same rule as
  * tests/builders/shared.ts.
  */
 export class RedeemClaims {
-  stAssets: BigInt = BigInt.zero();
-  jtAssets: BigInt = BigInt.zero();
-  ltAssets: BigInt = BigInt.zero();
+  collateralAssets: BigInt = BigInt.zero();
+  lptAssets: BigInt = BigInt.zero();
   stShares: BigInt = BigInt.zero();
   nav: BigInt = BigInt.zero();
 }

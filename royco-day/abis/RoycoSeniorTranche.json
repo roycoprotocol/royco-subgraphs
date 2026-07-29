@@ -208,17 +208,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -338,19 +333,6 @@
   },
   {
     "type": "function",
-    "name": "getRawNAV",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "nav",
-        "type": "uint256",
-        "internalType": "NAV_UNIT"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "initialize",
     "inputs": [
       {
@@ -452,11 +434,6 @@
     "type": "function",
     "name": "mintLiquidityPremiumShares",
     "inputs": [
-      {
-        "name": "_to",
-        "type": "address",
-        "internalType": "address"
-      },
       {
         "name": "_liquidityPremiumShares",
         "type": "uint256",
@@ -608,7 +585,7 @@
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -627,17 +604,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -654,7 +626,7 @@
         ]
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -696,17 +668,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -762,17 +729,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -1056,17 +1018,12 @@
         "internalType": "struct AssetClaims",
         "components": [
           {
-            "name": "stAssets",
+            "name": "collateralAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
           {
-            "name": "jtAssets",
-            "type": "uint256",
-            "internalType": "TRANCHE_UNIT"
-          },
-          {
-            "name": "ltAssets",
+            "name": "lptAssets",
             "type": "uint256",
             "internalType": "TRANCHE_UNIT"
           },
@@ -1364,12 +1321,12 @@
   },
   {
     "type": "error",
-    "name": "INVALID_IMPLEMENTATION",
+    "name": "INVALID_DEPOSIT_NAV",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "INVALID_VALUE_ALLOCATED",
+    "name": "INVALID_IMPLEMENTATION",
     "inputs": []
   },
   {
@@ -1416,6 +1373,11 @@
   {
     "type": "error",
     "name": "ONLY_KERNEL",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SIMULATION_CANNOT_MUTATE_STATE",
     "inputs": []
   },
   {

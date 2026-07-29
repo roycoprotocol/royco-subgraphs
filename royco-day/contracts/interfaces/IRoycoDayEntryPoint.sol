@@ -1,0 +1,471 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Perimeter-1.0.1
+pragma solidity ^0.8.28;
+
+import { AssetClaims, TrancheType } from "../libraries/Types.sol";
+import { NAV_UNIT, TRANCHE_UNIT } from "../libraries/Units.sol";
+
+/**
+ * @title IRoycoDayEntryPoint
+ * @notice Interface for the RoycoDayEntryPoint contract enabling asynchronous deposit and redemption flows on Royco Tranches
+ * @dev Requests escrow assets or shares behind per-tranche delays, an optional oracle-clock gate, and an expiry window
+ *      that saturates at type(uint32).max (a maximal window effectively never expires).
+ *      A queued request can never capture favorable price movement during its delay: a deposit is pinned to the shares it
+ *      would have minted at request time and a redemption to the value its shares were worth at request time, with any
+ *      excess forfeited to the protocol as fee shares. Once a request's expiry window elapses it may only be cancelled
+ */
+interface IRoycoDayEntryPoint {
+    /**
+     * @notice Storage state for the Royco entry point
+     * @custom:storage-location erc7201:Royco.storage.RoycoDayEntryPoint
+     * @custom:field lastRequestNonce - The last assigned request nonce
+     * @custom:field trancheToConfig - A mapping of tranches to their enriched entry point configurations
+     * @custom:field userToNonceToDepositRequest - A mapping tracking each user's deposit requests by nonce
+     * @custom:field userToNonceToRedemptionRequest - A mapping tracking each user's redemption requests by nonce
+     * @custom:field trancheToProtocolFeeShares - A mapping tracking the protocol fee shares accrued for each tranche
+     */
+    struct RoycoDayEntryPointState {
+        uint256 lastRequestNonce;
+        mapping(address tranche => EnrichedTrancheConfig config) trancheToConfig;
+        mapping(address user => mapping(uint256 requestNonce => DepositRequest request)) userToNonceToDepositRequest;
+        mapping(address user => mapping(uint256 requestNonce => RedemptionRequest request)) userToNonceToRedemptionRequest;
+        mapping(address tranche => uint256 protocolFeeShares) trancheToProtocolFeeShares;
+    }
+
+    /**
+     * @notice Configuration for a tranche on this entry point
+     * @custom:field enabled - Whether the tranche is enabled for deposits and redemptions
+     * @custom:field depositDelaySeconds - The delay in seconds between deposit request and execution
+     * @custom:field depositExpirySeconds - The length in seconds of a deposit request's execution window, measured from
+     *                                      the moment it becomes executable, saturates at type(uint32).max
+     * @custom:field redemptionDelaySeconds - The delay in seconds between redemption request and execution
+     * @custom:field redemptionExpirySeconds - The length in seconds of a redemption request's execution window, measured
+     *                                         from the moment it becomes executable, saturates at type(uint32).max
+     * @custom:field gateByOracleUpdate - Whether execution is gated on at least one collateral asset oracle update observed after the request
+     */
+    struct TrancheConfig {
+        bool enabled;
+        uint24 depositDelaySeconds;
+        uint32 depositExpirySeconds;
+        uint24 redemptionDelaySeconds;
+        uint32 redemptionExpirySeconds;
+        bool gateByOracleUpdate;
+    }
+
+    /**
+     * @notice Enriched configuration containing the tranche's asset, market kernel, tranche type, and base config
+     * @custom:field trancheType - The type of the tranche (senior, junior, or liquidity)
+     * @custom:field kernel - The kernel of the market that the tranche belongs to
+     * @custom:field asset - The underlying asset of the tranche
+     * @custom:field baseConfig - The base configuration for the tranche
+     */
+    struct EnrichedTrancheConfig {
+        TrancheType trancheType;
+        address kernel;
+        address asset;
+        TrancheConfig baseConfig;
+    }
+
+    /**
+     * @notice A pending deposit request
+     * @custom:field assets - The amount of assets requested to be deposited
+     * @custom:field equivalentSharesAtRequestTime - The amount of tranche shares equivalent to the requested assets at request time
+     * @custom:field baseRequest - The base request data shared across request types
+     */
+    struct DepositRequest {
+        TRANCHE_UNIT assets;
+        uint256 equivalentSharesAtRequestTime;
+        BaseRequest baseRequest;
+    }
+
+    /**
+     * @notice The asset composition a redemption exits to
+     * @dev The senior and junior tranches only ever redeem in-kind while the liquidity provider tranche can use any of the three
+     * @custom:field INKIND - Redeem in-kind: collateral assets for the senior and junior tranches, and the LP token plus the idle senior shares for the liquidity provider tranche
+     * @custom:field MULTIASSET - Liquidity provider tranche only: exit to the LP token's underlying constituent plus the quote asset
+     * @custom:field OPTIMIZED - Liquidity provider tranche only: redeem in-kind when the in-kind bound serves the whole request, otherwise take whichever of the in-kind or multi-asset bound redeems more shares
+     */
+    enum RedemptionMode {
+        INKIND,
+        MULTIASSET,
+        OPTIMIZED
+    }
+
+    /**
+     * @notice A pending redemption request
+     * @custom:field shares - The amount of escrowed shares pending redemption
+     * @custom:field valueAtRequestTime - The total value of the escrowed shares at request time
+     * @custom:field mode - The asset composition this redemption exits to
+     * @custom:field baseRequest - The base request data shared across request types
+     */
+    struct RedemptionRequest {
+        uint256 shares;
+        NAV_UNIT valueAtRequestTime;
+        RedemptionMode mode;
+        BaseRequest baseRequest;
+    }
+
+    /**
+     * @notice Base request data shared across deposit and redemption requests
+     * @custom:field tranche - The Royco tranche that this request is for
+     * @custom:field queuedAtTimestamp - The timestamp at which the request was queued: execution requires the tranche's collateral asset oracle to report an update strictly after it
+     * @custom:field executableAtTimestamp - The timestamp after which the request can be executed
+     * @custom:field expiresAtTimestamp - The timestamp at or after which the request can no longer be executed and may only be cancelled (saturated at type(uint32).max: a maximal value effectively never arrives)
+     * @custom:field executorBonusWAD - The bonus percentage (0-100%) paid to third-party executors, scaled to WAD precision
+     *                                  Set to type(uint64).max to restrict execution to the request owner only
+     * @custom:field receiver - The address that will receive the output assets or shares
+     */
+    struct BaseRequest {
+        address tranche;
+        uint32 queuedAtTimestamp;
+        uint32 executableAtTimestamp;
+        uint32 expiresAtTimestamp;
+        uint64 executorBonusWAD;
+        address receiver;
+    }
+
+    /**
+     * @notice Emitted when a user requests a deposit
+     * @param user The user requesting the deposit
+     * @param nonce The nonce identifying this request
+     * @param tranche The tranche for which the deposit was requested
+     * @param request The complete deposit request snapshot
+     */
+    event DepositRequested(address indexed user, uint256 indexed nonce, address indexed tranche, DepositRequest request);
+
+    /**
+     * @notice Emitted when a deposit request is executed
+     * @param user The user whose deposit request was executed
+     * @param nonce The nonce identifying the executed request
+     * @param executor The address that executed the request (user or executor)
+     * @param assetsDeposited The amount of assets deposited into the tranche
+     * @param sharesMinted The tranche shares minted for the user after share forfeiture (the receiver's and the executor's portions combined)
+     * @param protocolFeeShares The shares minted in excess of the request-time equivalent share count, forfeited to the protocol (zero if the tranche's share price did not fall during the request lifecycle)
+     * @param bonusShares The tranche shares paid to the executor as a bonus (0 if self-executed)
+     */
+    event DepositExecuted(
+        address indexed user,
+        uint256 indexed nonce,
+        address indexed executor,
+        TRANCHE_UNIT assetsDeposited,
+        uint256 sharesMinted,
+        uint256 protocolFeeShares,
+        uint256 bonusShares
+    );
+
+    /**
+     * @notice Emitted when a deposit request is cancelled
+     * @param user The user whose deposit request was cancelled
+     * @param nonce The nonce identifying the cancelled request
+     * @param receiver The address that received the returned escrowed assets
+     * @param assets The amount of assets returned
+     */
+    event DepositRequestCancelled(address indexed user, uint256 indexed nonce, address receiver, TRANCHE_UNIT assets);
+
+    /**
+     * @notice Emitted when a user requests a redemption
+     * @param user The user requesting the redemption
+     * @param nonce The nonce identifying this request
+     * @param tranche The tranche for which the redemption was requested
+     * @param request The complete redemption request snapshot
+     */
+    event RedemptionRequested(address indexed user, uint256 indexed nonce, address indexed tranche, RedemptionRequest request);
+
+    /**
+     * @notice Emitted when a redemption request is executed
+     * @param user The user whose redemption request was executed
+     * @param nonce The nonce identifying the executed request
+     * @param executor The address that executed the request (user or executor)
+     * @param sharesRedeemed The shares redeemed for the user (the receiver's and the executor's portions combined)
+     * @param executedMode The asset composition actually used for this fill; OPTIMIZED resolves to INKIND or MULTIASSET
+     * @param protocolFeeShares The shares forfeited to the protocol equating to the value the escrowed shares accrued during the request lifecycle (zero if their value did not increase)
+     * @param userClaims The asset claims withdrawn to the receiver
+     * @param quoteAssets The quote withdrawn to the receiver (zero unless a liquidity provider tranche redemption exits multi-asset)
+     * @param bonusClaims The asset claims paid to the executor as a bonus (zero if self-executed)
+     * @param bonusQuoteAssets The quote paid to the executor as a bonus (zero if self-executed)
+     */
+    event RedemptionExecuted(
+        address indexed user,
+        uint256 indexed nonce,
+        address indexed executor,
+        uint256 sharesRedeemed,
+        RedemptionMode executedMode,
+        uint256 protocolFeeShares,
+        AssetClaims userClaims,
+        uint256 quoteAssets,
+        AssetClaims bonusClaims,
+        uint256 bonusQuoteAssets
+    );
+
+    /**
+     * @notice Emitted when a redemption request is cancelled
+     * @param user The user whose redemption request was cancelled
+     * @param nonce The nonce identifying the cancelled request
+     * @param receiver The address that received the returned escrowed shares
+     * @param shares The amount of shares returned
+     */
+    event RedemptionRequestCancelled(address indexed user, uint256 indexed nonce, address receiver, uint256 shares);
+
+    /**
+     * @notice Emitted when a tranche's entry point configuration is updated
+     * @param tranche The tranche that the configuration was updated for
+     * @param config The new tranche configuration
+     */
+    event TrancheConfigUpdated(address indexed tranche, TrancheConfig config);
+
+    /**
+     * @notice Emitted when a tranche's collateral asset oracle is poked
+     * @param tranche The tranche whose collateral asset oracle was poked
+     * @param lastUpdateTimestamp The clock's last update timestamp after the poke
+     */
+    event CollateralAssetOraclePoked(address indexed tranche, uint32 lastUpdateTimestamp);
+
+    /**
+     * @notice Emitted when protocol fee shares are collected
+     * @param tranche The tranche from which protocol fee shares were collected
+     * @param receiver The address that received the collected shares
+     * @param shares The amount of shares collected
+     */
+    event ProtocolFeeSharesCollected(address indexed tranche, address indexed receiver, uint256 shares);
+
+    /// @dev Thrown when the specified tranche wasn't deployed by the canonical Royco Factory
+    error INVALID_TRANCHE();
+
+    /// @dev Thrown when passing a zero amount as input
+    error MUST_EXECUTE_NON_ZERO_AMOUNT();
+
+    /// @dev Thrown when the lengths of provided arrays do not match
+    error ARRAY_LENGTH_MISMATCH();
+
+    /// @dev Thrown when attempting to request a deposit or redemption for a tranche that is not enabled
+    error TRANCHE_NOT_ENABLED();
+
+    /// @dev Thrown when a request does not exist, was already executed/cancelled, or is not yet executable
+    error INVALID_REQUEST(uint256 requestNonce);
+
+    /// @dev Thrown when executing a request whose execution window has elapsed: an expired request may only be cancelled
+    error REQUEST_EXPIRED(uint256 requestNonce);
+
+    /// @dev Thrown when requesting a redemption mode the tranche does not support (only the liquidity provider tranche supports MULTIASSET and OPTIMIZED)
+    error UNSUPPORTED_REDEMPTION_MODE();
+
+    /// @dev Thrown when executing a request before the tranche's collateral asset oracle has observed an oracle update after the request was placed
+    error COLLATERAL_ASSET_ORACLE_NOT_ADVANCED(uint256 requestNonce);
+
+    /// @dev Thrown when a poked collateral asset oracle reports a future update timestamp
+    error COLLATERAL_ASSET_ORACLE_IN_THE_FUTURE();
+
+    /// @dev Thrown when the executor bonus is not strictly less than 100% (WAD) and is not the opt-out sentinel value
+    error INVALID_EXECUTOR_BONUS();
+
+    /// @dev Thrown when a non-owner attempts to execute a request that has opted out of executor execution
+    error THIRD_PARTY_EXECUTION_DISABLED();
+
+    /**
+     * @notice Requests a deposit into the tranche, escrowing assets until the delay period elapses and the request is executed
+     * @dev The caller and receiver are screened against the market's blacklist through the tranche's kernel
+     * @param _tranche The tranche to deposit into
+     * @param _assets The amount of underlying assets to deposit, denominated in tranche asset units
+     * @param _receiver The address that will receive the minted tranche shares
+     * @param _executorBonusWAD The bonus percentage (0-100%), scaled to WAD precision, to pay executors for executing this request (use type(uint64).max to restrict execution to self only)
+     * @return requestNonce The unique nonce identifying this deposit request
+     * @return executableAtTimestamp The timestamp at which this request can be executed
+     * @return expiresAtTimestamp The timestamp at or after which this request can no longer be executed and may only be cancelled (saturated at type(uint32).max: a maximal value effectively never arrives)
+     */
+    function requestDeposit(
+        address _tranche,
+        TRANCHE_UNIT _assets,
+        address _receiver,
+        uint64 _executorBonusWAD
+    )
+        external
+        returns (uint256 requestNonce, uint32 executableAtTimestamp, uint32 expiresAtTimestamp);
+
+    /**
+     * @notice Executes multiple pending deposit requests across the specified users
+     * @dev Revert tolerant: a reverting request doesn't revert the entire batch
+     * @param _users The users whose deposit requests should be executed
+     * @param _requestNonces The nonces of the deposit requests to execute
+     * @param _assetsToDeposit The amounts of assets to deposit for each request (use MAX_TRANCHE_UNITS to deposit min(requestedAssets, maxDeposit))
+     * @return trancheSharesMinted The amounts of tranche shares minted for each executed request (zero for a skipped request)
+     */
+    function executeDeposits(
+        address[] calldata _users,
+        uint256[] calldata _requestNonces,
+        TRANCHE_UNIT[] calldata _assetsToDeposit
+    )
+        external
+        returns (uint256[] memory trancheSharesMinted);
+
+    /**
+     * @notice Executes a pending deposit request for the specified user
+     * @dev The request must exist and the configured delay period must have elapsed
+     *      If executed by a third party, the executor bonus is paid in freshly minted tranche shares: the full asset
+     *      amount is deposited and the executor takes a share slice of the user's post-forfeiture mint
+     *      The executor and request owner are screened against the market's blacklist through the tranche's kernel (the share transfers screen the receiver and executor through the kernel's balance update hook)
+     * @param _user The user whose deposit request should be executed
+     * @param _requestNonce The nonce of the deposit request to execute
+     * @param _assetsToDeposit The amount of assets to deposit (use MAX_TRANCHE_UNITS to deposit the maximum possible)
+     * @return trancheSharesMinted The tranche shares minted for the user (the receiver's and the executor's portions combined)
+     */
+    function executeDeposit(address _user, uint256 _requestNonce, TRANCHE_UNIT _assetsToDeposit) external returns (uint256 trancheSharesMinted);
+
+    /**
+     * @notice Cancels multiple pending deposit requests for the caller, returning escrowed assets
+     * @param _requestNonces The nonces of the deposit requests to cancel
+     * @param _receiver The address to receive the returned escrowed assets
+     */
+    function cancelDepositRequests(uint256[] calldata _requestNonces, address _receiver) external;
+
+    /**
+     * @notice Cancels a pending deposit request for the caller, returning escrowed assets
+     * @dev The caller and receiver are screened against the market's blacklist through the tranche's kernel
+     * @param _requestNonce The nonce of the deposit request to cancel
+     * @param _receiver The address to receive the returned escrowed assets
+     */
+    function cancelDepositRequest(uint256 _requestNonce, address _receiver) external;
+
+    /**
+     * @notice Requests a redemption from the tranche, escrowing tranche shares until the delay period elapses and the request is executed
+     * @dev The caller and receiver are screened against the market's blacklist through the tranche's kernel
+     * @param _tranche The tranche to redeem shares from
+     * @param _shares The amount of tranche shares to redeem
+     * @param _receiver The address that will receive the assets withdrawn upon redemption
+     * @param _executorBonusWAD The bonus percentage, scaled to WAD precision, to pay executors for executing this request (use type(uint64).max to opt out of executor execution entirely)
+     * @param _mode The asset composition this redemption exits to; the senior and junior tranches only support INKIND (see RedemptionMode)
+     * @return requestNonce The unique nonce identifying this redemption request
+     * @return executableAtTimestamp The timestamp at which this request can be executed
+     * @return expiresAtTimestamp The timestamp at or after which this request can no longer be executed and may only be cancelled (saturated at type(uint32).max: a maximal value effectively never arrives)
+     */
+    function requestRedemption(
+        address _tranche,
+        uint256 _shares,
+        address _receiver,
+        uint64 _executorBonusWAD,
+        RedemptionMode _mode
+    )
+        external
+        returns (uint256 requestNonce, uint32 executableAtTimestamp, uint32 expiresAtTimestamp);
+
+    /**
+     * @notice Executes multiple pending redemption requests across the specified users
+     * @dev Each request's exit route is fixed by its own RedemptionMode chosen at request time (see executeRedemption)
+     * @dev Revert tolerant: a reverting request doesn't revert the entire batch
+     * @param _users The users whose redemption requests should be executed
+     * @param _requestNonces The nonces of the redemption requests to execute
+     * @param _sharesToRedeem The amount of shares to redeem for the redemption requests to execute (use type(uint256).max to redeem the maximum possible)
+     * @return userClaims The assets withdrawn to the request-specific receiver upon executing each executed request (zero claims for a skipped request)
+     * @return quoteAssets The quote withdrawn to the request-specific receiver by each executed request (zero unless a liquidity provider tranche redemption exits multi-asset)
+     */
+    function executeRedemptions(
+        address[] calldata _users,
+        uint256[] calldata _requestNonces,
+        uint256[] calldata _sharesToRedeem
+    )
+        external
+        returns (AssetClaims[] memory userClaims, uint256[] memory quoteAssets);
+
+    /**
+     * @notice Executes a pending redemption request for the specified user
+     * @dev The request must exist and the configured delay period must have elapsed
+     *      The exit route follows the request's RedemptionMode (fixed at request time): INKIND redeems in-kind;
+     *      MULTIASSET exits the liquidity provider tranche to the LP token's constituent plus quote; OPTIMIZED redeems
+     *      in-kind when the in-kind bound serves the whole target and otherwise fills up to whichever of the in-kind or
+     *      multi-asset bound is wider (equal bounds stay in-kind), so a redemption the market can serve is never left
+     *      behind by the in-kind gate. A type(uint256).max amount targets the whole remaining request capped at the
+     *      mode's bound; an explicit amount targets exactly that many shares
+     *      The executor and request owner are screened against the market's blacklist through the tranche's kernel, and a bonus-remitting third party execution screens the receiver as well (a self execution's redemption screens the receiver)
+     * @param _user The user whose redemption request should be executed
+     * @param _requestNonce The nonce of the redemption request to execute
+     * @param _sharesToRedeem The amount of shares to redeem (use type(uint256).max to redeem the maximum possible)
+     * @return userClaims The assets withdrawn to the request-specific receiver upon executing this redemption request
+     * @return quoteAssets The quote withdrawn to the request-specific receiver (zero unless the redemption exits multi-asset)
+     */
+    function executeRedemption(
+        address _user,
+        uint256 _requestNonce,
+        uint256 _sharesToRedeem
+    )
+        external
+        returns (AssetClaims memory userClaims, uint256 quoteAssets);
+
+    /**
+     * @notice Cancels multiple pending redemption requests for the caller, returning escrowed shares
+     * @param _requestNonces The nonces of the redemption requests to cancel
+     * @param _receiver The address to receive the returned escrowed shares
+     */
+    function cancelRedemptionRequests(uint256[] calldata _requestNonces, address _receiver) external;
+
+    /**
+     * @notice Cancels a pending redemption request for the caller, returning escrowed shares
+     * @dev The caller and receiver are screened against the market's blacklist through the tranche's kernel
+     * @param _requestNonce The nonce of the redemption request to cancel
+     * @param _receiver The address to receive the returned escrowed shares
+     */
+    function cancelRedemptionRequest(uint256 _requestNonce, address _receiver) external;
+
+    /**
+     * @notice Pokes the tranche's collateral asset oracle, checkpointing any pending source update
+     * @param _tranche The tranche whose collateral asset oracle to poke
+     * @return lastUpdatedAt The clock's last update timestamp after the poke (zero when the tranche has no clock or it has observed no update yet)
+     */
+    function pokeCollateralAssetOracle(address _tranche) external returns (uint32 lastUpdatedAt);
+
+    /**
+     * @notice Modifies the entry point configuration for the specified tranches
+     * @param _tranches The tranches to modify configurations for
+     * @param _configs The new configurations for each tranche
+     */
+    function modifyTrancheConfigs(address[] calldata _tranches, TrancheConfig[] calldata _configs) external;
+
+    /**
+     * @notice Collects accumulated protocol fee shares from the specified tranches
+     * @param _tranches The tranches to collect protocol fees from
+     * @param _sharesToClaim The amount of protocol fee shares to claim for each tranche (use type(uint256).max to claim all available)
+     * @param _receiver The address to receive the collected protocol fee shares
+     */
+    function collectProtocolFees(address[] calldata _tranches, uint256[] calldata _sharesToClaim, address _receiver) external;
+
+    /**
+     * =============================
+     * State Accessor Functions
+     * =============================
+     */
+
+    /// @notice Returns the canonical Royco factory used to validate tranche provenance
+    /// @return roycoFactory The address of the canonical Royco factory
+    function ROYCO_FACTORY() external view returns (address roycoFactory);
+
+    /// @notice Returns the last assigned request nonce
+    /// @return nonce The last request nonce that was assigned
+    function getLastRequestNonce() external view returns (uint256 nonce);
+
+    /**
+     * @notice Returns the configuration for a specific tranche
+     * @param _tranche The tranche to get configuration for
+     * @return config The enriched configuration for the tranche
+     */
+    function getTrancheConfig(address _tranche) external view returns (EnrichedTrancheConfig memory config);
+
+    /**
+     * @notice Returns a deposit request for a specific user and nonce
+     * @param _user The user who owns the deposit request
+     * @param _requestNonce The nonce of the deposit request
+     * @return request The deposit request data
+     */
+    function getDepositRequest(address _user, uint256 _requestNonce) external view returns (DepositRequest memory request);
+
+    /**
+     * @notice Returns a redemption request for a specific user and nonce
+     * @param _user The user who owns the redemption request
+     * @param _requestNonce The nonce of the redemption request
+     * @return request The redemption request data
+     */
+    function getRedemptionRequest(address _user, uint256 _requestNonce) external view returns (RedemptionRequest memory request);
+
+    /**
+     * @notice Returns the accumulated protocol fee shares for a specific tranche
+     * @param _tranche The tranche to get protocol fee shares for
+     * @return shares The amount of protocol fee shares accumulated for the tranche
+     */
+    function getProtocolFeeSharesPendingCollection(address _tranche) external view returns (uint256 shares);
+}
