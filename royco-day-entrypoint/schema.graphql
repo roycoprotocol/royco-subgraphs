@@ -1,12 +1,14 @@
 # royco-day-entrypoint schema — the RoycoDayEntryPoint async deposit/redemption
 # queue for Royco Day 3-tranche markets. Fresh Day-prefixed Neon tables
-# (day_entry_point_state / day_entry_point_request / day_entry_point_execution),
+# (day_entry_point_state / day_entry_point_request / day_entry_point_execution /
+# day_entry_point_protocol_fee_collection),
 # separate from royco-rwa's entry_point_*.
 #
-# Field names follow the entry-point contract naming (st*/jt*/lt*, category/
-# subCategory, curr/init) so Day reuses the backend/frontend EntrypointRequest
-# shape with additive lt/stShares/nav/quote fields. Names become snake_case Neon
-# columns — frozen after first deploy; add a field, never rename one.
+# Field names follow the entry-point contract naming (category/subCategory,
+# curr/init) so Day reuses the backend/frontend EntrypointRequest shape with
+# additive request-time reference, LPT, route, and claim fields. Names become
+# snake_case Neon columns — frozen after first deploy; add a field, never rename
+# one.
 
 # !! FROZEN SHARED-TABLE CONTRACT — DO NOT EDIT THE FIELD SET !!
 # GlobalTokenActivity is byte-identical to royco-rwa / royco-day markets and sinks
@@ -36,8 +38,34 @@ type GlobalTokenActivity @entity(immutable: true) {
   createdAt: BigInt!
 }
 
+type DayEntryPointDeploymentState @entity(immutable: false) {
+  id: String! # <CHAIN_ID>_<ENTRY_POINT_ADDRESS>
+  chainId: BigInt!
+  version: BigInt!
+  entryPointAddress: String!
+  isPaused: Boolean!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type DayEntryPointProtocolFeeCollection @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<TRANSACTION_HASH>_<LOG_INDEX>
+  chainId: BigInt!
+  version: BigInt!
+  entryPointAddress: String!
+  trancheAddress: String! # <- ProtocolFeeSharesCollected.tranche
+  vaultId: String! # <CHAIN_ID>_<TRANCHE_ADDRESS>
+  receiverAddress: String! # <- ProtocolFeeSharesCollected.receiver
+  shares: BigInt! # <- ProtocolFeeSharesCollected.shares
+  createdAtBlockNumber: BigInt!
+  createdAtBlockTimestamp: BigInt!
+  createdAtTransactionHash: String!
+  createdAtLogIndex: BigInt!
+  createdAt: BigInt!
+}
+
 # Per (entryPoint, tranche) config. Upserted from TrancheConfigUpdated, created
-# lazily on the first request for a tranche.
+# lazily on the first request or collateral-oracle poke for a tranche.
 type DayEntryPointState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<ENTRY_POINT_ADDRESS>_<TRANCHE_ADDRESS>
   chainId: BigInt!
@@ -51,8 +79,11 @@ type DayEntryPointState @entity(immutable: false) {
   shareTokenId: String!
   isEnabled: Boolean! # <- config.enabled
   depositDelaySeconds: BigInt! # <- config.depositDelaySeconds (uint24)
+  depositExpirySeconds: BigInt! # <- config.depositExpirySeconds (uint32)
   redemptionDelaySeconds: BigInt! # <- config.redemptionDelaySeconds (uint24)
-  oracleClockAddress: String! # <- config.oracleClock (ZERO_ADDRESS disables the gate)
+  redemptionExpirySeconds: BigInt! # <- config.redemptionExpirySeconds (uint32)
+  gateByOracleUpdate: Boolean! # <- config.gateByOracleUpdate
+  latestOracleUpdateTimestamp: BigInt!
   createdAt: BigInt!
   updatedAt: BigInt!
 }
@@ -63,11 +94,10 @@ type DayEntryPointState @entity(immutable: false) {
 # executions reduce currValue to zero (-> completed), cancel zeroes it
 # (-> cancelled). Each fill's own delta is in DayEntryPointExecution.
 #
-# !! SUM RULE — each *Executed reduces currValue by the SUM of two event legs,
-#    not one (verified against RoycoDayEntryPoint.sol):
-#      deposit:    currValue -= assetsDeposited + bonusAssets
+# !! ESCROW RULE (verified against RoycoDayEntryPoint.sol):
+#      deposit:    currValue -= assetsDeposited
 #      redemption: currValue -= sharesRedeemed + protocolFeeShares
-#    Using only the primary leg leaves the request perpetually "partial".
+#    Deposit bonusShares are paid out of sharesMinted and consume no extra assets.
 type DayEntryPointRequest @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<ENTRY_POINT_ADDRESS>_<NONCE>
   chainId: BigInt!
@@ -77,6 +107,7 @@ type DayEntryPointRequest @entity(immutable: false) {
   vaultAddress: String! # tranche <- *Requested.tranche
   vaultId: String! # <CHAIN_ID>_<TRANCHE_ADDRESS>
   accountAddress: String! # <- *Requested.user
+  requestReceiverAddress: String! # <- *Requested.receiver
   category: String! # "assets" (deposit) | "shares" (redemption)
   subCategory: String! # "deposit" | "withdraw"
   tokenId: String!
@@ -84,34 +115,37 @@ type DayEntryPointRequest @entity(immutable: false) {
   currValue: BigInt! # remaining escrow (assets for deposits, shares for redemptions)
   initValue: BigInt! # <- *Requested.assets / .shares
   status: String! # "pending" | "partiallyFilled" | "cancelled" | "completed"
-  queuedAtTimestamp: BigInt! # request block timestamp
-  executableAtTimestamp: BigInt! # <- *Requested.executableAtTimestamp
-  executorBonusWAD: BigInt! # <- *Requested.executorBonusWAD; type(uint64).max = self-only
+  queuedAtTimestamp: BigInt! # <- request.baseRequest.queuedAtTimestamp
+  executableAtTimestamp: BigInt! # <- request.baseRequest.executableAtTimestamp
+  expiresAtTimestamp: BigInt! # <- request.baseRequest.expiresAtTimestamp (execution requires now < expiry)
+  executorBonusWAD: BigInt! # <- request.baseRequest.executorBonusWAD; type(uint64).max = self-only
   selfExecutionOnly: Boolean! # executorBonusWAD == type(uint64).max
+  equivalentSharesAtRequestTime: BigInt! # deposit-only initial share-price reference; 0 for redemptions
+  remainingEquivalentSharesAtRequestTime: BigInt! # deposit-only reference after partial fills
+  valueAtRequestTime: BigInt! # redemption-only initial NAV reference; 0 for deposits
+  remainingValueAtRequestTime: BigInt! # redemption-only reference after partial fills
+  requestedRedemptionMode: Int # redemption-only: 0 INKIND, 1 MULTIASSET, 2 OPTIMIZED
   protocolFeeShares: BigInt! # cumulative shares forfeited to the protocol (yield forfeiture)
   # Deposit aggregates (zero for redemptions)
-  assetsDeposited: BigInt! # <- DepositExecuted.assetsDeposited (post-bonus)
-  assetsBonus: BigInt! # <- DepositExecuted.bonusAssets
+  assetsDeposited: BigInt! # <- DepositExecuted.assetsDeposited
   sharesMinted: BigInt! # <- DepositExecuted.sharesMinted
-  # Redemption aggregates (zero for deposits): the AssetClaims quintuple + quote
-  # leg, split into user and executor-bonus claims. Day adds lt/stShares/nav/quote
-  # over rwa's (st, jt) only.
+  bonusShares: BigInt! # <- DepositExecuted.bonusShares (included in sharesMinted)
+  # Redemption aggregates (zero for deposits): AssetClaims + quote, split into
+  # user and executor-bonus claims. Day adds LPT/stShares/nav/quote lanes.
   sharesRedeemed: BigInt! # <- RedemptionExecuted.sharesRedeemed
-  stAssetsUserClaims: BigInt!
-  jtAssetsUserClaims: BigInt!
-  ltAssetsUserClaims: BigInt!
+  collateralAssetsUserClaims: BigInt!
+  lptAssetsUserClaims: BigInt!
   stSharesUserClaims: BigInt!
   navUserClaims: BigInt!
-  quoteAssetsUserClaims: BigInt! # <- quoteAssets (0 unless a multi-asset LT exit)
-  stAssetsBonusClaims: BigInt!
-  jtAssetsBonusClaims: BigInt!
-  ltAssetsBonusClaims: BigInt!
+  quoteAssetsUserClaims: BigInt! # <- quoteAssets (0 unless a multi-asset LPT exit)
+  collateralAssetsBonusClaims: BigInt!
+  lptAssetsBonusClaims: BigInt!
   stSharesBonusClaims: BigInt!
   navBonusClaims: BigInt!
   quoteAssetsBonusClaims: BigInt! # <- bonusQuoteAssets
   # Set on cancellation (ZERO_ADDRESS / 0 otherwise). The cancel receiver can
-  # differ from the request's payout receiver (which the *Requested events don't
-  # emit, so it is not indexed).
+  # differ from requestReceiverAddress, which is the payout receiver captured by
+  # the corresponding *Requested event.
   cancelReceiverAddress: String! # <- *RequestCancelled.receiver
   cancelledAmount: BigInt! # <- *RequestCancelled.assets / .shares (escrow returned)
   createdAtBlockNumber: BigInt!
@@ -144,25 +178,26 @@ type DayEntryPointExecution @entity(immutable: true) {
   executorAddress: String! # <- *Executed.executor (msg.sender of the fill)
   category: String! # "assets" | "shares"
   subCategory: String! # "deposit" | "withdraw"
-  consumed: BigInt! # escrow consumed by this fill (the SUM: see the request's SUM RULE)
+  consumed: BigInt! # escrow consumed by this fill (see the request's ESCROW RULE)
   remainingAfter: BigInt! # request.currValue after this fill
   statusAfter: String! # request.status after this fill ("partiallyFilled" | "completed")
+  equivalentSharesAtRequestTime: BigInt! # deposit fill's request-time reference; 0 for redemptions
+  valueAtRequestTime: BigInt! # redemption fill's request-time reference; 0 for deposits
+  executedRedemptionMode: Int # redemption-only actual route: 0 INKIND or 1 MULTIASSET
   protocolFeeShares: BigInt! # this fill's forfeited shares
   # Deposit legs (zero for redemptions)
   assetsDeposited: BigInt!
-  assetsBonus: BigInt!
   sharesMinted: BigInt!
+  bonusShares: BigInt!
   # Redemption legs (zero for deposits)
   sharesRedeemed: BigInt!
-  stAssetsUserClaims: BigInt!
-  jtAssetsUserClaims: BigInt!
-  ltAssetsUserClaims: BigInt!
+  collateralAssetsUserClaims: BigInt!
+  lptAssetsUserClaims: BigInt!
   stSharesUserClaims: BigInt!
   navUserClaims: BigInt!
   quoteAssetsUserClaims: BigInt!
-  stAssetsBonusClaims: BigInt!
-  jtAssetsBonusClaims: BigInt!
-  ltAssetsBonusClaims: BigInt!
+  collateralAssetsBonusClaims: BigInt!
+  lptAssetsBonusClaims: BigInt!
   stSharesBonusClaims: BigInt!
   navBonusClaims: BigInt!
   quoteAssetsBonusClaims: BigInt!
