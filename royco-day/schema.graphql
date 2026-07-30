@@ -128,6 +128,18 @@ type DayMarketState @entity(immutable: false) {
   lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp <- ABI: lastYieldShareAccrualTimestamp
   lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp <- ABI: lastPremiumPaymentTimestamp
   timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD (uint128 -> BigInt, direct)
+  # ^ A SAWTOOTH, NOT A LIFETIME TOTAL. Both timeWeighted* accumulate on every accrual and
+  #   are ZEROED whenever premiums are paid out of ST yield, so a negative delta between
+  #   reads is the reset, not a data error. They measure only what has accrued SINCE
+  #   lastPremiumPaymentTimestamp, which is the field to segment them by.
+  #
+  # !! SOURCED FROM getState() ON EVERY SYNC, not from YieldSharesAccrued alone. The
+  #    event carries the POST-increment values and the same call then deletes both
+  #    (RoycoDayAccountant.sol:163-168) emitting nothing — no accountant event signals the
+  #    reset — so an event-only column could ratchet up and never come back down. It would
+  #    also contradict lastPremiumPaymentTimestamp, which the reset stamps in the same
+  #    block. See refreshMarketStoredState. (DayYieldSharesAccruedHistory's copies stay
+  #    event-sourced: a history row wants the value at that instant, pre-reset.)
   maxJuniorTrancheYieldShareAccruedWAD: BigInt! # Max Junior Tranche Yield Share WAD <- ABI: maxJTYieldShareWAD
   # ^ NOTE: this is a CONFIGURED CAP (set via setMaxYieldShares / MaxYieldSharesUpdated),
   #   NOT an accrual — despite the "Accrued" in the field name. The real accrual is
@@ -191,6 +203,35 @@ type DayMarketState @entity(immutable: false) {
   liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>
   quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.QUOTE_ASSET()
   quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>
+  quoteAssetTokenDecimals: Int! # Quote Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
+  balancerVaultAddress: String! # Balancer V3 Vault Address <- ABI: BalancerPoolToken(LPT_ASSET).getVault()
+  quoteAssetPoolIndex: Int! # Which slot of the BPT's 2-token registration order the QUOTE asset occupies (0 or 1)
+  # ^ THE LIQUIDITY TRANCHE'S DEPOSIT ASSET IS THE BPT, and that pool is a pair of
+  #   (senior tranche share token, quote asset) — the venue constructor enforces exactly
+  #   two tokens and requires one of them to be SENIOR_TRANCHE, taking QUOTE_ASSET as the
+  #   other. So the quote leg is derivable from the pool alone, which is how
+  #   quoteAssetPriceNAV is priced without any new kernel view.
+  #
+  #   BOTH ARE IMMUTABLE ON CHAIN — the vault is `immutable` on the venue and the index is
+  #   resolved once in its constructor — so they are read ONCE at market creation and
+  #   cached here. That is the whole point of storing them: the sync path then needs a
+  #   single getPoolTokenRates call instead of re-deriving the vault and the ordering on
+  #   every sync, on the hottest path in the subgraph.
+  #
+  #   quoteAssetPoolIndex is meaningless when balancerVaultAddress is the zero address
+  #   (a kernel with no Balancer venue). Read it together with that field, never alone;
+  #   0 is both "slot 0" and "unknown", exactly as quoteAssetTokenDecimals is.
+  # ^ THE ONLY RECORD OF THE QUOTE TOKEN'S SCALE anywhere in this schema. The other two
+  #   asset tokens carry their decimals on their tranche's DayVaultState; the quote asset
+  #   has no tranche and no DayVaultState, so without this column the `quoteAssets`
+  #   amounts on DayMultiAssetDepositActivity and DayMultiAssetRedeemActivity are raw
+  #   integers with no scale attached and cannot be rendered or compared.
+  #
+  #   Read with try_ and defaulting to 0, for the same reason as the address above: on a
+  #   venue-less market QUOTE_ASSET reverts, quoteAssetTokenAddress falls back to the zero
+  #   address, and ERC20(0x0).decimals() would revert too. 0 paired with a zero address is
+  #   the truthful "no quote asset" answer — it is NOT a real 0-decimals token, and the
+  #   address is what disambiguates.
   # ^ The venue's non-senior constituent — the token paid in on a multi-asset LP
   #   deposit and out on a multi-asset redeem (DayMultiAssetDeposit/RedeemActivity's
   #   `quoteAssets` column is denominated in it). It has no tranche and no DayVaultState,
@@ -245,34 +286,37 @@ type DayMarketState @entity(immutable: false) {
   # ======
   # => records
   #
-  # Cursors for the six DayFixedTermHistory / Day*History streams in "=== RECORDS ===".
-  # These are COUNTS, not last-indices — a different cursor shape from
-  # `lastHistoricalEntryIndex`, deliberately. See "ENTRY INDEX CURSOR" below.
+  # FIVE cursors, for the five streams that keep EVERY event as its own row:
+  # DayFixedTermHistory, DayYieldSharesAccruedHistory, and the three liquidity-premium
+  # streams. The remaining *Historical SNAPSHOT tables collapse to one row per block and
+  # carry no counter at all — see "BLOCK-KEYED HISTORY" below for which is which and why.
   #
-  # Write protocol (use-then-increment):
+  # Each is a COUNT, not a last-index: a market legitimately has zero fixed terms (or
+  # zero premium mints) forever, so a last-index has no truthful initial value — 0
+  # would falsely assert one entry exists. Write protocol is use-THEN-increment:
   #   const idx = market.countXEntries;   // this IS the next entryIndex
   #   ... build the id from idx, set entity.entryIndex = idx ...
   #   market.countXEntries = idx.plus(BigInt.fromI32(1));
   #
   # So the first record is entryIndex 0 and the count becomes 1. Total == count.
   # The last record sits at (count - 1), readable ONLY when count > 0.
-  # Seed all six to BigInt.zero() in the MarketDeploymentCompleted handler's
+  # Seed all five to BigInt.zero() in the MarketDeploymentCompleted handler's
   # `if (!entity)` branch — a non-null field left unset is fatal at index time (§8).
   countFixedTermEntries: BigInt! # Count of Fixed Term Entries -> DayFixedTermHistory
-  # ^ Advances ONLY on FixedTermCommenced. DayFixedTermHistory is the one MUTABLE
-  #   record stream: the close-out writes patch the row at (count - 1) and must NOT
+  # ^ Advances on FixedTermCommenced, and ALSO on a coverage loss erased while the
+  #   market runs a zero fixedTermDurationSeconds — that opens a zero-length term of
+  #   its own (see openLossOnlyTerm). DayFixedTermHistory is the one MUTABLE record
+  #   stream: the close-out writes patch the row at (count - 1) and must NOT
   #   increment this.
   countYieldSharesAccruedEntries: BigInt! # Count of Yield Shares Accrued Entries -> DayYieldSharesAccruedHistory
   # ^ ONE cursor where v1 had two. v2 merged JuniorTrancheYieldShareAccrued and
   #   LiquidityTrancheYieldShareAccrued into a single YieldSharesAccrued carrying all
   #   four values, so the two accruals are now one atomic event and get one row.
-  countTrancheAccountingSyncedEntries: BigInt! # Count of Tranche Accounting Synced Entries -> DayTrancheAccountingSyncedHistory
-  # ^ Advances on every PostOpTrancheAccountingSynced — i.e. once per completed deposit
-  #   or redemption. NOT the AMM-frequency stream it was in v1: the pre-op event, which
-  #   is what fires on swaps, is deliberately not indexed (see that entity's note).
   countLiquidityPremiumSharesMintedEntries: BigInt! # Count of Liquidity Premium Shares Minted Entries -> DayLiquidityPremiumSharesMintedHistory
   countLiquidityPremiumReinvestedEntries: BigInt! # Count of Liquidity Premium Reinvested Entries -> DayLiquidityPremiumReinvestedHistory
   countLiquidityPremiumReinvestmentFailedEntries: BigInt! # Count of Liquidity Premium Reinvestment Failed Entries -> DayLiquidityPremiumReinvestmentFailedHistory
+  #   or redemption. NOT the AMM-frequency stream it was in v1: the pre-op event, which
+  #   is what fires on swaps, is deliberately not indexed (see that entity's note).
   #
   # A LIFETIME ACCUMULATOR, not a cursor and not a mirror of any on-chain value.
   # Every JuniorTrancheImpermanentLossReset adds its erased amount here, so this only
@@ -371,8 +415,9 @@ type DayMarketState @entity(immutable: false) {
 # THE MARKET'S PRICE VECTOR — all three tranches priced in ONE row.
 #
 # Per tranche: a SHARE price (the full AssetClaims quadruple), plus an ASSET price
-# (a NAV_UNIT scalar) per distinct asset — and v2 has only TWO of those, because senior
-# and junior are coinvested in one collateral token. 2 + 12 = 14 price columns.
+# (a NAV_UNIT scalar) per distinct asset. THREE of those: collateral (shared by senior
+# and junior, which are coinvested in one token), the LPT asset, and the venue's quote
+# asset. 3 + 12 = 15 price columns.
 #
 # THE SOLE HOME of the share-price claims. DayVaultState used to carry a per-vault
 # copy of this struct and no longer does — the per-vault rows could not answer the
@@ -384,21 +429,43 @@ type DayMarketState @entity(immutable: false) {
 # carries none at all.
 #
 # TWO WRITE SITES, TWO DIFFERENT SOURCES — the asymmetry is the whole design:
-#   1. MarketDeploymentCompleted -> entry 0. Copied off the three DayVaultState
-#      rows the same handler just wrote, so it costs ZERO extra eth_calls. All
-#      three sharePrice* are provably 0 there (supply is 0, so _scaleAssetClaims
-#      returns the zero struct for any input), and the assetPrice* were already read.
-#   2. TrancheAccountingSynced -> every later entry. Here all 18 values MUST be
-#      re-read from the contracts. The sync payload carries MARKET-level NAVs
-#      (stRawNAV, jtEffectiveNAV, ...) and no per-share or per-asset-token price at
-#      all, and the DayVaultState copies are stale between mints/burns. That is 6
-#      eth_calls per sync on the hottest path in this subgraph — see the cost note
-#      on refreshMarketNav in src/handlers/base/market-nav.ts. FIVE calls for 14 columns:
-#      2 asset-price converters + 3 convertToAssets, each returning a whole quadruple.
+#   1. MarketDeploymentCompleted -> entry 0, at the BOOTSTRAP price. The three
+#      *SharePriceNAV legs are ONE WHOLE NAV UNIT — a tranche opens at $1 per whole
+#      share, the rate the first depositor mints at — and each tranche's OWN asset leg
+#      carries that same $1 denominated in that asset, via the kernel's inverse
+#      converters (convertValueToCollateralAssets for senior+junior,
+#      convertValueToLPTAssets for liquidity; both `try_`, since they divide by an
+#      oracle price). The other legs stay 0 exactly as TrancheClaimsLogic's branch
+#      leaves them, and stShares is 0 on every tranche. The nav leg needs no call at
+#      all — supply is provably zero at deployment, so it is arithmetic, not a lookup,
+#      and it survives an oracle revert that blanks the asset leg. Do NOT source any of
+#      it from convertToAssets,
+#      which returns the ZERO struct at zero supply — that call answers "pro-rata claim on
+#      real assets", not "price", because AssetLedgerLogic._scaleAssetClaims
+#      short-circuits at `_totalTrancheShares == 0` before the virtual-share arithmetic
+#      that defines the rate (ValuationLogic._computeTrancheShareRate).
+#      quoteAssetPriceNAV is the exception:
+#      it needs the pool, so creation pays getVault + getPoolTokens (resolving the vault
+#      and slot it then caches on DayMarketState) + getPoolTokenRates — THREE calls, or
+#      zero on a market with no Balancer venue, where QUOTE_ASSET already reverted and
+#      there is nothing to ask.
+#   2. TrancheAccountingSynced -> every later entry. Here all 15 values MUST be
+#      re-read live. The sync payload carries MARKET-level NAVs
+#      (collateralNAV, jtEffectiveNAV, ...) and no per-share or per-asset-token price at
+#      all, and the DayVaultState copies are stale between mints/burns. SIX calls for 15
+#      columns: 2 Kernel asset-price converters + 1 pool getPoolTokenRates (the vault and
+#      slot are already cached, so the quote leg costs one call, not three) + 3
+#      convertToAssets, each returning a whole quadruple. That is the hottest path in
+#      this subgraph — see the cost note on refreshMarketNav in
+#      src/handlers/base/market-nav.ts.
 #
-# THE TWO NAV_UNIT PRICES, and what they are denominated in:
+# THE NAV_UNIT PRICES, and what they are denominated in:
 #   *AssetPriceNAV = the NAV value of ONE WHOLE ASSET TOKEN (10 ** assetTokenDecimals)
-#                    — collateral for senior+junior, the LPT asset for liquidity
+#                    — collateral for senior+junior, the LPT asset for liquidity, and the
+#                    venue's quote token. The quote one needs NO decimals argument: its
+#                    price is the pool's registered rate outright, because the raw
+#                    10 ** (18 - decimals) scaling factor cancels the 10 ** decimals
+#                    amount exactly. See quoteAssetPriceNAV's own note.
 #   *SharePriceNAV = the NAV value of ONE WHOLE SHARE       (10 ** shareTokenDecimals)
 # The two denominators are different tokens with independently-configured decimals.
 # Never divide one by the other, and never compare an asset price to a share price.
@@ -407,7 +474,7 @@ type DayMarketState @entity(immutable: false) {
 #
 # No `marketRefId` column, deliberately: this id IS <CHAIN_ID>_<MARKET_ID>, i.e.
 # byte-identical to DayMarketState.id, so the join key is already `id`. (The
-# historical row below DOES carry it — its own id has the entryIndex appended, so
+# historical row below DOES carry it — its own id has the block number appended, so
 # there the pointer is not derivable without parsing.) Same asymmetry as
 # DayVaultState (no self `vaultId`) vs DayVaultStateHistorical (has one).
 # =============================================================================
@@ -417,6 +484,32 @@ type DayMarketNav @entity(immutable: false) {
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   collateralAssetPriceNAV: BigInt! # Collateral Asset Price NAV <- ABI: Kernel.convertCollateralAssetsToValue(10 ** assetTokenDecimals) — covers senior AND junior, which share one asset
   liquidityTrancheAssetPriceNAV: BigInt! # Liquidity Tranche Asset Price NAV <- ABI: Kernel.convertLPTAssetsToValue(10 ** assetTokenDecimals)
+  quoteAssetPriceNAV: BigInt! # Quote Asset Price NAV <- ABI: BalancerV3Vault.getPoolTokenRates(BPT).tokenRates[quoteAssetPoolIndex]
+  # ^ THE THIRD ASSET PRICE, and the only one not read from a Kernel view — there is no
+  #   Kernel.convertQuoteAssetsToValue. It comes straight off the Balancer pool instead,
+  #   and the arithmetic collapses to an identity:
+  #
+  #     NAV(one whole quote token) = amount x decimalScalingFactor x rate / WAD
+  #                                = 10^d  x 10^(18-d)            x rate / 1e18
+  #                                = rate
+  #
+  #   decimalScalingFactors[i] is a RAW 10 ** (18 - decimals) factor, not a fixed-point
+  #   number (PoolConfigLib.sol:255-257 says so explicitly), so the two powers of ten
+  #   cancel exactly and no rounding enters. The stored value IS tokenRates[i].
+  #
+  #   WHY THAT IS THE RIGHT NUMBER: the whole NAV numeraire of a Day market is defined by
+  #   how the BPT oracle is wired. Its price feeds are constant 1.0 on both legs, so no
+  #   pricing enters through Chainlink at all — every bit of it enters through the pool's
+  #   rate providers. The senior leg's provider is the kernel itself (NAV per ST share);
+  #   the quote leg's is its configured rate provider, or an implicit FP(1) when the token
+  #   is registered STANDARD. Each leg's scaled18 balance is therefore already in NAV
+  #   units, which is why the venue can wrap computeTVL() straight into NAV_UNIT. So the
+  #   quote leg's NAV price is DEFINITIONALLY its pool token rate — and for a STANDARD
+  #   quote (USDC) that rate is 1.0, which is precisely what pins the market's numeraire
+  #   to USD.
+  #
+  #   ZERO on a market with no Balancer venue, where balancerVaultAddress is the zero
+  #   address and there is no pool to ask. Same convention as quoteAssetTokenAddress.
   # ^ ABI: Kernel.convertCollateralAssetsToValue / convertLPTAssetsToValue, each called
   #   with (10 ** assetTokenDecimals). TWO methods in v2, not three: senior and junior
   #   share one collateral asset, so they route to the SAME converter. Dispatch on the
@@ -470,16 +563,6 @@ type DayMarketNav @entity(immutable: false) {
   liquidityTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets of the LIQUIDITY tranche's share
   liquidityTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0 — forced by the LPT-only rewrite, NOT by the branch)
   liquidityTrancheSharePriceNAV: BigInt! # <- claims.nav — lptRawNAV pro-rata, NOT an effective NAV (the LPT rewrite substitutes it)
-  lastHistoricalEntryIndex: BigInt! # Cursor for DayMarketNavHistorical. See "ENTRY INDEX CURSOR" below.
-  # ^ A LAST-INDEX, not a count: this row is born together with its entry 0 at
-  #   market creation, so total == field + 1 and the write order is
-  #   increment-then-write. Do NOT copy DayMarketState's `count*Entries` mechanics
-  #   here — those streams are born empty and use the inverse order.
-  #
-  # !! IT ADVANCES PER BLOCK, NOT PER WRITE. DayMarketNavHistorical collapses to one
-  #    row per (market, block), so a second sync in the same block UPDATES that row and
-  #    must NOT bump this. Bumping on an update would push the cursor past the row count
-  #    permanently and leave gaps in an index that is supposed to be dense.
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
@@ -502,8 +585,8 @@ type DayMarketNav @entity(immutable: false) {
 # Collapses exactly like DayTrancheAccountingSyncedHistory, and for the same reason: a
 # deposit block emits two syncs (pre-op then post-op) and both re-price the market, so
 # without collapsing, one block would leave two near-identical snapshots. The first
-# write in a block creates the row and takes the next entryIndex; every later write in
-# that block overwrites it. The block's FINAL prices win.
+# write in a block creates the row; every later write in that block overwrites it.
+# The block's FINAL prices win.
 #
 # !! MUTABLE, AND IT MUST STAY THAT WAY. The id keys on the block number, so a second
 #    write in the same block resolves to the SAME id — which on an
@@ -515,12 +598,12 @@ type DayMarketNavHistorical @entity(immutable: false) {
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID> — also the parent DayMarketNav.id
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketNav.lastHistoricalEntryIndex) — set ONCE, on creation
   blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
-  # The same 14 price columns as the parent — see its notes for units, provenance,
+  # The same 15 price columns as the parent — see its notes for units, provenance,
   # and WHICH SIX of the twelve share-price legs are invariantly zero.
   collateralAssetPriceNAV: BigInt! # Collateral Asset Price NAV
   liquidityTrancheAssetPriceNAV: BigInt! # Liquidity Tranche Asset Price NAV
+  quoteAssetPriceNAV: BigInt! # Quote Asset Price NAV (== the BPT's tokenRates[quoteAssetPoolIndex]; see the parent)
   seniorTrancheSharePriceCollateralAssets: BigInt! # <- claims.collateralAssets of the SENIOR tranche's share
   seniorTrancheSharePriceLiquidityTrancheAssets: BigInt! # <- claims.lptAssets (INVARIANTLY 0)
   seniorTrancheSharePriceSeniorTrancheShares: BigInt! # <- claims.stShares (INVARIANTLY 0)
@@ -600,7 +683,6 @@ type DayVaultState @entity(immutable: false) {
   # !! Do NOT reintroduce a price here to "save a join". The reason DayMarketNav exists
   #    is that per-vault prices sampled on per-vault cursors are not comparable across
   #    tranches, and adding one back would put a second, staler answer next to it.
-  lastHistoricalEntryIndex: BigInt! # Cursor for DayVaultStateHistorical. See "ENTRY INDEX CURSOR" below.
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
@@ -611,12 +693,20 @@ type DayVaultState @entity(immutable: false) {
 }
 
 # =============================================================================
-# BLOCK-KEYED HISTORY — read with "ENTRY INDEX CURSOR" below; they work together.
+# BLOCK-KEYED HISTORY — how every *History / *Historical table is keyed and written.
 #
-# EVERY *History / *Historical table collapses to ONE ROW PER BLOCK, with one
-# deliberate exception (DayFixedTermHistory — see below). The first write in a block
-# creates the row and takes the next entryIndex; every later write in that same block
-# updates it in place. The block's FINAL state is what survives.
+# The *Historical SNAPSHOT tables collapse to ONE ROW PER BLOCK: the first write in a
+# block creates the row, every later write in that same block updates it in place, and
+# the block's FINAL state survives. That is DayMarketNavHistorical,
+# DayVaultStateHistorical, DayPositionStateHistorical and DayFeeStateHistorical, plus
+# DayTrancheAccountingSyncedHistory.
+#
+# THE FIVE RECORD STREAMS DO NOT COLLAPSE — see the exception list at the bottom of
+# this block. They keep every event as its own immutable row.
+#
+# THE SPLIT IS SNAPSHOT vs RECORD, not "state" vs "history": a snapshot is a view of
+# something a later write in the same block may legitimately supersede; a record is an
+# event that happened, and merging two of them destroys information.
 #
 # WHY, given §8 says the opposite: §8's "never derive an id from a block number, two
 # writes in one block collide" assumes you want every write preserved. Here the
@@ -624,15 +714,21 @@ type DayVaultState @entity(immutable: false) {
 # (pre-op then post-op) and both re-price the market, so without collapsing, one
 # deposit would leave two near-identical rows in several tables at once.
 #
-# THE THREE RULES, all load-bearing:
+# THE TWO RULES, both load-bearing:
 #   1. EVERY collapsing entity MUST be `@entity(immutable: false)`. A second save on
 #      the same id is a fatal "entity already exists" at INDEX time — it passes
 #      `graph build` and dies in production.
-#   2. entryIndex is assigned ONCE, on creation, and its cursor advances ONLY then.
-#      Bumping it on an update pushes the cursor past the row count permanently and
-#      puts gaps in an index the schema promises is dense.
-#   3. createdAt* is the FIRST write in the block, updatedAt* the one the row settled
+#   2. createdAt* is the FIRST write in the block, updatedAt* the one the row settled
 #      on. A block spans transactions, so the two tx hashes genuinely differ.
+#
+# ORDER BY blockNumber. Every collapsing table stores it as a column, and it is a
+# total order per parent — one row per block, blocks arrive monotonically. There is
+# deliberately NO entryIndex on these tables and no cursor on their parents: with the
+# id already keyed on the block, a counter carried no information the block number
+# did not, and it had to advance on creation but NOT on same-block updates — an
+# invariant that fails silently, leaving gaps in an index the schema had promised was
+# dense. A consumer wanting a 1,2,3… ordinal derives it:
+#   ROW_NUMBER() OVER (PARTITION BY <parent_id> ORDER BY block_number)
 #
 # !! DELTA COLUMNS ACCUMULATE, THEY DO NOT OVERWRITE. A row that now covers a whole
 #    block must still mean what its column comments say. So a per-event DELTA — a fee
@@ -642,50 +738,66 @@ type DayVaultState @entity(immutable: false) {
 #    keeps SUM(delta) across rows equal to the lifetime total, which plain
 #    last-write-wins would silently break.
 #
-# !! THE ONE EXCEPTION: DayFixedTermHistory is NOT block-keyed, and must not be. A
-#    fixed term OPENS in one block and CLOSES in a later one — the close-out patches
-#    the row opened earlier. Under block keying the close would land on a different id
-#    and create an orphan row instead of closing the term, breaking the whole
-#    lifecycle. It stays keyed by entryIndex.
+# !! THE EXCEPTIONS — four streams keyed by entryIndex, not by block:
+#
+#    DayFixedTermHistory, because it CANNOT be block-keyed. A fixed term OPENS in one
+#    block and CLOSES in a later one, so the close-out patches a row opened earlier;
+#    under block keying the close would land on a different id and orphan it. It is
+#    therefore also the one MUTABLE record stream.
+#
+#    DayYieldSharesAccruedHistory, because an accrual is an EVENT rather than a view of
+#    state. Collapsing it was harmless in practice — the contract emits at most one
+#    YieldSharesAccrued per block per market, since _accruePremiumYieldShares returns
+#    early on `elapsed == 0` — but it merged nothing while costing a load per write and
+#    implying a delta rule that could never fire.
+#
+#    DayLiquidityPremiumSharesMintedHistory, DayLiquidityPremiumReinvestedHistory and
+#    DayLiquidityPremiumReinvestmentFailedHistory, because EVERY EVENT IS WANTED. A
+#    block can carry several premium mints or several reinvestment attempts, and each
+#    is a distinct economic act with its own amounts — collapsing them would fuse a
+#    failed attempt and a successful retry into one row and lose the sequence. They
+#    are IMMUTABLE and written exactly once, which is what makes the delta-accumulation
+#    rule above irrelevant to them: `shares` and `assets` are the event's own values,
+#    never a running sum.
+#
+#    All five are cursored by DayMarketState.count*Entries — see "ENTRY INDEX CURSOR".
 # =============================================================================
 
 # =============================================================================
-# ENTRY INDEX CURSOR — read this before writing any *Historical entity.
+# ENTRY INDEX CURSOR — applies to the FIVE record streams, and to nothing else.
 #
-# Every immutable *Historical entity is keyed by a dense, per-parent counter
-# owned by its mutable *State parent as `lastHistoricalEntryIndex`.
+#   DayFixedTermHistory                          (MUTABLE — the close patches the row)
+#   DayYieldSharesAccruedHistory                 (immutable)
+#   DayLiquidityPremiumSharesMintedHistory       (immutable)
+#   DayLiquidityPremiumReinvestedHistory         (immutable)
+#   DayLiquidityPremiumReinvestmentFailedHistory (immutable)
 #
-#   - The creation snapshot is entry 0, and sets lastHistoricalEntryIndex = 0.
-#   - Each later snapshot writes lastHistoricalEntryIndex + 1, then stores it.
-#   - Total snapshots for a parent == lastHistoricalEntryIndex + 1.
+# Each keeps EVERY event as its own row, so each needs a per-write discriminator in
+# its id: <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>. The *Historical snapshot tables are
+# keyed and ordered by block number instead and carry no counter — see "BLOCK-KEYED
+# HISTORY" above.
 #
-# WHY, and why not the alternatives:
-#   - An @entity(immutable: true) is WRITE-ONCE. A second save() on the same id
-#     is a fatal "entity already exists" at INDEX time — it passes `graph build`
-#     and dies in production. So every historical id needs a per-write
-#     discriminator.
-#   - Do NOT use <BLOCK_TIMESTAMP> (royco-rwa's PositionStateHistorical does):
-#     two snapshots in one block collide. Same bug, just rarer.
-#   - Do NOT use <TX_HASH>_<LOG_INDEX>: unique, but gives no O(1) cursor, forces
-#     a sort for "latest N", and can't express snapshots not tied to a log.
+# Every cursor here is a COUNT, not a last-index: a market legitimately has zero fixed
+# terms (or zero premium mints) forever, so a non-null last-index has no truthful
+# initial value — 0 would falsely assert one entry exists.
 #
-# TWO CURSOR SHAPES COEXIST, DELIBERATELY — do not harmonise them:
-#   - The *State parents (DayVaultState, DayPositionState, DayFeeState) are born
-#     together with their entry 0, so `lastHistoricalEntryIndex` is a LAST-INDEX:
-#     total == field + 1, increment-then-write.
-#   - DayMarketState's six record streams (`# => records`) are born EMPTY — a market
-#     legitimately has zero fixed terms forever — so a non-null last-index has no
-#     truthful initial value (0 would falsely assert one entry exists). Hence
-#     `count*Entries` is a COUNT: total == field, last == field - 1 (only when
-#     field > 0), write-then-increment.
-# Both are 0-based and dense; only the base value and the increment ORDER differ.
-# Not 1-based — that would put two index bases in one schema and break the shared
-# reading of `entryIndex` across tables.
+#   const idx = market.countXEntries;   // this IS the next entryIndex
+#   ... build the id from idx, set entity.entryIndex = idx ...
+#   market.countXEntries = idx.plus(BigInt.fromI32(1));
+#
+# Total == countXEntries; last == countXEntries - 1, readable ONLY when > 0.
+# Use-THEN-increment, 0-based, dense.
+#
+# DO NOT reintroduce this shape on the *Historical snapshot tables. It once existed
+# there and was removed deliberately — see the ordering note in "BLOCK-KEYED HISTORY"
+# above for what it cost and what replaced it. The distinction is SNAPSHOT vs RECORD:
+# a snapshot is a view of state that a block can legitimately overwrite, a record is
+# an event that must never be merged with another.
 # =============================================================================
 
 # ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# The first write in a block creates the row; later writes in that same block update it
+# in place. MUTABLE for exactly that reason: the id keys on
 # the block, so a second write resolves to the same id, which on an immutable entity is
 # a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
 type DayVaultStateHistorical @entity(immutable: false) {
@@ -693,7 +805,6 @@ type DayVaultStateHistorical @entity(immutable: false) {
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   vaultId: String! # Vault ID
-  entryIndex: BigInt! # Entry Index — set ONCE, on creation
   blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   majorType: String! # Major Type ("day")
   minorType: String! # Minor Type ("senior", "junior", "liquidity")
@@ -717,10 +828,11 @@ type DayVaultStateHistorical @entity(immutable: false) {
 
 # === RECORDS ===
 #
-# Six event-driven, market-keyed streams. Unlike the *Historical snapshots above,
-# these are cursored by DayMarketState's `count*Entries` fields, NOT by
-# `lastHistoricalEntryIndex` — see "ENTRY INDEX CURSOR" above for why the two
-# shapes differ and how each is written.
+# Six event-driven, market-keyed streams. FIVE of them keep every event as its own row,
+# cursored by a DayMarketState.count*Entries counter; only
+# DayTrancheAccountingSyncedHistory collapses to one row per (market, block), because
+# both sync events re-price the same market and a deposit block legitimately produces two
+# of them. See "ENTRY INDEX CURSOR" and "BLOCK-KEYED HISTORY" above.
 
 # THE ONE MUTABLE RECORD STREAM. Three separate events write one row, so
 # immutable: true would be a fatal "entity already exists" at index time (§8):
@@ -780,6 +892,13 @@ type DayFixedTermHistory @entity(immutable: false) {
   #    Aggregates behave correctly too: AVG/MIN/MAX skip NULLs, whereas the 0 sentinel
   #    would silently drag an average of term lengths toward zero.
   juniorTrancheImpermanentLossNAV: BigInt! # Junior Impermanent Loss NAV (0 if not ended, or no loss) <- ABI: JuniorTrancheImpermanentLossReset.jtImpermanentLossErased
+  # ^ NON-NULL, seeded to 0 at FixedTermCommenced — deliberately NOT nullable like
+  #   `duration` above. A real erase is always > 0 (the handler returns early on a zero
+  #   erase), so 0 unambiguously means "no loss recorded for this term". It does NOT
+  #   distinguish a running term from one that expired cleanly — pair it with `duration`
+  #   for that: `duration IS NOT NULL AND juniorTrancheImpermanentLossNAV = 0` is the
+  #   clean expiry.
+  #
   # ^ NOT previewSyncTrancheAccountingFor().state.jtImpermanentLoss and NOT
   #   getState().lastJTImpermanentLoss — BOTH are provably ZERO by the instant
   #   FixedTermEnded fires: the Accountant erases into a local and zeroes storage
@@ -827,18 +946,24 @@ type DayFixedTermHistory @entity(immutable: false) {
 # independently, and no more chance of the two cursors drifting apart.
 #
 # The accountant address is NOT the marketId — resolve via ACCOUNTANT.KERNEL() (§6).
-# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
-# the block, so a second write resolves to the same id, which on an immutable entity is
-# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
-type DayYieldSharesAccruedHistory @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+#
+# ONE ROW PER EVENT — this stream does NOT collapse. Every accrual keeps its own
+# immutable row, cursored by DayMarketState.countYieldSharesAccruedEntries.
+#
+# Block keying would have been harmless here and is still wrong to use: the contract
+# emits AT MOST ONE YieldSharesAccrued per block per market, because
+# _accruePremiumYieldShares returns early on `elapsed == 0` and stamps
+# lastYieldShareAccrualTimestamp before its emit, so a second sync in the same block
+# cannot reach it. Collapsing therefore merged nothing — it only cost a load per write
+# and invited a delta-accumulation rule that could never fire. An accrual is an EVENT,
+# not a snapshot of state a block may overwrite, so it belongs on the record side of
+# that split. See "ENTRY INDEX CURSOR" above.
+type DayYieldSharesAccruedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countYieldSharesAccruedEntries) — set ONCE, on creation
-  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countYieldSharesAccruedEntries)
   juniorTrancheYieldShareWAD: BigInt! # Junior Tranche Yield Share WAD <- ABI: jtYieldShareWAD
   juniorTrancheTimeWeightedYieldShareAccruedWAD: BigInt! # <- ABI: twJTYieldShareAccruedWAD
   liquidityTrancheYieldShareWAD: BigInt! # Liquidity Tranche Yield Share WAD <- ABI: lptYieldShareWAD
@@ -846,17 +971,15 @@ type DayYieldSharesAccruedHistory @entity(immutable: false) {
   # ^ NEITHER timeWeighted* IS MONOTONIC. Each is the accumulator AFTER its increment,
   #   and both are zeroed whenever premiums are paid out of ST yield. The series is a
   #   SAWTOOTH that resets per premium payment, NOT a lifetime cumulative — a negative
-  #   delta between consecutive entryIndex rows IS the reset marker, not a data error.
+  #   delta between consecutive rows (ORDER BY entryIndex) IS the reset marker, not a
+  #   data error.
   #   They accrue only since the last premium payment;
   #   DayMarketState.lastPremiumPaymentTimestamp holds that boundary for CURRENT state
   #   but is deliberately not snapshotted here.
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
+  createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
-  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
-  updatedAtBlockNumber: BigInt! # Updated At Block Number
-  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
 # <- ABI: RoycoDayKernel.PreOpTrancheAccountingSynced((uint8,uint256 x11,uint32,uint256,uint256,uint256) resultingState)
@@ -865,7 +988,7 @@ type DayYieldSharesAccruedHistory @entity(immutable: false) {
 # ONE ROW PER (MARKET, BLOCK) — THE LATEST SYNC THAT BLOCK SETTLED ON.
 #
 # BOTH kernel sync events feed this table, and they COLLAPSE rather than accumulate:
-#   - the first sync in a block CREATES the row (and takes the next entryIndex)
+#   - the first sync in a block CREATES the row
 #   - every later sync in that SAME block OVERWRITES it in place
 # So a swap-only block leaves a `preOp` row; a deposit block leaves a `postOp` row,
 # because the post-op fires second and wins. `syncType` records which one the row
@@ -879,11 +1002,9 @@ type DayYieldSharesAccruedHistory @entity(immutable: false) {
 #    same id is a fatal "entity already exists" at INDEX time, which `graph build`
 #    cannot catch (§8). Do not "restore" immutability here.
 #
-# !! entryIndex IS STILL DENSE, and is assigned ONLY when the row is created — never on
-#    an update. Total rows == countTrancheAccountingSyncedEntries, exactly as for every
-#    other market-keyed stream; it just counts BLOCKS-WITH-A-SYNC now rather than
-#    individual sync events. The id keys on the block, not on entryIndex, so the two are
-#    independent: read entryIndex for ordering, the id for lookup.
+# !! ONE ROW PER BLOCK-WITH-A-SYNC, not per sync event. A block with four syncs leaves
+#    ONE row, so COUNT(*) here is a count of blocks, never of events. Order by
+#    `blockNumber`; there is no entryIndex on this table.
 #
 # !! ON THE KERNEL, NOT THE ACCOUNTANT. The kernel address IS the marketId (§6), so both
 #    handlers resolve the market directly — no ACCOUNTANT.KERNEL() eth_call per sync,
@@ -904,10 +1025,9 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countTrancheAccountingSyncedEntries) — set ONCE, on creation
   blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   syncType: String! # Sync Type ("preOp", "postOp") — which event this row last settled on
-  operation: String # Operation ("stDeposit" … "lptMultiAssetRedeem"). NULL while the row is a preOp row.
+  operation: String # Operation ("stDeposit" … "lptRedeem"). NULL while the row is a preOp row.
   # ^ NULLABLE ON PURPOSE, and only the second such field in this schema (see
   #   DayFixedTermHistory.duration). A pre-op sync happens BEFORE any operation is
   #   chosen, so there is no operation to record — and "" or a "none" sentinel would
@@ -916,9 +1036,16 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   #   queryable per Neon idiom.
   #   Enum order is the on-chain `Operation` declaration order
   #   (contracts/libraries/Types.sol): 0 stDeposit, 1 stRedeem, 2 jtDeposit, 3 jtRedeem,
-  #   4 lptDeposit, 5 lptRedeem, 6 lptMultiAssetDeposit, 7 lptMultiAssetRedeem. EIGHT
-  #   members in v2, six in v1. The ABI carries the enum's TYPE but none of its member
-  #   names, so this ordering is read from source and is not guessable (§4).
+  #   4 lptDeposit, 5 lptRedeem. SIX members. The ABI carries the enum's TYPE but none of
+  #   its member names, so this ordering is read from source and is not guessable (§4) —
+  #   and it HAS changed: an earlier revision had eight, with distinct multi-asset LP
+  #   members later folded into the plain LPT ones.
+  #
+  # !! A MULTI-ASSET LP FLOW REPORTS AS lptDeposit / lptRedeem here, indistinguishable
+  #    from a single-asset one by this column alone. Join to DayMultiAssetDepositActivity
+  #    / DayMultiAssetRedeemActivity on transaction hash to tell them apart — those
+  #    events still fire and are still indexed. An out-of-range ordinal surfaces as
+  #    "unknown", never as a neighbouring member.
   # --- The full SyncedAccountingState, in ABI order. ---
   marketState: String! # Market State ("perpetual" -> 0, "fixed" -> 1) <- ABI: resultingState.marketState (uint8 enum -> i32)
   # ^ !! LIVE state at sync time — NOT the same field as DayMarketState.marketState.
@@ -972,18 +1099,12 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
 #    SeniorTranche.KERNEL(), or cheaper: load this tranche's own DayVaultState and
 #    read its marketId, avoiding an eth_call per event.
 #    The market-keyed id is SAFE: exactly one senior tranche per market.
-# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
-# the block, so a second write resolves to the same id, which on an immutable entity is
-# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
-type DayLiquidityPremiumSharesMintedHistory @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+type DayLiquidityPremiumSharesMintedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumSharesMintedEntries) — set ONCE, on creation
-  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumSharesMintedEntries)
   vaultAddress: String! # Vault Address (the SENIOR TRANCHE — event.address)
   vaultId: String! # Vault ID
   accountAddress: String! # Account Address <- ABI: LiquidityPremiumSharesMinted.holder
@@ -995,68 +1116,47 @@ type DayLiquidityPremiumSharesMintedHistory @entity(immutable: false) {
   shares: BigInt! # Shares <- ABI: mintedLiquidityPremiumShares
   sharesTotalSupply: BigInt! # Shares Total Supply <- ABI: totalTrancheShares (the SENIOR tranche total supply POST-mint)
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
+  createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
-  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
-  updatedAtBlockNumber: BigInt! # Updated At Block Number
-  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# <- ABI: RoycoDayKernel.LiquidityPremiumReinvested(uint256 stSharesReinvested, uint256 lptAssetsMinted)
+# <- ABI: RoycoDayKernel.LiquidityPremiumReinvested(uint256 stSharesReinvested, uint256 ltAssetsMinted)
 # Kernel handlers resolve the market directly — the kernel address IS the marketId (§6).
-# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
-# the block, so a second write resolves to the same id, which on an immutable entity is
-# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
-type DayLiquidityPremiumReinvestedHistory @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+type DayLiquidityPremiumReinvestedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestedEntries) — set ONCE, on creation
-  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestedEntries)
   shares: BigInt! # Shares <- ABI: stSharesReinvested (senior shares ACTUALLY reinvested)
-  assets: BigInt! # Assets <- ABI: lptAssetsMinted (LPT assets ACTUALLY minted)
+  assets: BigInt! # Assets <- ABI: ltAssetsMinted (LT assets ACTUALLY minted)
   # ^ Both are REALISED amounts. The identically-named fields on
   #   DayLiquidityPremiumReinvestmentFailedHistory are an ATTEMPT and a BOUND — do not
   #   union or sum the two tables' `shares`/`assets` columns.
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
+  createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
-  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
-  updatedAtBlockNumber: BigInt! # Updated At Block Number
-  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# <- ABI: RoycoDayKernel.LiquidityPremiumReinvestmentFailed(uint256 stSharesToReinvest, uint256 minLPTAssetsOut, bytes revertData)
+# <- ABI: RoycoDayKernel.LiquidityPremiumReinvestmentFailed(uint256 stSharesToReinvest, uint256 minLTAssetsOut, bytes revertData)
 # Kernel handlers resolve the market directly — the kernel address IS the marketId (§6).
-# ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
-# the block, so a second write resolves to the same id, which on an immutable entity is
-# a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
-type DayLiquidityPremiumReinvestmentFailedHistory @entity(immutable: false) {
-  id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
+type DayLiquidityPremiumReinvestmentFailedHistory @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID: <KERNEL_ADDRESS>
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
-  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestmentFailedEntries) — set ONCE, on creation
-  blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
+  entryIndex: BigInt! # Entry Index (cursor: DayMarketState.countLiquidityPremiumReinvestmentFailedEntries)
   shares: BigInt! # Shares <- ABI: stSharesToReinvest (senior shares the reinvestment ATTEMPTED; never moved)
-  assets: BigInt! # Assets <- ABI: minLPTAssetsOut (a SLIPPAGE BOUND, never minted)
+  assets: BigInt! # Assets <- ABI: minLTAssetsOut (a SLIPPAGE BOUND, never minted)
   # ^ !! Same field NAMES as DayLiquidityPremiumReinvestedHistory, DIFFERENT MEANINGS.
   #      There: realised amounts. Here: an attempt and a floor. Nothing was minted.
   revertData: String! # Revert Data <- ABI: revertData (bytes -> Bytes -> .toHexString(), §4)
   # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash (the FIRST write in this block)
+  createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
   createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
-  updatedAtTransactionHash: String! # Updated At Transaction Hash (the write this row settled on)
-  updatedAtBlockNumber: BigInt! # Updated At Block Number
-  updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
 # <- ABI: RoycoLiquidityProviderTranche.MultiAssetDeposit(indexed address caller, indexed address receiver, uint256 collateralAssets, uint256 quoteAssets, uint256 lptAssetsMinted, uint256 shares)
@@ -1066,7 +1166,7 @@ type DayLiquidityPremiumReinvestmentFailedHistory @entity(immutable: false) {
 #
 # !! An ACTIVITY table: the id is <CHAIN_ID>_<TX_HASH>_<LOG_INDEX> — one row per event log,
 #    like GlobalTokenActivity/GlobalTokenTransfer. No DayMarketState cursor and no
-#    entryIndex: the (tx, logIndex) pair is already unique, so nothing needs counting.
+#    entryIndex or cursor: the (tx, logIndex) pair is already unique.
 #
 # !! event.address is the LIQUIDITY TRANCHE, not the kernel (§6). marketId/marketRefId are
 #    still populated (for market-scoped joins) by loading this tranche's own DayVaultState
@@ -1118,7 +1218,8 @@ type DayMultiAssetDepositActivity @entity(immutable: true) {
 # Redeem, where the claims struct is at index 2 (§6).
 #
 # !! An ACTIVITY table: the id is <CHAIN_ID>_<TX_HASH>_<LOG_INDEX> — one row per event log,
-#    like GlobalTokenActivity. No DayMarketState cursor and no entryIndex.
+#    like GlobalTokenActivity. No DayMarketState cursor and no entryIndex — and unlike
+#    the collapsing tables, no block keying either: every event keeps its own row.
 #
 # !! event.address is the LIQUIDITY TRANCHE, not the kernel (§6). marketId/marketRefId are
 #    populated (for market-scoped joins) by loading this tranche's own DayVaultState and
@@ -1213,7 +1314,6 @@ type DayPositionState @entity(immutable: false) {
   claimsLiquidityTrancheAssets: BigInt! # Claims Liquidity Tranche Assets <- ABI: claims.lptAssets (ALWAYS 0 on senior and junior)
   claimsSeniorTrancheShares: BigInt! # Claims Senior Tranche Shares <- ABI: claims.stShares (ALWAYS 0 — see the "ASSET CLAIMS" block)
   claimsNAV: BigInt! # Claims NAV <- ABI: claims.nav
-  lastHistoricalEntryIndex: BigInt! # Cursor for DayPositionStateHistorical. See "ENTRY INDEX CURSOR" above.
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
@@ -1224,8 +1324,8 @@ type DayPositionState @entity(immutable: false) {
 }
 
 # ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# The first write in a block creates the row; later writes in that same block update it
+# in place. MUTABLE for exactly that reason: the id keys on
 # the block, so a second write resolves to the same id, which on an immutable entity is
 # a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
 type DayPositionStateHistorical @entity(immutable: false) {
@@ -1234,7 +1334,6 @@ type DayPositionStateHistorical @entity(immutable: false) {
   chainId: BigInt! # Chain ID
   vaultAddress: String! # Vault Address
   accountAddress: String! # Account Address
-  entryIndex: BigInt! # Entry Index — set ONCE, on creation
   blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   shares: BigInt! # Shares (this account's balance of THIS vault's share token)
   # The AssetClaims quintuple — see the "ASSET CLAIMS" block above.
@@ -1301,7 +1400,6 @@ type DayFeeState @entity(immutable: false) {
   #     DayFeeState.cumulativeNav     = SUM(DayFeeStateHistorical.nav)
   #   and each historical row also carries the running sum at that point
   #   (cumulativeShares / cumulativeNav), == this parent row once caught up.
-  lastHistoricalEntryIndex: BigInt! # Cursor for DayFeeStateHistorical. See "ENTRY INDEX CURSOR" above.
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number
@@ -1312,8 +1410,8 @@ type DayFeeState @entity(immutable: false) {
 }
 
 # ONE ROW PER BLOCK — this stream collapses like every other *History/*Historical table.
-# The first write in a block creates the row and takes the next entryIndex; later writes
-# in that same block update it in place. MUTABLE for exactly that reason: the id keys on
+# The first write in a block creates the row; later writes in that same block update it
+# in place. MUTABLE for exactly that reason: the id keys on
 # the block, so a second write resolves to the same id, which on an immutable entity is
 # a fatal "entity already exists" at INDEX time (§8). See "BLOCK-KEYED HISTORY" above.
 type DayFeeStateHistorical @entity(immutable: false) {
@@ -1326,7 +1424,6 @@ type DayFeeStateHistorical @entity(immutable: false) {
   accountAddress: String! # Account Address
   majorType: String! # Major Type ("day")
   minorType: String! # Minor Type ("senior", "junior", "liquidity") — the tranche, == vault.minorType
-  entryIndex: BigInt! # Entry Index — set ONCE, on creation
   blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   shares: BigInt! # Shares — THIS entry's OWN minted shares (mintedProtocolFeeShares for this single fee event). A per-entry DELTA, NOT a running total.
   cumulativeShares: BigInt! # Cumulative Shares — running total of minted shares across all entries UP TO AND INCLUDING this one. Mirrors DayFeeState.cumulativeShares at this snapshot.

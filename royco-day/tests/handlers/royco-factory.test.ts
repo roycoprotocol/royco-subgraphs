@@ -442,36 +442,13 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("all six record cursors start at zero", () => {
-    // These are COUNTS, not last-indices: every record stream is born empty.
-    // A non-null field left unset is fatal at index time, not build time (§8).
+  test("the fixed-term record cursor starts at zero", () => {
+    // A COUNT, not a last-index: the stream is born empty. It is the ONLY cursor left
+    // — every other stream is keyed and ordered by block number. A non-null field left
+    // unset is fatal at index time, not build time (§8).
     deployStandard();
 
     assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "0");
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countYieldSharesAccruedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumSharesMintedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestedEntries",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countLiquidityPremiumReinvestmentFailedEntries",
-      "0"
-    );
   });
 
   test("writes exactly three DayVaultState, one per tranche", () => {
@@ -597,6 +574,11 @@ describe("handleMarketDeploymentCompleted", () => {
       "quoteAssetTokenId",
       generateTokenId(ADDR_QUOTE_ASSET.toHexString())
     );
+    // 6, from the QUOTE token itself — not 18, which is what every other token in the
+    // fixture reports. This is the only record of the quote asset's scale in the whole
+    // schema (it has no tranche and no DayVaultState), and it is what makes the
+    // `quoteAssets` amounts on the two multi-asset activity tables interpretable.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "6");
   });
 
   test("collateral matches what the tranches report — the kernel's own invariant", () => {
@@ -626,6 +608,20 @@ describe("handleMarketDeploymentCompleted", () => {
       MARKET_ID,
       "collateralTokenAddress",
       ADDR_ASSET.toHexString()
+    );
+    // THE THIRD ARM, which had no vault-side assertion until now. The same constructor
+    // check requires liquidityProviderTranche.asset() == LPT_ASSET, and the LPT asset is
+    // the BPT — a DIFFERENT token from the collateral. The market side of this was
+    // already asserted above; this is the vault side, and its absence is what let the
+    // fixture report the collateral here for a market the constructor would have
+    // reverted. That divergence had teeth: a handler correctly treating this vault's
+    // asset as the Balancer pool would call getPoolTokenRates on the collateral token
+    // and abort as unmocked.
+    assert.fieldEquals(
+      "DayVaultState",
+      LIQUIDITY_ID,
+      "assetTokenAddress",
+      ADDR_LPT_ASSET.toHexString()
     );
   });
 
@@ -657,6 +653,10 @@ describe("handleMarketDeploymentCompleted", () => {
       "quoteAssetTokenId",
       generateTokenId(ADDR_ZERO_STR)
     );
+    // Decimals fall back too, and CRUCIALLY without calling decimals() on the zero
+    // address — an unmocked call there aborts the handler in matchstick and reverts on
+    // chain, so the guard is what keeps the whole market from failing to index.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "0");
     // The other two are raw reads and are unaffected.
     assert.fieldEquals(
       "DayMarketState",
@@ -729,18 +729,15 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.fieldEquals("DayMarketNav", navId, "liquidityTrancheAssetPriceNAV", "3300");
   });
 
-  test("creation writes historical entry 0 and seeds the cursor to match", () => {
-    // The cursor contract: the creation snapshot IS entry 0, so
-    // lastHistoricalEntryIndex == 0 and total snapshots == cursor + 1. If
-    // creation wrote no snapshot, the first later one would write entry 1 and
-    // leave a hole at 0.
+  test("creation writes the vault's first historical row", () => {
+    // Creation must open the vault's row for its own block. If it wrote none, the
+    // stream would begin at the first mint instead and a market's opening state
+    // would be missing from Neon entirely.
     deployStandard();
 
     assert.entityCount("DayVaultStateHistorical", 3);
-    assert.fieldEquals("DayVaultState", SENIOR_ID, "lastHistoricalEntryIndex", "0");
 
     const snapshotId = generateVaultStateHistoricalId(ADDR_SENIOR.toHexString(), BLOCK_NUMBER);
-    assert.fieldEquals("DayVaultStateHistorical", snapshotId, "entryIndex", "0");
     assert.fieldEquals("DayVaultStateHistorical", snapshotId, "vaultId", SENIOR_ID);
     assert.fieldEquals(
       "DayVaultStateHistorical",

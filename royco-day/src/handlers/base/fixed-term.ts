@@ -107,6 +107,21 @@ export function recordFixedTermCoverageLoss(
   // means a term end.
   if (erased.isZero()) return;
 
+  // NO CONFIGURED TERM LENGTH -> there is no term for this loss to belong to, so it
+  // gets a zero-length one of its own. See openLossOnlyTerm.
+  //
+  // Reading the market's CURRENT duration is what makes this safe, and the log order
+  // is why. Case B is `setFixedTermDuration(0)` on a live term: the body emits this
+  // Reset BEFORE its own FixedTermDurationUpdated(0), and that later event is what
+  // sets fixedTermDurationSeconds = 0. So at this instant the field still holds the
+  // OLD non-zero duration, case B correctly falls through to the patch path below,
+  // and the real term keeps its loss. Only a market that was ALREADY on a zero
+  // duration — set in some earlier transaction — reaches openLossOnlyTerm.
+  if (market.fixedTermDurationSeconds.isZero()) {
+    openLossOnlyTerm(event, market, erased);
+    return;
+  }
+
   if (market.countFixedTermEntries.isZero()) return;
 
   const entry = DayFixedTermHistory.load(
@@ -125,9 +140,77 @@ export function recordFixedTermCoverageLoss(
     return;
   }
 
+  // The ONLY write of this field. It is seeded to 0 at FixedTermCommenced and `erased`
+  // is provably non-zero here (guarded above and again by the caller), so a non-zero
+  // value always means a real loss and 0 always means none was recorded.
   entry.juniorTrancheImpermanentLossNAV = erased;
   entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
   entry.updatedAtBlockNumber = event.block.number;
   entry.updatedAtBlockTimestamp = event.block.timestamp;
   entry.save();
+}
+
+/**
+ * Record a coverage loss on a market that has NO configured term length, as a
+ * zero-length term that opens and closes on this event.
+ *
+ * WHY A ROW AT ALL. The erase branch has four disjuncts and only one is "the fixed
+ * term elapsed"; the other three fire on markets running a zero duration, where no
+ * term exists to patch. Those losses used to reach case C and be dropped, so
+ * DayMarketState.juniorTrancheImpermanentLossNAV (which counts every erase) drifted
+ * permanently above SUM(DayFixedTermHistory.juniorTrancheImpermanentLossNAV), and the
+ * difference was unattributable — no row, no timestamp, no way to ask when it
+ * happened. Giving the loss its own degenerate term closes that gap: the two now
+ * reconcile, and every erase is answerable in the history table.
+ *
+ * ALL THREE TIMESTAMPS ARE THIS BLOCK'S, deliberately:
+ *   startBlockTimestamp     — the term begins here
+ *   scheduledEndBlockTimestamp — it was never scheduled to run; there is no other
+ *                             honest value, and 0 would read as "scheduled for the
+ *                             epoch" and poison scheduled-vs-actual comparisons
+ *   endBlockTimestamp       — it ends here too
+ * so `duration` is 0. That is a REAL duration, not a sentinel — the same value a
+ * genuine term that opened and closed in one block would carry, which is exactly why
+ * `duration` is nullable rather than 0-sentinelled (see schema.graphql).
+ *
+ * CLOSED ON ARRIVAL, which matters for what comes next: endBlockTimestamp is non-zero,
+ * so closeOpenFixedTerm's "already closed" guard skips this row, and a later erase in a
+ * DIFFERENT tx hits the case C guard rather than overwriting this one's loss. A later
+ * erase in the SAME tx would pass case C — but it cannot reach that path, because a
+ * zero duration routes every erase here, and each gets its own fresh row.
+ *
+ * The caller MUST save the market after this: the cursor advances here and
+ * touchMarket is what persists it.
+ */
+function openLossOnlyTerm(
+  event: ethereum.Event,
+  market: DayMarketState,
+  erased: BigInt,
+): void {
+  // Use-then-increment, the same cursor and the same order as handleFixedTermCommenced
+  // — these rows share one dense stream with the real terms, they are not a side table.
+  const entryIndex = market.countFixedTermEntries;
+
+  const entry = new DayFixedTermHistory(
+    generateMarketRecordId(market.marketId, entryIndex),
+  );
+  entry.chainId = market.chainId;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  entry.entryIndex = entryIndex;
+  entry.startBlockTimestamp = event.block.timestamp;
+  entry.scheduledEndBlockTimestamp = event.block.timestamp;
+  entry.endBlockTimestamp = event.block.timestamp;
+  entry.duration = BigInt.zero();
+  entry.juniorTrancheImpermanentLossNAV = erased;
+
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
+  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
+  entry.updatedAtBlockNumber = event.block.number;
+  entry.updatedAtBlockTimestamp = event.block.timestamp;
+  entry.save();
+
+  market.countFixedTermEntries = entryIndex.plus(BigInt.fromI32(1));
 }

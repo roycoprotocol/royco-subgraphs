@@ -101,7 +101,7 @@ describe("handleProtocolFeeSharesMinted", () => {
     clearStore();
   });
 
-  test("first fee opens the stream at entry 0, keyed day + tranche", () => {
+  test("first fee opens the stream in its block's row, keyed day + tranche", () => {
     deployMarket();
     const minted = BigInt.fromI32(500);
     // The handler prices the newly minted shares: convertToAssets(minted).nav.
@@ -128,7 +128,6 @@ describe("handleProtocolFeeSharesMinted", () => {
     // The state holds the running totals ONLY, in both denominations.
     assert.fieldEquals("DayFeeState", id, "cumulativeShares", "500");
     assert.fieldEquals("DayFeeState", id, "cumulativeNav", "9000");
-    assert.fieldEquals("DayFeeState", id, "lastHistoricalEntryIndex", "0");
 
     const snapId = generateFeeStateHistoricalId(
       ADDR_KERNEL.toHexString(),
@@ -138,7 +137,6 @@ describe("handleProtocolFeeSharesMinted", () => {
       BLOCK_NUMBER
     );
     assert.entityCount("DayFeeStateHistorical", 1);
-    assert.fieldEquals("DayFeeStateHistorical", snapId, "entryIndex", "0");
     // On entry 0 each delta equals its cumulative — the first addend IS the sum.
     assert.fieldEquals("DayFeeStateHistorical", snapId, "shares", "500");
     assert.fieldEquals("DayFeeStateHistorical", snapId, "cumulativeShares", "500");
@@ -186,7 +184,6 @@ describe("handleProtocolFeeSharesMinted", () => {
     // Both denominations accumulated: 500+300 shares, 9000+2000 nav.
     assert.fieldEquals("DayFeeState", id, "cumulativeShares", "800");
     assert.fieldEquals("DayFeeState", id, "cumulativeNav", "11000");
-    assert.fieldEquals("DayFeeState", id, "lastHistoricalEntryIndex", "1");
     assert.entityCount("DayFeeStateHistorical", 2);
 
     // The second block's row: shares/nav are the DELTAS (300 / 2000), cumulative* the
@@ -444,7 +441,6 @@ describe("handleProtocolFeeSharesMinted", () => {
 
     // ONE row, and the cursor never moved off 0.
     assert.entityCount("DayFeeStateHistorical", 1);
-    assert.fieldEquals("DayFeeState", seniorFeeId(), "lastHistoricalEntryIndex", "0");
 
     const snap = generateFeeStateHistoricalId(
       ADDR_KERNEL.toHexString(),
@@ -453,7 +449,6 @@ describe("handleProtocolFeeSharesMinted", () => {
       TRANCHE_TYPE_SENIOR,
       BLOCK_NUMBER
     );
-    assert.fieldEquals("DayFeeStateHistorical", snap, "entryIndex", "0");
     // DELTAS summed: 500+300, 9000+2000.
     assert.fieldEquals("DayFeeStateHistorical", snap, "shares", "800");
     assert.fieldEquals("DayFeeStateHistorical", snap, "nav", "11000");

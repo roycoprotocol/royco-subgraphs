@@ -12,16 +12,20 @@ import {
   ADDR_ASSET,
   ADDR_LPT_ASSET,
   ADDR_QUOTE_ASSET,
+  ADDR_BALANCER_VAULT,
   ADDR_JUNIOR,
   ADDR_KERNEL,
   ADDR_LIQUIDITY,
   ADDR_SENIOR,
   DECIMALS_18,
+  DECIMALS_6,
   WAD,
 } from "../helpers/constants";
 import {
   ROYCO_DAY_KERNEL__CONVERT_COLLATERAL_ASSETS_TO_VALUE,
   ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE,
+  ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS,
+  ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS,
   ROYCO_DAY_KERNEL__COLLATERAL_ASSET,
   ROYCO_DAY_KERNEL__LPT_ASSET,
   ROYCO_DAY_KERNEL__QUOTE_ASSET,
@@ -79,6 +83,66 @@ export function mockAssetToken(asset: Address, decimals: i32): void {
   createMockedFunction(asset, "decimals", "decimals():(uint8)")
     .withArgs([])
     .returns([ethereum.Value.fromI32(decimals)]);
+}
+
+/**
+ * The BPT's Balancer V3 surface: the pool's vault, its two tokens, and their rates.
+ *
+ * The liquidity tranche's deposit asset IS the BPT, and in Balancer V3 the pool contract
+ * IS that token, so `bpt` is both the token address and the `pool` argument.
+ *
+ * TOKEN ORDER IS THE PARAMETER THAT MATTERS. The pool is a pair of (senior tranche
+ * share, quote asset) but registration order is the deployer's choice, so
+ * `quoteAssetPoolIndex` places the quote leg and the senior share takes the other slot.
+ * The rates are per-slot too, so a handler that hardcodes slot 0 or reads the senior
+ * leg's rate produces a visibly wrong number rather than a coincidental pass.
+ */
+export function mockBalancerPool(
+  bpt: Address,
+  vault: Address,
+  seniorTranche: Address,
+  quoteAsset: Address,
+  quoteAssetPoolIndex: i32,
+  quoteRate: BigInt,
+  seniorRate: BigInt
+): void {
+  createMockedFunction(bpt, "getVault", "getVault():(address)")
+    .withArgs([])
+    .returns([ethereum.Value.fromAddress(vault)]);
+
+  const tokens = new Array<Address>(2);
+  const rates = new Array<BigInt>(2);
+  const scalingFactors = new Array<BigInt>(2);
+  const seniorIndex = quoteAssetPoolIndex == 0 ? 1 : 0;
+  tokens[quoteAssetPoolIndex] = quoteAsset;
+  tokens[seniorIndex] = seniorTranche;
+  rates[quoteAssetPoolIndex] = quoteRate;
+  rates[seniorIndex] = seniorRate;
+  // Deliberately NOT 1e18 in either slot: these are RAW 10 ** (18 - decimals) factors,
+  // not fixed-point (PoolConfigLib.sol:255-257). They cancel out of the price identity,
+  // so a handler that multiplies by them anyway is off by 10^12 here and shows it.
+  scalingFactors[quoteAssetPoolIndex] = BigInt.fromI32(10).pow(12); // a 6-decimal quote
+  scalingFactors[seniorIndex] = BigInt.fromI32(1); // an 18-decimal share
+
+  createMockedFunction(vault, "getPoolTokens", "getPoolTokens(address):(address[])")
+    .withArgs([ethereum.Value.fromAddress(bpt)])
+    .returns([ethereum.Value.fromAddressArray(tokens)]);
+
+  createMockedFunction(
+    vault,
+    "getPoolTokenRates",
+    "getPoolTokenRates(address):(uint256[],uint256[])"
+  )
+    .withArgs([ethereum.Value.fromAddress(bpt)])
+    .returns([
+      ethereum.Value.fromUnsignedBigIntArray(scalingFactors),
+      ethereum.Value.fromUnsignedBigIntArray(rates),
+    ]);
+}
+
+/** A kernel with NO Balancer venue: LPT_ASSET is a plain ERC20, not a pool. */
+export function mockBalancerPoolAbsent(bpt: Address): void {
+  createMockedFunction(bpt, "getVault", "getVault():(address)").withArgs([]).reverts();
 }
 
 /**
@@ -214,6 +278,25 @@ export class DayMarketFixture {
   quoteAsset: Address = ADDR_QUOTE_ASSET;
   assetDecimals: i32 = DECIMALS_18;
   trancheDecimals: i32 = DECIMALS_18;
+  // 6, NOT 18, on purpose: the quote asset is the one token whose decimals differ from
+  // everything else in the fixture (USDC is the real-world case), so a handler that
+  // reads the wrong token's decimals for it shows up as a wrong number rather than a
+  // coincidental pass.
+  quoteAssetDecimals: i32 = DECIMALS_6;
+  // === the BPT's Balancer surface ===
+  // lptAsset above IS the pool. Index 1 by default so the senior share sits in slot 0,
+  // matching the venue's own "if tokens[0] == SENIOR_TRANCHE then quote is 1" branch.
+  balancerVault: Address = ADDR_BALANCER_VAULT;
+  quoteAssetPoolIndex: i32 = 1;
+  // 1.0 would be indistinguishable from a hardcoded WAD, and equal rates would hide a
+  // handler reading the wrong slot. A STANDARD quote really is FP(1) on chain — the
+  // dedicated test covers that case explicitly.
+  quoteAssetRate: BigInt = BigInt.fromString("1020000000000000000"); // 1.02
+  // The bootstrap share price's ASSET leg: one whole share ($1 of NAV) expressed in each
+  // tranche's own asset. Distinct so a mis-routed converter is visible.
+  bootstrapCollateralAssets: BigInt = BigInt.fromI32(7_701);
+  bootstrapLPTAssets: BigInt = BigInt.fromI32(7_702);
+  seniorShareRate: BigInt = BigInt.fromString("3070000000000000000"); // 3.07
 
   accountantState: AccountantState = new AccountantState();
   kernelState: KernelState = new KernelState();
@@ -387,7 +470,17 @@ export function mockDayMarket(m: DayMarketFixture): void {
 
   mockTrancheToken(m.seniorTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
   mockTrancheToken(m.juniorTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
-  mockTrancheToken(m.liquidityTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
+  // The LIQUIDITY tranche's asset is the BPT, NOT the collateral. The kernel
+  // constructor requires liquidityProviderTranche.asset() == LPT_ASSET, so a fixture
+  // that reported the collateral here would describe a market that cannot exist — and
+  // would let a handler reading liquidity.assetTokenAddress as the pool pass its tests
+  // while being wrong on chain.
+  mockTrancheToken(
+    m.liquidityTranche,
+    m.lptAsset,
+    m.trancheDecimals,
+    m.sharesTotalSupply
+  );
 
   mockTrancheType(m.seniorTranche, TRANCHE_SENIOR);
   mockTrancheType(m.juniorTranche, TRANCHE_JUNIOR);
@@ -416,8 +509,31 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.collateralAssetPriceNAV,
     m.liquidityAssetPriceNAV
   );
+  // The inverse pair, read only while a tranche is empty (bootstrapSharePrice).
+  mockValueToAssets(
+    m.kernel,
+    oneShare,
+    m.bootstrapCollateralAssets,
+    m.bootstrapLPTAssets
+  );
 
   mockAssetToken(m.asset, m.assetDecimals);
+  // The BPT is an ERC20 too — createVault reads decimals off the liquidity tranche's
+  // asset, which is now (correctly) this one.
+  mockAssetToken(m.lptAsset, m.assetDecimals);
+  // The quote asset's own decimals. It has no tranche, so nothing else mocks it, and
+  // handleMarketDeploymentCompleted reads it straight off the ERC20.
+  mockAssetToken(m.quoteAsset, m.quoteAssetDecimals);
+  // The BPT is the liquidity tranche's asset AND the Balancer pool.
+  mockBalancerPool(
+    m.lptAsset,
+    m.balancerVault,
+    m.seniorTranche,
+    m.quoteAsset,
+    m.quoteAssetPoolIndex,
+    m.quoteAssetRate,
+    m.seniorShareRate
+  );
 
   mockKernelAssets(m.kernel, m.collateralAsset, m.lptAsset, m.quoteAsset);
 }
@@ -441,6 +557,56 @@ export function mockConvertToAssetsReverts(tranche: Address, shares: BigInt): vo
 }
 
 /** Make both Kernel NAV converters REVERT for one input. */
+/**
+ * The INVERSE converters, used only for an EMPTY tranche's bootstrap share price:
+ * how much of a tranche's own asset one whole share ($1 of NAV) is worth.
+ *
+ * Senior and junior share the collateral one; only the liquidity tranche uses the LPT
+ * one. Values are deliberately DISTINCT so a handler routing the wrong tranche to the
+ * wrong converter shows up as a wrong number rather than a coincidental pass.
+ */
+export function mockValueToAssets(
+  kernel: Address,
+  oneShare: BigInt,
+  collateralAssets: BigInt,
+  lptAssets: BigInt
+): void {
+  const arg = [ethereum.Value.fromUnsignedBigInt(oneShare)];
+  createMockedFunction(
+    kernel,
+    "convertValueToCollateralAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS
+  )
+    .withArgs(arg)
+    .returns([ethereum.Value.fromUnsignedBigInt(collateralAssets)]);
+  createMockedFunction(
+    kernel,
+    "convertValueToLPTAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS
+  )
+    .withArgs(arg)
+    .returns([ethereum.Value.fromUnsignedBigInt(lptAssets)]);
+}
+
+/** Both inverse converters revert — a stale oracle, a downed sequencer, a zero price. */
+export function mockValueToAssetsReverts(kernel: Address, oneShare: BigInt): void {
+  const arg = [ethereum.Value.fromUnsignedBigInt(oneShare)];
+  createMockedFunction(
+    kernel,
+    "convertValueToCollateralAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS
+  )
+    .withArgs(arg)
+    .reverts();
+  createMockedFunction(
+    kernel,
+    "convertValueToLPTAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS
+  )
+    .withArgs(arg)
+    .reverts();
+}
+
 export function mockAssetPriceNAVReverts(
   kernel: Address,
   oneAssetToken: BigInt

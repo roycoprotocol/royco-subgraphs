@@ -22,6 +22,7 @@ import {
 } from "./utils";
 import { touchMarket } from "./handlers/base/resolve-market";
 import { refreshMarketNav } from "./handlers/base/market-nav";
+import { refreshMarketStoredState } from "./handlers/base/market-stored-state";
 import {
   CHAIN_ID,
   MARKET_STATE_FIXED,
@@ -32,8 +33,6 @@ import {
   OPERATION_JT_REDEEM,
   OPERATION_LPT_DEPOSIT,
   OPERATION_LPT_REDEEM,
-  OPERATION_LPT_MULTI_ASSET_DEPOSIT,
-  OPERATION_LPT_MULTI_ASSET_REDEEM,
   OPERATION_UNKNOWN,
   SYNC_TYPE_PRE_OP,
   SYNC_TYPE_POST_OP,
@@ -109,39 +108,28 @@ export function handleLiquidityPremiumReinvested(
   );
   if (!market) return;
 
-  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
-  const id = generateMarketBlockRecordId(market.marketId, event.block.number);
-  let entry = DayLiquidityPremiumReinvestedHistory.load(id);
+  // ONE ROW PER EVENT — this stream does NOT collapse. Use-then-increment: the count
+  // IS the next entryIndex (see "ENTRY INDEX CURSOR" in schema.graphql).
+  const entryIndex = market.countLiquidityPremiumReinvestedEntries;
 
-  if (!entry) {
-    entry = new DayLiquidityPremiumReinvestedHistory(id);
-    const entryIndex = market.countLiquidityPremiumReinvestedEntries;
-    entry.entryIndex = entryIndex;
-    entry.blockNumber = event.block.number;
-    entry.chainId = CHAIN_ID;
-    entry.marketId = market.marketId;
-    entry.marketRefId = market.id;
-    // Both are DELTAS — seeded to zero so they can accumulate across the block.
-    entry.shares = BigInt.zero();
-    entry.assets = BigInt.zero();
-    entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-    entry.createdAtBlockNumber = event.block.number;
-    entry.createdAtBlockTimestamp = event.block.timestamp;
-    market.countLiquidityPremiumReinvestedEntries = entryIndex.plus(
-      BigInt.fromI32(1)
-    );
-  }
-
-  // REALISED amounts, and DELTAS — they accumulate within the block so the column still
-  // totals what was actually reinvested. Never sum these with the Failed stream's
+  const entry = new DayLiquidityPremiumReinvestedHistory(
+    generateMarketRecordId(market.marketId, entryIndex)
+  );
+  entry.entryIndex = entryIndex;
+  entry.chainId = CHAIN_ID;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  // REALISED amounts, this event's own. Never sum these with the Failed stream's
   // identically-named columns (see the schema note).
-  entry.shares = entry.shares.plus(event.params.stSharesReinvested); // <- ABI: stSharesReinvested
-  entry.assets = entry.assets.plus(event.params.lptAssetsMinted); // <- ABI: lptAssetsMinted
-  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
-  entry.updatedAtBlockNumber = event.block.number;
-  entry.updatedAtBlockTimestamp = event.block.timestamp;
+  entry.shares = event.params.stSharesReinvested; // <- ABI: stSharesReinvested
+  entry.assets = event.params.lptAssetsMinted; // <- ABI: lptAssetsMinted
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
+  market.countLiquidityPremiumReinvestedEntries = entryIndex.plus(BigInt.fromI32(1));
+  // Persists the cursor bump as well as updatedAt*.
   touchMarket(event, market);
 }
 
@@ -200,39 +188,31 @@ export function handleLiquidityPremiumReinvestmentFailed(
   );
   if (!market) return;
 
-  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
-  const id = generateMarketBlockRecordId(market.marketId, event.block.number);
-  let entry = DayLiquidityPremiumReinvestmentFailedHistory.load(id);
+  // ONE ROW PER EVENT — this stream does NOT collapse, and here that matters most: a
+  // block can hold a failed attempt AND a later successful retry, and each failure
+  // carries its own revertData. Collapsing would keep only the last reason.
+  const entryIndex = market.countLiquidityPremiumReinvestmentFailedEntries;
 
-  if (!entry) {
-    entry = new DayLiquidityPremiumReinvestmentFailedHistory(id);
-    const entryIndex = market.countLiquidityPremiumReinvestmentFailedEntries;
-    entry.entryIndex = entryIndex;
-    entry.blockNumber = event.block.number;
-    entry.chainId = CHAIN_ID;
-    entry.marketId = market.marketId;
-    entry.marketRefId = market.id;
-    entry.shares = BigInt.zero();
-    entry.assets = BigInt.zero();
-    entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-    entry.createdAtBlockNumber = event.block.number;
-    entry.createdAtBlockTimestamp = event.block.timestamp;
-    market.countLiquidityPremiumReinvestmentFailedEntries = entryIndex.plus(
-      BigInt.fromI32(1)
-    );
-  }
-
-  // An ATTEMPT and a BOUND, not realised amounts — but still per-event quantities, so
-  // they accumulate across the block like every other delta column.
-  entry.shares = entry.shares.plus(event.params.stSharesToReinvest); // <- ABI: stSharesToReinvest
-  entry.assets = entry.assets.plus(event.params.minLPTAssetsOut); // <- ABI: minLPTAssetsOut
-  // revertData is NOT a delta: the row keeps the LAST failure's reason for the block.
+  const entry = new DayLiquidityPremiumReinvestmentFailedHistory(
+    generateMarketRecordId(market.marketId, entryIndex)
+  );
+  entry.entryIndex = entryIndex;
+  entry.chainId = CHAIN_ID;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  // An ATTEMPT and a BOUND, not realised amounts — this event's own values.
+  entry.shares = event.params.stSharesToReinvest; // <- ABI: stSharesToReinvest
+  entry.assets = event.params.minLPTAssetsOut; // <- ABI: minLPTAssetsOut
   entry.revertData = event.params.revertData.toHexString(); // <- ABI: revertData (bytes -> hex, §4)
-  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
-  entry.updatedAtBlockNumber = event.block.number;
-  entry.updatedAtBlockTimestamp = event.block.timestamp;
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
+  market.countLiquidityPremiumReinvestmentFailedEntries = entryIndex.plus(
+    BigInt.fromI32(1)
+  );
+  // Persists the cursor bump as well as updatedAt*.
   touchMarket(event, market);
 }
 
@@ -282,8 +262,8 @@ class SyncedState {
  *                                   carrying the settled state plus the `op` enum.
  *
  * THE COLLAPSE RULE: one DayTrancheAccountingSyncedHistory row per (market, block).
- * The first sync in a block creates it and takes the next entryIndex; every later sync
- * in that same block OVERWRITES it. So a swap-only block leaves a `preOp` row, and a
+ * The first sync in a block creates it; every later sync in that same block
+ * OVERWRITES it. So a swap-only block leaves a `preOp` row, and a
  * deposit block leaves a `postOp` row because the post-op fires second and wins.
  *
  * That is why the id is keyed by BLOCK NUMBER and why the entity is `immutable: false`
@@ -372,12 +352,6 @@ function recordSync(
     entry.marketId = market.marketId;
     entry.marketRefId = market.id;
     entry.blockNumber = event.block.number;
-    // entryIndex is assigned ONCE, on creation, and the cursor advances only here — so
-    // it stays dense and total == countTrancheAccountingSyncedEntries. An update must
-    // never touch either, or the count would exceed the row count.
-    entry.entryIndex = market.countTrancheAccountingSyncedEntries;
-    market.countTrancheAccountingSyncedEntries =
-      market.countTrancheAccountingSyncedEntries.plus(BigInt.fromI32(1));
     // createdAt* EXACTLY ONCE (§8) — the FIRST sync in this block. A block can span
     // several transactions, so this genuinely differs from updatedAt* when a swap and
     // a deposit share one.
@@ -411,8 +385,23 @@ function recordSync(
   entry.updatedAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
-  // (C) The price vector — see the note above on why this does NOT collapse.
+  // (C) The price vector. Six eth_calls: three asset prices (two Kernel converters plus
+  // the BPT's getPoolTokenRates for the quote leg) and three convertToAssets, each
+  // returning a whole quadruple.
+  //
+  // An EMPTY tranche is handled inside sharePriceClaims, not here: convertToAssets
+  // returns the ZERO struct at zero supply, which is the pro-rata claim on real assets
+  // and NOT the share price, so it substitutes the $1 virtual-share bootstrap. That
+  // matters on this path specifically — the LT's Balancer hook can sync on a swap before
+  // anyone has deposited, and taking the contract's zero at face value would drop the
+  // price from the $1 written at creation to 0 and snap it back on the first deposit.
   refreshMarketNav(event, market);
+
+  // (D) The five getState()-only columns. The sync payload does NOT carry them: it is
+  // all NAVs, utilizations and per-sync fees, with no custodied totals and no accrual
+  // or premium checkpoints. Two eth_calls, and the reasons they are worth it are on
+  // refreshMarketStoredState.
+  refreshMarketStoredState(market, event.address);
 
   touchMarket(event, market);
 }
@@ -433,11 +422,20 @@ function liveMarketStateName(marketState: i32): string {
  *
  * Declaration order from contracts/libraries/Types.sol — the ABI carries the enum's
  * TYPE but none of its member names, so this is read from source, never inferred (§4).
- * EIGHT members in v2; v1 had six, before the two multi-asset LP operations.
+ * SIX members. It has ALREADY changed once: an earlier revision had eight, with distinct
+ * LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION members later folded into the plain LPT ones.
+ * Re-read Types.sol whenever contracts/ changes — nothing about the ABI, the build or
+ * the tests will tell you this list has gone stale.
+ *
+ * A multi-asset LP flow therefore reports as lptDeposit / lptRedeem, indistinguishable
+ * from a single-asset one by this column alone; join to DayMultiAssetDepositActivity /
+ * DayMultiAssetRedeemActivity on transaction hash to tell them apart.
  *
  * An unrecognised ordinal returns "unknown" rather than falling through to a neighbour:
  * if the enum ever grows, that surfaces in Neon as a value nobody expects instead of
- * silently mislabelling every new operation as the last known one.
+ * silently mislabelling every new operation as the last known one. The
+ * "the Operation enum maps 0..5, and anything beyond is 'unknown'" test pins both the
+ * members and that boundary.
  */
 function operationName(op: i32): string {
   if (op == 0) return OPERATION_ST_DEPOSIT;
@@ -446,8 +444,9 @@ function operationName(op: i32): string {
   if (op == 3) return OPERATION_JT_REDEEM;
   if (op == 4) return OPERATION_LPT_DEPOSIT;
   if (op == 5) return OPERATION_LPT_REDEEM;
-  if (op == 6) return OPERATION_LPT_MULTI_ASSET_DEPOSIT;
-  if (op == 7) return OPERATION_LPT_MULTI_ASSET_REDEEM;
+  // 6+ cannot occur against the current enum, which has exactly six members. Anything
+  // higher means the enum grew and this list did not — reported as "unknown" rather
+  // than silently mapped onto a neighbour.
   return OPERATION_UNKNOWN;
 }
 

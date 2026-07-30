@@ -4,18 +4,19 @@ pragma solidity ^0.8.28;
 import { IERC20 } from "../../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IRoycoDayAccountant } from "../../interfaces/IRoycoDayAccountant.sol";
 import { IRoycoDayKernel } from "../../interfaces/IRoycoDayKernel.sol";
+import { Cache, CacheKey } from "../Cache.sol";
+import { WAD } from "../Constants.sol";
 import { AssetClaims, Operation, SyncedAccountingState, TrancheType } from "../Types.sol";
-import { Math, NAV_UNIT } from "../Units.sol";
+import { Math, NAV_UNIT, toUint256 } from "../Units.sol";
+import { AssetLedgerLogic } from "./AssetLedgerLogic.sol";
 import { FeeAndLiquidityPremiumLogic } from "./FeeAndLiquidityPremiumLogic.sol";
-import { TrancheClaimsLogic } from "./TrancheClaimsLogic.sol";
 import { UtilizationLogic } from "./UtilizationLogic.sol";
 import { ValuationLogic } from "./ValuationLogic.sol";
 
 /**
  * @title AccountingSyncLogic
  * @author Waymont
- * @notice Tranche-accounting synchronization for a Royco market: the pre-op and post-op sync, protocol fee and liquidity-premium
- *         processing, the idle liquidity-premium reinvestment, and the sync preview
+ * @notice Tranche-accounting synchronization for a Royco market: the pre-op and post-op sync, protocol fee and liquidity-premium processing, the idle liquidity-premium reinvestment, and the sync preview
  */
 library AccountingSyncLogic {
     // =============================
@@ -111,7 +112,7 @@ library AccountingSyncLogic {
         state = _previewSyncTrancheAccounting($, _immutables);
 
         // Derive the asset claims for this tranche
-        claims = TrancheClaimsLogic._deriveTrancheAssetClaims($, _immutables, _trancheType, state);
+        claims = AssetLedgerLogic._deriveTrancheAssetClaims($, _immutables, _trancheType, state);
 
         // Return the requested tranche claims and total shares after the sync mints its premium and protocol fee shares
         if (_trancheType == TrancheType.SENIOR) {
@@ -215,12 +216,10 @@ library AccountingSyncLogic {
         emit IRoycoDayKernel.PreOpTrancheAccountingSynced(state);
 
         // Read the requested tranche's total supply after all shares (fees and premium) have been minted
-        if (_trancheType == TrancheType.SENIOR) totalTrancheShares = IERC20(_immutables.seniorTranche).totalSupply();
-        else if (_trancheType == TrancheType.JUNIOR) totalTrancheShares = IERC20(_immutables.juniorTranche).totalSupply();
-        else totalTrancheShares = IERC20(_immutables.liquidityProviderTranche).totalSupply();
+        totalTrancheShares = IERC20(AssetLedgerLogic._getTrancheAddress(_immutables, _trancheType)).totalSupply();
 
         // Derive the asset claims for the specified tranche
-        claims = TrancheClaimsLogic._deriveTrancheAssetClaims($, _immutables, _trancheType, state);
+        claims = AssetLedgerLogic._deriveTrancheAssetClaims($, _immutables, _trancheType, state);
     }
 
     /**
@@ -229,60 +228,55 @@ library AccountingSyncLogic {
      * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _op The operation being executed in between the pre and post synchronizations
-     * @param _stSelfLiquidationBonusNAV The NAV of assets from JT effective NAV used as a bonus for ST redemptions (only nonzero if _op == ST_REDEEM || LPT_MULTI_ASSET_REDEEM)
-     * @param _enforceCoverageAndLiquidityRequirements Whether to enforce the market's coverage and liquidity requirements applicable to the operation
+     * @param _stSelfLiquidationBonusNAV The NAV of assets from JT effective NAV used as a bonus for ST redemptions (only nonzero if _op == ST_REDEMPTION)
      * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
      */
     function _postOpSyncTrancheAccounting(
         IRoycoDayKernel.RoycoDayKernelState storage $,
         IRoycoDayKernel.RoycoDayKernelImmutableState memory _immutables,
         Operation _op,
-        NAV_UNIT _stSelfLiquidationBonusNAV,
-        bool _enforceCoverageAndLiquidityRequirements
+        NAV_UNIT _stSelfLiquidationBonusNAV
     )
         internal
         returns (SyncedAccountingState memory state)
     {
-        return _postOpSyncTrancheAccounting(
-            $, _immutables, _op, ValuationLogic._getLiquidityProviderTrancheRawNAV($), _stSelfLiquidationBonusNAV, _enforceCoverageAndLiquidityRequirements
-        );
-    }
-
-    /**
-     * @notice Executes a post-operation sync at a caller-marked liquidity provider tranche raw NAV
-     * @dev Used by flows whose venue interaction marked the post-op LPT raw NAV inside the venue frame, so preview and
-     *      execution enforce against the same mark
-     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
-     * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
-     * @param _op The operation being executed in between the pre and post synchronizations
-     * @param _lptRawNAV The post-op liquidity provider tranche raw NAV, marked by the caller at the venue's post-op state
-     * @param _stSelfLiquidationBonusNAV The NAV of assets from JT effective NAV used as a bonus for ST redemptions (only nonzero if _op == ST_REDEEM || LPT_MULTI_ASSET_REDEEM)
-     * @param _enforceCoverageAndLiquidityRequirements Whether to enforce the market's coverage and liquidity requirements applicable to the operation
-     * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
-     */
-    function _postOpSyncTrancheAccounting(
-        IRoycoDayKernel.RoycoDayKernelState storage $,
-        IRoycoDayKernel.RoycoDayKernelImmutableState memory _immutables,
-        Operation _op,
-        NAV_UNIT _lptRawNAV,
-        NAV_UNIT _stSelfLiquidationBonusNAV,
-        bool _enforceCoverageAndLiquidityRequirements
-    )
-        internal
-        returns (SyncedAccountingState memory state)
-    {
-        // Execute the post-op sync on the accountant, committing the final state of the accounting and enforcing the market's requirements if specified
+        // Execute the post-op sync on the accountant, committing the final state of the accounting
+        // The LPT depth is priced live at the settled venue, a multi-asset preview prices at the frame mark it cached for its venue operation
         state = IRoycoDayAccountant(_immutables.accountant)
             .postOpSyncTrancheAccounting(
-                _op, ValuationLogic._getCollateralNAV($), _lptRawNAV, _stSelfLiquidationBonusNAV, _enforceCoverageAndLiquidityRequirements
+                _op, ValuationLogic._getCollateralNAV($), ValuationLogic._getLiquidityProviderTrancheRawNAV($), _stSelfLiquidationBonusNAV
             );
+
+        // Enforce the coverage requirement for operations that can worsen coverage (add senior exposure or remove the junior loss-absorption buffer)
+        if (_op == Operation.ST_DEPOSIT || _op == Operation.JT_REDEMPTION) {
+            require(state.coverageUtilizationWAD <= WAD, IRoycoDayKernel.COVERAGE_REQUIREMENT_VIOLATED());
+        }
+        // Enforce the liquidity requirement for operations that can worsen liquidity (raise the senior exposure or reduce the venue's market-making depth)
+        (bool inMultiAssetFlow,) = Cache._read(CacheKey.IN_MULTI_ASSET_FLOW);
+        bool liquidityRequirementSatisfied = (state.liquidityUtilizationWAD <= WAD);
+        if (_op == Operation.ST_DEPOSIT || _op == Operation.LPT_REDEMPTION) {
+            if (inMultiAssetFlow && !liquidityRequirementSatisfied) {
+                // Record the worsening leg's violation for the flow's exit instead of reverting, a later leg heals it
+                Cache._write(CacheKey.PENDING_LIQUIDITY_VIOLATION, 1);
+            } else {
+                // A standalone operation has no downstream leg to heal a violation, so it enforces at its own settled state
+                require(liquidityRequirementSatisfied, IRoycoDayKernel.LIQUIDITY_REQUIREMENT_VIOLATED());
+            }
+        }
+        // A final leg that settles satisfied heals the recorded violation
+        // An operation that only improves liquidity never records one, so a partial heal of an already violated market always completes
+        if (inMultiAssetFlow && liquidityRequirementSatisfied && (_op == Operation.LPT_DEPOSIT || _op == Operation.ST_REDEMPTION)) {
+            Cache._delete(CacheKey.PENDING_LIQUIDITY_VIOLATION);
+        }
+
+        // Refresh the cached senior share rate at the settled post-op state
+        uint256 totalSTShares = IERC20(_immutables.seniorTranche).totalSupply();
+        Cache._write(CacheKey.ST_SHARE_PRICE, toUint256(ValuationLogic._computeTrancheShareRate(totalSTShares, state.stEffectiveNAV)));
 
         // Deploy the accumulated idle liquidity-premium senior shares now that the operation has settled and its requirements are enforced
         if ($.lptOwnedSeniorTrancheShares != 0) {
             // Value the pile at the settled post-op senior state, a gated or unpriceable deployment defers inside the attempt and leaves the shares idle
-            // The venue's senior-leg mark stays the pre-op cached rate, which the frozen collateral price and at-rate mints keep exact through the operation
-            IRoycoDayKernel(address(this))
-                .attemptLiquidityPremiumReinvestment(type(uint256).max, state.stEffectiveNAV, IERC20(_immutables.seniorTranche).totalSupply());
+            IRoycoDayKernel(address(this)).attemptLiquidityPremiumReinvestment(type(uint256).max, state.stEffectiveNAV, totalSTShares);
             // Re-commit the LPT raw NAV: the deployment settled after the post-op's commit, so the committed depth must reflect the freshly deployed LPT assets
             _commitLPTRawNAV($, _immutables, state);
         }
@@ -295,6 +289,7 @@ library AccountingSyncLogic {
      * @notice Marks and commits the liquidity provider tranche's fresh raw NAV and refreshes the in-memory state packet
      * @dev Called wherever the depth may have moved under the committed mark: after a sync's fee and premium mints, or a reinvestment
      *      The committed liquidity provider tranche raw NAV stays out of the P&L waterfall and the senior share rate provider's dependency loop
+     * @dev Prices the depth live at the venue oracle, a multi-asset deposit or redemption preview reads the frame mark it cached for its venue operation instead
      * @dev Refreshes the state packet in place so every downstream consumer reads the most up-to-date values
      * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
      * @param _immutables The immutable storage state of the Royco Kernel that is delegatecalling into this function
@@ -313,5 +308,19 @@ library AccountingSyncLogic {
         IRoycoDayAccountant(_immutables.accountant).commitLiquidityProviderTrancheRawNAV(lptRawNAV);
         _state.lptRawNAV = lptRawNAV;
         _state.liquidityUtilizationWAD = UtilizationLogic._computeLiquidityUtilization(_state.stEffectiveNAV, _state.minLiquidityWAD, lptRawNAV);
+    }
+
+    /// @notice Marks the start of a multi-asset composite flow so a worsening leg's post-op records a liquidity violation instead of enforcing it
+    /// @dev Must be paired with _exitMultiAssetFlow, which unmarks the flow and enforces the requirement on the flow's final settled state
+    function _enterMultiAssetFlow() internal {
+        Cache._write(CacheKey.IN_MULTI_ASSET_FLOW, 1);
+    }
+
+    /// @notice Unmarks the settled multi-asset composite flow and enforces any recorded liquidity violation its later legs never healed
+    /// @dev Must be called before the composite's preview revert so the requirement is enforced in preview and execution alike
+    function _exitMultiAssetFlow() internal {
+        Cache._delete(CacheKey.IN_MULTI_ASSET_FLOW);
+        (bool pendingLiquidityViolation,) = Cache._read(CacheKey.PENDING_LIQUIDITY_VIOLATION);
+        require(!pendingLiquidityViolation, IRoycoDayKernel.LIQUIDITY_REQUIREMENT_VIOLATED());
     }
 }

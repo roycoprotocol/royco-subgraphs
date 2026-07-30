@@ -1,41 +1,43 @@
 == Logs ==
 Environment: TEST
-Deploying market from config: snUSD
+Deploying market from config: srRoyUSDC
 
 == Protocol scaffolding ==
-[deployed] AccessManager 0xC3153cBA0020a914A0e59424e18e420B5ace18Bf
-[deployed] Factory (impl) 0xA011CeD5057BA273b7Ed0CB6E67a4b68D6b536Ea
-[deployed] Factory (proxy) 0xE9B3356dAc63Cca56fAAAdD9Ba91C41712BF121C
-[deployed] EntryPoint (impl) 0x5872a7B98f72039286e9ceCce6CC93D72921D660
-[deployed] EntryPoint (proxy) 0xBa140d75fC0b646a13422224099a4F144A4ec9DB
-[deployed] MarketSyncer (impl) 0x1143ED0b342e8392105aEd6A65Ab457A5cBd7d88
-[deployed] MarketSyncer (proxy)0x883B647c4Dab371A2434553f008d3927ABB275FB
+[deployed] AccessManager 0xdb4fb8f3160fc4689db5db33f82eabb99812ddb9
+[deployed] CREATE3 deployer 0x29af81b890ce3f6eb0440de9f3b3757dbda61f73
+[deployed] Gatekeeper 0xc540b3a99551fc06bb90fea72167f3039730a474
+[deployed] Factory (impl) 0x2e5676c41d811540dac5c0f6a8754d6e16deb46e
+[deployed] Factory (proxy) 0xaabc4cfb4260066cef4ec23a46155d98082d23e6
+[deployed] EntryPoint (impl) 0x76f237b4cdee3f5821ce69fc02ce8d37c8dcf4f0
+[deployed] EntryPoint (proxy) 0x33405d7e7e2a1ae3676893751d958a5c3a288f3f
+[reused] MarketSyncer (impl) 0x1143ed0b342e8392105aed6a65ab457a5cbd7d88
+[deployed] MarketSyncer (proxy) 0xc8dc2c1857410e75121c3e5e1c8bad609fc70cb1
+[applied] AccessManager role graph
+[reused] Blacklist (impl) 0x928c1222d066c9e8c44b4d9feeb8020204922029
+[deployed] Blacklist (proxy) 0xdba4270d87334ed47e561892124a9ffc64b884c8
+[deployed] Template 0x26110caac159945efef5b0d40239a786b6e4a7e9
+marketId (srRoyUSDC):
+0x69f3674bba0732d8f87acb82d735ce11745231081609d55b3bad682866c00df6
 
-    [applied]   AccessManager role graph
-    [deployed] Blacklist (impl)    0x928C1222d066C9E8C44b4d9feeb8020204922029
-    [deployed] Blacklist (proxy)   0x2327a358195B9CC7eF06464B228dD3b70b17D3B0
-    [deployed] Template            0xB0667EbbA66662fb71265A133a03191EDb4566EE
-
-    marketId (snUSD):
-
-0xb3d433a58a0d62af783a1fcb783e83f5efc3867dfa2e807ed7455be4373d0bda
+== Collateral asset oracle ==
+[deployed] CollateralAssetOracle 0x94a8a05cea87a6fde7a95bb83573c62d7ea72213
 
 == Market off-factory contracts (impls, YDMs, pool, pre-deployed proxies) ==
-[deployed] SeniorTranche (impl) 0x20806fb74306539e51fA62592Ab02DBD08F5b023
-[deployed] SeniorTranche (proxy) 0x371C6778d8B52Ff46DC2329AbE6C7933B8Ebf34B
-[deployed] Pool hook (proxy) 0x62571590b319Eaef0715f653f57b2b565F3814b4
-[deployed] Balancer E-CLP pool 0x89C9a918351657aBddEe4785ae88590Dbbd4E8d6
-[deployed] ConstantPriceFeed (shared) 0x691498671545f299F5E9B836Ce05254Fc94Bf7e6
-[deployed] BPT oracle 0x6883F93fc8F14f4a9cfBD0faa68265A29404190a
-[deployed] JuniorTranche (impl) 0x276965652Ce5077CA7B4559c9B868ed316f1368b
-[deployed] LiquidityTranche (impl) 0x5C1Ca489C9CD3d2763Cc1ecb9F33fFE998867003
-[deployed] Accountant (impl) 0x33E9128f45dF8BdD7CF8Eb0AdF3F5E4c512EbaaD
-[deployed] Kernel (impl) 0xCf69Fb03AE85F38A54ba54F32d4545Ae0E1833E6
-[deployed] JT YDM (shared) 0x515B88b5827421f44c4C967a6A819b8eC7711B26
-[deployed] LT LDM (shared) 0x6421e3D535f09996F647A4680F8806b0b9346720
+[deployed] SeniorTranche (impl) 0x4a3de06cd939b13f89487002f6b2ebdab19e5697
+[deployed] SeniorTranche (proxy) 0x9607957e1468faee859a7b3ccfeff2710190b8fb
+[deployed] Pool hook (proxy) 0x7deaaac51a04f65d83366059028dd82e65bd11b4
+[deployed] Balancer E-CLP pool 0xa2f1364c229d69b40254623531a867dad3489b7d
+[reused] ConstantPriceFeed (shared) 0x691498671545f299f5e9b836ce05254fc94bf7e6
+[deployed] BPT oracle 0x631e0b61d01d80d5d2632618a0e2023a3f33de2f
+[deployed] JuniorTranche (impl) 0x65a541e5839815188733fe3a311d545e1e7976e6
+[deployed] LiquidityProviderTranche (impl) 0xa9a2d9f21ff2ff4c2432d345d276b655709cac50
+[deployed] Accountant (impl) 0x924762d8a189457bbca0da9bbe256769b2cae271
+[deployed] Kernel (impl) 0x0eb2fff175506de24942e821ad14a56493974155
+[reused] JT YDM (shared) 0x515b88b5827421f44c4c967a6a819b8ec7711b26
+[reused] LPT LDM (shared) 0x6421e3d535f09996f647a4680f8806b0b9346720
 
 == Market wiring transaction (executeMarketDeployment) ==
-[deployed] Kernel (proxy) 0xff9Da59af6a06f228F38c6bbebcd7E70070d4e2b
-[deployed] JuniorTranche (proxy) 0x9B6cC7443C33cE5A89aB7800747B1aC2C44c3653
-[deployed] LiquidityTranche (proxy) 0xFa0Ff4A396F34eD89A6dEe337db8A4BD377e41cA
-[deployed] Accountant (proxy) 0x428D27549e04AE2D7fC4722062fa04beBcA2d5a8
+[deployed] Kernel (proxy) 0x6932ef720eddc7b4bc4e367bfb0388f6202cbe0c
+[deployed] JuniorTranche (proxy) 0xff7d7d8f7941ede73ecc6e9042150158ee7362ae
+[deployed] LiquidityProviderTranche (proxy) 0x3b8115aca5c1405eef49f0aec4a080ef6fbc8b82
+[deployed] Accountant (proxy) 0xa5fa225afb653c03a9fbea2194e4ad30fa548a7e

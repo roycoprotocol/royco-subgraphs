@@ -4,6 +4,7 @@ import {
   test,
   clearStore,
   beforeEach,
+  createMockedFunction,
 } from "matchstick-as/assembly/index";
 import { BigInt } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
@@ -23,6 +24,7 @@ import {
   handleJuniorTrancheYDMUpdated,
   handleLiquidityTrancheYDMUpdated,
   handleJuniorTrancheImpermanentLossReset,
+  handleYieldSharesAccrued,
 } from "../../src/royco-day-accountant";
 import {
   handleProtocolFeeRecipientUpdated,
@@ -46,6 +48,7 @@ import {
   JuniorTrancheYDMUpdated,
   LiquidityProviderTrancheYDMUpdated,
   JuniorTrancheImpermanentLossReset,
+  YieldSharesAccrued,
 } from "../../generated/templates/RoycoDayAccountant/RoycoDayAccountant";
 import {
   ProtocolFeeRecipientUpdated,
@@ -61,10 +64,14 @@ import {
   createAddressEvent,
   createTwoUintEvent,
   createEmptyEvent,
+  createFourUintEvent,
 } from "../builders/accountant";
 import { createPreOpSyncEvent, createPostOpSyncEvent } from "../builders/kernel";
 import { TrancheState } from "../builders/shared";
 import { DayMarketFixture, mockDayMarket } from "../mocks";
+import { KernelState, mockKernelGetState } from "../mocks/kernel";
+import { AccountantState, mockAccountantGetState } from "../mocks/accountant";
+import { ROYCO_DAY_KERNEL__GET_STATE } from "../generated/abi-signatures";
 import { ctx, EventContext } from "../helpers/event";
 import {
   ADDR_ACCOUNTANT,
@@ -389,6 +396,201 @@ describe("the kernel sync handlers", () => {
     clearStore();
   });
 
+  test("re-reads the seven getState-only columns, which no payload carries", () => {
+    // These five were seeded once by the factory and never touched again, while every
+    // one of them moves on chain immediately afterwards — so they sat at their
+    // deployment values (zero, for a fresh market) for the market's whole life. The sync
+    // payload cannot fix that: it is all NAVs, utilizations and per-sync fees, with no
+    // custodied totals and no accrual/premium checkpoints. Only getState() has them.
+    deployMarket();
+    // Whatever getState() reported at deployment. On a real market these are zero — the
+    // kernel custodies nothing yet and initialize() sets neither timestamp — but the
+    // fixture uses distinctive values so "it never changed" is visible rather than
+    // indistinguishable from a fresh market.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "5101");
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700100003"
+    );
+
+    // Deposits, a premium mint and an accrual happen. Re-mock BOTH getState()s to what
+    // the chain would now report.
+    const kernelState = new KernelState();
+    kernelState.totalCollateralAssets = BigInt.fromI32(7_100);
+    kernelState.totalLPTAssets = BigInt.fromI32(7_200);
+    kernelState.lptOwnedSeniorTrancheShares = BigInt.fromI32(7_300);
+    mockKernelGetState(ADDR_KERNEL, kernelState);
+
+    const accountantState = new AccountantState();
+    accountantState.lastYieldShareAccrualTimestamp = BigInt.fromI32(1_700_000_001);
+    accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_002);
+    // DISTINCT, so transposing the JT and LPT accumulators is visible. Four same-typed
+    // BigInts read off one struct is exactly where a swap hides (§3).
+    accountantState.twJTYieldShareAccruedWAD = BigInt.fromI32(6_001);
+    accountantState.twLPTYieldShareAccruedWAD = BigInt.fromI32(6_002);
+    mockAccountantGetState(ADDR_ACCOUNTANT, accountantState);
+
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
+    );
+
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "7100");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalLiquidityTrancheAssets", "7200");
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheOwnedSeniorTrancheShares",
+      "7300"
+    );
+    // Schema name vs ABI name differ by one word: Accrued vs Accrual (§7).
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastYieldShareAccruedTimestamp",
+      "1700000001"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700000002"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "6001"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedLiquidityTrancheYieldShareAccruedWAD",
+      "6002"
+    );
+  });
+
+  test("a premium payout ZEROES the two accumulators, which no event can report", () => {
+    // THE CASE THE EVENT STREAM STRUCTURALLY CANNOT EXPRESS. YieldSharesAccrued fires
+    // with the POST-increment totals, and the very same call then deletes both
+    // (RoycoDayAccountant.sol:163-168, inside `if (premiumsPaid)`) emitting NOTHING —
+    // none of the accountant's sixteen events signals the reset. So an event-only column
+    // ratchets up and never comes back down.
+    //
+    // Worse than stale: the reset stamps lastPremiumPaymentTimestamp in the same block,
+    // and that IS refreshed — so without this the row would claim a fresh payout beside
+    // a non-zero "accrued since that payout".
+    deployMarket();
+
+    // An accrual lands. The event reports the pre-reset totals, as it always does.
+    handleYieldSharesAccrued(
+      createFourUintEvent<YieldSharesAccrued>(
+        "jtYieldShareWAD",
+        BigInt.fromI32(11),
+        "twJTYieldShareAccruedWAD",
+        BigInt.fromI32(100),
+        "lptYieldShareWAD",
+        BigInt.fromI32(22),
+        "twLPTYieldShareAccruedWAD",
+        BigInt.fromI32(40),
+        accountantCtx()
+      )
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "100"
+    );
+
+    // Premiums are paid in the same call: storage is now zero, and the payout timestamp
+    // advanced. The sync that follows is the only thing that can observe either.
+    const paid = new AccountantState();
+    paid.twJTYieldShareAccruedWAD = BigInt.zero();
+    paid.twLPTYieldShareAccruedWAD = BigInt.zero();
+    paid.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_777);
+    mockAccountantGetState(ADDR_ACCOUNTANT, paid);
+
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
+    );
+
+    // Both back to zero, tracking the chain.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "0"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedLiquidityTrancheYieldShareAccruedWAD",
+      "0"
+    );
+    // And consistent with the payout stamp the same reset wrote — the pair is the whole
+    // point: "accrued since the last payment" must be 0 immediately after one.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700000777"
+    );
+    // The HISTORY row keeps the pre-reset value: it records that instant, not the end
+    // state, and is deliberately still event-sourced.
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
+      "juniorTrancheTimeWeightedYieldShareAccruedWAD",
+      "100"
+    );
+  });
+
+  test("a reverting getState keeps the previous values, and does not stall", () => {
+    // The factory reads these SAME two calls raw. Here they are guarded, deliberately:
+    // at creation a revert costs one market, but on this path it would kill the handler
+    // and stall the whole subgraph — on the highest-frequency path there is, since the
+    // LT's Balancer pool hook syncs on every swap.
+    deployMarket();
+
+    const kernelState = new KernelState();
+    kernelState.totalCollateralAssets = BigInt.fromI32(4_400);
+    mockKernelGetState(ADDR_KERNEL, kernelState);
+    const accountantState = new AccountantState();
+    accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_009);
+    mockAccountantGetState(ADDR_ACCOUNTANT, accountantState);
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "4400");
+
+    // Now the KERNEL's getState stops answering. The accountant's still works.
+    createMockedFunction(ADDR_KERNEL, "getState", ROYCO_DAY_KERNEL__GET_STATE)
+      .withArgs([])
+      .reverts();
+    const later = new AccountantState();
+    later.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_050);
+    mockAccountantGetState(ADDR_ACCOUNTANT, later);
+
+    const second = kernelCtx();
+    second.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), second)
+    );
+
+    // The kernel group keeps its previous value — NEVER zero over a good number.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "4400");
+    // And the accountant group still advances: the two fall back INDEPENDENTLY, because
+    // a kernel failure says nothing about the accountant.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700000050"
+    );
+  });
+
   test("un-freezes the ten preview fields, from the payload alone", () => {
     // Before this handler existed, all ten were written once by the factory and
     // never again — and since a fresh market has no supply and no NAV, they sat at
@@ -598,15 +800,9 @@ describe("the kernel sync handlers", () => {
 
     // 3 creation snapshots and no more — the sync added nothing.
     assert.entityCount("DayVaultStateHistorical", 3);
-    assert.fieldEquals(
-      "DayVaultState",
-      generateVaultId(ADDR_SENIOR.toHexString()),
-      "lastHistoricalEntryIndex",
-      "0"
-    );
   });
 
-  test("records the full 16-field sync as the block's row (entry 0)", () => {
+  test("records the full 16-field sync as the block's row", () => {
     // ALL eighteen fields, verbatim — the unabridged history DayMarketState does not
     // keep. Distinct sentinels for every field: a transposition among same-typed
     // neighbours lands the wrong number in the wrong column, plausibly.
@@ -635,17 +831,10 @@ describe("the kernel sync handlers", () => {
     );
 
     // Use-then-increment: the first sync is entry 0 and the count becomes 1.
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "1"
-    );
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
 
     const id = generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER);
     const E = "DayTrancheAccountingSyncedHistory";
-    assert.fieldEquals(E, id, "entryIndex", "0");
     assert.fieldEquals(E, id, "marketId", ADDR_KERNEL.toHexString());
     assert.fieldEquals(E, id, "marketRefId", MARKET_ID);
     // LIVE market state from the payload — the value DayMarketState deliberately drops.
@@ -682,12 +871,6 @@ describe("the kernel sync handlers", () => {
     );
 
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "1"
-    );
     const blockId = generateMarketBlockRecordId(
       ADDR_KERNEL.toHexString(),
       BLOCK_NUMBER
@@ -705,13 +888,6 @@ describe("the kernel sync handlers", () => {
 
     // STILL ONE ROW, cursor STILL 1.
     assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "1"
-    );
-    assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "entryIndex", "0");
     // ...now carrying the post-op's values and its operation (3 == jtRedeem).
     assert.fieldEquals("DayTrancheAccountingSyncedHistory", blockId, "syncType", "postOp");
     assert.fieldEquals(
@@ -728,7 +904,55 @@ describe("the kernel sync handlers", () => {
     );
   });
 
-  test("a sync in a NEW BLOCK opens a new row and advances the cursor", () => {
+  test("the Operation enum maps 0..5, and anything beyond is 'unknown'", () => {
+    // THE ENUM HAS ALREADY CHANGED ONCE. An earlier contract revision had EIGHT members,
+    // with distinct LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION; those were folded into the plain
+    // LPT ones and it now has SIX. The ABI carries the enum's TYPE but none of its member
+    // names, so nothing about the ABI, the build or codegen can tell you this list has
+    // gone stale — only Types.sol can. This test is the tripwire: it pins every member
+    // AND the boundary, so a future member added on chain but not here shows up as a
+    // failing "unknown" rather than being silently mislabelled as its neighbour.
+    const names = [
+      "stDeposit",
+      "stRedeem",
+      "jtDeposit",
+      "jtRedeem",
+      "lptDeposit",
+      "lptRedeem",
+    ];
+    for (let op = 0; op < names.length; op++) {
+      clearStore();
+      deployMarket();
+      const c = kernelCtx();
+      c.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(op));
+      handlePostOpTrancheAccountingSynced(
+        createPostOpSyncEvent(op, new TrancheState(), c)
+      );
+      assert.fieldEquals(
+        "DayTrancheAccountingSyncedHistory",
+        generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), c.blockNumber),
+        "operation",
+        names[op]
+      );
+    }
+
+    // 6 is one past the end of the current enum. If the contracts ever add a seventh
+    // member, THIS is the assertion that fails and sends you back to Types.sol.
+    clearStore();
+    deployMarket();
+    const beyond = kernelCtx();
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(6, new TrancheState(), beyond)
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
+      "operation",
+      "unknown"
+    );
+  });
+
+  test("a sync in a NEW BLOCK opens a new row", () => {
     // The flip side: collapsing is per BLOCK, not per market. A later block must get
     // its own row, or the table would only ever hold one row per market.
     deployMarket();
@@ -742,28 +966,7 @@ describe("the kernel sync handlers", () => {
     handlePreOpTrancheAccountingSynced(createPreOpSyncEvent(new TrancheState(), later));
 
     assert.entityCount("DayTrancheAccountingSyncedHistory", 2);
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "countTrancheAccountingSyncedEntries",
-      "2"
-    );
     // Dense entryIndex, ordered by block.
-    assert.fieldEquals(
-      "DayTrancheAccountingSyncedHistory",
-      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
-      "entryIndex",
-      "0"
-    );
-    assert.fieldEquals(
-      "DayTrancheAccountingSyncedHistory",
-      generateMarketBlockRecordId(
-        ADDR_KERNEL.toHexString(),
-        BLOCK_NUMBER.plus(BigInt.fromI32(1))
-      ),
-      "entryIndex",
-      "1"
-    );
   });
 
   test("a sync for an unknown market is a no-op", () => {
@@ -859,6 +1062,74 @@ describe("the kernel sync handlers", () => {
     // was scheduled to run until TERM_END and was cut short, so a `duration` derived
     // from scheduledEndBlockTimestamp would report something quite different.
     assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "600");
+  });
+
+  test("a term opens with a ZERO loss — the seed must exist", () => {
+    // NON-NULL, so leaving it unset is fatal at INDEX time and `graph build` cannot
+    // catch it (§8). This asserts the seed is actually written. 0 is unambiguous as a
+    // "no loss" marker because a real erase is always > 0 — the handler returns early
+    // on a zero erase — it just cannot on its own tell a running term from an ended one.
+    deployMarket();
+    handleFixedTermCommenced(
+      createUintEvent<FixedTermCommenced>(
+        "fixedTermEndTimestamp",
+        TERM_END,
+        accountantCtx()
+      )
+    );
+
+    const entryId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
+    );
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      entryId,
+      "juniorTrancheImpermanentLossNAV",
+      "0"
+    );
+  });
+
+  test("a CLEAN expiry sets duration and leaves the loss at ZERO", () => {
+    // THE PAIR A CONSUMER READS TOGETHER — neither column answers it alone:
+    //   duration IS NULL                -> still running
+    //   duration NOT NULL + loss = 0    -> ran its course, no coverage erased
+    //   duration NOT NULL + loss > 0    -> a loss hit this term
+    // Guards closeOpenFixedTerm against ever writing a loss of its own: closing a term
+    // is not a coverage event, and only the Reset may set that column.
+    deployMarket();
+    handleFixedTermCommenced(
+      createUintEvent<FixedTermCommenced>(
+        "fixedTermEndTimestamp",
+        TERM_END,
+        accountantCtx()
+      )
+    );
+
+    // Ends naturally. NO JuniorTrancheImpermanentLossReset follows — nothing was erased.
+    const end = accountantCtx();
+    end.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(600));
+    handleFixedTermEnded(createEmptyEvent<FixedTermEnded>(end));
+
+    const entryId = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.zero()
+    );
+    assert.fieldEquals("DayFixedTermHistory", entryId, "endBlockTimestamp", end.blockTimestamp.toString());
+    assert.fieldEquals("DayFixedTermHistory", entryId, "duration", "600");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      entryId,
+      "juniorTrancheImpermanentLossNAV",
+      "0"
+    );
+    // And the market's LIFETIME total is untouched — it only moves on a real erase.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "0"
+    );
   });
 
   test("a term that opens and closes in ONE BLOCK stores duration 0, not null", () => {
@@ -1199,6 +1470,144 @@ describe("the kernel sync handlers", () => {
       "juniorTrancheImpermanentLossNAV",
       "9303"
     );
+  });
+
+  test("zero duration: a loss opens its OWN zero-length closed term", () => {
+    // With no configured term length there is no term to patch, so the loss gets a
+    // degenerate one. Without this it reached case C and was dropped from history
+    // entirely, leaving DayMarketState's lifetime total permanently above
+    // SUM(DayFixedTermHistory.juniorTrancheImpermanentLossNAV) with no way to
+    // attribute the difference.
+    deployMarket();
+    // Drive the market to a zero duration. No term is open, so this closes nothing.
+    handleFixedTermDurationUpdated(
+      createUint24Event<FixedTermDurationUpdated>(
+        "fixedTermDurationSeconds",
+        0,
+        accountantCtx()
+      )
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "fixedTermDurationSeconds", "0");
+    assert.entityCount("DayFixedTermHistory", 0);
+
+    const reset = accountantCtx();
+    reset.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(4_242));
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.fromI32(5_150),
+        reset
+      )
+    );
+
+    assert.entityCount("DayFixedTermHistory", 1);
+    const id = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    assert.fieldEquals("DayFixedTermHistory", id, "entryIndex", "0");
+    // All three timestamps are this block's: it opens and closes on the event.
+    const t = reset.blockTimestamp.toString();
+    assert.fieldEquals("DayFixedTermHistory", id, "startBlockTimestamp", t);
+    assert.fieldEquals("DayFixedTermHistory", id, "scheduledEndBlockTimestamp", t);
+    assert.fieldEquals("DayFixedTermHistory", id, "endBlockTimestamp", t);
+    // A REAL zero duration, not a null — the term genuinely lasted no time.
+    assert.fieldEquals("DayFixedTermHistory", id, "duration", "0");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      id,
+      "juniorTrancheImpermanentLossNAV",
+      "5150"
+    );
+    // The cursor advanced AND was persisted — recordFixedTermCoverageLoss mutates the
+    // in-memory market and touchMarket is the save. Called in the other order this
+    // reads 0 and the next loss overwrites this row.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "1");
+    // And the lifetime total now reconciles with the row.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "5150"
+    );
+  });
+
+  test("zero duration: each loss gets its OWN row — they never overwrite", () => {
+    // The cursor-persistence test. If the bump were lost, both losses would resolve to
+    // entryIndex 0 and the second would silently overwrite the first — one row, the
+    // wrong number, and the market total no longer equal to the sum.
+    deployMarket();
+    handleFixedTermDurationUpdated(
+      createUint24Event<FixedTermDurationUpdated>(
+        "fixedTermDurationSeconds",
+        0,
+        accountantCtx()
+      )
+    );
+
+    const first = accountantCtx();
+    first.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(100));
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.fromI32(300),
+        first
+      )
+    );
+
+    const second = accountantCtx();
+    second.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(200));
+    second.txHash = TX_HASH_2;
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.fromI32(700),
+        second
+      )
+    );
+
+    assert.entityCount("DayFixedTermHistory", 2);
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "2");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
+      "juniorTrancheImpermanentLossNAV",
+      "300"
+    );
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.fromI32(1)),
+      "juniorTrancheImpermanentLossNAV",
+      "700"
+    );
+    // SUM(rows) == the market lifetime total. That reconciliation is the whole point.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "1000"
+    );
+  });
+
+  test("zero duration: a ZERO erase still writes nothing", () => {
+    // The unguarded config site emits this even when nothing was erased. The new branch
+    // must not turn that into a spurious zero-length term.
+    deployMarket();
+    handleFixedTermDurationUpdated(
+      createUint24Event<FixedTermDurationUpdated>(
+        "fixedTermDurationSeconds",
+        0,
+        accountantCtx()
+      )
+    );
+
+    handleJuniorTrancheImpermanentLossReset(
+      createUintEvent<JuniorTrancheImpermanentLossReset>(
+        "jtImpermanentLossErased",
+        BigInt.zero(),
+        accountantCtx()
+      )
+    );
+
+    assert.entityCount("DayFixedTermHistory", 0);
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "0");
   });
 
   test("a Reset carrying ZERO never patches — only the unguarded site emits it", () => {

@@ -202,7 +202,6 @@ interface IRoycoDayAccountant {
 
     /// @notice Thrown when the YDM failed to initialize
     /// @param data The return data of the reverting YDM initialization
-    error FAILED_TO_INITIALIZE_YDM(bytes data);
 
     /// @notice Thrown when the collateral NAV doesn't equal the sum of the effective NAVs of both tranches
     error NAV_CONSERVATION_VIOLATION();
@@ -213,12 +212,6 @@ interface IRoycoDayAccountant {
     /// @notice Thrown when the operation and NAVs passed to post-op lead to an invalid state
     error INVALID_POST_OP_STATE(Operation _op);
 
-    /// @notice Thrown when the market's coverage requirement is violated
-    error COVERAGE_REQUIREMENT_VIOLATED();
-
-    /// @notice Thrown when the market's liquidity requirement is violated
-    error LIQUIDITY_REQUIREMENT_VIOLATED();
-
     /// @notice Retrieves the address of the kernel tied to this accountant
     /// @return kernel The kernel that this accountant maintains mark-to-market NAV, JT impermanent loss, and fee accounting for
     function KERNEL() external view returns (address kernel);
@@ -228,12 +221,12 @@ interface IRoycoDayAccountant {
      * @dev Must be called before any NAV mutating operation
      * @dev Accrues the JT and LPT yield shares over time based on the market's JT and LPT YDM outputs
      * @dev Persists updated NAV and impermanent loss checkpoints for the next sync to use as reference
-     * @param _collateralNAV The current pure value of the coinvested collateral backing the senior and junior tranches
-     * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
      * @dev The returned state's lptRawNAV and liquidityUtilizationWAD are zero placeholders: this sync does not mark the liquidity
      *      tranche
      *      The kernel commits the freshly marked liquidity provider tranche raw NAV via commitLiquidityProviderTrancheRawNAV after minting the
      *      fee shares, then refreshes both fields in the state packet in memory
+     * @param _collateralNAV The current pure value of the coinvested collateral backing the senior and junior tranches
+     * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
      */
     function preOpSyncTrancheAccounting(NAV_UNIT _collateralNAV) external returns (SyncedAccountingState memory state);
 
@@ -254,38 +247,29 @@ interface IRoycoDayAccountant {
 
     /**
      * @notice Previews a synchronization of the effective NAVs and impermanent losses of both tranches by marking them to market
+     * @dev The returned state's lptRawNAV and liquidityUtilizationWAD are zero placeholders (this sync does not mark the liquidity provider tranche), the kernel preview refreshes them in memory
      * @param _collateralNAV The current pure value of the coinvested collateral backing the senior and junior tranches
      * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
-     * @dev The returned state's lptRawNAV and liquidityUtilizationWAD are zero placeholders (this sync does not mark the liquidity provider tranche), the kernel preview refreshes them in memory
      */
     function previewSyncTrancheAccounting(NAV_UNIT _collateralNAV) external view returns (SyncedAccountingState memory state);
 
     /**
-     * @notice Applies the post-operation (deposit or redemption) collateral NAV delta to the effective NAV checkpoints, commits the liquidity provider tranche's fresh raw NAV, and optionally enforces the market requirement(s) the operation can worsen
+     * @notice Applies the post-operation (deposit or redemption) collateral NAV delta to the effective NAV checkpoints and commits the liquidity provider tranche's fresh raw NAV
      * @dev Strictly interprets the collateral NAV delta as a deposit/redemption instead of PNL
      * @dev Unlike the pre-op sync, the post-op sync runs no waterfall and pays no premium, so it can commit the liquidity provider tranche raw NAV
      *      directly (the kernel marks it after the operation's pool mutation has settled) and report the resulting liquidity utilization
-     * @dev When enforcement is requested, fails fast on the coverage requirement for operations that can worsen coverage (add senior exposure or
-     *      remove the junior loss-absorption buffer: ST_DEPOSIT, LPT_MULTI_ASSET_DEPOSIT, JT_REDEEM) and on the liquidity requirement for operations
-     *      that can worsen liquidity (raise the senior effective NAV or reduce the depth of the AMM or another market-making venue: ST_DEPOSIT,
-     *      LPT_MULTI_ASSET_DEPOSIT, LPT_REDEEM, and LPT_MULTI_ASSET_REDEEM), enforced even while the liquidation coverage threshold is breached so a
-     *      multi-asset exit cannot unwind senior depth from the venue to relax its own liquidity floor and drain the market below the senior requirement
-     *      The in-kind LPT_DEPOSIT sits in neither gate: pre-minted LPT assets can only deepen liquidity and never add senior exposure, so blocking it would
-     *      only block healing capital mid-breach
-     *      Intermediate multi-asset sub-syncs pass false, deferring enforcement to the final post-op sync that books the combined exposure
+     * @dev The market's coverage and liquidity requirements are enforced by the kernel's post-op sync against the returned state
      * @param _op The operation being executed in between the pre and post operation synchronizations
      * @param _collateralNAV The post-op pure value of the coinvested collateral backing the senior and junior tranches
      * @param _lptRawNAV The post-op liquidity provider tranche's freshly marked raw NAV (the oracle value of the AMM or another market-making venue), committed by this call
      * @param _stSelfLiquidationBonusNAV The self-liquidation bonus remitted to an ST LP on redemption after the liquidation coverageUtilization threshold has been breached, sourced from JT effective NAV
-     * @param _enforceCoverageAndLiquidityRequirements Whether to enforce the market's coverage and liquidity requirements applicable to the operation
      * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
      */
     function postOpSyncTrancheAccounting(
         Operation _op,
         NAV_UNIT _collateralNAV,
         NAV_UNIT _lptRawNAV,
-        NAV_UNIT _stSelfLiquidationBonusNAV,
-        bool _enforceCoverageAndLiquidityRequirements
+        NAV_UNIT _stSelfLiquidationBonusNAV
     )
         external
         returns (SyncedAccountingState memory state);

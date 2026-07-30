@@ -6,8 +6,9 @@ import { IRoycoDayAccountant } from "../interfaces/IRoycoDayAccountant.sol";
 import { IRoycoDayKernel } from "../interfaces/IRoycoDayKernel.sol";
 import { IYDM } from "../interfaces/IYDM.sol";
 import { MAX_NAV_UNITS, MAX_PROTOCOL_FEE_WAD, WAD, ZERO_NAV_UNITS } from "../libraries/Constants.sol";
-import { MarketState, NAV_UNIT, Operation, SyncedAccountingState } from "../libraries/Types.sol";
+import { DispatchMode, MarketState, NAV_UNIT, Operation, SyncedAccountingState } from "../libraries/Types.sol";
 import { Math, RoycoUnitsMath, toNAVUnits } from "../libraries/Units.sol";
+import { DispatchLogic } from "../libraries/logic/DispatchLogic.sol";
 import { UtilizationLogic } from "../libraries/logic/UtilizationLogic.sol";
 
 /**
@@ -19,6 +20,7 @@ import { UtilizationLogic } from "../libraries/logic/UtilizationLogic.sol";
 contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
     using RoycoUnitsMath for NAV_UNIT;
     using RoycoUnitsMath for uint256;
+    using DispatchLogic for address;
 
     /// @dev Storage slot for RoycoDayAccountantState using ERC-7201 pattern
     // keccak256(abi.encode(uint256(keccak256("Royco.storage.RoycoDayAccountantState")) - 1)) & ~bytes32(uint256(0xff))
@@ -204,8 +206,7 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
         Operation _op,
         NAV_UNIT _collateralNAV,
         NAV_UNIT _lptRawNAV,
-        NAV_UNIT _stSelfLiquidationBonusNAV,
-        bool _enforceCoverageAndLiquidityRequirements
+        NAV_UNIT _stSelfLiquidationBonusNAV
     )
         public
         override(IRoycoDayAccountant)
@@ -228,38 +229,28 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
             require(deltaCollateralNAV > 0 && deltaLPTRawNAV == 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
             // New ST deposits are treated as an addition to the future ST exposure
             stEffectiveNAV = (stEffectiveNAV + toNAVUnits(deltaCollateralNAV));
+        } else if (_op == Operation.ST_REDEMPTION) {
+            // A senior redemption leaves the liquidity provider tranche mark untouched and always redeems collateral value
+            require(deltaCollateralNAV < 0 && deltaLPTRawNAV == 0, INVALID_POST_OP_STATE(_op));
+            // Reduce JT effective NAV by the bonus provided from its assets
+            jtEffectiveNAV = (jtEffectiveNAV - _stSelfLiquidationBonusNAV);
+            // Reduce ST effective NAV by the total redemptions without the bonus provided from JT effective NAV
+            stEffectiveNAV = (stEffectiveNAV - (toNAVUnits(-deltaCollateralNAV) - _stSelfLiquidationBonusNAV));
         } else if (_op == Operation.JT_DEPOSIT) {
             require(deltaCollateralNAV > 0 && deltaLPTRawNAV == 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
             // New JT deposits are treated as an addition to the future loss-absorption buffer
             jtEffectiveNAV = (jtEffectiveNAV + toNAVUnits(deltaCollateralNAV));
+        } else if (_op == Operation.JT_REDEMPTION) {
+            // JT cannot get a bonus from its own NAV, and a junior redemption leaves the senior exposure and supply untouched so it cannot move the liquidity provider tranche mark
+            require(deltaCollateralNAV < 0 && deltaLPTRawNAV == 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
+            // The actual amount withdrawn from JT effective NAV could be from both tranches (its own share of its NAV, ST yield share, IL repayments, etc.)
+            jtEffectiveNAV = (jtEffectiveNAV - toNAVUnits(-deltaCollateralNAV));
         } else if (_op == Operation.LPT_DEPOSIT) {
             // An in-kind LPT deposit only adds market-making inventory, the collateral cannot move
             require(deltaLPTRawNAV > 0 && deltaCollateralNAV == 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
-        } else if (_op == Operation.LPT_MULTI_ASSET_DEPOSIT) {
-            // A multi-asset LPT deposit adds market-making inventory and can mint and deploy new ST shares for its senior leg
-            require(deltaLPTRawNAV > 0 && deltaCollateralNAV >= 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
-            stEffectiveNAV = (stEffectiveNAV + toNAVUnits(deltaCollateralNAV));
-        } else if (_op == Operation.LPT_REDEEM) {
+        } else if (_op == Operation.LPT_REDEMPTION) {
             // An in-kind LPT redemption only transfers out market-making inventory and idle premium shares, the collateral cannot move and no bonus is paid
-            require(deltaLPTRawNAV <= 0 && deltaCollateralNAV == 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
-        } else {
-            // Compute the total value redeemed from the collateral
-            NAV_UNIT collateralRedemptionNAV = toNAVUnits(-deltaCollateralNAV);
-            if (_op == Operation.ST_REDEEM || _op == Operation.LPT_MULTI_ASSET_REDEEM) {
-                if (_op == Operation.ST_REDEEM) require(deltaLPTRawNAV == 0 && collateralRedemptionNAV > ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
-                else require(deltaLPTRawNAV <= 0, INVALID_POST_OP_STATE(_op));
-                // Reduce JT effective NAV by the bonus provided from its assets
-                jtEffectiveNAV = (jtEffectiveNAV - _stSelfLiquidationBonusNAV);
-                // Reduce ST effective NAV by the total redemptions without the bonus provided from JT effective NAV
-                stEffectiveNAV = (stEffectiveNAV - (collateralRedemptionNAV - _stSelfLiquidationBonusNAV));
-            } else if (_op == Operation.JT_REDEEM) {
-                // JT cannot get a bonus from its own NAV, and a junior redemption leaves the senior exposure and supply untouched so it cannot move the liquidity provider tranche mark
-                require(
-                    deltaLPTRawNAV == 0 && collateralRedemptionNAV > ZERO_NAV_UNITS && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op)
-                );
-                // The actual amount withdrawn from JT effective NAV could be from both tranches (its own share of its NAV, ST yield share, IL repayments, etc.)
-                jtEffectiveNAV = (jtEffectiveNAV - collateralRedemptionNAV);
-            }
+            require(deltaLPTRawNAV < 0 && deltaCollateralNAV == 0 && _stSelfLiquidationBonusNAV == ZERO_NAV_UNITS, INVALID_POST_OP_STATE(_op));
         }
 
         // Enforce the NAV conservation invariant
@@ -295,21 +286,6 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
             coverageLiquidationUtilizationWAD: $.coverageLiquidationUtilizationWAD,
             minLiquidityWAD: minLiquidityWAD
         });
-
-        // Preemptively return if the kernel specified that the market's requirements don't need to be enforced
-        if (!_enforceCoverageAndLiquidityRequirements) return state;
-
-        // Enforce the coverage requirement for operations that can violate it (add senior exposure or remove the junior loss-absorption buffer)
-        // An in-kind LPT deposit cannot add senior exposure, only the multi-asset variant mints a senior leg
-        if (_op == Operation.ST_DEPOSIT || _op == Operation.LPT_MULTI_ASSET_DEPOSIT || _op == Operation.JT_REDEEM) {
-            require(state.coverageUtilizationWAD <= WAD, COVERAGE_REQUIREMENT_VIOLATED());
-        }
-
-        // Enforce the liquidity requirement for operations that can violate it (raise the senior exposure or reduce the depth of the liquidity provider tranche)
-        // An in-kind LPT deposit only deepens liquidity so it is exempt, both LPT redemption variants remove depth
-        if (_op == Operation.ST_DEPOSIT || _op == Operation.LPT_MULTI_ASSET_DEPOSIT || _op == Operation.LPT_REDEEM || _op == Operation.LPT_MULTI_ASSET_REDEEM) {
-            require(state.liquidityUtilizationWAD <= WAD, LIQUIDITY_REQUIREMENT_VIOLATED());
-        }
     }
 
     // =============================
@@ -700,7 +676,7 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
         require(_jtYDM != $.lptYDM, YDMS_CANNOT_BE_IDENTICAL());
         // Best-effort sync to settle unrealized PNL under the outgoing JT YDM
         // NOTE: A reverting sync is tolerated since this setter is the only recovery path from a sync-bricking JT YDM
-        KERNEL.call(abi.encodeCall(IRoycoDayKernel.syncTrancheAccounting, ()));
+        KERNEL._tryExecute(abi.encodeCall(IRoycoDayKernel.syncTrancheAccounting, ()));
         // Initialize and set the new JT YDM for this market
         _initializeYDM(_jtYDM, _jtYDMInitializationData);
         $.jtYDM = _jtYDM;
@@ -714,7 +690,7 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
         require(_lptYDM != $.jtYDM, YDMS_CANNOT_BE_IDENTICAL());
         // Best-effort sync to settle unrealized PNL under the outgoing LPT YDM
         // NOTE: A reverting sync is tolerated since this setter is the only recovery path from a sync-bricking LPT YDM
-        KERNEL.call(abi.encodeCall(IRoycoDayKernel.syncTrancheAccounting, ()));
+        KERNEL._tryExecute(abi.encodeCall(IRoycoDayKernel.syncTrancheAccounting, ()));
         // Initialize and set the new LPT YDM for this market
         _initializeYDM(_lptYDM, _lptYDMInitializationData);
         $.lptYDM = _lptYDM;
@@ -831,6 +807,7 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
 
     /**
      * @notice Initializes the YDM (Yield Distribution Model) if required for this market
+     * @dev A failing initialization bubbles the YDM's revert verbatim through the shared dispatch primitive
      * @param _ydm The new YDM address to set
      * @param _ydmInitializationData The data used to initialize the new YDM for this market
      */
@@ -838,10 +815,7 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
         // Ensure that the YDM is not null
         require(_ydm != address(0), NULL_ADDRESS());
         // Initialize the YDM if required
-        if (_ydmInitializationData.length != 0) {
-            (bool success, bytes memory data) = _ydm.call(_ydmInitializationData);
-            require(success, FAILED_TO_INITIALIZE_YDM(data));
-        }
+        if (_ydmInitializationData.length != 0) _ydm._dispatch(DispatchMode.EXECUTE, _ydmInitializationData);
     }
 
     // =============================

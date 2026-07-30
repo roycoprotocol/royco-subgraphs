@@ -71,16 +71,21 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  // 4, not 13. EVERY *History/*Historical entity became MUTABLE in v2 so it can
-  // collapse to one row per block — a later write in the block updates the earlier
-  // rather than appending. They are therefore all correctly outside this check, whose
-  // premise is that an immutable id must never be written twice; their block-keyed ids
-  // are deliberately exactly the collision it exists to prevent. See "BLOCK-KEYED
-  // HISTORY" in schema.graphql.
+  // 8. Two groups, and the split is SNAPSHOT vs RECORD:
   //
-  // What is LEFT immutable is the per-log activity/transfer rows, whose ids carry a
-  // <LOG_INDEX> and genuinely can never repeat.
-  assert.equal(blocks.length, 4, "expected 4 immutable entities");
+  //   - The four per-log activity/transfer rows, whose ids carry a <LOG_INDEX> and
+  //     genuinely can never repeat.
+  //   - The four immutable record streams — the three liquidity-premium ones plus
+  //     DayYieldSharesAccruedHistory — whose ids carry an <ENTRY_INDEX> from a
+  //     use-then-increment cursor, so every event gets a fresh id.
+  //
+  // The *Historical SNAPSHOT tables are deliberately NOT here: they collapse to one row
+  // per block, so a later write in the block updates the earlier rather than appending,
+  // and their block-keyed ids are exactly the collision this check exists to prevent.
+  // See "BLOCK-KEYED HISTORY" in schema.graphql. DayFixedTermHistory is entryIndex-keyed
+  // but also correctly absent — it is mutable because the term close patches a row
+  // opened in an earlier block.
+  assert.equal(blocks.length, 8, "expected 8 immutable entities");
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {
@@ -92,7 +97,7 @@ test("every immutable entity's id carries a per-write discriminator", () => {
   }
 });
 
-test("every *Historical entity has an entryIndex paired to a parent cursor", () => {
+test("block-keyed streams order by blockNumber and carry NO entryIndex cursor", () => {
   const src = fs.readFileSync(SCHEMA, "utf8");
   // Body captured lazily up to a closing brace AT COLUMN 0 (house style for every
   // entity), not with `[^}]*`. A `}` inside a field comment truncates the latter
@@ -106,21 +111,82 @@ test("every *Historical entity has an entryIndex paired to a parent cursor", () 
     return m[1];
   };
 
-  for (const [parent, historical] of [
-    ["DayMarketNav", "DayMarketNavHistorical"],
-    ["DayVaultState", "DayVaultStateHistorical"],
-    ["DayPositionState", "DayPositionStateHistorical"],
-    ["DayFeeState", "DayFeeStateHistorical"],
-  ]) {
+  // Every block-collapsed stream. Each is keyed <...>_<BLOCK_NUMBER> and ordered by
+  // its own blockNumber column; NONE of them carries an entryIndex any more, and no
+  // parent carries a cursor. See "BLOCK-KEYED HISTORY" in schema.graphql.
+  const BLOCK_KEYED = [
+    "DayMarketNavHistorical",
+    "DayVaultStateHistorical",
+    "DayPositionStateHistorical",
+    "DayFeeStateHistorical",
+    "DayTrancheAccountingSyncedHistory",
+  ];
+
+  for (const historical of BLOCK_KEYED) {
+    const body = typeBlock(historical);
+    // The ordering column MUST exist: it is the only thing these rows can be sorted
+    // by now, and it is stored so consumers never have to parse it out of the id.
     assert.match(
-      typeBlock(historical),
-      /^\s*entryIndex:\s*BigInt!/m,
-      `${historical} must declare entryIndex`,
+      body,
+      /^\s*blockNumber:\s*BigInt!/m,
+      `${historical} must declare blockNumber — it is the ordering column`,
     );
-    assert.match(
+    // And the cursor must NOT come back. It was removed deliberately: with the id
+    // already keyed on the block it carried no extra information, and it had to be
+    // advanced on creation but NOT on same-block updates — an invariant that fails
+    // silently and leaves gaps in an index the schema would be promising is dense.
+    assert.doesNotMatch(
+      body,
+      /^\s*entryIndex:\s*BigInt!/m,
+      `${historical} is block-keyed and must NOT declare entryIndex — order by blockNumber`,
+    );
+  }
+
+  for (const parent of [
+    "DayMarketNav",
+    "DayVaultState",
+    "DayPositionState",
+    "DayFeeState",
+  ]) {
+    assert.doesNotMatch(
       typeBlock(parent),
       /^\s*lastHistoricalEntryIndex:\s*BigInt!/m,
-      `${parent} must declare lastHistoricalEntryIndex (the cursor driving ${historical})`,
+      `${parent} must NOT declare lastHistoricalEntryIndex — its historical is block-keyed`,
+    );
+  }
+
+  // THE EXCEPTIONS, asserted positively so they cannot be swept away by a future
+  // "clean up the cursors" pass. These four keep EVERY event as its own row:
+  // DayFixedTermHistory because a term spans blocks and the close patches a row opened
+  // earlier; the three premium streams because each event is a distinct economic act
+  // and a block can hold several.
+  const ENTRY_KEYED = [
+    ["DayFixedTermHistory", "countFixedTermEntries"],
+    ["DayYieldSharesAccruedHistory", "countYieldSharesAccruedEntries"],
+    ["DayLiquidityPremiumSharesMintedHistory", "countLiquidityPremiumSharesMintedEntries"],
+    ["DayLiquidityPremiumReinvestedHistory", "countLiquidityPremiumReinvestedEntries"],
+    [
+      "DayLiquidityPremiumReinvestmentFailedHistory",
+      "countLiquidityPremiumReinvestmentFailedEntries",
+    ],
+  ];
+  const marketBody = typeBlock("DayMarketState");
+  for (const [entity, cursor] of ENTRY_KEYED) {
+    assert.match(
+      typeBlock(entity),
+      /^\s*entryIndex:\s*BigInt!/m,
+      `${entity} keeps every event as its own row and must declare entryIndex`,
+    );
+    assert.match(
+      marketBody,
+      new RegExp(`^\\s*${cursor}:\\s*BigInt!`, "m"),
+      `DayMarketState must declare ${cursor} — the cursor driving ${entity}`,
+    );
+    // A per-write id needs a per-write discriminator, so it must NOT be block-keyed.
+    assert.doesNotMatch(
+      typeBlock(entity),
+      /^\s*blockNumber:\s*BigInt!/m,
+      `${entity} is entryIndex-keyed; a blockNumber column here implies collapsing`,
     );
   }
 });

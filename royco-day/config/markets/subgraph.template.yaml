@@ -56,6 +56,17 @@ dataSources:
           file: ./abis/RoycoLiquidityProviderTranche.json
         - name: ERC20
           file: ./abis/ERC20.json
+        # The Balancer V3 vault + pool token, for the QUOTE ASSET's NAV price. The
+        # liquidity tranche's deposit asset IS the BPT, and that pool is a pair of
+        # (senior tranche share, quote asset) — enforced in the venue constructor. The
+        # quote leg's NAV price per whole token is exactly its registered pool token
+        # rate, so refreshMarketNav reads getPoolTokenRates on the vault. Both must be
+        # listed HERE, on every data source that can reach that call, for the same
+        # §10.4 reason as RoycoSeniorTranche above.
+        - name: BalancerV3Vault
+          file: ./abis/BalancerV3Vault.json
+        - name: BalancerPoolToken
+          file: ./abis/BalancerPoolToken.json
       eventHandlers:
         - event: MarketDeploymentCompleted(indexed address,indexed address,(address,address,address,address,address,address,address,bytes))
           handler: handleMarketDeploymentCompleted
@@ -334,6 +345,11 @@ templates:
         - DayTrancheAccountingSyncedHistory
         - DayMarketNav
         - DayMarketNavHistorical
+        # READ, never written: refreshMarketNav loads all three vaults for their
+        # decimals and minorType, and refreshMarketStoredState writes only
+        # DayMarketState. Declared so this list names every entity the data source
+        # touches, matching how the tranche templates are declared.
+        - DayVaultState
       abis:
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json
@@ -348,6 +364,25 @@ templates:
         # when the sync events moved onto the kernel.)
         - name: RoycoSeniorTranche
           file: ./abis/RoycoSeniorTranche.json
+        # The Balancer V3 vault + pool token, for the QUOTE ASSET's NAV price. The
+        # liquidity tranche's deposit asset IS the BPT, and that pool is a pair of
+        # (senior tranche share, quote asset) — enforced in the venue constructor. The
+        # quote leg's NAV price per whole token is exactly its registered pool token
+        # rate, so refreshMarketNav reads getPoolTokenRates on the vault. Both must be
+        # listed HERE, on every data source that can reach that call, for the same
+        # §10.4 reason as RoycoSeniorTranche above.
+        - name: BalancerV3Vault
+          file: ./abis/BalancerV3Vault.json
+        - name: BalancerPoolToken
+          file: ./abis/BalancerPoolToken.json
+        # The ACCOUNTANT, on the KERNEL template. Also not a slip: refreshMarketStoredState
+        # re-reads Accountant.getState() on every sync for the two premium/accrual
+        # checkpoints, which no event carries. §10.4 again — bind() bakes the contract
+        # NAME and graph-node resolves it against THIS data source's abis: list, so
+        # without this entry every sync fails its call and stalls the subgraph, and
+        # `graph build` passes either way.
+        - name: RoycoDayAccountant
+          file: ./abis/RoycoDayAccountant.json
       eventHandlers:
         # BOTH sync events, collapsing into one row per (market, block): pre-op creates
         # it, post-op overwrites it. Pre-op fires on EVERY sync (swap hook, oracle

@@ -39,7 +39,6 @@ export function updatePosition(
 
   const id = generatePositionStateId(vault.vaultAddress, accountAddress);
   let position = DayPositionState.load(id);
-  const isNew = position == null;
 
   if (!position) {
     position = new DayPositionState(id);
@@ -58,7 +57,6 @@ export function updatePosition(
     position.claimsLiquidityTrancheAssets = BigInt.zero();
     position.claimsSeniorTrancheShares = BigInt.zero();
     position.claimsNAV = BigInt.zero();
-    position.lastHistoricalEntryIndex = BigInt.zero();
     // createdAt* EXACTLY ONCE (§8). Re-stamping builds fine, indexes fine, and
     // quietly destroys every cohort query in Neon.
     position.createdAtTransactionHash = event.transaction.hash.toHexString();
@@ -66,25 +64,15 @@ export function updatePosition(
     position.createdAtBlockTimestamp = event.block.timestamp;
   }
 
-  // A vault is born together with its entry 0 (the factory writes it). A position
-  // is born here, so ITS entry 0 is this very write — hence the isNew branch.
-  // Getting this wrong writes entry 1 first and leaves 0 absent forever, breaking
-  // the dense "total == lastHistoricalEntryIndex + 1" contract the schema states.
   // ONE ROW PER (VAULT, ACCOUNT, BLOCK): several transfers can touch one account in a
-  // block, and the row keeps its END-of-block position. The cursor advances only when
-  // the block has no row yet (rule 2 of "BLOCK-KEYED HISTORY").
+  // block, and the row keeps its END-of-block position. See "BLOCK-KEYED HISTORY" in
+  // schema.graphql.
   const snapshotId = generatePositionStateHistoricalId(
     vault.vaultAddress,
     accountAddress,
     event.block.number
   );
   let snapshot = DayPositionStateHistorical.load(snapshotId);
-  const isNewBlock = snapshot == null;
-  const entryIndex = isNewBlock
-    ? isNew
-      ? BigInt.zero()
-      : position.lastHistoricalEntryIndex.plus(BigInt.fromI32(1))
-    : position.lastHistoricalEntryIndex;
 
   position.shares = position.shares.plus(sharesDelta);
 
@@ -105,7 +93,6 @@ export function updatePosition(
 
   if (!snapshot) {
     snapshot = new DayPositionStateHistorical(snapshotId);
-    snapshot.entryIndex = entryIndex;
     snapshot.blockNumber = event.block.number;
     snapshot.createdAtTransactionHash = event.transaction.hash.toHexString();
     snapshot.createdAtBlockNumber = event.block.number;
@@ -125,6 +112,5 @@ export function updatePosition(
   snapshot.updatedAtBlockTimestamp = event.block.timestamp;
   snapshot.save();
 
-  position.lastHistoricalEntryIndex = entryIndex;
   position.save();
 }
