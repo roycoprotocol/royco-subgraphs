@@ -3,9 +3,10 @@ import {
   describe,
   test,
   clearStore,
+  createMockedFunction,
   beforeEach,
 } from "matchstick-as/assembly/index";
-import { BigInt } from "@graphprotocol/graph-ts";
+import { BigInt, ethereum } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
 import { handlePostOpTrancheAccountingSynced } from "../../src/royco-day-kernel";
 import {
@@ -21,6 +22,8 @@ import {
   mockAssetPriceNAVReverts,
   mockConvertToAssets,
   mockConvertToAssetsReverts,
+  mockBalancerPool,
+  mockBalancerPoolAbsent,
 } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
@@ -32,12 +35,17 @@ import {
   ADDR_LIQUIDITY,
   ADDR_SENIOR,
   ADDR_TEMPLATE,
+  ADDR_BALANCER_VAULT,
+  ADDR_ZERO,
+  ADDR_LPT_ASSET,
+  ADDR_QUOTE_ASSET,
   BLOCK_TIMESTAMP,
   DECIMALS_18,
   TX_HASH,
   TX_HASH_2,
 } from "../helpers/constants";
 import {
+  generateMarketId,
   generateMarketNavHistoricalId,
   generateMarketNavId,
 } from "../../src/utils";
@@ -455,5 +463,176 @@ describe("DayMarketNav on TrancheAccountingSynced", () => {
 
     assert.entityCount("DayMarketNav", 0);
     assert.entityCount("DayMarketNavHistorical", 0);
+  });
+});
+
+// =============================================================================
+// THE QUOTE LEG'S NAV PRICE, decoded from the BPT.
+//
+// The liquidity tranche's deposit asset IS the BPT, and that pool is a pair of (senior
+// tranche share, quote asset). There is no Kernel.convertQuoteAssetsToValue, so the price
+// comes off the pool: it is EXACTLY tokenRates[quoteAssetPoolIndex], because Balancer's
+// own scaling is rawAmount * decimalScalingFactor * rate / WAD and the factor is a raw
+// 10 ** (18 - decimals), so for one whole token the two powers of ten cancel.
+// =============================================================================
+describe("quoteAssetPriceNAV", () => {
+  beforeEach(() => {
+    clearStore();
+  });
+
+  test("creation resolves the vault + quote slot and prices the leg off its rate", () => {
+    deployMarket();
+
+    const marketId = generateMarketId(ADDR_KERNEL.toHexString());
+    // Both pool facts are immutable on chain, so they are cached here and the sync path
+    // then needs ONE call instead of three.
+    assert.fieldEquals(
+      "DayMarketState",
+      marketId,
+      "balancerVaultAddress",
+      ADDR_BALANCER_VAULT.toHexString()
+    );
+    // Slot 1 — DERIVED by finding the token that is NOT the senior tranche, not assumed.
+    assert.fieldEquals("DayMarketState", marketId, "quoteAssetPoolIndex", "1");
+    // 1.02, the QUOTE slot's rate. The senior slot's is 3.07, so reading the wrong slot
+    // is visible; and the raw scaling factors (1e12 / 1) cancel, so multiplying by them
+    // would land 10^12 off.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "1020000000000000000");
+    assert.fieldEquals(
+      "DayMarketNavHistorical",
+      historicalId(0),
+      "quoteAssetPriceNAV",
+      "1020000000000000000"
+    );
+  });
+
+  test("the quote slot is derived, so the OPPOSITE registration order still works", () => {
+    // Registration order is the pool deployer's choice. The venue branches on which slot
+    // holds SENIOR_TRANCHE and so must this — a hardcoded index would read the senior
+    // share's rate as the quote price here.
+    const market = DayMarketFixture.standard();
+    market.quoteAssetPoolIndex = 0;
+    mockDayMarket(market);
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    assert.fieldEquals(
+      "DayMarketState",
+      generateMarketId(ADDR_KERNEL.toHexString()),
+      "quoteAssetPoolIndex",
+      "0"
+    );
+    // Still 1.02 — the quote rate followed the quote token into slot 0.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "1020000000000000000");
+  });
+
+  test("a STANDARD quote asset prices at exactly 1.0 — the USD anchor", () => {
+    // A token registered STANDARD has an implicit FP(1) rate, and that 1.0 is what pins
+    // the market's whole NAV numeraire to USD. Asserted explicitly because it is the
+    // real-world case (USDC) and the one a wrong unit would still look plausible in.
+    const market = DayMarketFixture.standard();
+    market.quoteAssetRate = BigInt.fromString("1000000000000000000");
+    mockDayMarket(market);
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "1000000000000000000");
+  });
+
+  test("a sync re-reads the rate; a later block's row carries the new one", () => {
+    deployMarket();
+
+    // The pool's rate moves — a yield-bearing quote asset, or a rate-provider update.
+    mockBalancerPool(
+      ADDR_LPT_ASSET,
+      ADDR_BALANCER_VAULT,
+      ADDR_SENIOR,
+      ADDR_QUOTE_ASSET,
+      1,
+      BigInt.fromString("1050000000000000000"), // 1.05
+      BigInt.fromString("3070000000000000000")
+    );
+
+    const second = accountantCtx();
+    second.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    sync(second);
+
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "1050000000000000000");
+    // The creation block's row keeps the OLD rate — this is a time series, not a view.
+    assert.fieldEquals(
+      "DayMarketNavHistorical",
+      historicalId(0),
+      "quoteAssetPriceNAV",
+      "1020000000000000000"
+    );
+    assert.fieldEquals(
+      "DayMarketNavHistorical",
+      historicalId(1),
+      "quoteAssetPriceNAV",
+      "1050000000000000000"
+    );
+  });
+
+  test("a reverting getPoolTokenRates keeps the PREVIOUS price, never zero", () => {
+    deployMarket();
+
+    // The pool stops answering. Writing 0 here would read as "the quote asset became
+    // worthless", which is the most dangerous possible wrong answer for a price.
+    createMockedFunction(
+      ADDR_BALANCER_VAULT,
+      "getPoolTokenRates",
+      "getPoolTokenRates(address):(uint256[],uint256[])"
+    )
+      .withArgs([ethereum.Value.fromAddress(ADDR_LPT_ASSET)])
+      .reverts();
+
+    const second = accountantCtx();
+    second.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    sync(second);
+
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "1020000000000000000");
+  });
+
+  test("a kernel with NO Balancer venue indexes fine, with a zero binding", () => {
+    // getVault() reverts when LPT_ASSET is an ordinary ERC20 rather than a pool. A raw
+    // call would kill handleMarketDeploymentCompleted and with it the market, all three
+    // vaults, and every row that ever hangs off them.
+    const market = DayMarketFixture.standard();
+    mockDayMarket(market);
+    mockBalancerPoolAbsent(ADDR_LPT_ASSET);
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    // The market still exists — that is the point of the guard.
+    assert.entityCount("DayMarketState", 1);
+    assert.entityCount("DayMarketNav", 1);
+    assert.fieldEquals(
+      "DayMarketState",
+      generateMarketId(ADDR_KERNEL.toHexString()),
+      "balancerVaultAddress",
+      ADDR_ZERO.toHexString()
+    );
+    // No pool to ask, so no price. Zero is the truthful answer, not a failed read.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "0");
+    // And the OTHER two asset prices are unaffected — they come from Kernel views.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "collateralAssetPriceNAV", "3100");
   });
 });

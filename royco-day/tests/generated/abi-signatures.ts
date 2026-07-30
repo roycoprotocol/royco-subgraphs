@@ -13,6 +13,24 @@
 // ==========================================================================
 
 // ==========================================================================
+// BalancerPoolToken  (abis/BalancerPoolToken.json)
+// ==========================================================================
+
+// --- callable functions (1) — view/pure/nonpayable/constant ---
+export const BALANCER_POOL_TOKEN__GET_VAULT: string =
+  "getVault():(address)";
+
+// ==========================================================================
+// BalancerV3Vault  (abis/BalancerV3Vault.json)
+// ==========================================================================
+
+// --- callable functions (2) — view/pure/nonpayable/constant ---
+export const BALANCER_V3_VAULT__GET_POOL_TOKENS: string =
+  "getPoolTokens(address):(address[])";
+export const BALANCER_V3_VAULT__GET_POOL_TOKEN_RATES: string =
+  "getPoolTokenRates(address):(uint256[],uint256[])";
+
+// ==========================================================================
 // ERC20  (abis/ERC20.json)
 // ==========================================================================
 

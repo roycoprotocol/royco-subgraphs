@@ -21,6 +21,7 @@ import {
   MARKET_STATE_FIXED,
   MARKET_STATE_PERPETUAL,
   VAULT_MAJOR_TYPE,
+  ERC20_DECIMALS_UNKNOWN,
   TRANCHE_TYPE_SENIOR,
   TRANCHE_TYPE_JUNIOR,
   TRANCHE_TYPE_LIQUIDITY,
@@ -32,6 +33,7 @@ import {
   generateVaultId,
 } from "./utils";
 import { snapshotVault } from "./handlers/base/update-vault";
+import { resolveQuotePoolBinding } from "./handlers/base/quote-price-nav";
 import {
   marketNavPricesFromVaults,
   writeMarketNav,
@@ -176,6 +178,38 @@ export function handleMarketDeploymentCompleted(
   const quoteAsset = quote.reverted ? ZERO_ADDRESS : quote.value.toHexString();
   market.quoteAssetTokenAddress = quoteAsset;
   market.quoteAssetTokenId = generateTokenId(quoteAsset);
+  // Its decimals, and try_ AGAIN — a second failure mode, not the same one. Even when
+  // QUOTE_ASSET resolves, `decimals()` is optional in ERC20 and a token that omits it
+  // reverts; and when QUOTE_ASSET did NOT resolve we would be calling the zero address.
+  // Either way 0 is the honest reading, disambiguated by quoteAssetTokenAddress.
+  //
+  // Immutable metadata read once at deployment, so no refresh path — §5. This is the only
+  // place the quote token's scale is recorded (see the schema note).
+  // Written as if/else rather than a ternary: the two branches would be `i32` and
+  // `CallResult<i32>`, and AS has no union to reconcile them (§3).
+  let quoteDecimals = ERC20_DECIMALS_UNKNOWN;
+  if (!quote.reverted) {
+    const decimals = ERC20.bind(quote.value).try_decimals();
+    if (!decimals.reverted) {
+      quoteDecimals = decimals.value;
+    }
+  }
+  market.quoteAssetTokenDecimals = quoteDecimals;
+
+  // === the BPT's vault + which slot holds the quote asset ===
+  //
+  // The liquidity tranche's deposit asset IS the BPT, and in Balancer V3 the pool
+  // contract IS that token — so `lptAsset` is both. The pool is a pair of (senior
+  // tranche share, quote asset), enforced in the venue constructor, so the quote leg is
+  // derivable from the pool alone with no new Kernel view.
+  //
+  // Resolved HERE and cached because both are immutable on chain. Doing it per sync
+  // would add two eth_calls to the hottest path in the subgraph; doing it once leaves
+  // that path a single getPoolTokenRates. Every call inside is try_ — a market with no
+  // Balancer venue yields the zero-address binding rather than a dead handler.
+  const quotePool = resolveQuotePoolBinding(lptAsset, market.seniorTrancheAddress);
+  market.balancerVaultAddress = quotePool.vaultAddress;
+  market.quoteAssetPoolIndex = quotePool.quoteAssetPoolIndex;
 
   // === from RoycoDayKernel.previewSyncTrancheAccountingFor(_trancheType) ===
   //

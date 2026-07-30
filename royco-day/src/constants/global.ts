@@ -11,6 +11,21 @@
 // === GLOBAL ===
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+/**
+ * The value stored for an ERC20 `decimals()` that could not be read.
+ *
+ * `decimals()` is OPTIONAL in ERC20, and the one token this subgraph reads it from
+ * without a guarantee is the venue's QUOTE_ASSET: on a venue-less market
+ * Kernel.QUOTE_ASSET() itself reverts and the address falls back to ZERO_ADDRESS, so
+ * there is nothing to ask. An `Int!` cannot be null, so this is the sentinel.
+ *
+ * It is NOT distinguishable from a real 0-decimals token by itself — pair it with
+ * `quoteAssetTokenAddress == ZERO_ADDRESS` to tell the two apart. Every other decimals
+ * read in this subgraph is on a tranche's own asset or share token, which the kernel's
+ * constructor guarantees exists, and those stay raw calls (§5).
+ */
+export const ERC20_DECIMALS_UNKNOWN: i32 = 0;
+
 // === UPDATE TYPES ===
 export const UPDATE_TYPE_MULTIPLIER = "multiplier";
 export const UPDATE_TYPE_OVERRIDE = "override";

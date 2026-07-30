@@ -9,6 +9,7 @@ import { RoycoSeniorTranche as TrancheContract } from "../../../generated/templa
 import { CHAIN_ID } from "../../constants";
 import { generateMarketNavHistoricalId, generateMarketNavId } from "../../utils";
 import { assetPriceNAV } from "./asset-price-nav";
+import { quoteAssetPriceNAV } from "./quote-price-nav";
 
 /**
  * ONE tranche's share price: the AssetClaims quintuple of convertToAssets(1 share).
@@ -51,6 +52,7 @@ export class MarketNavPrices {
   // ONE collateral price for senior AND junior — they share the asset in v2.
   collateralAssetPriceNAV: BigInt = BigInt.zero();
   liquidityTrancheAssetPriceNAV: BigInt = BigInt.zero();
+  quoteAssetPriceNAV: BigInt = BigInt.zero();
   seniorTrancheSharePrice: SharePriceClaims = new SharePriceClaims();
   juniorTrancheSharePrice: SharePriceClaims = new SharePriceClaims();
   liquidityTrancheSharePrice: SharePriceClaims = new SharePriceClaims();
@@ -96,6 +98,7 @@ export function writeMarketNav(
   // The two scalar ASSET prices (v1 had three; senior and junior now share one).
   nav.collateralAssetPriceNAV = prices.collateralAssetPriceNAV;
   nav.liquidityTrancheAssetPriceNAV = prices.liquidityTrancheAssetPriceNAV;
+  nav.quoteAssetPriceNAV = prices.quoteAssetPriceNAV;
 
   // The three SHARE-price quadruples, flattened onto their columns. Written out in
   // full rather than looped: AssemblyScript has no closures (§3), and the entity
@@ -154,6 +157,7 @@ export function writeMarketNav(
   // stored, and stays correct if a future edit ever transforms a value on the way in.
   snapshot.collateralAssetPriceNAV = nav.collateralAssetPriceNAV;
   snapshot.liquidityTrancheAssetPriceNAV = nav.liquidityTrancheAssetPriceNAV;
+  snapshot.quoteAssetPriceNAV = nav.quoteAssetPriceNAV;
   snapshot.seniorTrancheSharePriceCollateralAssets =
     nav.seniorTrancheSharePriceCollateralAssets;
   snapshot.seniorTrancheSharePriceLiquidityTrancheAssets =
@@ -244,6 +248,7 @@ export function refreshMarketNav(
   if (previous) {
     fallback.collateralAssetPriceNAV = previous.collateralAssetPriceNAV;
     fallback.liquidityTrancheAssetPriceNAV = previous.liquidityTrancheAssetPriceNAV;
+    fallback.quoteAssetPriceNAV = previous.quoteAssetPriceNAV;
     fallback.seniorTrancheSharePrice.collateralAssets =
       previous.seniorTrancheSharePriceCollateralAssets;
     fallback.seniorTrancheSharePrice.liquidityTrancheAssets =
@@ -285,6 +290,21 @@ export function refreshMarketNav(
     liquidity.minorType,
     liquidity.assetTokenDecimals,
     fallback.liquidityTrancheAssetPriceNAV
+  );
+  // The third asset price, and the only one not from a Kernel view. ONE call, using the
+  // vault and slot resolved once at market creation — re-deriving them per sync would
+  // cost two more on the hottest path in the subgraph.
+  //
+  // The pool address is the KERNEL's LPT_ASSET, not liquidity.assetTokenAddress. The two
+  // are the same token on chain (the kernel constructor requires
+  // liquidityProviderTranche.asset() == LPT_ASSET), but LPT_ASSET is the authoritative
+  // one and is literally what the venue passes as `pool`. Sourcing it from the kernel
+  // rather than the tranche means this does not silently depend on that invariant.
+  prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
+    market.balancerVaultAddress,
+    market.liquidityTrancheAssetTokenAddress,
+    market.quoteAssetPoolIndex,
+    fallback.quoteAssetPriceNAV
   );
 
   // One call per tranche returns that tranche's WHOLE quintuple — adding the four
@@ -391,6 +411,15 @@ export function marketNavPricesFromVaults(
     market.kernelAddress,
     liquidity.minorType,
     liquidity.assetTokenDecimals,
+    BigInt.zero()
+  );
+  // Priced at creation like its two siblings, so entry 0 carries a real vector rather
+  // than a zero this column would otherwise keep until the first sync. The caller has
+  // already resolved the vault and slot onto `market`, so this is one call.
+  prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
+    market.balancerVaultAddress,
+    market.liquidityTrancheAssetTokenAddress,
+    market.quoteAssetPoolIndex,
     BigInt.zero()
   );
   return prices;

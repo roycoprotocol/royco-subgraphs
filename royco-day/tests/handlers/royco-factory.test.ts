@@ -574,6 +574,11 @@ describe("handleMarketDeploymentCompleted", () => {
       "quoteAssetTokenId",
       generateTokenId(ADDR_QUOTE_ASSET.toHexString())
     );
+    // 6, from the QUOTE token itself — not 18, which is what every other token in the
+    // fixture reports. This is the only record of the quote asset's scale in the whole
+    // schema (it has no tranche and no DayVaultState), and it is what makes the
+    // `quoteAssets` amounts on the two multi-asset activity tables interpretable.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "6");
   });
 
   test("collateral matches what the tranches report — the kernel's own invariant", () => {
@@ -634,6 +639,10 @@ describe("handleMarketDeploymentCompleted", () => {
       "quoteAssetTokenId",
       generateTokenId(ADDR_ZERO_STR)
     );
+    // Decimals fall back too, and CRUCIALLY without calling decimals() on the zero
+    // address — an unmocked call there aborts the handler in matchstick and reverts on
+    // chain, so the guard is what keeps the whole market from failing to index.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "0");
     // The other two are raw reads and are unaffected.
     assert.fieldEquals(
       "DayMarketState",
