@@ -24,6 +24,7 @@ import {
   mockConvertToAssetsReverts,
   mockBalancerPool,
   mockBalancerPoolAbsent,
+  mockQuoteAssetReverts,
 } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
@@ -37,6 +38,7 @@ import {
   ADDR_TEMPLATE,
   ADDR_BALANCER_VAULT,
   ADDR_ZERO,
+  ADDR_ASSET,
   ADDR_LPT_ASSET,
   ADDR_QUOTE_ASSET,
   BLOCK_TIMESTAMP,
@@ -603,6 +605,84 @@ describe("quoteAssetPriceNAV", () => {
     sync(second);
 
     assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "1020000000000000000");
+  });
+
+  test("a pool that does NOT contain this market's quote asset resolves to nothing", () => {
+    // THE CASE A NEGATIVE SEARCH GETS WRONG. If the slot were picked as "whichever is
+    // not the senior tranche", any two-token pool would yield an index — including one
+    // holding neither the senior share nor this market's quote asset — and that
+    // unrelated token's rate would be written as this market's quote price forever, with
+    // no revert and no error. The venue guards this with an explicit revert; matching
+    // the quote asset POSITIVELY is what reproduces that guard.
+    const market = DayMarketFixture.standard();
+    mockDayMarket(market);
+    // The BPT is a registered 2-token pool, but of two unrelated tokens.
+    mockBalancerPool(
+      ADDR_LPT_ASSET,
+      ADDR_BALANCER_VAULT,
+      ADDR_JUNIOR, // stands in for some other token, NOT the senior share
+      ADDR_ASSET, // and NOT the quote asset
+      1,
+      BigInt.fromString("9990000000000000000"),
+      BigInt.fromString("8880000000000000000")
+    );
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    // Refused, not guessed: a zero vault means later syncs make no call at all.
+    assert.fieldEquals(
+      "DayMarketState",
+      generateMarketId(ADDR_KERNEL.toHexString()),
+      "balancerVaultAddress",
+      ADDR_ZERO.toHexString()
+    );
+    // And crucially NOT 9.99 or 8.88 — neither unrelated rate leaks in as a price.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "0");
+  });
+
+  test("no QUOTE_ASSET but a REAL pool at LPT_ASSET still stores no price", () => {
+    // The nastiest shape, and the one the review surfaced: the kernel has no Royco
+    // Balancer venue (QUOTE_ASSET reverts, so quoteAssetTokenAddress is 0x0) but its
+    // LPT_ASSET is nonetheless a registered two-token Balancer pool — an ordinary
+    // wstETH/WETH BPT, say. getVault() and getPoolTokens() both SUCCEED here, so neither
+    // try_ guard fires and nothing about the calls looks wrong.
+    //
+    // The row must not end up internally inconsistent: a 0x0 quote asset with a non-zero
+    // quote price would be undetectable downstream, because the documented "read
+    // balancerVaultAddress and quoteAssetPoolIndex together" contract would also say the
+    // market has a venue.
+    const market = DayMarketFixture.standard();
+    mockDayMarket(market);
+    mockQuoteAssetReverts(ADDR_KERNEL);
+    mockBalancerPool(
+      ADDR_LPT_ASSET,
+      ADDR_BALANCER_VAULT,
+      ADDR_JUNIOR,
+      ADDR_ASSET,
+      1,
+      BigInt.fromString("9990000000000000000"),
+      BigInt.fromString("8880000000000000000")
+    );
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    const marketId = generateMarketId(ADDR_KERNEL.toHexString());
+    // All three agree that this market has no quote asset.
+    assert.fieldEquals("DayMarketState", marketId, "quoteAssetTokenAddress", ADDR_ZERO.toHexString());
+    assert.fieldEquals("DayMarketState", marketId, "balancerVaultAddress", ADDR_ZERO.toHexString());
+    assert.fieldEquals("DayMarketNav", NAV_ID, "quoteAssetPriceNAV", "0");
   });
 
   test("a kernel with NO Balancer venue indexes fine, with a zero binding", () => {

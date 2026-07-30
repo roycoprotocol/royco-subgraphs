@@ -609,6 +609,20 @@ describe("handleMarketDeploymentCompleted", () => {
       "collateralTokenAddress",
       ADDR_ASSET.toHexString()
     );
+    // THE THIRD ARM, which had no vault-side assertion until now. The same constructor
+    // check requires liquidityProviderTranche.asset() == LPT_ASSET, and the LPT asset is
+    // the BPT — a DIFFERENT token from the collateral. The market side of this was
+    // already asserted above; this is the vault side, and its absence is what let the
+    // fixture report the collateral here for a market the constructor would have
+    // reverted. That divergence had teeth: a handler correctly treating this vault's
+    // asset as the Balancer pool would call getPoolTokenRates on the collateral token
+    // and abort as unmocked.
+    assert.fieldEquals(
+      "DayVaultState",
+      LIQUIDITY_ID,
+      "assetTokenAddress",
+      ADDR_LPT_ASSET.toHexString()
+    );
   });
 
   test("a reverting QUOTE_ASSET falls back to the zero address, not a dead handler", () => {

@@ -370,6 +370,14 @@ templates:
           file: ./abis/BalancerV3Vault.json
         - name: BalancerPoolToken
           file: ./abis/BalancerPoolToken.json
+        # The ACCOUNTANT, on the KERNEL template. Also not a slip: refreshMarketStoredState
+        # re-reads Accountant.getState() on every sync for the two premium/accrual
+        # checkpoints, which no event carries. §10.4 again — bind() bakes the contract
+        # NAME and graph-node resolves it against THIS data source's abis: list, so
+        # without this entry every sync fails its call and stalls the subgraph, and
+        # `graph build` passes either way.
+        - name: RoycoDayAccountant
+          file: ./abis/RoycoDayAccountant.json
       eventHandlers:
         # BOTH sync events, collapsing into one row per (market, block): pre-op creates
         # it, post-op overwrites it. Pre-op fires on EVERY sync (swap hook, oracle

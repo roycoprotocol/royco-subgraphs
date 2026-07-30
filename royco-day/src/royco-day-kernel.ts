@@ -22,6 +22,7 @@ import {
 } from "./utils";
 import { touchMarket } from "./handlers/base/resolve-market";
 import { refreshMarketNav } from "./handlers/base/market-nav";
+import { refreshMarketStoredState } from "./handlers/base/market-stored-state";
 import {
   CHAIN_ID,
   MARKET_STATE_FIXED,
@@ -32,8 +33,6 @@ import {
   OPERATION_JT_REDEEM,
   OPERATION_LPT_DEPOSIT,
   OPERATION_LPT_REDEEM,
-  OPERATION_LPT_MULTI_ASSET_DEPOSIT,
-  OPERATION_LPT_MULTI_ASSET_REDEEM,
   OPERATION_UNKNOWN,
   SYNC_TYPE_PRE_OP,
   SYNC_TYPE_POST_OP,
@@ -389,6 +388,12 @@ function recordSync(
   // (C) The price vector — see the note above on why this does NOT collapse.
   refreshMarketNav(event, market);
 
+  // (D) The five getState()-only columns. The sync payload does NOT carry them: it is
+  // all NAVs, utilizations and per-sync fees, with no custodied totals and no accrual
+  // or premium checkpoints. Two eth_calls, and the reasons they are worth it are on
+  // refreshMarketStoredState.
+  refreshMarketStoredState(market, event.address);
+
   touchMarket(event, market);
 }
 
@@ -421,8 +426,9 @@ function operationName(op: i32): string {
   if (op == 3) return OPERATION_JT_REDEEM;
   if (op == 4) return OPERATION_LPT_DEPOSIT;
   if (op == 5) return OPERATION_LPT_REDEEM;
-  if (op == 6) return OPERATION_LPT_MULTI_ASSET_DEPOSIT;
-  if (op == 7) return OPERATION_LPT_MULTI_ASSET_REDEEM;
+  // 6+ cannot occur against the current enum, which has exactly six members. Anything
+  // higher means the enum grew and this list did not — reported as "unknown" rather
+  // than silently mapped onto a neighbour.
   return OPERATION_UNKNOWN;
 }
 

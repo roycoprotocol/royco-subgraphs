@@ -80,7 +80,7 @@ export const ROYCO_DAY_ACCOUNTANT__PAUSE: string =
 export const ROYCO_DAY_ACCOUNTANT__PAUSED: string =
   "paused():(bool)";
 export const ROYCO_DAY_ACCOUNTANT__POST_OP_SYNC_TRANCHE_ACCOUNTING: string =
-  "postOpSyncTrancheAccounting(uint8,uint256,uint256,uint256,bool):((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))";
+  "postOpSyncTrancheAccounting(uint8,uint256,uint256,uint256):((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))";
 export const ROYCO_DAY_ACCOUNTANT__PRE_OP_SYNC_TRANCHE_ACCOUNTING: string =
   "preOpSyncTrancheAccounting(uint256):((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))";
 export const ROYCO_DAY_ACCOUNTANT__PREVIEW_SYNC_TRANCHE_ACCOUNTING: string =
@@ -164,7 +164,7 @@ export const ROYCO_DAY_ACCOUNTANT__YIELD_SHARES_ACCRUED__EVENT: string =
 // RoycoDayKernel  (abis/RoycoDayKernel.json)
 // ==========================================================================
 
-// --- callable functions (52) — view/pure/nonpayable/constant ---
+// --- callable functions (47) — view/pure/nonpayable/constant ---
 export const ROYCO_DAY_KERNEL__ACCOUNTANT: string =
   "ACCOUNTANT():(address)";
 export const ROYCO_DAY_KERNEL__COLLATERAL_ASSET: string =
@@ -184,7 +184,7 @@ export const ROYCO_DAY_KERNEL__SENIOR_TRANCHE: string =
 export const ROYCO_DAY_KERNEL__UPGRADE_INTERFACE_VERSION: string =
   "UPGRADE_INTERFACE_VERSION():(string)";
 export const ROYCO_DAY_KERNEL__ADD_LIQUIDITY: string =
-  "addLiquidity(bool,uint256,uint256,uint256):(uint256,uint256,uint256)";
+  "addLiquidity(uint8,uint256,uint256,uint256):(uint256,uint256)";
 export const ROYCO_DAY_KERNEL__ATTEMPT_LIQUIDITY_PREMIUM_REINVESTMENT: string =
   "attemptLiquidityPremiumReinvestment(uint256,uint256,uint256)";
 export const ROYCO_DAY_KERNEL__AUTHORITY: string =
@@ -203,32 +203,26 @@ export const ROYCO_DAY_KERNEL__ENFORCE_NOT_BLACKLISTED__1: string =
   "enforceNotBlacklisted(address[])";
 export const ROYCO_DAY_KERNEL__GET_COLLATERAL_ASSET_ORACLE: string =
   "getCollateralAssetOracle():(address)";
+export const ROYCO_DAY_KERNEL__GET_IMMUTABLE_STATE: string =
+  "getImmutableState():((address,address,address,address,address,address,address))";
 export const ROYCO_DAY_KERNEL__GET_STATE: string =
   "getState():((address,uint64,uint256,uint256,uint256,address,address,uint48,address,uint48))";
+export const ROYCO_DAY_KERNEL__INKIND_DEPOSIT: string =
+  "inkindDeposit(uint8,uint256,address,address):(uint256)";
+export const ROYCO_DAY_KERNEL__INKIND_MAX_DEPOSIT: string =
+  "inkindMaxDeposit(address):(uint256)";
+export const ROYCO_DAY_KERNEL__INKIND_MAX_REDEEMABLE: string =
+  "inkindMaxRedeemable(address):(uint256)";
+export const ROYCO_DAY_KERNEL__INKIND_REDEEM: string =
+  "inkindRedeem(uint8,uint256,address,address,address):((uint256,uint256,uint256,uint256))";
 export const ROYCO_DAY_KERNEL__IS_CONSUMING_SCHEDULED_OP: string =
   "isConsumingScheduledOp():(bytes4)";
-export const ROYCO_DAY_KERNEL__JT_DEPOSIT: string =
-  "jtDeposit(bool,uint256):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__JT_MAX_DEPOSIT: string =
-  "jtMaxDeposit(address):(uint256)";
-export const ROYCO_DAY_KERNEL__JT_MAX_WITHDRAWABLE: string =
-  "jtMaxWithdrawable(address):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__JT_REDEEM: string =
-  "jtRedeem(bool,uint256,address):((uint256,uint256,uint256,uint256))";
-export const ROYCO_DAY_KERNEL__LPT_DEPOSIT: string =
-  "lptDeposit(bool,uint256):(uint256,uint256,uint256)";
 export const ROYCO_DAY_KERNEL__LPT_DEPOSIT_MULTI_ASSET: string =
-  "lptDepositMultiAsset(bool,uint256,uint256,uint256):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__LPT_MAX_DEPOSIT: string =
-  "lptMaxDeposit(address):(uint256)";
-export const ROYCO_DAY_KERNEL__LPT_MAX_WITHDRAWABLE: string =
-  "lptMaxWithdrawable(address):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__LPT_MAX_WITHDRAWABLE_MULTI_ASSET: string =
-  "lptMaxWithdrawableMultiAsset(address):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__LPT_REDEEM: string =
-  "lptRedeem(bool,uint256,address):((uint256,uint256,uint256,uint256))";
+  "lptDepositMultiAsset(uint8,uint256,uint256,uint256,address,address):(uint256,uint256)";
+export const ROYCO_DAY_KERNEL__LPT_MAX_REDEEMABLE_MULTI_ASSET: string =
+  "lptMaxRedeemableMultiAsset(address):(uint256)";
 export const ROYCO_DAY_KERNEL__LPT_REDEEM_MULTI_ASSET: string =
-  "lptRedeemMultiAsset(bool,uint256,uint256,uint256,address):((uint256,uint256,uint256,uint256),uint256)";
+  "lptRedeemMultiAsset(uint8,uint256,uint256,uint256,address,address,address):((uint256,uint256,uint256,uint256),uint256)";
 export const ROYCO_DAY_KERNEL__PAUSE: string =
   "pause()";
 export const ROYCO_DAY_KERNEL__PAUSED: string =
@@ -239,10 +233,14 @@ export const ROYCO_DAY_KERNEL__PREVIEW_SYNC_TRANCHE_ACCOUNTING_FOR: string =
   "previewSyncTrancheAccountingFor(uint8):((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256),(uint256,uint256,uint256,uint256),uint256)";
 export const ROYCO_DAY_KERNEL__PROXIABLE_UUID: string =
   "proxiableUUID():(bytes32)";
+export const ROYCO_DAY_KERNEL__QUERY_COLLATERAL_ASSET_ORACLE: string =
+  "queryCollateralAssetOracle():(uint256)";
+export const ROYCO_DAY_KERNEL__QUERY_LPT_ASSET_ORACLE: string =
+  "queryLPTAssetOracle():(uint256)";
 export const ROYCO_DAY_KERNEL__REINVEST_LIQUIDITY_PREMIUM: string =
   "reinvestLiquidityPremium(uint256)";
 export const ROYCO_DAY_KERNEL__REMOVE_LIQUIDITY: string =
-  "removeLiquidity(bool,uint256,uint256,uint256,address):(uint256,uint256,uint256)";
+  "removeLiquidity(uint8,uint256,uint256,uint256,address):(uint256,uint256,uint256)";
 export const ROYCO_DAY_KERNEL__SET_AUTHORITY: string =
   "setAuthority(address)";
 export const ROYCO_DAY_KERNEL__SET_COLLATERAL_ASSET_ORACLE: string =
@@ -255,14 +253,6 @@ export const ROYCO_DAY_KERNEL__SET_SENIOR_TRANCHE_SELF_LIQUIDATION_BONUS: string
   "setSeniorTrancheSelfLiquidationBonus(uint64)";
 export const ROYCO_DAY_KERNEL__SET_SEQUENCER_UPTIME_FEED: string =
   "setSequencerUptimeFeed(address,uint48)";
-export const ROYCO_DAY_KERNEL__ST_DEPOSIT: string =
-  "stDeposit(bool,uint256):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__ST_MAX_DEPOSIT: string =
-  "stMaxDeposit(address):(uint256)";
-export const ROYCO_DAY_KERNEL__ST_MAX_WITHDRAWABLE: string =
-  "stMaxWithdrawable(address):(uint256,uint256,uint256)";
-export const ROYCO_DAY_KERNEL__ST_REDEEM: string =
-  "stRedeem(bool,uint256,address):((uint256,uint256,uint256,uint256))";
 export const ROYCO_DAY_KERNEL__SYNC_TRANCHE_ACCOUNTING: string =
   "syncTrancheAccounting():((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))";
 export const ROYCO_DAY_KERNEL__SYNC_TRANCHE_ACCOUNTING_FOR: string =
@@ -376,7 +366,7 @@ export const ROYCO_FACTORY__UPGRADED__EVENT: string =
 // RoycoJuniorTranche  (abis/RoycoJuniorTranche.json)
 // ==========================================================================
 
-// --- callable functions (38) — view/pure/nonpayable/constant ---
+// --- callable functions (39) — view/pure/nonpayable/constant ---
 export const ROYCO_JUNIOR_TRANCHE__DOMAIN_SEPARATOR: string =
   "DOMAIN_SEPARATOR():(bytes32)";
 export const ROYCO_JUNIOR_TRANCHE__KERNEL: string =
@@ -413,12 +403,14 @@ export const ROYCO_JUNIOR_TRANCHE__INITIALIZE: string =
   "initialize((string,string,address))";
 export const ROYCO_JUNIOR_TRANCHE__IS_CONSUMING_SCHEDULED_OP: string =
   "isConsumingScheduledOp():(bytes4)";
+export const ROYCO_JUNIOR_TRANCHE__KERNEL_BURN: string =
+  "kernelBurn(address,uint256)";
+export const ROYCO_JUNIOR_TRANCHE__KERNEL_MINT: string =
+  "kernelMint(address,uint256)";
 export const ROYCO_JUNIOR_TRANCHE__MAX_DEPOSIT: string =
   "maxDeposit(address):(uint256)";
 export const ROYCO_JUNIOR_TRANCHE__MAX_REDEEM: string =
   "maxRedeem(address):(uint256)";
-export const ROYCO_JUNIOR_TRANCHE__MINT: string =
-  "mint(address,uint256)";
 export const ROYCO_JUNIOR_TRANCHE__MINT_PROTOCOL_FEE_SHARES: string =
   "mintProtocolFeeShares(address,uint256):(uint256)";
 export const ROYCO_JUNIOR_TRANCHE__NAME: string =
@@ -482,7 +474,7 @@ export const ROYCO_JUNIOR_TRANCHE__UPGRADED__EVENT: string =
 // RoycoLiquidityProviderTranche  (abis/RoycoLiquidityProviderTranche.json)
 // ==========================================================================
 
-// --- callable functions (43) — view/pure/nonpayable/constant ---
+// --- callable functions (44) — view/pure/nonpayable/constant ---
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__DOMAIN_SEPARATOR: string =
   "DOMAIN_SEPARATOR():(bytes32)";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__KERNEL: string =
@@ -521,14 +513,16 @@ export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__INITIALIZE: string =
   "initialize((string,string,address))";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__IS_CONSUMING_SCHEDULED_OP: string =
   "isConsumingScheduledOp():(bytes4)";
+export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__KERNEL_BURN: string =
+  "kernelBurn(address,uint256)";
+export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__KERNEL_MINT: string =
+  "kernelMint(address,uint256)";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__MAX_DEPOSIT: string =
   "maxDeposit(address):(uint256)";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__MAX_REDEEM: string =
   "maxRedeem(address):(uint256)";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__MAX_REDEEM_MULTI_ASSET: string =
   "maxRedeemMultiAsset(address):(uint256)";
-export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__MINT: string =
-  "mint(address,uint256)";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__MINT_PROTOCOL_FEE_SHARES: string =
   "mintProtocolFeeShares(address,uint256):(uint256)";
 export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__NAME: string =
@@ -602,7 +596,7 @@ export const ROYCO_LIQUIDITY_PROVIDER_TRANCHE__UPGRADED__EVENT: string =
 // RoycoSeniorTranche  (abis/RoycoSeniorTranche.json)
 // ==========================================================================
 
-// --- callable functions (39) — view/pure/nonpayable/constant ---
+// --- callable functions (40) — view/pure/nonpayable/constant ---
 export const ROYCO_SENIOR_TRANCHE__DOMAIN_SEPARATOR: string =
   "DOMAIN_SEPARATOR():(bytes32)";
 export const ROYCO_SENIOR_TRANCHE__KERNEL: string =
@@ -639,12 +633,14 @@ export const ROYCO_SENIOR_TRANCHE__INITIALIZE: string =
   "initialize((string,string,address))";
 export const ROYCO_SENIOR_TRANCHE__IS_CONSUMING_SCHEDULED_OP: string =
   "isConsumingScheduledOp():(bytes4)";
+export const ROYCO_SENIOR_TRANCHE__KERNEL_BURN: string =
+  "kernelBurn(address,uint256)";
+export const ROYCO_SENIOR_TRANCHE__KERNEL_MINT: string =
+  "kernelMint(address,uint256)";
 export const ROYCO_SENIOR_TRANCHE__MAX_DEPOSIT: string =
   "maxDeposit(address):(uint256)";
 export const ROYCO_SENIOR_TRANCHE__MAX_REDEEM: string =
   "maxRedeem(address):(uint256)";
-export const ROYCO_SENIOR_TRANCHE__MINT: string =
-  "mint(address,uint256)";
 export const ROYCO_SENIOR_TRANCHE__MINT_LIQUIDITY_PREMIUM_SHARES: string =
   "mintLiquidityPremiumShares(uint256):(uint256)";
 export const ROYCO_SENIOR_TRANCHE__MINT_PROTOCOL_FEE_SHARES: string =

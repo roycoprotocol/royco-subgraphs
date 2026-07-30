@@ -1,868 +1,868 @@
 [
   {
-    "type": "constructor",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_roycoFactoryGatekeeper",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "ROYCO_AUTHORITY",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
         "name": "",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "ROYCO_FACTORY_GATEKEEPER",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
         "name": "",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "UPGRADE_INTERFACE_VERSION",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "string",
         "name": "",
-        "type": "string",
-        "internalType": "string"
+        "type": "string"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "authority",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
         "name": "",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_implementation",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_initData",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_salt",
+        "type": "bytes32"
+      }
+    ],
     "name": "deployDeterministicProxy",
-    "inputs": [
-      {
-        "name": "_implementation",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_initData",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "_salt",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "address",
         "name": "deployed",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_implementation",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_initData",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_salt",
+        "type": "bytes32"
+      }
+    ],
     "name": "deployDeterministicProxyFromTemplate",
-    "inputs": [
-      {
-        "name": "_implementation",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_initData",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "_salt",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "address",
         "name": "deployed",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "bool",
         "name": "alreadyDeployed",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "bool"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_template",
+        "type": "address"
+      }
+    ],
     "name": "disableTemplate",
-    "inputs": [
-      {
-        "name": "_template",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "executeAsFactory",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_target",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "bytes",
         "name": "_data",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes"
       }
     ],
+    "name": "executeAsFactory",
     "outputs": [
       {
+        "internalType": "bytes",
         "name": "result",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "executeMarketDeployment",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_template",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "bytes",
         "name": "_params",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes"
       }
     ],
+    "name": "executeMarketDeployment",
     "outputs": [
       {
-        "name": "result",
-        "type": "tuple",
-        "internalType": "struct IRoycoProtocolTemplate.DeploymentResult",
         "components": [
           {
+            "internalType": "address",
             "name": "seniorTranche",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "juniorTranche",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "liquidityProviderTranche",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "kernel",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "accountant",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "ydm",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "lptYdm",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "bytes",
             "name": "extras",
-            "type": "bytes",
-            "internalType": "bytes"
+            "type": "bytes"
           }
-        ]
+        ],
+        "internalType": "struct IRoycoProtocolTemplate.DeploymentResult",
+        "name": "result",
+        "type": "tuple"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_tranche",
+        "type": "address"
+      }
+    ],
     "name": "getMarket",
-    "inputs": [
-      {
-        "name": "_tranche",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "address",
         "name": "seniorTranche",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "address",
         "name": "juniorTranche",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "address",
         "name": "liquidityProviderTranche",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "address",
         "name": "kernel",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "grantMarketRole",
     "inputs": [
       {
+        "internalType": "uint64[]",
         "name": "_roleIds",
-        "type": "uint64[]",
-        "internalType": "uint64[]"
+        "type": "uint64[]"
       },
       {
+        "internalType": "address[]",
         "name": "_accounts",
-        "type": "address[]",
-        "internalType": "address[]"
+        "type": "address[]"
       },
       {
+        "internalType": "uint32[]",
         "name": "_executionDelays",
-        "type": "uint32[]",
-        "internalType": "uint32[]"
+        "type": "uint32[]"
       }
     ],
+    "name": "grantMarketRole",
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "initialize",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_roycoAccessManager",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
+    "name": "initialize",
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "isConsumingScheduledOp",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "bytes4",
         "name": "",
-        "type": "bytes4",
-        "internalType": "bytes4"
+        "type": "bytes4"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_template",
+        "type": "address"
+      }
+    ],
     "name": "isTemplateEnabled",
-    "inputs": [
-      {
-        "name": "_template",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "bool",
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "bool"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "pause",
-    "inputs": [],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "paused",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "bool",
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "bool"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "predictDeterministicAddress",
     "inputs": [
       {
+        "internalType": "bytes32",
         "name": "_salt",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "bytes32"
       }
     ],
+    "name": "predictDeterministicAddress",
     "outputs": [
       {
+        "internalType": "address",
         "name": "",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
+    "inputs": [],
     "name": "proxiableUUID",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "bytes32",
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "bytes32"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "registerTemplate",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_template",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
+    "name": "registerTemplate",
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "setAuthority",
     "inputs": [
       {
+        "internalType": "address",
         "name": "newAuthority",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
+    "name": "setAuthority",
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "setMarketTargetFunctionRole",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_target",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "bytes4[]",
         "name": "_selectors",
-        "type": "bytes4[]",
-        "internalType": "bytes4[]"
+        "type": "bytes4[]"
       },
       {
+        "internalType": "uint64[]",
         "name": "_roleIds",
-        "type": "uint64[]",
-        "internalType": "uint64[]"
+        "type": "uint64[]"
       }
     ],
+    "name": "setMarketTargetFunctionRole",
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "trancheToKernel",
     "inputs": [
       {
+        "internalType": "address",
         "name": "_tranche",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
+    "name": "trancheToKernel",
     "outputs": [
       {
+        "internalType": "address",
         "name": "kernel",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "unpause",
     "inputs": [],
+    "name": "unpause",
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "type": "function",
-    "name": "upgradeToAndCall",
     "inputs": [
       {
+        "internalType": "address",
         "name": "newImplementation",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "bytes",
         "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes"
       }
     ],
+    "name": "upgradeToAndCall",
     "outputs": [],
-    "stateMutability": "payable"
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
-    "type": "event",
-    "name": "AuthorityUpdated",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "address",
         "name": "authority",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
+        "type": "address"
       }
     ],
-    "anonymous": false
+    "name": "AuthorityUpdated",
+    "type": "event"
   },
   {
-    "type": "event",
-    "name": "Initialized",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint64",
         "name": "version",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        "type": "uint64"
       }
     ],
-    "anonymous": false
+    "name": "Initialized",
+    "type": "event"
   },
   {
-    "type": "event",
-    "name": "MarketDeploymentCompleted",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
         "name": "template",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
         "name": "deployer",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "type": "address"
       },
       {
-        "name": "result",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct IRoycoProtocolTemplate.DeploymentResult",
         "components": [
           {
+            "internalType": "address",
             "name": "seniorTranche",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "juniorTranche",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "liquidityProviderTranche",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "kernel",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "accountant",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "ydm",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "address",
             "name": "lptYdm",
-            "type": "address",
-            "internalType": "address"
+            "type": "address"
           },
           {
+            "internalType": "bytes",
             "name": "extras",
-            "type": "bytes",
-            "internalType": "bytes"
+            "type": "bytes"
           }
-        ]
+        ],
+        "indexed": false,
+        "internalType": "struct IRoycoProtocolTemplate.DeploymentResult",
+        "name": "result",
+        "type": "tuple"
       }
     ],
-    "anonymous": false
+    "name": "MarketDeploymentCompleted",
+    "type": "event"
   },
   {
-    "type": "event",
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
     "name": "Paused",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
+    "type": "event"
   },
   {
-    "type": "event",
-    "name": "ProxyDeployed",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
         "name": "proxy",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
         "name": "implementation",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "type": "address"
       },
       {
-        "name": "salt",
-        "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes32"
+        "internalType": "bytes32",
+        "name": "salt",
+        "type": "bytes32"
       }
     ],
-    "anonymous": false
+    "name": "ProxyDeployed",
+    "type": "event"
   },
   {
-    "type": "event",
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "template",
+        "type": "address"
+      }
+    ],
     "name": "TemplateDisabled",
-    "inputs": [
-      {
-        "name": "template",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
+    "type": "event"
   },
   {
-    "type": "event",
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "template",
+        "type": "address"
+      }
+    ],
     "name": "TemplateRegistered",
-    "inputs": [
-      {
-        "name": "template",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
+    "type": "event"
   },
   {
-    "type": "event",
-    "name": "Unpaused",
+    "anonymous": false,
     "inputs": [
       {
-        "name": "account",
-        "type": "address",
         "indexed": false,
-        "internalType": "address"
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
       }
     ],
-    "anonymous": false
+    "name": "Unpaused",
+    "type": "event"
   },
   {
-    "type": "event",
-    "name": "Upgraded",
+    "anonymous": false,
     "inputs": [
       {
-        "name": "implementation",
-        "type": "address",
         "indexed": true,
-        "internalType": "address"
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
       }
     ],
-    "anonymous": false
+    "name": "Upgraded",
+    "type": "event"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "ACCESS_MANAGER_CANNOT_BE_ZERO_ADDRESS",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "ACCESS_MANAGER_HAS_NO_CODE",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "AccessManagedInvalidAuthority",
     "inputs": [
       {
+        "internalType": "address",
         "name": "authority",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
-    ]
+    ],
+    "name": "AccessManagedInvalidAuthority",
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "AccessManagedRequiredDelay",
     "inputs": [
       {
+        "internalType": "address",
         "name": "caller",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "uint32",
         "name": "delay",
-        "type": "uint32",
-        "internalType": "uint32"
+        "type": "uint32"
       }
-    ]
+    ],
+    "name": "AccessManagedRequiredDelay",
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "AccessManagedUnauthorized",
     "inputs": [
       {
+        "internalType": "address",
         "name": "caller",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
-    ]
+    ],
+    "name": "AccessManagedUnauthorized",
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "AddressEmptyCode",
     "inputs": [
       {
+        "internalType": "address",
         "name": "target",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
-    ]
+    ],
+    "name": "AddressEmptyCode",
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "ERC1967InvalidImplementation",
     "inputs": [
       {
+        "internalType": "address",
         "name": "implementation",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       }
-    ]
+    ],
+    "name": "ERC1967InvalidImplementation",
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "ERC1967NonPayable",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "EnforcedPause",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "ExpectedPause",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "FACTORY_CALL_TARGET_FORBIDDEN",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "FACTORY_GATEKEEPER_CANNOT_BE_ZERO_ADDRESS",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "FACTORY_GATEKEEPER_MISMATCH",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "FACTORY_GRANT_ROLE_FORBIDDEN",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "FailedCall",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_DEPLOYMENT_RESULT",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "INVALID_IMPLEMENTATION",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "InvalidInitialization",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "LENGTH_MISMATCH",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "NO_ACTIVE_TEMPLATE",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "NULL_ADDRESS",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "NotInitializing",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "ONLY_ACTIVE_TEMPLATE",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "PROXY_ALREADY_DEPLOYED",
     "inputs": [
       {
+        "internalType": "address",
         "name": "deployed",
-        "type": "address",
-        "internalType": "address"
+        "type": "address"
       },
       {
+        "internalType": "bytes32",
         "name": "salt",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "bytes32"
       }
-    ]
+    ],
+    "name": "PROXY_ALREADY_DEPLOYED",
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "SIMULATION_CANNOT_MUTATE_STATE",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "TEMPLATE_ALREADY_REGISTERED",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "TEMPLATE_BOUND_TO_DIFFERENT_FACTORY",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "TEMPLATE_CANNOT_BE_ZERO_ADDRESS",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "TEMPLATE_NOT_ENABLED",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
+    "inputs": [],
     "name": "UUPSUnauthorizedCallContext",
-    "inputs": []
+    "type": "error"
   },
   {
-    "type": "error",
-    "name": "UUPSUnsupportedProxiableUUID",
     "inputs": [
       {
+        "internalType": "bytes32",
         "name": "slot",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "bytes32"
       }
-    ]
+    ],
+    "name": "UUPSUnsupportedProxiableUUID",
+    "type": "error"
   }
 ]

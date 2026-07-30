@@ -128,6 +128,18 @@ type DayMarketState @entity(immutable: false) {
   lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp <- ABI: lastYieldShareAccrualTimestamp
   lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp <- ABI: lastPremiumPaymentTimestamp
   timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD (uint128 -> BigInt, direct)
+  # ^ A SAWTOOTH, NOT A LIFETIME TOTAL. Both timeWeighted* accumulate on every accrual and
+  #   are ZEROED whenever premiums are paid out of ST yield, so a negative delta between
+  #   reads is the reset, not a data error. They measure only what has accrued SINCE
+  #   lastPremiumPaymentTimestamp, which is the field to segment them by.
+  #
+  # !! SOURCED FROM getState() ON EVERY SYNC, not from YieldSharesAccrued alone. The
+  #    event carries the POST-increment values and the same call then deletes both
+  #    (RoycoDayAccountant.sol:163-168) emitting nothing — no accountant event signals the
+  #    reset — so an event-only column could ratchet up and never come back down. It would
+  #    also contradict lastPremiumPaymentTimestamp, which the reset stamps in the same
+  #    block. See refreshMarketStoredState. (DayYieldSharesAccruedHistory's copies stay
+  #    event-sourced: a history row wants the value at that instant, pre-reset.)
   maxJuniorTrancheYieldShareAccruedWAD: BigInt! # Max Junior Tranche Yield Share WAD <- ABI: maxJTYieldShareWAD
   # ^ NOTE: this is a CONFIGURED CAP (set via setMaxYieldShares / MaxYieldSharesUpdated),
   #   NOT an accrual — despite the "Accrued" in the field name. The real accrual is
@@ -413,21 +425,31 @@ type DayMarketState @entity(immutable: false) {
 # carries none at all.
 #
 # TWO WRITE SITES, TWO DIFFERENT SOURCES — the asymmetry is the whole design:
-#   1. MarketDeploymentCompleted -> entry 0. Copied off the three DayVaultState
-#      rows the same handler just wrote, so it costs ZERO extra eth_calls. All
-#      three sharePrice* are provably 0 there (supply is 0, so _scaleAssetClaims
-#      returns the zero struct for any input), and the assetPrice* were already read.
-#   2. TrancheAccountingSynced -> every later entry. Here all 18 values MUST be
+#   1. MarketDeploymentCompleted -> entry 0. The twelve sharePrice* legs are provably 0
+#      there (supply is 0, so _scaleAssetClaims returns the zero struct for any input)
+#      and the two Kernel-sourced assetPrice* were already read by the vault writes, so
+#      those fourteen columns cost NOTHING extra. quoteAssetPriceNAV is the exception:
+#      it needs the pool, so creation pays getVault + getPoolTokens (resolving the vault
+#      and slot it then caches on DayMarketState) + getPoolTokenRates — THREE calls, or
+#      zero on a market with no Balancer venue, where QUOTE_ASSET already reverted and
+#      there is nothing to ask.
+#   2. TrancheAccountingSynced -> every later entry. Here all 15 values MUST be
 #      re-read live. The sync payload carries MARKET-level NAVs
-#      (stRawNAV, jtEffectiveNAV, ...) and no per-share or per-asset-token price at
-#      all, and the DayVaultState copies are stale between mints/burns. That is 6
-#      eth_calls per sync on the hottest path in this subgraph — see the cost note
-#      on refreshMarketNav in src/handlers/base/market-nav.ts. FIVE calls for 14 columns:
-#      2 asset-price converters + 3 convertToAssets, each returning a whole quadruple.
+#      (collateralNAV, jtEffectiveNAV, ...) and no per-share or per-asset-token price at
+#      all, and the DayVaultState copies are stale between mints/burns. SIX calls for 15
+#      columns: 2 Kernel asset-price converters + 1 pool getPoolTokenRates (the vault and
+#      slot are already cached, so the quote leg costs one call, not three) + 3
+#      convertToAssets, each returning a whole quadruple. That is the hottest path in
+#      this subgraph — see the cost note on refreshMarketNav in
+#      src/handlers/base/market-nav.ts.
 #
-# THE TWO NAV_UNIT PRICES, and what they are denominated in:
+# THE NAV_UNIT PRICES, and what they are denominated in:
 #   *AssetPriceNAV = the NAV value of ONE WHOLE ASSET TOKEN (10 ** assetTokenDecimals)
-#                    — collateral for senior+junior, the LPT asset for liquidity
+#                    — collateral for senior+junior, the LPT asset for liquidity, and the
+#                    venue's quote token. The quote one needs NO decimals argument: its
+#                    price is the pool's registered rate outright, because the raw
+#                    10 ** (18 - decimals) scaling factor cancels the 10 ** decimals
+#                    amount exactly. See quoteAssetPriceNAV's own note.
 #   *SharePriceNAV = the NAV value of ONE WHOLE SHARE       (10 ** shareTokenDecimals)
 # The two denominators are different tokens with independently-configured decimals.
 # Never divide one by the other, and never compare an asset price to a share price.
@@ -974,7 +996,7 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
   blockNumber: BigInt! # Block Number — the key this row collapses on, stored so it is queryable without parsing the id
   syncType: String! # Sync Type ("preOp", "postOp") — which event this row last settled on
-  operation: String # Operation ("stDeposit" … "lptMultiAssetRedeem"). NULL while the row is a preOp row.
+  operation: String # Operation ("stDeposit" … "lptRedeem"). NULL while the row is a preOp row.
   # ^ NULLABLE ON PURPOSE, and only the second such field in this schema (see
   #   DayFixedTermHistory.duration). A pre-op sync happens BEFORE any operation is
   #   chosen, so there is no operation to record — and "" or a "none" sentinel would
@@ -983,9 +1005,16 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   #   queryable per Neon idiom.
   #   Enum order is the on-chain `Operation` declaration order
   #   (contracts/libraries/Types.sol): 0 stDeposit, 1 stRedeem, 2 jtDeposit, 3 jtRedeem,
-  #   4 lptDeposit, 5 lptRedeem, 6 lptMultiAssetDeposit, 7 lptMultiAssetRedeem. EIGHT
-  #   members in v2, six in v1. The ABI carries the enum's TYPE but none of its member
-  #   names, so this ordering is read from source and is not guessable (§4).
+  #   4 lptDeposit, 5 lptRedeem. SIX members. The ABI carries the enum's TYPE but none of
+  #   its member names, so this ordering is read from source and is not guessable (§4) —
+  #   and it HAS changed: an earlier revision had eight, with distinct multi-asset LP
+  #   members later folded into the plain LPT ones.
+  #
+  # !! A MULTI-ASSET LP FLOW REPORTS AS lptDeposit / lptRedeem here, indistinguishable
+  #    from a single-asset one by this column alone. Join to DayMultiAssetDepositActivity
+  #    / DayMultiAssetRedeemActivity on transaction hash to tell them apart — those
+  #    events still fire and are still indexed. An out-of-range ordinal surfaces as
+  #    "unknown", never as a neighbouring member.
   # --- The full SyncedAccountingState, in ABI order. ---
   marketState: String! # Market State ("perpetual" -> 0, "fixed" -> 1) <- ABI: resultingState.marketState (uint8 enum -> i32)
   # ^ !! LIVE state at sync time — NOT the same field as DayMarketState.marketState.

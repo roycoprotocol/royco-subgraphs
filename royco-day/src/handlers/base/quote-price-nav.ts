@@ -29,6 +29,9 @@ export class QuotePoolBinding {
  * liquidity tranche takes deposits in and the `pool` argument the vault expects. The
  * venue relies on exactly that identity (`_vault.isPoolRegistered(LPT_ASSET)`).
  *
+ * The quote asset is located by MATCHING IT, not by elimination — see the note at the
+ * loop for why the "whichever isn't the senior tranche" formulation is unsafe.
+ *
  * EVERY CALL IS `try_`, and each guards a different failure (§5):
  *   - getVault() reverts on a kernel with NO Balancer venue at all, where LPT_ASSET is
  *     an ordinary ERC20 and not a pool.
@@ -43,9 +46,17 @@ export class QuotePoolBinding {
  */
 export function resolveQuotePoolBinding(
   lptAsset: string,
-  seniorTrancheAddress: string
+  quoteAssetAddress: string
 ): QuotePoolBinding {
   const binding = new QuotePoolBinding();
+
+  // NO QUOTE ASSET, NO POOL TO ASK. Kernel.QUOTE_ASSET() already reverted for a
+  // venue-less kernel and the caller passed the zero-address fallback, so there is
+  // nothing to resolve — and returning here spends ZERO eth_calls on that market
+  // instead of two that could only fail or, worse, succeed against an unrelated pool.
+  if (quoteAssetAddress == ZERO_ADDRESS) {
+    return binding;
+  }
 
   const pool = Address.fromString(lptAsset);
   const vaultResult = BalancerPoolToken.bind(pool).try_getVault();
@@ -66,17 +77,34 @@ export function resolveQuotePoolBinding(
     return binding;
   }
 
-  // The QUOTE asset is the one that is NOT the senior tranche. Comparing against the
-  // senior address rather than trusting a slot order: registration order is the pool
-  // deployer's choice, and the venue itself branches the same way.
+  // MATCH THE QUOTE ASSET ITSELF, positively. The venue sets
+  // `QUOTE_ASSET = address(tokens[QUOTE_ASSET_POOL_INDEX])`, so the token the kernel
+  // calls QUOTE_ASSET *is* one of these two slots by construction — locating it is the
+  // same derivation the contract performed, not a re-inference of it.
+  //
+  // !! DO NOT REWRITE THIS AS "the slot that is not the senior tranche". That inversion
+  //    looks equivalent and is not: it yields an index for ANY two-token pool, including
+  //    one containing neither the senior share nor this market's quote asset. The venue
+  //    guards that case with an explicit `else revert INVALID_POOL_TOKEN_CONFIGURATION()`
+  //    (BalancerV3LiquidityVenue.sol:113-115); a negative search silently drops that arm
+  //    and caches an index pointing at an unrelated token, which then prices that token
+  //    as this market's quote asset on every sync, forever, with no error anywhere.
+  //
+  //    Matching positively also makes the guarantee the one that actually matters: the
+  //    rate this index selects is the rate of the token stored in
+  //    DayMarketState.quoteAssetTokenAddress. The two columns cannot disagree.
   let quoteIndex = -1;
   for (let i = 0; i < tokens.length; i++) {
-    if (tokens[i].toHexString() != seniorTrancheAddress) {
+    if (tokens[i].toHexString() == quoteAssetAddress) {
       quoteIndex = i;
+      break;
     }
   }
-  // Neither slot is the senior tranche, or both are — the venue would have reverted at
-  // construction, so this is unreachable for a real market. Refuse to guess.
+  // The pool does not contain this market's quote asset, so nothing here can price it.
+  // Unreachable for a market the Balancer venue deployed — its constructor read
+  // QUOTE_ASSET out of these very slots — but reachable for any other kernel whose
+  // LPT_ASSET happens to be a registered pool. Refuse to guess: a zero binding leaves
+  // quoteAssetPriceNAV at 0, which is honest, where a guess is silently wrong.
   if (quoteIndex < 0) {
     return binding;
   }

@@ -4,6 +4,7 @@ import {
   test,
   clearStore,
   beforeEach,
+  createMockedFunction,
 } from "matchstick-as/assembly/index";
 import { BigInt } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
@@ -23,6 +24,7 @@ import {
   handleJuniorTrancheYDMUpdated,
   handleLiquidityTrancheYDMUpdated,
   handleJuniorTrancheImpermanentLossReset,
+  handleYieldSharesAccrued,
 } from "../../src/royco-day-accountant";
 import {
   handleProtocolFeeRecipientUpdated,
@@ -46,6 +48,7 @@ import {
   JuniorTrancheYDMUpdated,
   LiquidityProviderTrancheYDMUpdated,
   JuniorTrancheImpermanentLossReset,
+  YieldSharesAccrued,
 } from "../../generated/templates/RoycoDayAccountant/RoycoDayAccountant";
 import {
   ProtocolFeeRecipientUpdated,
@@ -61,10 +64,14 @@ import {
   createAddressEvent,
   createTwoUintEvent,
   createEmptyEvent,
+  createFourUintEvent,
 } from "../builders/accountant";
 import { createPreOpSyncEvent, createPostOpSyncEvent } from "../builders/kernel";
 import { TrancheState } from "../builders/shared";
 import { DayMarketFixture, mockDayMarket } from "../mocks";
+import { KernelState, mockKernelGetState } from "../mocks/kernel";
+import { AccountantState, mockAccountantGetState } from "../mocks/accountant";
+import { ROYCO_DAY_KERNEL__GET_STATE } from "../generated/abi-signatures";
 import { ctx, EventContext } from "../helpers/event";
 import {
   ADDR_ACCOUNTANT,
@@ -389,6 +396,201 @@ describe("the kernel sync handlers", () => {
     clearStore();
   });
 
+  test("re-reads the seven getState-only columns, which no payload carries", () => {
+    // These five were seeded once by the factory and never touched again, while every
+    // one of them moves on chain immediately afterwards — so they sat at their
+    // deployment values (zero, for a fresh market) for the market's whole life. The sync
+    // payload cannot fix that: it is all NAVs, utilizations and per-sync fees, with no
+    // custodied totals and no accrual/premium checkpoints. Only getState() has them.
+    deployMarket();
+    // Whatever getState() reported at deployment. On a real market these are zero — the
+    // kernel custodies nothing yet and initialize() sets neither timestamp — but the
+    // fixture uses distinctive values so "it never changed" is visible rather than
+    // indistinguishable from a fresh market.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "5101");
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700100003"
+    );
+
+    // Deposits, a premium mint and an accrual happen. Re-mock BOTH getState()s to what
+    // the chain would now report.
+    const kernelState = new KernelState();
+    kernelState.totalCollateralAssets = BigInt.fromI32(7_100);
+    kernelState.totalLPTAssets = BigInt.fromI32(7_200);
+    kernelState.lptOwnedSeniorTrancheShares = BigInt.fromI32(7_300);
+    mockKernelGetState(ADDR_KERNEL, kernelState);
+
+    const accountantState = new AccountantState();
+    accountantState.lastYieldShareAccrualTimestamp = BigInt.fromI32(1_700_000_001);
+    accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_002);
+    // DISTINCT, so transposing the JT and LPT accumulators is visible. Four same-typed
+    // BigInts read off one struct is exactly where a swap hides (§3).
+    accountantState.twJTYieldShareAccruedWAD = BigInt.fromI32(6_001);
+    accountantState.twLPTYieldShareAccruedWAD = BigInt.fromI32(6_002);
+    mockAccountantGetState(ADDR_ACCOUNTANT, accountantState);
+
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
+    );
+
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "7100");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalLiquidityTrancheAssets", "7200");
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheOwnedSeniorTrancheShares",
+      "7300"
+    );
+    // Schema name vs ABI name differ by one word: Accrued vs Accrual (§7).
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastYieldShareAccruedTimestamp",
+      "1700000001"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700000002"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "6001"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedLiquidityTrancheYieldShareAccruedWAD",
+      "6002"
+    );
+  });
+
+  test("a premium payout ZEROES the two accumulators, which no event can report", () => {
+    // THE CASE THE EVENT STREAM STRUCTURALLY CANNOT EXPRESS. YieldSharesAccrued fires
+    // with the POST-increment totals, and the very same call then deletes both
+    // (RoycoDayAccountant.sol:163-168, inside `if (premiumsPaid)`) emitting NOTHING —
+    // none of the accountant's sixteen events signals the reset. So an event-only column
+    // ratchets up and never comes back down.
+    //
+    // Worse than stale: the reset stamps lastPremiumPaymentTimestamp in the same block,
+    // and that IS refreshed — so without this the row would claim a fresh payout beside
+    // a non-zero "accrued since that payout".
+    deployMarket();
+
+    // An accrual lands. The event reports the pre-reset totals, as it always does.
+    handleYieldSharesAccrued(
+      createFourUintEvent<YieldSharesAccrued>(
+        "jtYieldShareWAD",
+        BigInt.fromI32(11),
+        "twJTYieldShareAccruedWAD",
+        BigInt.fromI32(100),
+        "lptYieldShareWAD",
+        BigInt.fromI32(22),
+        "twLPTYieldShareAccruedWAD",
+        BigInt.fromI32(40),
+        accountantCtx()
+      )
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "100"
+    );
+
+    // Premiums are paid in the same call: storage is now zero, and the payout timestamp
+    // advanced. The sync that follows is the only thing that can observe either.
+    const paid = new AccountantState();
+    paid.twJTYieldShareAccruedWAD = BigInt.zero();
+    paid.twLPTYieldShareAccruedWAD = BigInt.zero();
+    paid.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_777);
+    mockAccountantGetState(ADDR_ACCOUNTANT, paid);
+
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
+    );
+
+    // Both back to zero, tracking the chain.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedJuniorTrancheYieldShareAccruedWAD",
+      "0"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "timeWeightedLiquidityTrancheYieldShareAccruedWAD",
+      "0"
+    );
+    // And consistent with the payout stamp the same reset wrote — the pair is the whole
+    // point: "accrued since the last payment" must be 0 immediately after one.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700000777"
+    );
+    // The HISTORY row keeps the pre-reset value: it records that instant, not the end
+    // state, and is deliberately still event-sourced.
+    assert.fieldEquals(
+      "DayYieldSharesAccruedHistory",
+      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
+      "juniorTrancheTimeWeightedYieldShareAccruedWAD",
+      "100"
+    );
+  });
+
+  test("a reverting getState keeps the previous values, and does not stall", () => {
+    // The factory reads these SAME two calls raw. Here they are guarded, deliberately:
+    // at creation a revert costs one market, but on this path it would kill the handler
+    // and stall the whole subgraph — on the highest-frequency path there is, since the
+    // LT's Balancer pool hook syncs on every swap.
+    deployMarket();
+
+    const kernelState = new KernelState();
+    kernelState.totalCollateralAssets = BigInt.fromI32(4_400);
+    mockKernelGetState(ADDR_KERNEL, kernelState);
+    const accountantState = new AccountantState();
+    accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_009);
+    mockAccountantGetState(ADDR_ACCOUNTANT, accountantState);
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), kernelCtx())
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "4400");
+
+    // Now the KERNEL's getState stops answering. The accountant's still works.
+    createMockedFunction(ADDR_KERNEL, "getState", ROYCO_DAY_KERNEL__GET_STATE)
+      .withArgs([])
+      .reverts();
+    const later = new AccountantState();
+    later.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_000_050);
+    mockAccountantGetState(ADDR_ACCOUNTANT, later);
+
+    const second = kernelCtx();
+    second.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(0, new TrancheState(), second)
+    );
+
+    // The kernel group keeps its previous value — NEVER zero over a good number.
+    assert.fieldEquals("DayMarketState", MARKET_ID, "totalCollateralAssets", "4400");
+    // And the accountant group still advances: the two fall back INDEPENDENTLY, because
+    // a kernel failure says nothing about the accountant.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "lastPremiumPaymentTimestamp",
+      "1700000050"
+    );
+  });
+
   test("un-freezes the ten preview fields, from the payload alone", () => {
     // Before this handler existed, all ten were written once by the factory and
     // never again — and since a fresh market has no supply and no NAV, they sat at
@@ -699,6 +901,54 @@ describe("the kernel sync handlers", () => {
       blockId,
       "collateralNAV",
       "4242"
+    );
+  });
+
+  test("the Operation enum maps 0..5, and anything beyond is 'unknown'", () => {
+    // THE ENUM HAS ALREADY CHANGED ONCE. An earlier contract revision had EIGHT members,
+    // with distinct LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION; those were folded into the plain
+    // LPT ones and it now has SIX. The ABI carries the enum's TYPE but none of its member
+    // names, so nothing about the ABI, the build or codegen can tell you this list has
+    // gone stale — only Types.sol can. This test is the tripwire: it pins every member
+    // AND the boundary, so a future member added on chain but not here shows up as a
+    // failing "unknown" rather than being silently mislabelled as its neighbour.
+    const names = [
+      "stDeposit",
+      "stRedeem",
+      "jtDeposit",
+      "jtRedeem",
+      "lptDeposit",
+      "lptRedeem",
+    ];
+    for (let op = 0; op < names.length; op++) {
+      clearStore();
+      deployMarket();
+      const c = kernelCtx();
+      c.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(op));
+      handlePostOpTrancheAccountingSynced(
+        createPostOpSyncEvent(op, new TrancheState(), c)
+      );
+      assert.fieldEquals(
+        "DayTrancheAccountingSyncedHistory",
+        generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), c.blockNumber),
+        "operation",
+        names[op]
+      );
+    }
+
+    // 6 is one past the end of the current enum. If the contracts ever add a seventh
+    // member, THIS is the assertion that fails and sends you back to Types.sol.
+    clearStore();
+    deployMarket();
+    const beyond = kernelCtx();
+    handlePostOpTrancheAccountingSynced(
+      createPostOpSyncEvent(6, new TrancheState(), beyond)
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
+      "operation",
+      "unknown"
     );
   });
 

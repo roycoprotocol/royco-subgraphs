@@ -207,7 +207,7 @@ export function handleMarketDeploymentCompleted(
   // would add two eth_calls to the hottest path in the subgraph; doing it once leaves
   // that path a single getPoolTokenRates. Every call inside is try_ — a market with no
   // Balancer venue yields the zero-address binding rather than a dead handler.
-  const quotePool = resolveQuotePoolBinding(lptAsset, market.seniorTrancheAddress);
+  const quotePool = resolveQuotePoolBinding(lptAsset, quoteAsset);
   market.balancerVaultAddress = quotePool.vaultAddress;
   market.quoteAssetPoolIndex = quotePool.quoteAssetPoolIndex;
 

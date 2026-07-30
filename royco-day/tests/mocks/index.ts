@@ -464,7 +464,17 @@ export function mockDayMarket(m: DayMarketFixture): void {
 
   mockTrancheToken(m.seniorTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
   mockTrancheToken(m.juniorTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
-  mockTrancheToken(m.liquidityTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
+  // The LIQUIDITY tranche's asset is the BPT, NOT the collateral. The kernel
+  // constructor requires liquidityProviderTranche.asset() == LPT_ASSET, so a fixture
+  // that reported the collateral here would describe a market that cannot exist — and
+  // would let a handler reading liquidity.assetTokenAddress as the pool pass its tests
+  // while being wrong on chain.
+  mockTrancheToken(
+    m.liquidityTranche,
+    m.lptAsset,
+    m.trancheDecimals,
+    m.sharesTotalSupply
+  );
 
   mockTrancheType(m.seniorTranche, TRANCHE_SENIOR);
   mockTrancheType(m.juniorTranche, TRANCHE_JUNIOR);
@@ -495,6 +505,9 @@ export function mockDayMarket(m: DayMarketFixture): void {
   );
 
   mockAssetToken(m.asset, m.assetDecimals);
+  // The BPT is an ERC20 too — createVault reads decimals off the liquidity tranche's
+  // asset, which is now (correctly) this one.
+  mockAssetToken(m.lptAsset, m.assetDecimals);
   // The quote asset's own decimals. It has no tranche, so nothing else mocks it, and
   // handleMarketDeploymentCompleted reads it straight off the ERC20.
   mockAssetToken(m.quoteAsset, m.quoteAssetDecimals);
