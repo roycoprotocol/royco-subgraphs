@@ -1,13 +1,13 @@
 {
-  "_comment": "Replace placeholders after deployment.",
+  "_comment": "Ethereum mainnet test deployment.",
   "network": "mainnet",
   "chainId": 1,
   "entryPoints": [
     {
       "id": "",
       "version": 2,
-      "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 0
+      "address": "0x33405D7E7e2A1AE3676893751D958A5C3A288f3f",
+      "startBlock": 25647237
     }
   ]
 }
