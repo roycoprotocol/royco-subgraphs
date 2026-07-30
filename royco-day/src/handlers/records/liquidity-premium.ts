@@ -5,12 +5,12 @@ import {
   DayVaultState,
 } from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
-import { generateMarketBlockRecordId, generateVaultId } from "../../utils";
+import { generateMarketRecordId, generateVaultId } from "../../utils";
 import { touchMarket } from "../base/resolve-market";
 
 /**
- * Record one liquidity-premium mint into this block's
- * DayLiquidityPremiumSharesMintedHistory row.
+ * Record one liquidity-premium mint as its own DayLiquidityPremiumSharesMintedHistory
+ * row, advancing the market's countLiquidityPremiumSharesMintedEntries cursor.
  *
  * THE LIQUIDITY PREMIUM IS NOT A FEE. A fee is taken from a holder; this is minted
  * into the market's own accounting (the kernel custodies the shares for the
@@ -48,35 +48,32 @@ export function recordLiquidityPremiumSharesMinted(
   const market = DayMarketState.load(vault.marketRefId);
   if (!market) return;
 
-  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
-  const id = generateMarketBlockRecordId(vault.marketId, event.block.number);
-  let record = DayLiquidityPremiumSharesMintedHistory.load(id);
+  // ONE ROW PER EVENT — this stream does NOT collapse. Several mints can share a block
+  // and each is its own economic act, so each gets its own immutable row. Use-then-
+  // increment: the count IS the next entryIndex (see "ENTRY INDEX CURSOR").
+  const entryIndex = market.countLiquidityPremiumSharesMintedEntries;
 
-  if (!record) {
-    record = new DayLiquidityPremiumSharesMintedHistory(id);
-    record.blockNumber = event.block.number;
-    record.chainId = CHAIN_ID;
-    record.marketId = vault.marketId;
-    record.marketRefId = vault.marketRefId;
-    record.vaultAddress = vaultAddress; // the senior tranche
-    record.vaultId = vault.id;
-    // A DELTA — starts at zero and accumulates across this block's mints (see below).
-    record.shares = BigInt.zero();
-    record.createdAtTransactionHash = event.transaction.hash.toHexString();
-    record.createdAtBlockNumber = event.block.number;
-    record.createdAtBlockTimestamp = event.block.timestamp;
-  }
-
+  const record = new DayLiquidityPremiumSharesMintedHistory(
+    generateMarketRecordId(vault.marketId, entryIndex)
+  );
+  record.entryIndex = entryIndex;
+  record.chainId = CHAIN_ID;
+  record.marketId = vault.marketId;
+  record.marketRefId = vault.marketRefId;
+  record.vaultAddress = vaultAddress; // the senior tranche
+  record.vaultId = vault.id;
   record.accountAddress = holder.toHexString(); // invariantly the kernel (== marketId)
-  // `shares` is a DELTA, so it ACCUMULATES within the block: two premium mints in one
-  // block must still sum to the block's total. `sharesTotalSupply` is a SNAPSHOT of the
-  // senior supply after the mint, so the last one wins.
-  record.shares = record.shares.plus(mintedShares); // <- ABI: mintedLiquidityPremiumShares
+  // Both are the EVENT's own values, never a running sum — one row, one mint.
+  record.shares = mintedShares; // <- ABI: mintedLiquidityPremiumShares
   record.sharesTotalSupply = totalTrancheShares; // <- ABI: totalTrancheShares (senior total supply POST-mint)
-  record.updatedAtTransactionHash = event.transaction.hash.toHexString();
-  record.updatedAtBlockNumber = event.block.number;
-  record.updatedAtBlockTimestamp = event.block.timestamp;
+  record.createdAtTransactionHash = event.transaction.hash.toHexString();
+  record.createdAtBlockNumber = event.block.number;
+  record.createdAtBlockTimestamp = event.block.timestamp;
   record.save();
 
+  market.countLiquidityPremiumSharesMintedEntries = entryIndex.plus(
+    BigInt.fromI32(1)
+  );
+  // Persists the cursor bump as well as updatedAt*.
   touchMarket(event, market);
 }

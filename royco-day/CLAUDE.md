@@ -367,7 +367,8 @@ Every id has a generator in `src/utils/global.ts`. **Never inline an id.**
 | `DayFeeState` | `<CHAIN>_<MARKET>_<ACCOUNT>_<MAJOR>_<MINOR>` | ❌ |
 | `DayFeeStateHistorical` | `<CHAIN>_<MARKET>_<ACCOUNT>_<MAJOR>_<MINOR>_<BLOCK>` | ❌ |
 | `DayFixedTermHistory` | `<CHAIN>_<KERNEL>_<ENTRY_IDX>` | ❌ |
-| every other `*History` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
+| the 3 `DayLiquidityPremium*History` | `<CHAIN>_<KERNEL>_<ENTRY_IDX>` | ✅ |
+| `DayYieldSharesAccruedHistory`, `DayTrancheAccountingSyncedHistory` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
 
 **The failure mode that matters:** an `@entity(immutable: true)` is **write-once**.
 A second `.save()` on the same id is a fatal `entity already exists` **at index
@@ -382,9 +383,9 @@ nothing**; that's why the test harness exists.
 - `DayMarketNav.id` is byte-identical to `DayMarketState.id` — one live NAV row per
   market, hanging off the same key. It still gets its own generator
   (`generateMarketNavId`), so a call site names the table it addresses.
-- **Block keying**: every `*Historical` and `*History` stream except
-  `DayFixedTermHistory` collapses to **one row per (subject, block)** — the id ends in
-  the block number and the later write in a block **updates** the earlier one. §8's
+- **Block keying**: the `*Historical` **snapshot** tables plus
+  `DayYieldSharesAccruedHistory` collapse to **one row per (subject, block)** — the id
+  ends in the block number and the later write in a block **updates** the earlier one. §8's
   "never derive an id from a block number" is inverted here deliberately: the collision
   IS the dedupe. Three consequences, none visible at build time:
     - **These entities MUST be `immutable: false`.** An immutable one dies on the
@@ -401,13 +402,19 @@ nothing**; that's why the test harness exists.
       per-event deltas and get `.plus()`-ed on each write in the block, so
       `SUM(delta)` still equals the lifetime total. A state, a cumulative total, or a
       price is a snapshot and is simply overwritten.
-- **The one cursor left** is `DayMarketState.countFixedTermEntries`, driving
-  `DayFixedTermHistory` — a term **opens in one block and closes in a later one**, so
-  the close-out patches a row opened earlier and block keying would orphan it. That
-  cursor is a COUNT, not a last-index: read, use, **then** increment. Never derive an
-  entry index from a block number or timestamp (royco-rwa's `PositionStateHistorical`
-  uses `_<BLOCK_TIMESTAMP>` and has exactly that bug — don't copy it). See
-  "BLOCK-KEYED HISTORY" and "ENTRY INDEX CURSOR" in `schema.graphql`.
+- **The four RECORD streams do not collapse** — they keep every event as its own row,
+  keyed `<CHAIN>_<KERNEL>_<ENTRY_IDX>` off a `DayMarketState.count*Entries` cursor:
+  `DayFixedTermHistory` (mutable — a term opens in one block and closes in a later one,
+  so the close patches a row opened earlier) and the three liquidity-premium streams
+  (immutable — a block can hold several premium mints, or a failed reinvestment and a
+  retry, and each is a distinct act with its own amounts and `revertData`). Each cursor
+  is a COUNT, not a last-index: read, use, **then** increment. Never derive an entry
+  index from a block number or timestamp (royco-rwa's `PositionStateHistorical` uses
+  `_<BLOCK_TIMESTAMP>` and has exactly that bug — don't copy it).
+- **The distinction is SNAPSHOT vs RECORD.** A snapshot is a view of state a block may
+  legitimately overwrite; a record is an event that must never be merged with another.
+  `scripts/checks/schema.test.mjs` enforces both sides. See "BLOCK-KEYED HISTORY" and
+  "ENTRY INDEX CURSOR" in `schema.graphql`.
 
 **`createdAt*` / `updatedAt*`:** set `createdAt*` **exactly once**, inside the
 `if (!entity)` branch — never touch it again. Re-stamping it on update is the

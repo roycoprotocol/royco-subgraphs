@@ -39,7 +39,11 @@ import {
   ADDR_KERNEL,
   ADDR_TEMPLATE,
 } from "../helpers/constants";
-import { generateMarketId, generateMarketBlockRecordId } from "../../src/utils";
+import {
+  generateMarketId,
+  generateMarketBlockRecordId,
+  generateMarketRecordId,
+} from "../../src/utils";
 
 // =============================================================================
 // The four remaining record streams:
@@ -54,13 +58,18 @@ import { generateMarketId, generateMarketBlockRecordId } from "../../src/utils";
 
 const KERNEL = ADDR_KERNEL.toHexString();
 const MARKET_ID = generateMarketId(KERNEL);
-// These streams are BLOCK-KEYED now: one row per (market, block). ENTRY0 is the row
-// for the fixture's default block; ENTRY1 is the NEXT block's row.
+// TWO keying schemes live in this file, deliberately.
+//   ENTRY*  — DayYieldSharesAccruedHistory is BLOCK-KEYED: one row per (market, block).
+//             ENTRY0 is the fixture block's row, ENTRY1 the NEXT block's.
+//   RECORD* — the two reinvest streams keep EVERY event, keyed by entryIndex, so a
+//             second event in the SAME block still gets RECORD1.
 const ENTRY0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
 const ENTRY1 = generateMarketBlockRecordId(
   KERNEL,
   BLOCK_NUMBER.plus(BigInt.fromI32(1))
 );
+const RECORD0 = generateMarketRecordId(KERNEL, BigInt.zero());
+const RECORD1 = generateMarketRecordId(KERNEL, BigInt.fromI32(1));
 
 function deployMarket(): void {
   mockDayMarket(DayMarketFixture.standard());
@@ -234,7 +243,7 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
     clearStore();
   });
 
-  test("reinvested records realised shares/assets into its block's row", () => {
+  test("reinvested records realised shares/assets at entry 0 + bumps its cursor", () => {
     deployMarket();
 
     handleLiquidityPremiumReinvested(
@@ -248,12 +257,12 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
     );
 
     assert.entityCount("DayLiquidityPremiumReinvestedHistory", 1);
-    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", ENTRY0, "shares", "55");
-    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", ENTRY0, "assets", "66");
-    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", ENTRY0, "marketId", KERNEL);
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD0, "shares", "55");
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD0, "assets", "66");
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD0, "marketId", KERNEL);
   });
 
-  test("failed records the attempt/bound/revertData into its block's row", () => {
+  test("failed records the attempt/bound/revertData at entry 0 + bumps its cursor", () => {
     deployMarket();
 
     handleLiquidityPremiumReinvestmentFailed(
@@ -269,11 +278,11 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
     );
 
     assert.entityCount("DayLiquidityPremiumReinvestmentFailedHistory", 1);
-    assert.fieldEquals("DayLiquidityPremiumReinvestmentFailedHistory", ENTRY0, "shares", "77");
-    assert.fieldEquals("DayLiquidityPremiumReinvestmentFailedHistory", ENTRY0, "assets", "88");
+    assert.fieldEquals("DayLiquidityPremiumReinvestmentFailedHistory", RECORD0, "shares", "77");
+    assert.fieldEquals("DayLiquidityPremiumReinvestmentFailedHistory", RECORD0, "assets", "88");
     assert.fieldEquals(
       "DayLiquidityPremiumReinvestmentFailedHistory",
-      ENTRY0,
+      RECORD0,
       "revertData",
       "0xdeadbeef"
     );
@@ -308,5 +317,110 @@ describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
 
     assert.entityCount("DayLiquidityPremiumReinvestedHistory", 1);
     assert.entityCount("DayLiquidityPremiumReinvestmentFailedHistory", 1);
+    // Separate cursors: one event each, so BOTH sit at 1 rather than one reaching 2.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countLiquidityPremiumReinvestedEntries",
+      "1"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countLiquidityPremiumReinvestmentFailedEntries",
+      "1"
+    );
+  });
+
+  test("two FAILURES in ONE block get two rows, each keeping its own revertData", () => {
+    // The strongest case for not collapsing this stream. A block can hold a failed
+    // attempt and a later retry; collapsed, the row would keep only the last reason and
+    // the first failure would vanish — exactly the data you need to debug a stuck
+    // reinvestment. Both events share a block and differ only in logIndex.
+    deployMarket();
+
+    handleLiquidityPremiumReinvestmentFailed(
+      createTwoUintBytesEvent<LiquidityPremiumReinvestmentFailed>(
+        "stSharesToReinvest",
+        BigInt.fromI32(11),
+        "minLTAssetsOut",
+        BigInt.fromI32(12),
+        "revertData",
+        Bytes.fromHexString("0xaaaa"),
+        kernelCtx()
+      )
+    );
+
+    const c2 = kernelCtx();
+    c2.logIndex = ctx().logIndex.plus(BigInt.fromI32(5));
+    handleLiquidityPremiumReinvestmentFailed(
+      createTwoUintBytesEvent<LiquidityPremiumReinvestmentFailed>(
+        "stSharesToReinvest",
+        BigInt.fromI32(33),
+        "minLTAssetsOut",
+        BigInt.fromI32(34),
+        "revertData",
+        Bytes.fromHexString("0xbbbb"),
+        c2
+      )
+    );
+
+    assert.entityCount("DayLiquidityPremiumReinvestmentFailedHistory", 2);
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countLiquidityPremiumReinvestmentFailedEntries",
+      "2"
+    );
+    // Both reasons survive. Under collapsing, 0xaaaa would be gone.
+    assert.fieldEquals(
+      "DayLiquidityPremiumReinvestmentFailedHistory",
+      RECORD0,
+      "revertData",
+      "0xaaaa"
+    );
+    assert.fieldEquals("DayLiquidityPremiumReinvestmentFailedHistory", RECORD0, "shares", "11");
+    assert.fieldEquals(
+      "DayLiquidityPremiumReinvestmentFailedHistory",
+      RECORD1,
+      "revertData",
+      "0xbbbb"
+    );
+    assert.fieldEquals("DayLiquidityPremiumReinvestmentFailedHistory", RECORD1, "shares", "33");
+  });
+
+  test("two REINVESTS in ONE block get two rows — amounts are never fused", () => {
+    // Same-block, entryIndex-separated. Merged, `shares` would read 130 and the two
+    // distinct reinvestments would be indistinguishable from one large one.
+    deployMarket();
+
+    handleLiquidityPremiumReinvested(
+      createTwoUintEvent<LiquidityPremiumReinvested>(
+        "stSharesReinvested",
+        BigInt.fromI32(50),
+        "ltAssetsMinted",
+        BigInt.fromI32(60),
+        kernelCtx()
+      )
+    );
+
+    const c2 = kernelCtx();
+    c2.logIndex = ctx().logIndex.plus(BigInt.fromI32(7));
+    handleLiquidityPremiumReinvested(
+      createTwoUintEvent<LiquidityPremiumReinvested>(
+        "stSharesReinvested",
+        BigInt.fromI32(80),
+        "ltAssetsMinted",
+        BigInt.fromI32(90),
+        c2
+      )
+    );
+
+    assert.entityCount("DayLiquidityPremiumReinvestedHistory", 2);
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countLiquidityPremiumReinvestedEntries", "2");
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD0, "shares", "50");
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD0, "assets", "60");
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD1, "shares", "80");
+    assert.fieldEquals("DayLiquidityPremiumReinvestedHistory", RECORD1, "assets", "90");
   });
 });

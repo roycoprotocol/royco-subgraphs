@@ -109,34 +109,28 @@ export function handleLiquidityPremiumReinvested(
   );
   if (!market) return;
 
-  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
-  const id = generateMarketBlockRecordId(market.marketId, event.block.number);
-  let entry = DayLiquidityPremiumReinvestedHistory.load(id);
+  // ONE ROW PER EVENT — this stream does NOT collapse. Use-then-increment: the count
+  // IS the next entryIndex (see "ENTRY INDEX CURSOR" in schema.graphql).
+  const entryIndex = market.countLiquidityPremiumReinvestedEntries;
 
-  if (!entry) {
-    entry = new DayLiquidityPremiumReinvestedHistory(id);
-    entry.blockNumber = event.block.number;
-    entry.chainId = CHAIN_ID;
-    entry.marketId = market.marketId;
-    entry.marketRefId = market.id;
-    // Both are DELTAS — seeded to zero so they can accumulate across the block.
-    entry.shares = BigInt.zero();
-    entry.assets = BigInt.zero();
-    entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-    entry.createdAtBlockNumber = event.block.number;
-    entry.createdAtBlockTimestamp = event.block.timestamp;
-  }
-
-  // REALISED amounts, and DELTAS — they accumulate within the block so the column still
-  // totals what was actually reinvested. Never sum these with the Failed stream's
+  const entry = new DayLiquidityPremiumReinvestedHistory(
+    generateMarketRecordId(market.marketId, entryIndex)
+  );
+  entry.entryIndex = entryIndex;
+  entry.chainId = CHAIN_ID;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  // REALISED amounts, this event's own. Never sum these with the Failed stream's
   // identically-named columns (see the schema note).
-  entry.shares = entry.shares.plus(event.params.stSharesReinvested); // <- ABI: stSharesReinvested
-  entry.assets = entry.assets.plus(event.params.lptAssetsMinted); // <- ABI: lptAssetsMinted
-  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
-  entry.updatedAtBlockNumber = event.block.number;
-  entry.updatedAtBlockTimestamp = event.block.timestamp;
+  entry.shares = event.params.stSharesReinvested; // <- ABI: stSharesReinvested
+  entry.assets = event.params.lptAssetsMinted; // <- ABI: lptAssetsMinted
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
+  market.countLiquidityPremiumReinvestedEntries = entryIndex.plus(BigInt.fromI32(1));
+  // Persists the cursor bump as well as updatedAt*.
   touchMarket(event, market);
 }
 
@@ -195,34 +189,31 @@ export function handleLiquidityPremiumReinvestmentFailed(
   );
   if (!market) return;
 
-  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
-  const id = generateMarketBlockRecordId(market.marketId, event.block.number);
-  let entry = DayLiquidityPremiumReinvestmentFailedHistory.load(id);
+  // ONE ROW PER EVENT — this stream does NOT collapse, and here that matters most: a
+  // block can hold a failed attempt AND a later successful retry, and each failure
+  // carries its own revertData. Collapsing would keep only the last reason.
+  const entryIndex = market.countLiquidityPremiumReinvestmentFailedEntries;
 
-  if (!entry) {
-    entry = new DayLiquidityPremiumReinvestmentFailedHistory(id);
-    entry.blockNumber = event.block.number;
-    entry.chainId = CHAIN_ID;
-    entry.marketId = market.marketId;
-    entry.marketRefId = market.id;
-    entry.shares = BigInt.zero();
-    entry.assets = BigInt.zero();
-    entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-    entry.createdAtBlockNumber = event.block.number;
-    entry.createdAtBlockTimestamp = event.block.timestamp;
-  }
-
-  // An ATTEMPT and a BOUND, not realised amounts — but still per-event quantities, so
-  // they accumulate across the block like every other delta column.
-  entry.shares = entry.shares.plus(event.params.stSharesToReinvest); // <- ABI: stSharesToReinvest
-  entry.assets = entry.assets.plus(event.params.minLPTAssetsOut); // <- ABI: minLPTAssetsOut
-  // revertData is NOT a delta: the row keeps the LAST failure's reason for the block.
+  const entry = new DayLiquidityPremiumReinvestmentFailedHistory(
+    generateMarketRecordId(market.marketId, entryIndex)
+  );
+  entry.entryIndex = entryIndex;
+  entry.chainId = CHAIN_ID;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  // An ATTEMPT and a BOUND, not realised amounts — this event's own values.
+  entry.shares = event.params.stSharesToReinvest; // <- ABI: stSharesToReinvest
+  entry.assets = event.params.minLPTAssetsOut; // <- ABI: minLPTAssetsOut
   entry.revertData = event.params.revertData.toHexString(); // <- ABI: revertData (bytes -> hex, §4)
-  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
-  entry.updatedAtBlockNumber = event.block.number;
-  entry.updatedAtBlockTimestamp = event.block.timestamp;
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
+  market.countLiquidityPremiumReinvestmentFailedEntries = entryIndex.plus(
+    BigInt.fromI32(1)
+  );
+  // Persists the cursor bump as well as updatedAt*.
   touchMarket(event, market);
 }
 

@@ -216,11 +216,16 @@ export function handleMarketDeploymentCompleted(
     // coverage floor is the most dangerous possible wrong answer for that field.
   }
 
-  // === the one record cursor ===
-  // A COUNT, not a last-index: the stream is born empty. It survives for
-  // DayFixedTermHistory alone — every other stream is keyed and ordered by block
-  // number and carries no cursor. See "ENTRY INDEX CURSOR" in schema.graphql.
+  // === record cursors ===
+  // COUNTS, not last-indices: every one of these streams is born empty. They exist for
+  // the four streams that keep EVERY event as its own row — the fixed-term lifecycle
+  // and the three liquidity-premium streams. The *Historical snapshot tables are keyed
+  // and ordered by block number and carry no cursor at all. See "ENTRY INDEX CURSOR"
+  // in schema.graphql.
   market.countFixedTermEntries = BigInt.zero();
+  market.countLiquidityPremiumSharesMintedEntries = BigInt.zero();
+  market.countLiquidityPremiumReinvestedEntries = BigInt.zero();
+  market.countLiquidityPremiumReinvestmentFailedEntries = BigInt.zero();
 
   // A lifetime accumulator, not a cursor: every coverage-loss erase adds to it.
   // Zero is the only truthful seed — nothing has been erased yet, and unlike every

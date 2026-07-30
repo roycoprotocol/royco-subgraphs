@@ -71,16 +71,20 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  // 4, not 13. EVERY *History/*Historical entity became MUTABLE in v2 so it can
-  // collapse to one row per block — a later write in the block updates the earlier
-  // rather than appending. They are therefore all correctly outside this check, whose
-  // premise is that an immutable id must never be written twice; their block-keyed ids
-  // are deliberately exactly the collision it exists to prevent. See "BLOCK-KEYED
-  // HISTORY" in schema.graphql.
+  // 7. Two groups, and the split is SNAPSHOT vs RECORD:
   //
-  // What is LEFT immutable is the per-log activity/transfer rows, whose ids carry a
-  // <LOG_INDEX> and genuinely can never repeat.
-  assert.equal(blocks.length, 4, "expected 4 immutable entities");
+  //   - The four per-log activity/transfer rows, whose ids carry a <LOG_INDEX> and
+  //     genuinely can never repeat.
+  //   - The three liquidity-premium record streams, whose ids carry an <ENTRY_INDEX>
+  //     from a use-then-increment cursor, so every event gets a fresh id.
+  //
+  // The *Historical SNAPSHOT tables are deliberately NOT here: they collapse to one row
+  // per block, so a later write in the block updates the earlier rather than appending,
+  // and their block-keyed ids are exactly the collision this check exists to prevent.
+  // See "BLOCK-KEYED HISTORY" in schema.graphql. DayFixedTermHistory is entryIndex-keyed
+  // but also correctly absent — it is mutable because the term close patches a row
+  // opened in an earlier block.
+  assert.equal(blocks.length, 7, "expected 7 immutable entities");
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {
@@ -116,9 +120,6 @@ test("block-keyed streams order by blockNumber and carry NO entryIndex cursor", 
     "DayFeeStateHistorical",
     "DayYieldSharesAccruedHistory",
     "DayTrancheAccountingSyncedHistory",
-    "DayLiquidityPremiumSharesMintedHistory",
-    "DayLiquidityPremiumReinvestedHistory",
-    "DayLiquidityPremiumReinvestmentFailedHistory",
   ];
 
   for (const historical of BLOCK_KEYED) {
@@ -154,20 +155,39 @@ test("block-keyed streams order by blockNumber and carry NO entryIndex cursor", 
     );
   }
 
-  // THE ONE EXCEPTION, asserted positively so it cannot be swept away by a future
-  // "clean up the last cursor" pass. A fixed term OPENS in one block and CLOSES in a
-  // later one, so the close-out patches a row opened earlier — block keying would send
-  // it to a different id and orphan it.
-  assert.match(
-    typeBlock("DayFixedTermHistory"),
-    /^\s*entryIndex:\s*BigInt!/m,
-    "DayFixedTermHistory must KEEP entryIndex — it spans blocks and cannot be block-keyed",
-  );
-  assert.match(
-    typeBlock("DayMarketState"),
-    /^\s*countFixedTermEntries:\s*BigInt!/m,
-    "DayMarketState must KEEP countFixedTermEntries — the cursor driving DayFixedTermHistory",
-  );
+  // THE EXCEPTIONS, asserted positively so they cannot be swept away by a future
+  // "clean up the cursors" pass. These four keep EVERY event as its own row:
+  // DayFixedTermHistory because a term spans blocks and the close patches a row opened
+  // earlier; the three premium streams because each event is a distinct economic act
+  // and a block can hold several.
+  const ENTRY_KEYED = [
+    ["DayFixedTermHistory", "countFixedTermEntries"],
+    ["DayLiquidityPremiumSharesMintedHistory", "countLiquidityPremiumSharesMintedEntries"],
+    ["DayLiquidityPremiumReinvestedHistory", "countLiquidityPremiumReinvestedEntries"],
+    [
+      "DayLiquidityPremiumReinvestmentFailedHistory",
+      "countLiquidityPremiumReinvestmentFailedEntries",
+    ],
+  ];
+  const marketBody = typeBlock("DayMarketState");
+  for (const [entity, cursor] of ENTRY_KEYED) {
+    assert.match(
+      typeBlock(entity),
+      /^\s*entryIndex:\s*BigInt!/m,
+      `${entity} keeps every event as its own row and must declare entryIndex`,
+    );
+    assert.match(
+      marketBody,
+      new RegExp(`^\\s*${cursor}:\\s*BigInt!`, "m"),
+      `DayMarketState must declare ${cursor} — the cursor driving ${entity}`,
+    );
+    // A per-write id needs a per-write discriminator, so it must NOT be block-keyed.
+    assert.doesNotMatch(
+      typeBlock(entity),
+      /^\s*blockNumber:\s*BigInt!/m,
+      `${entity} is entryIndex-keyed; a blockNumber column here implies collapsing`,
+    );
+  }
 });
 
 test("global entities stay byte-identical to royco-rwa's — frozen shared-table contract", () => {
