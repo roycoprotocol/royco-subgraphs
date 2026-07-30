@@ -39,11 +39,7 @@ import {
   ADDR_KERNEL,
   ADDR_TEMPLATE,
 } from "../helpers/constants";
-import {
-  generateMarketId,
-  generateMarketBlockRecordId,
-  generateMarketRecordId,
-} from "../../src/utils";
+import { generateMarketId, generateMarketRecordId } from "../../src/utils";
 
 // =============================================================================
 // The four remaining record streams:
@@ -58,16 +54,9 @@ import {
 
 const KERNEL = ADDR_KERNEL.toHexString();
 const MARKET_ID = generateMarketId(KERNEL);
-// TWO keying schemes live in this file, deliberately.
-//   ENTRY*  — DayYieldSharesAccruedHistory is BLOCK-KEYED: one row per (market, block).
-//             ENTRY0 is the fixture block's row, ENTRY1 the NEXT block's.
-//   RECORD* — the two reinvest streams keep EVERY event, keyed by entryIndex, so a
-//             second event in the SAME block still gets RECORD1.
-const ENTRY0 = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
-const ENTRY1 = generateMarketBlockRecordId(
-  KERNEL,
-  BLOCK_NUMBER.plus(BigInt.fromI32(1))
-);
+// ONE keying scheme now: all three streams in this file keep EVERY event as its own
+// immutable row, keyed by entryIndex off a DayMarketState.count*Entries cursor. A second
+// event in the SAME block still gets RECORD1 — nothing here collapses.
 const RECORD0 = generateMarketRecordId(KERNEL, BigInt.zero());
 const RECORD1 = generateMarketRecordId(KERNEL, BigInt.fromI32(1));
 
@@ -124,30 +113,30 @@ describe("handleYieldSharesAccrued", () => {
     );
 
     assert.entityCount("DayYieldSharesAccruedHistory", 1);
-    assert.fieldEquals("DayYieldSharesAccruedHistory", ENTRY0, "marketId", KERNEL);
+    assert.fieldEquals("DayYieldSharesAccruedHistory", RECORD0, "marketId", KERNEL);
     // All four values land on their OWN column — distinct sentinels are the only thing
     // separating four same-typed BigInts in one row.
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY0,
+      RECORD0,
       "juniorTrancheYieldShareWAD",
       "11"
     );
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY0,
+      RECORD0,
       "juniorTrancheTimeWeightedYieldShareAccruedWAD",
       "2200"
     );
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY0,
+      RECORD0,
       "liquidityTrancheYieldShareWAD",
       "33"
     );
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY0,
+      RECORD0,
       "liquidityTrancheTimeWeightedYieldShareAccruedWAD",
       "4400"
     );
@@ -167,7 +156,7 @@ describe("handleYieldSharesAccrued", () => {
     );
   });
 
-  test("a second tick in a NEW BLOCK gets its own row; the first block's row stays frozen", () => {
+  test("a second tick gets its OWN row; the first is immutable and stays frozen", () => {
     deployMarket();
 
     handleYieldSharesAccrued(
@@ -219,19 +208,19 @@ describe("handleYieldSharesAccrued", () => {
     // Entry 1 holds the second tick; entry 0 is untouched (immutable).
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY1,
+      RECORD1,
       "juniorTrancheYieldShareWAD",
       "7"
     );
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY0,
+      RECORD0,
       "juniorTrancheYieldShareWAD",
       "11"
     );
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      ENTRY0,
+      RECORD0,
       "liquidityTrancheYieldShareWAD",
       "33"
     );

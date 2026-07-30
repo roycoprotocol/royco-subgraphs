@@ -14,7 +14,7 @@ import {
   createMarketDeploymentCompletedEvent,
 } from "../builders/factory";
 import { createPostOpSyncEvent } from "../builders/kernel";
-import { TrancheState } from "../builders/shared";
+import { Claims, TrancheState } from "../builders/shared";
 import {
   DayMarketFixture,
   mockDayMarket,
@@ -24,6 +24,7 @@ import {
   mockConvertToAssetsReverts,
   mockBalancerPool,
   mockBalancerPoolAbsent,
+  mockValueToAssetsReverts,
   mockQuoteAssetReverts,
 } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
@@ -135,20 +136,47 @@ function assertSharePriceQuadruple(
 }
 
 /** Assert one tranche's whole share-price quadruple is all zeros. */
-function assertSharePriceAllZero(
+/**
+ * An EMPTY tranche: the three asset legs are zero, but the NAV leg is ONE WHOLE NAV UNIT.
+ *
+ * Not zero — a tranche opens at $1 per whole share. ValuationLogic._computeTrancheShareRate
+ * is _convertToValue(WAD, supply, nav), which at zero supply is
+ * (0 + VIRTUAL_VALUE) * WAD / (0 + VIRTUAL_SHARES) == 1e18, and that is the ratio the
+ * first depositor mints at. convertToAssets returns the ZERO struct here instead, because
+ * AssetLedgerLogic._scaleAssetClaims short-circuits at `_totalTrancheShares == 0` before
+ * the virtual-share arithmetic — it answers "claim on real assets", not "price".
+ */
+function assertSharePriceBootstrap(
   entity: string,
   id: string,
   tranchePrefix: string
 ): void {
-  assert.fieldEquals(entity, id, tranchePrefix.concat("SharePriceCollateralAssets"), "0");
+  const isLiquidity = tranchePrefix == "liquidityTranche";
+  // The tranche's OWN asset leg carries the same $1, denominated in that asset — the
+  // kernel's inverse converter. The other tranche's leg stays 0, exactly as the branch in
+  // TrancheClaimsLogic leaves it. 7701 / 7702 are distinct in the fixture, so a
+  // mis-routed converter reads as the wrong number rather than passing by luck.
+  assert.fieldEquals(
+    entity,
+    id,
+    tranchePrefix.concat("SharePriceCollateralAssets"),
+    isLiquidity ? "0" : "7701"
+  );
   assert.fieldEquals(
     entity,
     id,
     tranchePrefix.concat("SharePriceLiquidityTrancheAssets"),
-    "0"
+    isLiquidity ? "7702" : "0"
   );
+  // INVARIANTLY 0 on every tranche — see the "ASSET CLAIMS" block.
   assert.fieldEquals(entity, id, tranchePrefix.concat("SharePriceSeniorTrancheShares"), "0");
-  assert.fieldEquals(entity, id, tranchePrefix.concat("SharePriceNAV"), "0");
+  // 1e18 == one whole share's worth of NAV == $1.
+  assert.fieldEquals(
+    entity,
+    id,
+    tranchePrefix.concat("SharePriceNAV"),
+    "1000000000000000000"
+  );
 }
 
 function deployMarket(): void {
@@ -191,7 +219,7 @@ describe("DayMarketNav at market creation", () => {
     clearStore();
   });
 
-  test("creation seeds the first row — asset prices read, share prices provably zero", () => {
+  test("creation seeds the first row — asset prices read, share prices at the $1 bootstrap", () => {
     deployMarket();
 
     assert.entityCount("DayMarketNav", 1);
@@ -202,13 +230,14 @@ describe("DayMarketNav at market creation", () => {
     // If this ever reads "1" the isNew branch in writeMarketNav has inverted and
     // entry 0 does not exist.
 
-    // Zero supply => _scaleAssetClaims returns the zero struct for ANY input,
-    // including one whole share. So all FIFTEEN legs are 0 by the contract's own
-    // arithmetic, not because the handler failed to read them — which is why creation
-    // spends no eth_call on them at all.
-    assertSharePriceAllZero("DayMarketNav", NAV_ID, "seniorTranche");
-    assertSharePriceAllZero("DayMarketNav", NAV_ID, "juniorTranche");
-    assertSharePriceAllZero("DayMarketNav", NAV_ID, "liquidityTranche");
+    // Zero supply, so every tranche is at its BOOTSTRAP price: the three asset legs are
+    // genuinely 0 (no collateral, no LPT assets, no ST shares held yet) while the NAV leg
+    // is one whole NAV unit — $1 per whole share, which is the rate the first depositor
+    // mints at. Creation spends no eth_call on any of this: supply is provably zero at
+    // deployment, so the answer is known rather than looked up.
+    assertSharePriceBootstrap("DayMarketNav", NAV_ID, "seniorTranche");
+    assertSharePriceBootstrap("DayMarketNav", NAV_ID, "juniorTranche");
+    assertSharePriceBootstrap("DayMarketNav", NAV_ID, "liquidityTranche");
   });
 
   test("all 18 prices route to their OWN tranche and OWN claim leg", () => {
@@ -262,8 +291,8 @@ describe("DayMarketNav at market creation", () => {
       "liquidityTrancheAssetPriceNAV",
       CREATE_LT_ASSET
     );
-    assertSharePriceAllZero("DayMarketNavHistorical", id, "seniorTranche");
-    assertSharePriceAllZero("DayMarketNavHistorical", id, "liquidityTranche");
+    assertSharePriceBootstrap("DayMarketNavHistorical", id, "seniorTranche");
+    assertSharePriceBootstrap("DayMarketNavHistorical", id, "liquidityTranche");
     // Immutable rows carry createdAt* only.
     assert.fieldEquals(
       "DayMarketNavHistorical",
@@ -401,6 +430,82 @@ describe("DayMarketNav on TrancheAccountingSynced", () => {
       "updatedAtTransactionHash",
       TX_HASH_2.toHexString()
     );
+  });
+
+  test("a reverting inverse converter keeps $1 but leaves the asset leg at 0", () => {
+    // convertValueToCollateralAssets / convertValueToLPTAssets DIVIDE BY AN ORACLE PRICE
+    // (_getCollateralAssetPrice / _getLPTAssetPrice), so a stale feed, a downed sequencer
+    // or a zero price all revert. Raw calls here would kill
+    // handleMarketDeploymentCompleted and take the market, all three vaults and every
+    // downstream row with them.
+    //
+    // The nav leg does NOT depend on the oracle — it is the virtual-share bootstrap, pure
+    // arithmetic — so it must survive. Only the asset denomination is unknown.
+    const market = DayMarketFixture.standard();
+    mockDayMarket(market);
+    mockValueToAssetsReverts(
+      ADDR_KERNEL,
+      BigInt.fromI32(10).pow(u8(DECIMALS_18))
+    );
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        new DeploymentResult(),
+        ctx()
+      )
+    );
+
+    // The market still indexed — that is the point of the guard.
+    assert.entityCount("DayMarketNav", 1);
+    // $1 intact on all three: the bootstrap rate is not an oracle read.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "seniorTrancheSharePriceNAV", "1000000000000000000");
+    assert.fieldEquals("DayMarketNav", NAV_ID, "juniorTrancheSharePriceNAV", "1000000000000000000");
+    assert.fieldEquals("DayMarketNav", NAV_ID, "liquidityTrancheSharePriceNAV", "1000000000000000000");
+    // ...and the asset legs honestly absent rather than guessed.
+    assert.fieldEquals("DayMarketNav", NAV_ID, "seniorTrancheSharePriceCollateralAssets", "0");
+    assert.fieldEquals(
+      "DayMarketNav",
+      NAV_ID,
+      "liquidityTrancheSharePriceLiquidityTrancheAssets",
+      "0"
+    );
+  });
+
+  test("a sync while the tranche is STILL EMPTY reports $1, not zero", () => {
+    // THE REALISTIC GAP: a market is created, and before anyone deposits, the LT's
+    // Balancer pool hook fires a swap-driven sync. Supply is still zero, so
+    // convertToAssets returns the ZERO struct — AssetLedgerLogic._scaleAssetClaims
+    // short-circuits at `_totalTrancheShares == 0` before the virtual-share arithmetic.
+    //
+    // Taking that at face value would drop the share price from the $1 written at
+    // creation to 0, then snap back to ~$1 on the first deposit. A price series that
+    // dips to zero and recovers is worse than one that never moved: every consumer
+    // reads it as the tranche briefly being worthless.
+    deployMarket();
+    assert.fieldEquals(
+      "DayMarketNav",
+      NAV_ID,
+      "seniorTrancheSharePriceNAV",
+      "1000000000000000000"
+    );
+
+    // The chain's honest answer for an empty tranche.
+    const empty = new Claims();
+    const oneShare = BigInt.fromI32(10).pow(u8(DECIMALS_18));
+    mockConvertToAssets(ADDR_SENIOR, oneShare, empty);
+    mockConvertToAssets(ADDR_JUNIOR, oneShare, empty);
+    mockConvertToAssets(ADDR_LIQUIDITY, oneShare, empty);
+
+    const second = accountantCtx();
+    second.blockNumber = BLOCK_NUMBER.plus(BigInt.fromI32(1));
+    sync(second);
+
+    // Still $1 across all three — the bootstrap rate held, it did not dip.
+    assertSharePriceBootstrap("DayMarketNav", NAV_ID, "seniorTranche");
+    assertSharePriceBootstrap("DayMarketNav", NAV_ID, "juniorTranche");
+    assertSharePriceBootstrap("DayMarketNav", NAV_ID, "liquidityTranche");
+    assertSharePriceBootstrap("DayMarketNavHistorical", historicalId(1), "seniorTranche");
   });
 
   test("a convertToAssets revert keeps the PREVIOUS share price, never zero", () => {

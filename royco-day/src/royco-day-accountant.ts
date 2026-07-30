@@ -29,7 +29,7 @@ import {
   closeOpenFixedTerm,
   recordFixedTermCoverageLoss,
 } from "./handlers/base/fixed-term";
-import { generateMarketRecordId, generateMarketBlockRecordId } from "./utils";
+import { generateMarketRecordId } from "./utils";
 import {
   CHAIN_ID,
   MARKET_STATE_FIXED,
@@ -318,41 +318,40 @@ export function handleYieldSharesAccrued(event: YieldSharesAccruedEvent): void {
   market.timeWeightedLiquidityTrancheYieldShareAccruedWAD =
     event.params.twLPTYieldShareAccruedWAD;
 
-  // ONE ROW PER (MARKET, BLOCK) — see "BLOCK-KEYED HISTORY" in schema.graphql.
-  const id = generateMarketBlockRecordId(market.marketId, event.block.number);
-  let entry = DayYieldSharesAccruedHistory.load(id);
+  // ONE ROW PER EVENT — this stream does NOT collapse. Use-then-increment: the count IS
+  // the next entryIndex (see "ENTRY INDEX CURSOR" in schema.graphql).
+  //
+  // It used to be keyed by block, which merged nothing: the contract emits AT MOST ONE
+  // YieldSharesAccrued per block per market, because _accruePremiumYieldShares returns
+  // early on `elapsed == 0` and stamps lastYieldShareAccrualTimestamp before its emit.
+  // The block key only cost a load per write and implied a delta-accumulation rule that
+  // could never fire — so the two instantaneous shares are now written outright rather
+  // than `.plus()`-ed onto a seeded zero.
+  const entryIndex = market.countYieldSharesAccruedEntries;
 
-  if (!entry) {
-    entry = new DayYieldSharesAccruedHistory(id);
-    // Use-then-increment, and ONLY for a new block.
-    entry.blockNumber = event.block.number;
-    entry.chainId = CHAIN_ID;
-    entry.marketId = market.marketId;
-    entry.marketRefId = market.id;
-    // The two instantaneous shares are DELTAS — seeded so they can accumulate.
-    entry.juniorTrancheYieldShareWAD = BigInt.zero();
-    entry.liquidityTrancheYieldShareWAD = BigInt.zero();
-    entry.createdAtTransactionHash = event.transaction.hash.toHexString();
-    entry.createdAtBlockNumber = event.block.number;
-    entry.createdAtBlockTimestamp = event.block.timestamp;
-  }
-
-  // The instantaneous shares ACCUMULATE across the block; the timeWeighted* pair are
-  // running accumulators already, so the latest tick simply wins. Mixing the two rules
-  // in one row is the whole point of the delta-vs-snapshot distinction.
-  entry.juniorTrancheYieldShareWAD = entry.juniorTrancheYieldShareWAD.plus(
-    event.params.jtYieldShareWAD,
+  const entry = new DayYieldSharesAccruedHistory(
+    generateMarketRecordId(market.marketId, entryIndex)
   );
-  entry.liquidityTrancheYieldShareWAD =
-    entry.liquidityTrancheYieldShareWAD.plus(event.params.lptYieldShareWAD);
+  entry.entryIndex = entryIndex;
+  entry.chainId = CHAIN_ID;
+  entry.marketId = market.marketId;
+  entry.marketRefId = market.id;
+  // The two INSTANTANEOUS shares — this event's own values, not a running sum.
+  entry.juniorTrancheYieldShareWAD = event.params.jtYieldShareWAD;
+  entry.liquidityTrancheYieldShareWAD = event.params.lptYieldShareWAD;
+  // The two RUNNING accumulators as of this tick. A SAWTOOTH, not monotonic: both are
+  // zeroed on every premium payout, and that reset carries no event of its own — see
+  // the schema note and refreshMarketStoredState.
   entry.juniorTrancheTimeWeightedYieldShareAccruedWAD =
     event.params.twJTYieldShareAccruedWAD;
   entry.liquidityTrancheTimeWeightedYieldShareAccruedWAD =
     event.params.twLPTYieldShareAccruedWAD;
-  entry.updatedAtTransactionHash = event.transaction.hash.toHexString();
-  entry.updatedAtBlockNumber = event.block.number;
-  entry.updatedAtBlockTimestamp = event.block.timestamp;
+  entry.createdAtTransactionHash = event.transaction.hash.toHexString();
+  entry.createdAtBlockNumber = event.block.number;
+  entry.createdAtBlockTimestamp = event.block.timestamp;
   entry.save();
+
+  market.countYieldSharesAccruedEntries = entryIndex.plus(BigInt.fromI32(1));
 
   touchMarket(event, market);
 }

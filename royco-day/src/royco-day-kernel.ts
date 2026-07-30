@@ -385,7 +385,16 @@ function recordSync(
   entry.updatedAtBlockTimestamp = event.block.timestamp;
   entry.save();
 
-  // (C) The price vector — see the note above on why this does NOT collapse.
+  // (C) The price vector. Six eth_calls: three asset prices (two Kernel converters plus
+  // the BPT's getPoolTokenRates for the quote leg) and three convertToAssets, each
+  // returning a whole quadruple.
+  //
+  // An EMPTY tranche is handled inside sharePriceClaims, not here: convertToAssets
+  // returns the ZERO struct at zero supply, which is the pro-rata claim on real assets
+  // and NOT the share price, so it substitutes the $1 virtual-share bootstrap. That
+  // matters on this path specifically — the LT's Balancer hook can sync on a swap before
+  // anyone has deposited, and taking the contract's zero at face value would drop the
+  // price from the $1 written at creation to 0 and snap it back on the first deposit.
   refreshMarketNav(event, market);
 
   // (D) The five getState()-only columns. The sync payload does NOT carry them: it is
@@ -413,11 +422,20 @@ function liveMarketStateName(marketState: i32): string {
  *
  * Declaration order from contracts/libraries/Types.sol — the ABI carries the enum's
  * TYPE but none of its member names, so this is read from source, never inferred (§4).
- * EIGHT members in v2; v1 had six, before the two multi-asset LP operations.
+ * SIX members. It has ALREADY changed once: an earlier revision had eight, with distinct
+ * LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION members later folded into the plain LPT ones.
+ * Re-read Types.sol whenever contracts/ changes — nothing about the ABI, the build or
+ * the tests will tell you this list has gone stale.
+ *
+ * A multi-asset LP flow therefore reports as lptDeposit / lptRedeem, indistinguishable
+ * from a single-asset one by this column alone; join to DayMultiAssetDepositActivity /
+ * DayMultiAssetRedeemActivity on transaction hash to tell them apart.
  *
  * An unrecognised ordinal returns "unknown" rather than falling through to a neighbour:
  * if the enum ever grows, that surfaces in Neon as a value nobody expects instead of
- * silently mislabelling every new operation as the last known one.
+ * silently mislabelling every new operation as the last known one. The
+ * "the Operation enum maps 0..5, and anything beyond is 'unknown'" test pins both the
+ * members and that boundary.
  */
 function operationName(op: i32): string {
   if (op == 0) return OPERATION_ST_DEPOSIT;

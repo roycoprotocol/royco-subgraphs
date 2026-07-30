@@ -257,6 +257,7 @@ export function handleMarketDeploymentCompleted(
   // and ordered by block number and carry no cursor at all. See "ENTRY INDEX CURSOR"
   // in schema.graphql.
   market.countFixedTermEntries = BigInt.zero();
+  market.countYieldSharesAccruedEntries = BigInt.zero();
   market.countLiquidityPremiumSharesMintedEntries = BigInt.zero();
   market.countLiquidityPremiumReinvestedEntries = BigInt.zero();
   market.countLiquidityPremiumReinvestmentFailedEntries = BigInt.zero();
@@ -282,10 +283,15 @@ export function handleMarketDeploymentCompleted(
     TRANCHE_TYPE_SENIOR,
     market
   );
-  // The junior vault is still written, but its return value is not needed: the
-  // collateral price covers senior AND junior, so marketNavPricesFromVaults only takes
-  // one of the two.
-  createVault(event, result.juniorTranche, TRANCHE_TYPE_JUNIOR, market);
+  // The junior vault's return IS needed: the collateral ASSET price covers senior and
+  // junior together (one shared token), but each tranche has its OWN share price, so all
+  // three vaults are passed through.
+  const junior = createVault(
+    event,
+    result.juniorTranche,
+    TRANCHE_TYPE_JUNIOR,
+    market
+  );
   const liquidity = createVault(
     event,
     result.liquidityProviderTranche,
@@ -293,18 +299,32 @@ export function handleMarketDeploymentCompleted(
     market
   );
 
-  // DayMarketNav entry 0, assembled from the three vaults just written — ZERO extra
-  // eth_calls. Both halves are already in hand and already correct:
-  //   assetPrice* — each createVault call read its own tranche's converter.
-  //   sharePrice* — all five legs provably 0 here, for the same reason the claims
-  //                 quintuples are: supply is 0, so _scaleAssetClaims returns the
-  //                 zero struct for any input, including one whole share.
-  // The sync path CANNOT do this — those copies go stale between mints/burns — so it
-  // re-reads all three quintuples live. See refreshMarketNav.
+  // DayMarketNav entry 0.
+  //
+  //   assetPrice* — READ LIVE here, three calls: the two Kernel converters plus the
+  //                 BPT's getPoolTokenRates for the quote leg. (An older comment
+  //                 claimed these were free because createVault had already read them.
+  //                 That stopped being true when DayVaultState lost assetPriceNAV —
+  //                 no vault stores a price any more.)
+  //
+  //   sharePrice* — NOT read, and NOT an omission: all twelve legs are provably ZERO
+  //                 at creation, so the three convertToAssets calls would cost an
+  //                 eth_call each to return a struct we already know. Supply is zero
+  //                 here — deployMarket only predicts addresses and wires roles, and
+  //                 every mint path (kernelMint, the protocol-fee mint, the senior
+  //                 premium mint) is onlyKernel and guarded — and
+  //                 AssetLedgerLogic._scaleAssetClaims returns the zero struct
+  //                 outright when _totalTrancheShares == 0, BEFORE virtual shares are
+  //                 applied. So zero is the contract's own answer for any input,
+  //                 including one whole share.
+  //
+  // The sync path cannot take that shortcut: once supply is non-zero the prices are
+  // real and change on every mint, burn and re-price, so refreshMarketNav reads all
+  // three quadruples live. That is where sharePrice* stops being zero.
   writeMarketNav(
     event,
     market,
-    marketNavPricesFromVaults(market, senior, liquidity)
+    marketNavPricesFromVaults(market, senior, junior, liquidity)
   );
 }
 
@@ -368,12 +388,15 @@ function createVault(
   vault.marketId = market.marketId;
 
   // Immutable metadata, read once at deployment — raw is fine (§5).
-  const assetAddress = tranche.asset().toHexString();
+  // Bound ONCE and reused: `tranche.asset()` is an eth_call, and calling it a second
+  // time to feed ERC20.bind cost a redundant round-trip per vault, three per market.
+  const assetToken = tranche.asset();
+  const assetAddress = assetToken.toHexString();
   vault.assetTokenId = generateTokenId(assetAddress);
   vault.assetTokenAddress = assetAddress;
   // decimals() is uint8 -> i32, and Int! IS i32 — assign direct, never
   // BigInt.fromI32() (§4).
-  vault.assetTokenDecimals = ERC20.bind(tranche.asset()).decimals();
+  vault.assetTokenDecimals = ERC20.bind(assetToken).decimals();
 
   // The tranche IS its own share token.
   vault.shareTokenId = generateTokenId(vaultAddress);

@@ -345,6 +345,11 @@ templates:
         - DayTrancheAccountingSyncedHistory
         - DayMarketNav
         - DayMarketNavHistorical
+        # READ, never written: refreshMarketNav loads all three vaults for their
+        # decimals and minorType, and refreshMarketStoredState writes only
+        # DayMarketState. Declared so this list names every entity the data source
+        # touches, matching how the tranche templates are declared.
+        - DayVaultState
       abis:
         - name: RoycoDayKernel
           file: ./abis/RoycoDayKernel.json

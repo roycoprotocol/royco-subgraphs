@@ -541,7 +541,7 @@ describe("the kernel sync handlers", () => {
     // state, and is deliberately still event-sourced.
     assert.fieldEquals(
       "DayYieldSharesAccruedHistory",
-      generateMarketBlockRecordId(ADDR_KERNEL.toHexString(), BLOCK_NUMBER),
+      generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
       "juniorTrancheTimeWeightedYieldShareAccruedWAD",
       "100"
     );

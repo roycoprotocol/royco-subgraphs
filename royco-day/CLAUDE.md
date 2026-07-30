@@ -368,7 +368,8 @@ Every id has a generator in `src/utils/global.ts`. **Never inline an id.**
 | `DayFeeStateHistorical` | `<CHAIN>_<MARKET>_<ACCOUNT>_<MAJOR>_<MINOR>_<BLOCK>` | ❌ |
 | `DayFixedTermHistory` | `<CHAIN>_<KERNEL>_<ENTRY_IDX>` | ❌ |
 | the 3 `DayLiquidityPremium*History` | `<CHAIN>_<KERNEL>_<ENTRY_IDX>` | ✅ |
-| `DayYieldSharesAccruedHistory`, `DayTrancheAccountingSyncedHistory` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
+| `DayYieldSharesAccruedHistory` | `<CHAIN>_<KERNEL>_<ENTRY_IDX>` | ✅ |
+| `DayTrancheAccountingSyncedHistory` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
 
 **The failure mode that matters:** an `@entity(immutable: true)` is **write-once**.
 A second `.save()` on the same id is a fatal `entity already exists` **at index
@@ -384,8 +385,8 @@ nothing**; that's why the test harness exists.
   market, hanging off the same key. It still gets its own generator
   (`generateMarketNavId`), so a call site names the table it addresses.
 - **Block keying**: the `*Historical` **snapshot** tables plus
-  `DayYieldSharesAccruedHistory` collapse to **one row per (subject, block)** — the id
-  ends in the block number and the later write in a block **updates** the earlier one. §8's
+  `DayTrancheAccountingSyncedHistory` collapse to **one row per (subject, block)** — the
+  id ends in the block number and the later write in a block **updates** the earlier one. §8's
   "never derive an id from a block number" is inverted here deliberately: the collision
   IS the dedupe. Three consequences, none visible at build time:
     - **These entities MUST be `immutable: false`.** An immutable one dies on the
@@ -402,12 +403,13 @@ nothing**; that's why the test harness exists.
       per-event deltas and get `.plus()`-ed on each write in the block, so
       `SUM(delta)` still equals the lifetime total. A state, a cumulative total, or a
       price is a snapshot and is simply overwritten.
-- **The four RECORD streams do not collapse** — they keep every event as its own row,
+- **The five RECORD streams do not collapse** — they keep every event as its own row,
   keyed `<CHAIN>_<KERNEL>_<ENTRY_IDX>` off a `DayMarketState.count*Entries` cursor:
   `DayFixedTermHistory` (mutable — a term opens in one block and closes in a later one,
-  so the close patches a row opened earlier) and the three liquidity-premium streams
-  (immutable — a block can hold several premium mints, or a failed reinvestment and a
-  retry, and each is a distinct act with its own amounts and `revertData`). Each cursor
+  so the close patches a row opened earlier), `DayYieldSharesAccruedHistory`, and the
+  three liquidity-premium streams (immutable — a block can hold several premium mints, or
+  a failed reinvestment and a retry, and each is a distinct act with its own amounts and
+  `revertData`). Each cursor
   is a COUNT, not a last-index: read, use, **then** increment. Never derive an entry
   index from a block number or timestamp (royco-rwa's `PositionStateHistorical` uses
   `_<BLOCK_TIMESTAMP>` and has exactly that bug — don't copy it).

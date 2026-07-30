@@ -24,6 +24,8 @@ import {
 import {
   ROYCO_DAY_KERNEL__CONVERT_COLLATERAL_ASSETS_TO_VALUE,
   ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE,
+  ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS,
+  ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS,
   ROYCO_DAY_KERNEL__COLLATERAL_ASSET,
   ROYCO_DAY_KERNEL__LPT_ASSET,
   ROYCO_DAY_KERNEL__QUOTE_ASSET,
@@ -290,6 +292,10 @@ export class DayMarketFixture {
   // handler reading the wrong slot. A STANDARD quote really is FP(1) on chain — the
   // dedicated test covers that case explicitly.
   quoteAssetRate: BigInt = BigInt.fromString("1020000000000000000"); // 1.02
+  // The bootstrap share price's ASSET leg: one whole share ($1 of NAV) expressed in each
+  // tranche's own asset. Distinct so a mis-routed converter is visible.
+  bootstrapCollateralAssets: BigInt = BigInt.fromI32(7_701);
+  bootstrapLPTAssets: BigInt = BigInt.fromI32(7_702);
   seniorShareRate: BigInt = BigInt.fromString("3070000000000000000"); // 3.07
 
   accountantState: AccountantState = new AccountantState();
@@ -503,6 +509,13 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.collateralAssetPriceNAV,
     m.liquidityAssetPriceNAV
   );
+  // The inverse pair, read only while a tranche is empty (bootstrapSharePrice).
+  mockValueToAssets(
+    m.kernel,
+    oneShare,
+    m.bootstrapCollateralAssets,
+    m.bootstrapLPTAssets
+  );
 
   mockAssetToken(m.asset, m.assetDecimals);
   // The BPT is an ERC20 too — createVault reads decimals off the liquidity tranche's
@@ -544,6 +557,56 @@ export function mockConvertToAssetsReverts(tranche: Address, shares: BigInt): vo
 }
 
 /** Make both Kernel NAV converters REVERT for one input. */
+/**
+ * The INVERSE converters, used only for an EMPTY tranche's bootstrap share price:
+ * how much of a tranche's own asset one whole share ($1 of NAV) is worth.
+ *
+ * Senior and junior share the collateral one; only the liquidity tranche uses the LPT
+ * one. Values are deliberately DISTINCT so a handler routing the wrong tranche to the
+ * wrong converter shows up as a wrong number rather than a coincidental pass.
+ */
+export function mockValueToAssets(
+  kernel: Address,
+  oneShare: BigInt,
+  collateralAssets: BigInt,
+  lptAssets: BigInt
+): void {
+  const arg = [ethereum.Value.fromUnsignedBigInt(oneShare)];
+  createMockedFunction(
+    kernel,
+    "convertValueToCollateralAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS
+  )
+    .withArgs(arg)
+    .returns([ethereum.Value.fromUnsignedBigInt(collateralAssets)]);
+  createMockedFunction(
+    kernel,
+    "convertValueToLPTAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS
+  )
+    .withArgs(arg)
+    .returns([ethereum.Value.fromUnsignedBigInt(lptAssets)]);
+}
+
+/** Both inverse converters revert — a stale oracle, a downed sequencer, a zero price. */
+export function mockValueToAssetsReverts(kernel: Address, oneShare: BigInt): void {
+  const arg = [ethereum.Value.fromUnsignedBigInt(oneShare)];
+  createMockedFunction(
+    kernel,
+    "convertValueToCollateralAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS
+  )
+    .withArgs(arg)
+    .reverts();
+  createMockedFunction(
+    kernel,
+    "convertValueToLPTAssets",
+    ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS
+  )
+    .withArgs(arg)
+    .reverts();
+}
+
 export function mockAssetPriceNAVReverts(
   kernel: Address,
   oneAssetToken: BigInt

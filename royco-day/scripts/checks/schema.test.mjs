@@ -71,12 +71,13 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  // 7. Two groups, and the split is SNAPSHOT vs RECORD:
+  // 8. Two groups, and the split is SNAPSHOT vs RECORD:
   //
   //   - The four per-log activity/transfer rows, whose ids carry a <LOG_INDEX> and
   //     genuinely can never repeat.
-  //   - The three liquidity-premium record streams, whose ids carry an <ENTRY_INDEX>
-  //     from a use-then-increment cursor, so every event gets a fresh id.
+  //   - The four immutable record streams — the three liquidity-premium ones plus
+  //     DayYieldSharesAccruedHistory — whose ids carry an <ENTRY_INDEX> from a
+  //     use-then-increment cursor, so every event gets a fresh id.
   //
   // The *Historical SNAPSHOT tables are deliberately NOT here: they collapse to one row
   // per block, so a later write in the block updates the earlier rather than appending,
@@ -84,7 +85,7 @@ test("every immutable entity's id carries a per-write discriminator", () => {
   // See "BLOCK-KEYED HISTORY" in schema.graphql. DayFixedTermHistory is entryIndex-keyed
   // but also correctly absent — it is mutable because the term close patches a row
   // opened in an earlier block.
-  assert.equal(blocks.length, 7, "expected 7 immutable entities");
+  assert.equal(blocks.length, 8, "expected 8 immutable entities");
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {
@@ -118,7 +119,6 @@ test("block-keyed streams order by blockNumber and carry NO entryIndex cursor", 
     "DayVaultStateHistorical",
     "DayPositionStateHistorical",
     "DayFeeStateHistorical",
-    "DayYieldSharesAccruedHistory",
     "DayTrancheAccountingSyncedHistory",
   ];
 
@@ -162,6 +162,7 @@ test("block-keyed streams order by blockNumber and carry NO entryIndex cursor", 
   // and a block can hold several.
   const ENTRY_KEYED = [
     ["DayFixedTermHistory", "countFixedTermEntries"],
+    ["DayYieldSharesAccruedHistory", "countYieldSharesAccruedEntries"],
     ["DayLiquidityPremiumSharesMintedHistory", "countLiquidityPremiumSharesMintedEntries"],
     ["DayLiquidityPremiumReinvestedHistory", "countLiquidityPremiumReinvestedEntries"],
     [
