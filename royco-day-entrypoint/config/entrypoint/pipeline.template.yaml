@@ -7,6 +7,22 @@ apiVersion: 3
 name: {{pipelineName}}
 resource_size: s
 sources:
+  royco_day_entrypoint_day_entry_point_deployment_state_reference:
+    name: day_entry_point_deployment_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-entrypoint-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_entrypoint_day_entry_point_protocol_fee_collection_reference:
+    name: day_entry_point_protocol_fee_collection
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-entrypoint-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
   royco_day_entrypoint_day_entry_point_state_reference:
     name: day_entry_point_state
     subgraphs:
@@ -41,6 +57,20 @@ sources:
     type: subgraph_entity
 transforms: {}
 sinks:
+  royco_day_entrypoint_day_entry_point_deployment_state_postgres:
+    type: postgres
+    table: day_entry_point_deployment_state
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_entry_point_deployment_state"
+    from: royco_day_entrypoint_day_entry_point_deployment_state_reference
+  royco_day_entrypoint_day_entry_point_protocol_fee_collection_postgres:
+    type: postgres
+    table: day_entry_point_protocol_fee_collection
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_entry_point_protocol_fee_collection"
+    from: royco_day_entrypoint_day_entry_point_protocol_fee_collection_reference
   royco_day_entrypoint_day_entry_point_state_postgres:
     type: postgres
     table: day_entry_point_state

@@ -7,10 +7,16 @@ import {
   RedemptionRequested as RedemptionRequestedEvent,
   RedemptionExecuted as RedemptionExecutedEvent,
   RedemptionRequestCancelled as RedemptionRequestCancelledEvent,
+  CollateralAssetOraclePoked as CollateralAssetOraclePokedEvent,
+  ProtocolFeeSharesCollected as ProtocolFeeSharesCollectedEvent,
+  Paused as PausedEvent,
+  Unpaused as UnpausedEvent,
 } from "../generated/RoycoDayEntryPoint/RoycoDayEntryPoint";
 import { RoycoVaultTranche } from "../generated/RoycoDayEntryPoint/RoycoVaultTranche";
 import {
   DayEntryPointExecution,
+  DayEntryPointDeploymentState,
+  DayEntryPointProtocolFeeCollection,
   DayEntryPointRequest,
   DayEntryPointState,
   GlobalTokenActivity,
@@ -33,6 +39,7 @@ import {
 } from "./constants";
 import {
   generateEntryPointStateId,
+  generateEntryPointDeploymentStateId,
   generateEntryPointRequestId,
   generateExecutionId,
   generateGlobalTokenActivityId,
@@ -44,6 +51,26 @@ import {
 // The EntryPoint is a per-chain singleton — every event emits from its one
 // address. getEntryPointVersion(event.address) returns 0 for an address this
 // subgraph isn't configured for; every handler bails on 0.
+
+function getOrCreateDeploymentState(
+  version: BigInt,
+  entryPointAddress: string,
+  blockTimestamp: BigInt
+): DayEntryPointDeploymentState {
+  const id = generateEntryPointDeploymentStateId(entryPointAddress);
+  let state = DayEntryPointDeploymentState.load(id);
+  if (state != null) return state;
+
+  state = new DayEntryPointDeploymentState(id);
+  state.chainId = CHAIN_ID;
+  state.version = version;
+  state.entryPointAddress = entryPointAddress;
+  state.isPaused = false;
+  state.createdAt = blockTimestamp;
+  state.updatedAt = blockTimestamp;
+  state.save();
+  return state;
+}
 
 // Loads or lazily creates the per-(entryPoint, tranche) config. Resolves the
 // deposit token via tranche.asset(); a revert (not a live tranche) leaves a
@@ -75,8 +102,11 @@ function getOrCreateState(
   state.shareTokenId = generateTokenId(trancheAddress);
   state.isEnabled = false; // real values arrive via TrancheConfigUpdated
   state.depositDelaySeconds = BigInt.zero();
+  state.depositExpirySeconds = BigInt.zero();
   state.redemptionDelaySeconds = BigInt.zero();
-  state.oracleClockAddress = ZERO_ADDRESS;
+  state.redemptionExpirySeconds = BigInt.zero();
+  state.gateByOracleUpdate = false;
+  state.latestOracleUpdateTimestamp = BigInt.zero();
   state.createdAt = blockTimestamp;
   state.updatedAt = blockTimestamp;
 
@@ -91,12 +121,18 @@ function initRequest(
   nonce: BigInt,
   trancheAddress: string,
   accountAddress: string,
+  requestReceiverAddress: string,
   category: string,
   subCategory: string,
   tokenAddress: string,
   initValue: BigInt,
+  queuedAtTimestamp: BigInt,
   executableAtTimestamp: BigInt,
+  expiresAtTimestamp: BigInt,
   executorBonusWAD: BigInt,
+  equivalentSharesAtRequestTime: BigInt,
+  valueAtRequestTime: BigInt,
+  requestedRedemptionMode: i32,
   blockNumber: BigInt,
   blockTimestamp: BigInt,
   transactionHash: string,
@@ -111,6 +147,7 @@ function initRequest(
   request.vaultAddress = trancheAddress;
   request.vaultId = generateVaultId(trancheAddress);
   request.accountAddress = accountAddress;
+  request.requestReceiverAddress = requestReceiverAddress;
   request.category = category;
   request.subCategory = subCategory;
   request.tokenId =
@@ -121,26 +158,32 @@ function initRequest(
   request.currValue = initValue;
   request.initValue = initValue;
   request.status = STATUS_PENDING;
-  request.queuedAtTimestamp = blockTimestamp;
+  request.queuedAtTimestamp = queuedAtTimestamp;
   request.executableAtTimestamp = executableAtTimestamp;
+  request.expiresAtTimestamp = expiresAtTimestamp;
   request.executorBonusWAD = executorBonusWAD;
   request.selfExecutionOnly = executorBonusWAD.equals(SELF_EXECUTION_ONLY_SENTINEL);
+  request.equivalentSharesAtRequestTime = equivalentSharesAtRequestTime;
+  request.remainingEquivalentSharesAtRequestTime = equivalentSharesAtRequestTime;
+  request.valueAtRequestTime = valueAtRequestTime;
+  request.remainingValueAtRequestTime = valueAtRequestTime;
+  if (requestedRedemptionMode >= 0) {
+    request.requestedRedemptionMode = requestedRedemptionMode;
+  }
   request.protocolFeeShares = BigInt.zero();
 
   request.assetsDeposited = BigInt.zero();
-  request.assetsBonus = BigInt.zero();
   request.sharesMinted = BigInt.zero();
+  request.bonusShares = BigInt.zero();
 
   request.sharesRedeemed = BigInt.zero();
-  request.stAssetsUserClaims = BigInt.zero();
-  request.jtAssetsUserClaims = BigInt.zero();
-  request.ltAssetsUserClaims = BigInt.zero();
+  request.collateralAssetsUserClaims = BigInt.zero();
+  request.lptAssetsUserClaims = BigInt.zero();
   request.stSharesUserClaims = BigInt.zero();
   request.navUserClaims = BigInt.zero();
   request.quoteAssetsUserClaims = BigInt.zero();
-  request.stAssetsBonusClaims = BigInt.zero();
-  request.jtAssetsBonusClaims = BigInt.zero();
-  request.ltAssetsBonusClaims = BigInt.zero();
+  request.collateralAssetsBonusClaims = BigInt.zero();
+  request.lptAssetsBonusClaims = BigInt.zero();
   request.stSharesBonusClaims = BigInt.zero();
   request.navBonusClaims = BigInt.zero();
   request.quoteAssetsBonusClaims = BigInt.zero();
@@ -177,18 +220,32 @@ function touchRequest(
   request.updatedAt = blockTimestamp;
 }
 
-// Reduce the escrow and set status. `consumed` is the SUM of both event legs (see
-// schema.graphql SUM RULE).
-function applyExecution(request: DayEntryPointRequest, consumed: BigInt): void {
-  request.currValue = request.currValue.minus(consumed);
+// Match the contract's recursive floor scaling from the remaining request state.
+function applyExecution(request: DayEntryPointRequest, consumed: BigInt): BigInt {
+  const valueBefore = request.currValue;
+  const remaining = valueBefore.minus(consumed);
+  let fillReference = BigInt.zero();
+
+  if (request.category == CATEGORY_ASSETS) {
+    const referenceBefore = request.remainingEquivalentSharesAtRequestTime;
+    fillReference = referenceBefore.times(consumed).div(valueBefore);
+    request.remainingEquivalentSharesAtRequestTime = remaining.isZero()
+      ? BigInt.zero()
+      : referenceBefore.times(remaining).div(valueBefore);
+  } else {
+    const referenceBefore = request.remainingValueAtRequestTime;
+    fillReference = referenceBefore.times(consumed).div(valueBefore);
+    request.remainingValueAtRequestTime = remaining.isZero()
+      ? BigInt.zero()
+      : referenceBefore.times(remaining).div(valueBefore);
+  }
+
+  request.currValue = remaining;
   request.status = request.currValue.isZero() ? STATUS_COMPLETED : STATUS_PARTIALLY_FILLED;
+  return fillReference;
 }
 
-// Activity status for a fill: a fill that empties the request completes it,
-// otherwise it's an update. Call AFTER applyExecution. Kept distinct from the
-// request's own status ("partiallyFilled") because the shared activity feed's
-// vocabulary is pending/updated/completed/cancelled and consumers read
-// "completed" as the whole request finishing.
+// Activity is completed only when the full request is consumed.
 function fillActivityStatus(request: DayEntryPointRequest): string {
   return request.status == STATUS_COMPLETED ? STATUS_COMPLETED : STATUS_UPDATED;
 }
@@ -220,21 +277,21 @@ function newExecution(
   e.consumed = consumed;
   e.remainingAfter = request.currValue;
   e.statusAfter = request.status;
+  e.equivalentSharesAtRequestTime = BigInt.zero();
+  e.valueAtRequestTime = BigInt.zero();
   e.protocolFeeShares = protocolFeeShares;
 
   e.assetsDeposited = BigInt.zero();
-  e.assetsBonus = BigInt.zero();
   e.sharesMinted = BigInt.zero();
+  e.bonusShares = BigInt.zero();
   e.sharesRedeemed = BigInt.zero();
-  e.stAssetsUserClaims = BigInt.zero();
-  e.jtAssetsUserClaims = BigInt.zero();
-  e.ltAssetsUserClaims = BigInt.zero();
+  e.collateralAssetsUserClaims = BigInt.zero();
+  e.lptAssetsUserClaims = BigInt.zero();
   e.stSharesUserClaims = BigInt.zero();
   e.navUserClaims = BigInt.zero();
   e.quoteAssetsUserClaims = BigInt.zero();
-  e.stAssetsBonusClaims = BigInt.zero();
-  e.jtAssetsBonusClaims = BigInt.zero();
-  e.ltAssetsBonusClaims = BigInt.zero();
+  e.collateralAssetsBonusClaims = BigInt.zero();
+  e.lptAssetsBonusClaims = BigInt.zero();
   e.stSharesBonusClaims = BigInt.zero();
   e.navBonusClaims = BigInt.zero();
   e.quoteAssetsBonusClaims = BigInt.zero();
@@ -249,7 +306,7 @@ function newExecution(
 
 // Append a row to the SHARED global_token_activity feed (the union across all
 // markets). Mirrors royco-rwa's entry-point: one row per lifecycle event —
-// create (pending), each fill (completed, value = this fill's primary amount),
+// create (pending), each partial fill (updated), final fill (completed),
 // cancel (cancelled). `value` is passed in because it differs per event.
 function addActivity(
   request: DayEntryPointRequest,
@@ -290,6 +347,7 @@ function addActivity(
 export function handleTrancheConfigUpdated(event: TrancheConfigUpdatedEvent): void {
   const version = getEntryPointVersion(event.address.toHexString());
   if (version.isZero()) return;
+  getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
 
   const state = getOrCreateState(
     version,
@@ -304,8 +362,10 @@ export function handleTrancheConfigUpdated(event: TrancheConfigUpdatedEvent): vo
   state.isEnabled = config.enabled;
   // uint24 -> i32, needs the BigInt.fromI32 lift.
   state.depositDelaySeconds = BigInt.fromI32(config.depositDelaySeconds);
+  state.depositExpirySeconds = config.depositExpirySeconds;
   state.redemptionDelaySeconds = BigInt.fromI32(config.redemptionDelaySeconds);
-  state.oracleClockAddress = config.oracleClock.toHexString();
+  state.redemptionExpirySeconds = config.redemptionExpirySeconds;
+  state.gateByOracleUpdate = config.gateByOracleUpdate;
   state.updatedAt = event.block.timestamp;
   state.save();
 }
@@ -313,6 +373,7 @@ export function handleTrancheConfigUpdated(event: TrancheConfigUpdatedEvent): vo
 export function handleDepositRequested(event: DepositRequestedEvent): void {
   const version = getEntryPointVersion(event.address.toHexString());
   if (version.isZero()) return;
+  getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
 
   const state = getOrCreateState(
     version,
@@ -323,18 +384,26 @@ export function handleDepositRequested(event: DepositRequestedEvent): void {
   );
   if (state.depositTokenAddress == ZERO_ADDRESS) return;
 
+  const contractRequest = event.params.request;
+  const baseRequest = contractRequest.baseRequest;
   const request = initRequest(
     version,
     event.address.toHexString(),
     event.params.nonce,
     event.params.tranche.toHexString(),
     event.params.user.toHexString(),
+    baseRequest.receiver.toHexString(),
     CATEGORY_ASSETS,
     SUB_CATEGORY_DEPOSIT,
     state.depositTokenAddress,
-    event.params.assets,
-    event.params.executableAtTimestamp,
-    event.params.executorBonusWAD,
+    contractRequest.assets,
+    baseRequest.queuedAtTimestamp,
+    baseRequest.executableAtTimestamp,
+    baseRequest.expiresAtTimestamp,
+    baseRequest.executorBonusWAD,
+    contractRequest.equivalentSharesAtRequestTime,
+    BigInt.zero(),
+    -1,
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
@@ -354,20 +423,20 @@ export function handleDepositExecuted(event: DepositExecutedEvent): void {
   if (request == null) return;
 
   touchRequest(request, event.block.number, event.block.timestamp, event.transaction.hash.toHexString(), event.logIndex);
-  // assetsDeposited is post-bonus; the escrow held the full pre-bonus amount.
-  const consumed = event.params.assetsDeposited.plus(event.params.bonusAssets);
-  applyExecution(request, consumed);
+  const consumed = event.params.assetsDeposited;
+  const requestTimeReference = applyExecution(request, consumed);
 
   request.assetsDeposited = request.assetsDeposited.plus(event.params.assetsDeposited);
-  request.assetsBonus = request.assetsBonus.plus(event.params.bonusAssets);
   request.sharesMinted = request.sharesMinted.plus(event.params.sharesMinted);
+  request.bonusShares = request.bonusShares.plus(event.params.bonusShares);
   request.protocolFeeShares = request.protocolFeeShares.plus(event.params.protocolFeeShares);
   request.save();
 
   const exec = newExecution(request, event.params.executor.toHexString(), consumed, event.params.protocolFeeShares, event);
+  exec.equivalentSharesAtRequestTime = requestTimeReference;
   exec.assetsDeposited = event.params.assetsDeposited;
-  exec.assetsBonus = event.params.bonusAssets;
   exec.sharesMinted = event.params.sharesMinted;
+  exec.bonusShares = event.params.bonusShares;
   exec.save();
 
   addActivity(request, event.params.assetsDeposited, fillActivityStatus(request), event);
@@ -387,6 +456,7 @@ export function handleDepositRequestCancelled(event: DepositRequestCancelledEven
   request.cancelledAmount = event.params.assets;
   request.status = STATUS_CANCELLED;
   request.currValue = BigInt.zero();
+  request.remainingEquivalentSharesAtRequestTime = BigInt.zero();
   request.save();
   addActivity(request, event.params.assets, STATUS_CANCELLED, event);
 }
@@ -394,6 +464,7 @@ export function handleDepositRequestCancelled(event: DepositRequestCancelledEven
 export function handleRedemptionRequested(event: RedemptionRequestedEvent): void {
   const version = getEntryPointVersion(event.address.toHexString());
   if (version.isZero()) return;
+  getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
 
   const state = getOrCreateState(
     version,
@@ -404,18 +475,26 @@ export function handleRedemptionRequested(event: RedemptionRequestedEvent): void
   );
   if (state.depositTokenAddress == ZERO_ADDRESS) return;
 
+  const contractRequest = event.params.request;
+  const baseRequest = contractRequest.baseRequest;
   const request = initRequest(
     version,
     event.address.toHexString(),
     event.params.nonce,
     event.params.tranche.toHexString(),
     event.params.user.toHexString(),
+    baseRequest.receiver.toHexString(),
     CATEGORY_SHARES,
     SUB_CATEGORY_WITHDRAW,
     state.shareTokenAddress, // redemptions escrow the tranche's own shares
-    event.params.shares,
-    event.params.executableAtTimestamp,
-    event.params.executorBonusWAD,
+    contractRequest.shares,
+    baseRequest.queuedAtTimestamp,
+    baseRequest.executableAtTimestamp,
+    baseRequest.expiresAtTimestamp,
+    baseRequest.executorBonusWAD,
+    BigInt.zero(),
+    contractRequest.valueAtRequestTime,
+    contractRequest.mode,
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
@@ -437,38 +516,36 @@ export function handleRedemptionExecuted(event: RedemptionExecutedEvent): void {
   touchRequest(request, event.block.number, event.block.timestamp, event.transaction.hash.toHexString(), event.logIndex);
   // sharesRedeemed excludes shares forfeited to the protocol; the escrow held both.
   const consumed = event.params.sharesRedeemed.plus(event.params.protocolFeeShares);
-  applyExecution(request, consumed);
+  const requestTimeReference = applyExecution(request, consumed);
 
   request.sharesRedeemed = request.sharesRedeemed.plus(event.params.sharesRedeemed);
   request.protocolFeeShares = request.protocolFeeShares.plus(event.params.protocolFeeShares);
 
   const userClaims = event.params.userClaims;
   const bonusClaims = event.params.bonusClaims;
-  request.stAssetsUserClaims = request.stAssetsUserClaims.plus(userClaims.stAssets);
-  request.jtAssetsUserClaims = request.jtAssetsUserClaims.plus(userClaims.jtAssets);
-  request.ltAssetsUserClaims = request.ltAssetsUserClaims.plus(userClaims.ltAssets);
+  request.collateralAssetsUserClaims = request.collateralAssetsUserClaims.plus(userClaims.collateralAssets);
+  request.lptAssetsUserClaims = request.lptAssetsUserClaims.plus(userClaims.lptAssets);
   request.stSharesUserClaims = request.stSharesUserClaims.plus(userClaims.stShares);
   request.navUserClaims = request.navUserClaims.plus(userClaims.nav);
   request.quoteAssetsUserClaims = request.quoteAssetsUserClaims.plus(event.params.quoteAssets);
-  request.stAssetsBonusClaims = request.stAssetsBonusClaims.plus(bonusClaims.stAssets);
-  request.jtAssetsBonusClaims = request.jtAssetsBonusClaims.plus(bonusClaims.jtAssets);
-  request.ltAssetsBonusClaims = request.ltAssetsBonusClaims.plus(bonusClaims.ltAssets);
+  request.collateralAssetsBonusClaims = request.collateralAssetsBonusClaims.plus(bonusClaims.collateralAssets);
+  request.lptAssetsBonusClaims = request.lptAssetsBonusClaims.plus(bonusClaims.lptAssets);
   request.stSharesBonusClaims = request.stSharesBonusClaims.plus(bonusClaims.stShares);
   request.navBonusClaims = request.navBonusClaims.plus(bonusClaims.nav);
   request.quoteAssetsBonusClaims = request.quoteAssetsBonusClaims.plus(event.params.bonusQuoteAssets);
   request.save();
 
   const exec = newExecution(request, event.params.executor.toHexString(), consumed, event.params.protocolFeeShares, event);
+  exec.valueAtRequestTime = requestTimeReference;
+  exec.executedRedemptionMode = event.params.executedMode;
   exec.sharesRedeemed = event.params.sharesRedeemed;
-  exec.stAssetsUserClaims = userClaims.stAssets;
-  exec.jtAssetsUserClaims = userClaims.jtAssets;
-  exec.ltAssetsUserClaims = userClaims.ltAssets;
+  exec.collateralAssetsUserClaims = userClaims.collateralAssets;
+  exec.lptAssetsUserClaims = userClaims.lptAssets;
   exec.stSharesUserClaims = userClaims.stShares;
   exec.navUserClaims = userClaims.nav;
   exec.quoteAssetsUserClaims = event.params.quoteAssets;
-  exec.stAssetsBonusClaims = bonusClaims.stAssets;
-  exec.jtAssetsBonusClaims = bonusClaims.jtAssets;
-  exec.ltAssetsBonusClaims = bonusClaims.ltAssets;
+  exec.collateralAssetsBonusClaims = bonusClaims.collateralAssets;
+  exec.lptAssetsBonusClaims = bonusClaims.lptAssets;
   exec.stSharesBonusClaims = bonusClaims.stShares;
   exec.navBonusClaims = bonusClaims.nav;
   exec.quoteAssetsBonusClaims = event.params.bonusQuoteAssets;
@@ -491,6 +568,65 @@ export function handleRedemptionRequestCancelled(event: RedemptionRequestCancell
   request.cancelledAmount = event.params.shares;
   request.status = STATUS_CANCELLED;
   request.currValue = BigInt.zero();
+  request.remainingValueAtRequestTime = BigInt.zero();
   request.save();
   addActivity(request, event.params.shares, STATUS_CANCELLED, event);
+}
+
+export function handleCollateralAssetOraclePoked(event: CollateralAssetOraclePokedEvent): void {
+  const version = getEntryPointVersion(event.address.toHexString());
+  if (version.isZero()) return;
+  getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
+  const state = getOrCreateState(
+    version,
+    event.address.toHexString(),
+    event.params.tranche.toHexString(),
+    event.block.timestamp,
+    true
+  );
+  if (state.depositTokenAddress == ZERO_ADDRESS) return;
+  state.latestOracleUpdateTimestamp = event.params.lastUpdateTimestamp;
+  state.updatedAt = event.block.timestamp;
+  state.save();
+}
+
+export function handleProtocolFeeSharesCollected(event: ProtocolFeeSharesCollectedEvent): void {
+  const version = getEntryPointVersion(event.address.toHexString());
+  if (version.isZero()) return;
+  getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
+
+  const collection = new DayEntryPointProtocolFeeCollection(
+    generateExecutionId(event.transaction.hash.toHexString(), event.logIndex)
+  );
+  collection.chainId = CHAIN_ID;
+  collection.version = version;
+  collection.entryPointAddress = event.address.toHexString();
+  collection.trancheAddress = event.params.tranche.toHexString();
+  collection.vaultId = generateVaultId(collection.trancheAddress);
+  collection.receiverAddress = event.params.receiver.toHexString();
+  collection.shares = event.params.shares;
+  collection.createdAtBlockNumber = event.block.number;
+  collection.createdAtBlockTimestamp = event.block.timestamp;
+  collection.createdAtTransactionHash = event.transaction.hash.toHexString();
+  collection.createdAtLogIndex = event.logIndex;
+  collection.createdAt = event.block.timestamp;
+  collection.save();
+}
+
+export function handlePaused(event: PausedEvent): void {
+  const version = getEntryPointVersion(event.address.toHexString());
+  if (version.isZero()) return;
+  const state = getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
+  state.isPaused = true;
+  state.updatedAt = event.block.timestamp;
+  state.save();
+}
+
+export function handleUnpaused(event: UnpausedEvent): void {
+  const version = getEntryPointVersion(event.address.toHexString());
+  if (version.isZero()) return;
+  const state = getOrCreateDeploymentState(version, event.address.toHexString(), event.block.timestamp);
+  state.isPaused = false;
+  state.updatedAt = event.block.timestamp;
+  state.save();
 }

@@ -1,0 +1,13 @@
+{
+  "_comment": "Ethereum mainnet test deployment.",
+  "network": "mainnet",
+  "chainId": 1,
+  "entryPoints": [
+    {
+      "id": "",
+      "version": 2,
+      "address": "0xA436Cd30531C3291B126F95FBe85AB29D271A48F",
+      "startBlock": 25654458
+    }
+  ]
+}
