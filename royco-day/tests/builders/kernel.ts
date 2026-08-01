@@ -13,7 +13,7 @@ import { uintI32 } from "../helpers/tuple";
 //
 // v2 replaced the accountant's single TrancheAccountingSynced with this pair, moved
 // onto the KERNEL — so event.address is the marketId and the handlers need no
-// ACCOUNTANT.KERNEL() hop. Both carry the same 16-field SyncedAccountingState; only
+// Accountant.getState().kernel hop. Both carry the same 16-field SyncedAccountingState; only
 // the post-op adds the `op` enum in FRONT of it.
 //
 // Two builders rather than one generic: the two events declare DISTINCT generated

@@ -255,6 +255,12 @@ describe("handleMarketDeploymentCompleted", () => {
       "fixedTermDurationSeconds",
       (30 * 24 * 60 * 60).toString()
     );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700000000"
+    );
   });
 
   test("marketState maps 0 -> perpetual (enum is PERPETUAL, FIXED_TERM)", () => {

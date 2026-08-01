@@ -87,7 +87,7 @@ describe("DayMarketFixture.standard()", () => {
     const senior = RoycoSeniorTranche.bind(m.seniorTranche);
     assert.addressEquals(senior.asset(), ADDR_ASSET);
     assert.i32Equals(senior.decimals(), DECIMALS_18);
-    assert.addressEquals(senior.KERNEL(), ADDR_KERNEL);
+    assert.addressEquals(senior.kernel(), ADDR_KERNEL);
     assert.bigIntEquals(senior.totalSupply(), m.sharesTotalSupply);
   });
 

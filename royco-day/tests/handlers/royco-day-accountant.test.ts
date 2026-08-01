@@ -9,10 +9,12 @@ import {
 import { BigInt } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
 import {
-  handleCoverageUpdated,
-  handleLiquidityUpdated,
+  handleMinCoverageUpdated,
+  handleMinLiquidityUpdated,
   handleLiquidationCoverageUtilizationUpdated,
   handleFixedTermDurationUpdated,
+  handleFixedTermCommenceableAt,
+  handleFixedTermCommenceableAtTimestampUpdated,
   handleMaxYieldSharesUpdated,
   handleFixedTermCommenced,
   handleFixedTermEnded,
@@ -38,10 +40,12 @@ import {
   handleUnpaused,
 } from "../../src/royco-day-kernel";
 import {
-  CoverageUpdated,
-  LiquidityUpdated,
+  MinCoverageUpdated,
+  MinLiquidityUpdated,
   LiquidationCoverageUtilizationUpdated,
   FixedTermDurationUpdated,
+  FixedTermCommenceableAt,
+  FixedTermCommenceableAtTimestampUpdated,
   MaxYieldSharesUpdated,
   FixedTermCommenced,
   FixedTermEnded,
@@ -153,19 +157,19 @@ describe("accountant config handlers", () => {
   test("each config event writes its OWN field", () => {
     // Every one of these is a lone BigInt on a market row full of other lone
     // BigInts. Distinct sentinels are the only thing separating them: a handler
-    // writing minLiquidityWAD from the CoverageUpdated param would be invisible
+    // writing minLiquidityWAD from the MinCoverageUpdated param would be invisible
     // under shared values.
     deployMarket();
 
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>(
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>(
         "minCoverageWAD",
         BigInt.fromI32(9_001),
         accountantCtx()
       )
     );
-    handleLiquidityUpdated(
-      createUintEvent<LiquidityUpdated>(
+    handleMinLiquidityUpdated(
+      createUintEvent<MinLiquidityUpdated>(
         "minLiquidityWAD",
         BigInt.fromI32(9_002),
         accountantCtx()
@@ -206,6 +210,28 @@ describe("accountant config handlers", () => {
         accountantCtx()
       )
     );
+    handleFixedTermCommenceableAtTimestampUpdated(
+      createUintEvent<FixedTermCommenceableAtTimestampUpdated>(
+        "fixedTermCommenceableAtTimestamp",
+        BigInt.fromI32(9_008),
+        accountantCtx()
+      )
+    );
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "9008"
+    );
+
+    handleFixedTermCommenceableAt(
+      createUintEvent<FixedTermCommenceableAt>(
+        "fixedTermCommenceableAtTimestamp",
+        BigInt.fromI32(9_009),
+        accountantCtx()
+      )
+    );
 
     assert.fieldEquals("DayMarketState", MARKET_ID, "minCoverageWAD", "9001");
     assert.fieldEquals("DayMarketState", MARKET_ID, "minLiquidityWAD", "9002");
@@ -238,6 +264,12 @@ describe("accountant config handlers", () => {
       MARKET_ID,
       "liquidityTrancheYieldShareProtocolFeeWAD",
       "9007"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "9009"
     );
   });
 
@@ -355,7 +387,7 @@ describe("accountant config handlers", () => {
   });
 
   test("a config event for an unknown market is a no-op", () => {
-    // THE TEST PEOPLE FORGET. The Accountant's initialize() emits CoverageUpdated
+    // THE TEST PEOPLE FORGET. The Accountant's initialize() emits MinCoverageUpdated
     // and FixedTermDurationUpdated during deployMarket — at a LOWER log index than
     // the MarketDeploymentCompleted that creates this template and writes the
     // market. If graph-node ever replays those earlier same-block logs into the
@@ -364,8 +396,8 @@ describe("accountant config handlers", () => {
     const market = DayMarketFixture.standard();
     mockDayMarket(market); // KERNEL() still resolvable; the ENTITY is what's absent
 
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>(
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>(
         "minCoverageWAD",
         BigInt.fromI32(9_001),
         accountantCtx()
@@ -383,8 +415,8 @@ describe("accountant config handlers", () => {
     const later = accountantCtx();
     later.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(3600));
     later.txHash = TX_HASH_2;
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>("minCoverageWAD", BigInt.fromI32(9_001), later)
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>("minCoverageWAD", BigInt.fromI32(9_001), later)
     );
 
     assert.fieldEquals(
@@ -657,22 +689,22 @@ describe("the kernel sync handlers", () => {
   test("does NOT touch the five fields other handlers own", () => {
     // The payload carries these too, and copying it wholesale would make each
     // field's value depend on log ORDER. setCoverage syncs BEFORE its body, so a
-    // sync carrying the OLD coverage is emitted BEFORE CoverageUpdated carries the
+    // sync carrying the OLD coverage is emitted BEFORE MinCoverageUpdated carries the
     // new one — this handler writing them would silently revert config changes.
     deployMarket();
 
     // The config handler sets the truth first. NOTE these four are ACCOUNTANT events
-    // and still hop ACCOUNTANT.KERNEL() to find their market, so they emit from the
+    // and still read Accountant.getState().kernel to find their market, so they emit from the
     // accountant — only the sync moved onto the kernel in v2.
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>(
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>(
         "minCoverageWAD",
         BigInt.fromI32(5_001),
         accountantCtx()
       )
     );
-    handleLiquidityUpdated(
-      createUintEvent<LiquidityUpdated>(
+    handleMinLiquidityUpdated(
+      createUintEvent<MinLiquidityUpdated>(
         "minLiquidityWAD",
         BigInt.fromI32(5_002),
         accountantCtx()
@@ -915,8 +947,7 @@ describe("the kernel sync handlers", () => {
     );
   });
 
-  test("the deployed Operation enum maps 0..7, and anything beyond is 'unknown'", () => {
-    // The deployed contract has distinct multi-asset deposit and redeem ordinals.
+  test("the deployed Operation enum maps 0..5, and anything beyond is 'unknown'", () => {
     const names = [
       "stDeposit",
       "stRedeem",
@@ -924,8 +955,6 @@ describe("the kernel sync handlers", () => {
       "jtRedeem",
       "lptDeposit",
       "lptRedeem",
-      "lptMultiAssetDeposit",
-      "lptMultiAssetRedeem",
     ];
     for (let op = 0; op < names.length; op++) {
       clearStore();
@@ -943,12 +972,12 @@ describe("the kernel sync handlers", () => {
       );
     }
 
-    // 8 is one past the end of the deployed enum.
+    // 6 is one past the end of the deployed enum.
     clearStore();
     deployMarket();
     const beyond = kernelCtx();
     handlePostOpTrancheAccountingSynced(
-      createPostOpSyncEvent(8, new TrancheState(), beyond)
+      createPostOpSyncEvent(6, new TrancheState(), beyond)
     );
     assert.fieldEquals(
       "DayTrancheAccountingSyncedHistory",

@@ -21,7 +21,8 @@ prepare_and_deploy() {
     npm exec -- mustache "${metadata_file}" "${template_file}" > "${pipeline_name}.yaml"
 
     if [ $? -eq 0 ]; then
-        goldsky pipeline apply "${pipeline_name}.yaml" --status ACTIVE
+        goldsky pipeline apply "${pipeline_name}.yaml" \
+          --status ACTIVE --from-snapshot none --force
     else
         echo "Error during preparation of ${pipeline_name}"
         return 1

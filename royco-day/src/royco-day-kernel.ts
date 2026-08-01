@@ -38,8 +38,6 @@ import {
   OPERATION_JT_REDEEM,
   OPERATION_LPT_DEPOSIT,
   OPERATION_LPT_REDEEM,
-  OPERATION_LPT_MULTI_ASSET_DEPOSIT,
-  OPERATION_LPT_MULTI_ASSET_REDEEM,
   OPERATION_UNKNOWN,
   SYNC_TYPE_PRE_OP,
   SYNC_TYPE_POST_OP,
@@ -50,7 +48,7 @@ import {
  *
  * Unlike the accountant, THE KERNEL ADDRESS IS THE MARKET ID (§6), so the lookup
  * is direct and costs no eth_call. Contrast
- * src/handlers/base/resolve-market.ts, which must hop accountant -> KERNEL() on
+ * src/handlers/base/resolve-market.ts, which must hop accountant -> getState().kernel on
  * every accountant event. Do not import resolveMarketFromAccountant here.
  *
  * The null guard is still required. In practice it is unreachable — the factory
@@ -314,7 +312,7 @@ class SyncedState {
  *                                   hook, oracle updates, syncTrancheAccounting,
  *                                   reinvestLiquidityPremium, and the first half of
  *                                   every deposit and redemption.
- *   PostOpTrancheAccountingSynced — fires only on the eight deposit/redeem operations,
+ *   PostOpTrancheAccountingSynced — fires only on the six deposit/redeem operations,
  *                                   carrying the settled state plus the `op` enum.
  *
  * THE COLLAPSE RULE: one DayTrancheAccountingSyncedHistory row per (market, block).
@@ -381,7 +379,7 @@ function recordSync(
   syncType: string,
   op: i32
 ): void {
-  // THE KERNEL ADDRESS IS THE MARKET ID (§6) — no ACCOUNTANT.KERNEL() hop. In v1 this
+  // THE KERNEL ADDRESS IS THE MARKET ID (§6) — no accountant getState() hop. In v1 this
   // event lived on the accountant and paid an eth_call per sync just to find its market.
   const market = DayMarketState.load(
     generateMarketId(event.address.toHexString())
@@ -478,8 +476,7 @@ function liveMarketStateName(marketState: i32): string {
  *
  * Declaration order from contracts/libraries/Types.sol — the ABI carries the enum's
  * TYPE but none of its member names, so this is read from source, never inferred (§4).
- * EIGHT members in the deployed contracts. A later candidate folds the distinct
- * LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION members into the plain LPT ones.
+ * The deployed enum has six members; multi-asset LPT flows use the LPT ordinals.
  * Re-read Types.sol whenever contracts/ changes — nothing about the ABI, the build or
  * the tests will tell you this list has gone stale.
  *
@@ -496,9 +493,7 @@ function operationName(op: i32): string {
   if (op == 3) return OPERATION_JT_REDEEM;
   if (op == 4) return OPERATION_LPT_DEPOSIT;
   if (op == 5) return OPERATION_LPT_REDEEM;
-  if (op == 6) return OPERATION_LPT_MULTI_ASSET_DEPOSIT;
-  if (op == 7) return OPERATION_LPT_MULTI_ASSET_REDEEM;
-  // 8+ cannot occur against the current enum. Anything
+  // 6+ cannot occur against the current enum. Anything
   // higher means the enum grew and this list did not — reported as "unknown" rather
   // than silently mapped onto a neighbour.
   return OPERATION_UNKNOWN;

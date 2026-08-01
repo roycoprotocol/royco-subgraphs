@@ -5,8 +5,10 @@ import {
   FixedTermCommenced as FixedTermCommencedEvent,
   FixedTermEnded as FixedTermEndedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
-  CoverageUpdated as CoverageUpdatedEvent,
-  LiquidityUpdated as LiquidityUpdatedEvent,
+  FixedTermCommenceableAt as FixedTermCommenceableAtEvent,
+  FixedTermCommenceableAtTimestampUpdated as FixedTermCommenceableAtTimestampUpdatedEvent,
+  MinCoverageUpdated as MinCoverageUpdatedEvent,
+  MinLiquidityUpdated as MinLiquidityUpdatedEvent,
   LiquidationCoverageUtilizationUpdated as LiquidationCoverageUtilizationUpdatedEvent,
   SeniorTrancheProtocolFeeUpdated as SeniorTrancheProtocolFeeUpdatedEvent,
   JuniorTrancheProtocolFeeUpdated as JuniorTrancheProtocolFeeUpdatedEvent,
@@ -41,7 +43,7 @@ import {
  *
  * EVERY handler here starts with resolveMarketFromAccountant() and returns on
  * null. The accountant address is NOT the marketId (§6), and the market may not
- * exist yet: initialize() emits CoverageUpdated and FixedTermDurationUpdated
+ * exist yet: initialize() emits MinCoverageUpdated and FixedTermDurationUpdated
  * during deployMarket, at a LOWER log index than the MarketDeploymentCompleted
  * that creates this template and writes the market.
  *
@@ -60,7 +62,7 @@ import {
  * THE SYNC HANDLER NO LONGER LIVES HERE. v2 replaced the accountant's
  * TrancheAccountingSynced with the kernel's PreOp/PostOpTrancheAccountingSynced pair,
  * so it moved to src/royco-day-kernel.ts — where event.address IS the marketId, making
- * the ACCOUNTANT.KERNEL() hop every handler below still pays unnecessary for it.
+ * the ACCOUNTANT.getState().kernel hop every handler below still pays unnecessary for it.
  * Everything left in this file is a config or lifecycle event.
  */
 
@@ -180,6 +182,28 @@ export function handleFixedTermDurationUpdated(
   touchMarket(event, market);
 }
 
+export function handleFixedTermCommenceableAtTimestampUpdated(
+  event: FixedTermCommenceableAtTimestampUpdatedEvent,
+): void {
+  const market = resolveMarketFromAccountant(event);
+  if (!market) return;
+
+  market.fixedTermCommenceableAtTimestamp =
+    event.params.fixedTermCommenceableAtTimestamp;
+  touchMarket(event, market);
+}
+
+export function handleFixedTermCommenceableAt(
+  event: FixedTermCommenceableAtEvent,
+): void {
+  const market = resolveMarketFromAccountant(event);
+  if (!market) return;
+
+  market.fixedTermCommenceableAtTimestamp =
+    event.params.fixedTermCommenceableAtTimestamp;
+  touchMarket(event, market);
+}
+
 /**
  * The JT impermanent loss that was erased — the ONLY witness to that
  * number anywhere on chain. The Accountant copies it into a local and zeroes
@@ -241,7 +265,7 @@ export function handleJuniorTrancheImpermanentLossReset(
 // CONFIG — each event carries its own new value; no contract reads needed.
 // =============================================================================
 
-export function handleCoverageUpdated(event: CoverageUpdatedEvent): void {
+export function handleMinCoverageUpdated(event: MinCoverageUpdatedEvent): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
@@ -249,7 +273,7 @@ export function handleCoverageUpdated(event: CoverageUpdatedEvent): void {
   touchMarket(event, market);
 }
 
-export function handleLiquidityUpdated(event: LiquidityUpdatedEvent): void {
+export function handleMinLiquidityUpdated(event: MinLiquidityUpdatedEvent): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 

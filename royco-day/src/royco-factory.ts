@@ -120,6 +120,8 @@ export function handleMarketDeploymentCompleted(
   market.fixedTermDurationSeconds = BigInt.fromI32(
     accountantState.fixedTermDurationSeconds
   );
+  market.fixedTermCommenceableAtTimestamp =
+    accountantState.fixedTermCommenceableAtTimestamp;
   market.fixedTermEndTimestamp = accountantState.fixedTermEndTimestamp;
   market.lastYieldShareAccruedTimestamp =
     accountantState.lastYieldShareAccrualTimestamp;
@@ -176,7 +178,7 @@ export function handleMarketDeploymentCompleted(
   // COLLATERAL_ASSET and liquidity.asset() == LPT_ASSET, so these must agree with the
   // per-vault assetTokenAddress that createVault reads below; storing them at market
   // level saves a three-way join and gives Neon a free consistency check.
-  const collateralAsset = kernel.COLLATERAL_ASSET().toHexString();
+  const collateralAsset = kernel.collateralAsset().toHexString();
   market.collateralTokenAddress = collateralAsset;
   market.collateralTokenId = generateMarketTokenId(
     collateralAsset,
@@ -184,7 +186,7 @@ export function handleMarketDeploymentCompleted(
     MARKET_TOKEN_ROLE_COLLATERAL_ASSET
   );
 
-  const lptAsset = kernel.LPT_ASSET().toHexString();
+  const lptAsset = kernel.lptAsset().toHexString();
   market.liquidityTrancheAssetTokenAddress = lptAsset;
   market.liquidityTrancheAssetTokenId = generateMarketTokenId(
     lptAsset,
@@ -197,7 +199,7 @@ export function handleMarketDeploymentCompleted(
   // venue need not implement it. A raw revert here would take down this handler, and
   // with it the market, all three vaults and every row that ever hangs off them. The
   // zero address is the truthful answer for a venue-less market.
-  const quote = kernel.try_QUOTE_ASSET();
+  const quote = kernel.try_quoteAsset();
   const quoteAsset = quote.reverted ? ZERO_ADDRESS : quote.value.toHexString();
   market.quoteAssetTokenAddress = quoteAsset;
   market.quoteAssetTokenId = generateMarketTokenId(
@@ -327,27 +329,6 @@ export function handleMarketDeploymentCompleted(
   );
 
   // DayMarketNav entry 0.
-  //
-  //   assetPrice* — READ LIVE here, three calls: the two Kernel converters plus the
-  //                 BPT's getPoolTokenRates for the quote leg. (An older comment
-  //                 claimed these were free because createVault had already read them.
-  //                 That stopped being true when DayVaultState lost assetPriceNAV —
-  //                 no vault stores a price any more.)
-  //
-  //   sharePrice* — NOT read, and NOT an omission: all twelve legs are provably ZERO
-  //                 at creation, so the three convertToAssets calls would cost an
-  //                 eth_call each to return a struct we already know. Supply is zero
-  //                 here — deployMarket only predicts addresses and wires roles, and
-  //                 every mint path (kernelMint, the protocol-fee mint, the senior
-  //                 premium mint) is onlyKernel and guarded — and
-  //                 AssetLedgerLogic._scaleAssetClaims returns the zero struct
-  //                 outright when _totalTrancheShares == 0, BEFORE virtual shares are
-  //                 applied. So zero is the contract's own answer for any input,
-  //                 including one whole share.
-  //
-  // The sync path cannot take that shortcut: once supply is non-zero the prices are
-  // real and change on every mint, burn and re-price, so refreshMarketNav reads all
-  // three quadruples live. That is where sharePrice* stops being zero.
   writeMarketNav(
     event,
     market,
@@ -437,15 +418,8 @@ function createVault(
   vault.shareTokenAddress = vaultAddress;
   vault.shareTokenDecimals = tranche.decimals();
 
-  // ZERO, not totalSupply(). A market has no shares at deployment — deployMarket
-  // only predicts addresses and wires roles, and initialize() does not mint.
-  //
-  // This field is an ACCUMULATOR from here on: the tranche Transfer handlers add
-  // and subtract on every mint and burn. That needs a truthful base, and
-  // totalSupply() cannot give one — graph-node runs eth_call against END-OF-BLOCK
-  // state, so a deposit landing in this same block at a higher log index would
-  // already be counted here, and then counted AGAIN when its Transfer(mint) is
-  // handled. Silent, permanent, and it corrupts every claims* derived from it.
+  // Dynamic templates also process matching logs from earlier in their creation
+  // block, so deployment-time seed mints build this accumulator from zero.
   vault.sharesTotalSupply = BigInt.zero();
 
   // No claims* / sharePrice* to seed: DayVaultState carries neither quintuple any

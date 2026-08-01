@@ -33,7 +33,6 @@ const SHARED_VIEWS = [
   "totalSupply",
   "convertToAssets",
   "TRANCHE_TYPE",
-  "KERNEL",
 ];
 
 test("the three tranches' shared view surfaces are byte-identical", () => {

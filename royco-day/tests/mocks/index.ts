@@ -63,22 +63,9 @@ export function mockTrancheToken(
   createMockedFunction(tranche, "totalSupply", "totalSupply():(uint256)")
     .withArgs([])
     .returns([ethereum.Value.fromUnsignedBigInt(totalSupply)]);
-  createMockedFunction(tranche, "KERNEL", "KERNEL():(address)")
+  createMockedFunction(tranche, "kernel", "kernel():(address)")
     .withArgs([])
     .returns([ethereum.Value.fromAddress(ADDR_KERNEL)]);
-}
-
-/**
- * Mock ACCOUNTANT.KERNEL() — the accountant -> market hop.
- *
- * The accountant address is NOT the marketId; the kernel's is (§6). Every
- * accountant handler makes this call before it can touch a DayMarketState, so
- * without this mock every one of them aborts.
- */
-export function mockAccountantKernel(accountant: Address, kernel: Address): void {
-  createMockedFunction(accountant, "KERNEL", "KERNEL():(address)")
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(kernel)]);
 }
 
 /** Mock the asset token itself (needed for DayVaultState.assetTokenDecimals). */
@@ -236,13 +223,13 @@ export function mockKernelAssets(
   lptAsset: Address,
   quoteAsset: Address
 ): void {
-  createMockedFunction(kernel, "COLLATERAL_ASSET", ROYCO_DAY_KERNEL__COLLATERAL_ASSET)
+  createMockedFunction(kernel, "collateralAsset", ROYCO_DAY_KERNEL__COLLATERAL_ASSET)
     .withArgs([])
     .returns([ethereum.Value.fromAddress(collateralAsset)]);
-  createMockedFunction(kernel, "LPT_ASSET", ROYCO_DAY_KERNEL__LPT_ASSET)
+  createMockedFunction(kernel, "lptAsset", ROYCO_DAY_KERNEL__LPT_ASSET)
     .withArgs([])
     .returns([ethereum.Value.fromAddress(lptAsset)]);
-  createMockedFunction(kernel, "QUOTE_ASSET", ROYCO_DAY_KERNEL__QUOTE_ASSET)
+  createMockedFunction(kernel, "quoteAsset", ROYCO_DAY_KERNEL__QUOTE_ASSET)
     .withArgs([])
     .returns([ethereum.Value.fromAddress(quoteAsset)]);
 }
@@ -255,7 +242,7 @@ export function mockKernelAssets(
  * merely asserted in a comment.
  */
 export function mockQuoteAssetReverts(kernel: Address): void {
-  createMockedFunction(kernel, "QUOTE_ASSET", ROYCO_DAY_KERNEL__QUOTE_ASSET)
+  createMockedFunction(kernel, "quoteAsset", ROYCO_DAY_KERNEL__QUOTE_ASSET)
     .withArgs([])
     .reverts();
 }
@@ -347,6 +334,8 @@ export class DayMarketFixture {
     m.accountantState.minCoverageWAD = WAD.div(BigInt.fromI32(2)); // 50%
     m.accountantState.minLiquidityWAD = WAD.div(BigInt.fromI32(4)); // 25%
     m.accountantState.fixedTermDurationSeconds = 30 * 24 * 60 * 60; // uint24
+    m.accountantState.fixedTermCommenceableAtTimestamp =
+      BigInt.fromI32(1_700_000_000);
     m.accountantState.lastMarketState = 0; // "perpetual"
 
     // Distinct non-zero sentinels for every member the handler reads. Left at the
@@ -449,8 +438,15 @@ function seedClaims(c: Claims, base: i32): void {
  * place. Mock generously.
  */
 export function mockDayMarket(m: DayMarketFixture): void {
+  m.accountantState.kernel = m.kernel;
+  m.kernelState.seniorTranche = m.seniorTranche;
+  m.kernelState.juniorTranche = m.juniorTranche;
+  m.kernelState.liquidityProviderTranche = m.liquidityTranche;
+  m.kernelState.collateralAsset = m.collateralAsset;
+  m.kernelState.lptAsset = m.lptAsset;
+  m.kernelState.quoteAsset = m.quoteAsset;
+  m.kernelState.accountant = m.accountant;
   mockAccountantGetState(m.accountant, m.accountantState);
-  mockAccountantKernel(m.accountant, m.kernel);
   mockKernelGetState(m.kernel, m.kernelState);
   mockKernelPaused(m.kernel, m.kernelPaused);
   mockBalancerV3LiquidityVenueState(

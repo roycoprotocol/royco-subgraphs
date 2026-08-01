@@ -22,12 +22,12 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.3"
+version="1.0.5"
 
 for network in "${networks[@]}"; do
     subgraph_name="royco-day-markets-${network}/${version}"
     echo "Deleting ${subgraph_name}..."
-    goldsky subgraph delete "${subgraph_name}"
+    goldsky subgraph delete "${subgraph_name}" || exit 1
 done
 
 echo "Script completed!"

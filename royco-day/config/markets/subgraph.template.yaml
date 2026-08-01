@@ -286,11 +286,17 @@ templates:
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
           receipt: true
-        - event: CoverageUpdated(uint64)
-          handler: handleCoverageUpdated
+        - event: FixedTermCommenceableAt(uint64)
+          handler: handleFixedTermCommenceableAt
           receipt: true
-        - event: LiquidityUpdated(uint64)
-          handler: handleLiquidityUpdated
+        - event: FixedTermCommenceableAtTimestampUpdated(uint64)
+          handler: handleFixedTermCommenceableAtTimestampUpdated
+          receipt: true
+        - event: MinCoverageUpdated(uint64)
+          handler: handleMinCoverageUpdated
+          receipt: true
+        - event: MinLiquidityUpdated(uint64)
+          handler: handleMinLiquidityUpdated
           receipt: true
         - event: LiquidationCoverageUtilizationUpdated(uint256)
           handler: handleLiquidationCoverageUtilizationUpdated
@@ -387,7 +393,7 @@ templates:
         # BOTH sync events, collapsing into one row per (market, block): pre-op creates
         # it, post-op overwrites it. Pre-op fires on EVERY sync (swap hook, oracle
         # updates, syncTrancheAccounting, reinvest, and the first half of each
-        # operation); post-op only on the eight deposit/redeem operations.
+        # operation); post-op only on the six deposit/redeem operations.
         # event.address is the KERNEL, so these resolve the market with no eth_call.
         - event: PreOpTrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
           handler: handlePreOpTrancheAccountingSynced

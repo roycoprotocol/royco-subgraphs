@@ -8,10 +8,10 @@
 set -uo pipefail
 
 networks=(
-    mainnet
+    staging
 )
 
-version="1.0.0"
+version="2.0.3"
 
 for network in "${networks[@]}"; do
     subgraph_name="royco-day-entrypoint-${network}/${version}"

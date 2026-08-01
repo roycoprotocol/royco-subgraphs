@@ -20,8 +20,11 @@ import {
   ADDR_BLACKLIST,
   ADDR_FEE_RECIPIENT,
   ADDR_JT_YDM,
+  ADDR_JUNIOR,
   ADDR_KERNEL,
+  ADDR_LIQUIDITY,
   ADDR_LT_YDM,
+  ADDR_SENIOR,
 } from "../helpers/constants";
 
 // =============================================================================
@@ -43,7 +46,7 @@ describe("RoycoDayAccountant.getState mock", () => {
     clearStore();
   });
 
-  test("all 27 fields round-trip through the real binding", () => {
+  test("all 26 fields round-trip through the real binding", () => {
     const s = new AccountantState();
     s.stProtocolFeeWAD = BigInt.fromI32(2000);
     s.jtProtocolFeeWAD = BigInt.fromI32(2001);
@@ -60,12 +63,13 @@ describe("RoycoDayAccountant.getState mock", () => {
     s.maxJTYieldShareWAD = BigInt.fromI32(2014);
     s.twLPTYieldShareAccruedWAD = BigInt.fromI32(2015);
     s.maxLPTYieldShareWAD = BigInt.fromI32(2016);
-    s.coverageLiquidationUtilizationWAD = BigInt.fromI32(2017);
-    s.lastCollateralNAV = BigInt.fromI32(2018);
-    s.lastSTEffectiveNAV = BigInt.fromI32(2020);
-    s.lastJTEffectiveNAV = BigInt.fromI32(2021);
-    s.lastLPTRawNAV = BigInt.fromI32(2023);
-    s.dustTolerance = BigInt.fromI32(2024);
+    s.fixedTermCommenceableAtTimestamp = BigInt.fromI32(2017);
+    s.coverageLiquidationUtilizationWAD = BigInt.fromI32(2019);
+    s.lastCollateralNAV = BigInt.fromI32(2020);
+    s.lastSTEffectiveNAV = BigInt.fromI32(2021);
+    s.lastJTEffectiveNAV = BigInt.fromI32(2022);
+    s.lastLPTRawNAV = BigInt.fromI32(2024);
+    s.dustTolerance = BigInt.fromI32(2025);
 
     mockAccountantGetState(ADDR_ACCOUNTANT, s);
 
@@ -90,15 +94,20 @@ describe("RoycoDayAccountant.getState mock", () => {
     assert.bigIntEquals(got.maxJTYieldShareWAD, BigInt.fromI32(2014));
     assert.bigIntEquals(got.twLPTYieldShareAccruedWAD, BigInt.fromI32(2015));
     assert.bigIntEquals(got.maxLPTYieldShareWAD, BigInt.fromI32(2016));
+    assert.addressEquals(got.kernel, ADDR_KERNEL);
     assert.bigIntEquals(
-      got.coverageLiquidationUtilizationWAD,
+      got.fixedTermCommenceableAtTimestamp,
       BigInt.fromI32(2017)
     );
-    assert.bigIntEquals(got.lastCollateralNAV, BigInt.fromI32(2018));
-    assert.bigIntEquals(got.lastSTEffectiveNAV, BigInt.fromI32(2020));
-    assert.bigIntEquals(got.lastJTEffectiveNAV, BigInt.fromI32(2021));
-    assert.bigIntEquals(got.lastLPTRawNAV, BigInt.fromI32(2023));
-    assert.bigIntEquals(got.dustTolerance, BigInt.fromI32(2024));
+    assert.bigIntEquals(
+      got.coverageLiquidationUtilizationWAD,
+      BigInt.fromI32(2019)
+    );
+    assert.bigIntEquals(got.lastCollateralNAV, BigInt.fromI32(2020));
+    assert.bigIntEquals(got.lastSTEffectiveNAV, BigInt.fromI32(2021));
+    assert.bigIntEquals(got.lastJTEffectiveNAV, BigInt.fromI32(2022));
+    assert.bigIntEquals(got.lastLPTRawNAV, BigInt.fromI32(2024));
+    assert.bigIntEquals(got.dustTolerance, BigInt.fromI32(2025));
   });
 });
 
@@ -107,7 +116,7 @@ describe("RoycoDayKernel mocks", () => {
     clearStore();
   });
 
-  test("getState round-trips all 7 fields", () => {
+  test("getState round-trips all 19 fields", () => {
     const s = new KernelState();
     s.stSelfLiquidationBonusWAD = BigInt.fromI32(4001);
     s.totalCollateralAssets = BigInt.fromI32(4002);
@@ -118,6 +127,10 @@ describe("RoycoDayKernel mocks", () => {
 
     const got = RoycoDayKernel.bind(ADDR_KERNEL).getState();
 
+    assert.addressEquals(got.seniorTranche, ADDR_SENIOR);
+    assert.addressEquals(got.juniorTranche, ADDR_JUNIOR);
+    assert.addressEquals(got.liquidityProviderTranche, ADDR_LIQUIDITY);
+    assert.addressEquals(got.accountant, ADDR_ACCOUNTANT);
     assert.addressEquals(got.protocolFeeRecipient, ADDR_FEE_RECIPIENT);
     assert.bigIntEquals(got.stSelfLiquidationBonusWAD, BigInt.fromI32(4001));
     assert.bigIntEquals(got.totalCollateralAssets, BigInt.fromI32(4002));

@@ -93,10 +93,10 @@ export const SYNC_TYPE_POST_OP = "postOp";
 // PostOpTrancheAccountingSynced's `op` (uint8 enum -> i32).
 //
 // Order is the on-chain `Operation` enum's declaration order
-// (contracts/libraries/Types.sol) — EIGHT members in the deployed contracts. The ABI
+// (contracts/libraries/Types.sol) — six members in the deployed contracts. The ABI
 // carries the enum's TYPE name but none of its member names, so this ordering comes
-// from the source and is not guessable (§4). A later candidate folds the distinct
-// LPT_MULTI_ASSET_DEPOSIT / _REDEMPTION members into the plain LPT ones. Re-read
+// from the source and is not guessable (§4). Multi-asset LPT flows use the plain LPT
+// operation values. Re-read
 // Types.sol whenever contracts/ changes; the ABI, build, and tests cannot reveal drift.
 //
 export const OPERATION_ST_DEPOSIT = "stDeposit"; // enum 0
@@ -105,8 +105,6 @@ export const OPERATION_JT_DEPOSIT = "jtDeposit"; // enum 2
 export const OPERATION_JT_REDEEM = "jtRedeem"; // enum 3
 export const OPERATION_LPT_DEPOSIT = "lptDeposit"; // enum 4
 export const OPERATION_LPT_REDEEM = "lptRedeem"; // enum 5
-export const OPERATION_LPT_MULTI_ASSET_DEPOSIT = "lptMultiAssetDeposit"; // enum 6
-export const OPERATION_LPT_MULTI_ASSET_REDEEM = "lptMultiAssetRedeem"; // enum 7
 // An out-of-range ordinal means the enum grew and this list did not — surfaced as
 // "unknown" rather than silently mapped to a neighbour.
 export const OPERATION_UNKNOWN = "unknown";

@@ -26,7 +26,7 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.3" # Note: bump when redeploying a changed schema/mapping
+version="1.0.5" # Note: bump when redeploying a changed schema/mapping
 
 prepare_and_deploy() {
     local network=$1
@@ -53,7 +53,7 @@ rm -rf build generated
 
 echo -e "\n=== Preparation and Deployment Phase ==="
 for network in "${networks[@]}"; do
-    prepare_and_deploy "$network"
+    prepare_and_deploy "$network" || exit 1
 done
 
 echo "Script completed!"

@@ -10,9 +10,8 @@ import { generateMarketId } from "../../utils";
  * every accountant handler has to make this hop; a kernel handler does not
  * (there, event.address IS the marketId).
  *
- * ACCOUNTANT.KERNEL() is a `view` returning an address fixed at initialize, and
- * §5 names KERNEL() explicitly among the immutable metadata reads where a raw
- * call is fine. It costs one eth_call per event, which is why this is used rather
+ * ACCOUNTANT.getState().kernel returns the address fixed at initialization.
+ * It costs one eth_call per event, which is why this is used rather
  * than an AccountantMarketMap lookup entity (royco-rwa's approach): these are
  * governance/config events that fire rarely, and a map entity would be a schema
  * change plus a pipeline change plus a table, to save a call on a cold path. If a
@@ -20,7 +19,7 @@ import { generateMarketId } from "../../utils";
  * would), revisit — that is the point where the map earns its keep.
  *
  * RETURNS NULL, and callers MUST early-return on it. Not defensive padding: the
- * Accountant's initialize() emits CoverageUpdated and FixedTermDurationUpdated
+ * Accountant's initialize() emits MinCoverageUpdated and FixedTermDurationUpdated
  * DURING deployMarket, i.e. at a LOWER log index than the factory's
  * MarketDeploymentCompleted that creates this template and writes the market. So
  * if graph-node ever replays those earlier same-block logs into the freshly
@@ -32,7 +31,7 @@ export function resolveMarketFromAccountant(
   event: ethereum.Event
 ): DayMarketState | null {
   const accountant = RoycoDayAccountantContract.bind(event.address);
-  const kernel = accountant.KERNEL().toHexString();
+  const kernel = accountant.getState().kernel.toHexString();
   return DayMarketState.load(generateMarketId(kernel));
 }
 
