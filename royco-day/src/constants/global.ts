@@ -114,6 +114,18 @@ export const OPERATION_LPT_REDEEM = "lptRedeem"; // enum 5
 // "unknown" rather than silently mapped to a neighbour.
 export const OPERATION_UNKNOWN = "unknown";
 
+// === MARKET TOKEN ROLES ===
+// The trailing component of DayMarketState's three market-level token ids
+// (generateMarketTokenId). These land in Postgres inside the id string, so they are part
+// of the public contract exactly like a column value — adding is cheap, changing is a
+// migration (§9).
+//
+// They name the role a token plays IN A MARKET, not the token itself: the same ERC20 can
+// be collateral in one market and the quote asset in another.
+export const MARKET_TOKEN_ROLE_COLLATERAL_ASSET = "collateralAsset";
+export const MARKET_TOKEN_ROLE_LPT_ASSET = "lptAsset";
+export const MARKET_TOKEN_ROLE_QUOTE_ASSET = "quoteAsset";
+
 // === TRANCHE TYPES ===
 // DayVaultState.minorType / DayVaultStateHistorical.minorType.
 //

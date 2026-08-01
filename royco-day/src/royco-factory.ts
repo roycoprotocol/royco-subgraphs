@@ -22,6 +22,9 @@ import {
   MARKET_STATE_PERPETUAL,
   VAULT_MAJOR_TYPE,
   ERC20_DECIMALS_UNKNOWN,
+  MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
+  MARKET_TOKEN_ROLE_LPT_ASSET,
+  MARKET_TOKEN_ROLE_QUOTE_ASSET,
   TRANCHE_TYPE_SENIOR,
   TRANCHE_TYPE_JUNIOR,
   TRANCHE_TYPE_LIQUIDITY,
@@ -29,10 +32,12 @@ import {
 } from "./constants";
 import {
   generateMarketId,
+  generateMarketTokenId,
   generateTokenId,
   generateVaultId,
 } from "./utils";
 import { snapshotVault } from "./handlers/base/update-vault";
+import { marketAssetTokenId } from "./handlers/base/market-token-id";
 import { resolveQuotePoolBinding } from "./handlers/base/quote-price-nav";
 import {
   marketNavPricesFromVaults,
@@ -163,11 +168,19 @@ export function handleMarketDeploymentCompleted(
   // level saves a three-way join and gives Neon a free consistency check.
   const collateralAsset = kernel.COLLATERAL_ASSET().toHexString();
   market.collateralTokenAddress = collateralAsset;
-  market.collateralTokenId = generateTokenId(collateralAsset);
+  market.collateralTokenId = generateMarketTokenId(
+    collateralAsset,
+    marketId,
+    MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+  );
 
   const lptAsset = kernel.LPT_ASSET().toHexString();
   market.liquidityTrancheAssetTokenAddress = lptAsset;
-  market.liquidityTrancheAssetTokenId = generateTokenId(lptAsset);
+  market.liquidityTrancheAssetTokenId = generateMarketTokenId(
+    lptAsset,
+    marketId,
+    MARKET_TOKEN_ROLE_LPT_ASSET
+  );
 
   // QUOTE_ASSET is the ONE that needs try_. It is `virtual` and BODYLESS on the base
   // kernel — only the liquidity venue concretises it — so a kernel variant without a
@@ -177,7 +190,11 @@ export function handleMarketDeploymentCompleted(
   const quote = kernel.try_QUOTE_ASSET();
   const quoteAsset = quote.reverted ? ZERO_ADDRESS : quote.value.toHexString();
   market.quoteAssetTokenAddress = quoteAsset;
-  market.quoteAssetTokenId = generateTokenId(quoteAsset);
+  market.quoteAssetTokenId = generateMarketTokenId(
+    quoteAsset,
+    marketId,
+    MARKET_TOKEN_ROLE_QUOTE_ASSET
+  );
   // Its decimals, and try_ AGAIN — a second failure mode, not the same one. Even when
   // QUOTE_ASSET resolves, `decimals()` is optional in ERC20 and a token that omits it
   // reverts; and when QUOTE_ASSET did NOT resolve we would be calling the zero address.
@@ -392,8 +409,15 @@ function createVault(
   // time to feed ERC20.bind cost a redundant round-trip per vault, three per market.
   const assetToken = tranche.asset();
   const assetAddress = assetToken.toHexString();
-  vault.assetTokenId = generateTokenId(assetAddress);
   vault.assetTokenAddress = assetAddress;
+  // MARKET-SCOPED AND ROLE-TAGGED, matching DayMarketState.collateralTokenId /
+  // liquidityTrancheAssetTokenId for the same token in the same role. Set AFTER
+  // assetTokenAddress, minorType and marketId, because marketAssetTokenId reads all
+  // three off the vault.
+  //
+  // This is the ONE definition: the Global* asset rows read this column rather than
+  // recomputing, so a vault's asset id and its transfer rows cannot drift apart.
+  vault.assetTokenId = marketAssetTokenId(vault);
   // decimals() is uint8 -> i32, and Int! IS i32 — assign direct, never
   // BigInt.fromI32() (§4).
   vault.assetTokenDecimals = ERC20.bind(assetToken).decimals();

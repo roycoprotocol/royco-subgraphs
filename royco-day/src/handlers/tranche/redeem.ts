@@ -108,6 +108,9 @@ function emitLeg(
     vault.vaultAddress,
     CATEGORY_ASSETS,
     SUB_CATEGORY_WITHDRAW,
+    // The LEG's own token id — the LEG vault's role, not the redeeming vault's: a
+    // senior redeem can pay out an LPT-asset leg, and that row must join to
+    // DayMarketState.liquidityTrancheAssetTokenId, not to collateralTokenId.
     legVault.assetTokenId,
     legVault.assetTokenAddress,
     // The REDEEMING vault, mirroring royco-rwa's handleWithdraw (fromAddress =

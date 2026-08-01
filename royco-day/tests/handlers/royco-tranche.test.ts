@@ -49,6 +49,7 @@ import {
   ADDR_DEPLOYER,
   ADDR_JUNIOR,
   ADDR_KERNEL,
+  ADDR_LPT_ASSET,
   ADDR_LIQUIDITY,
   ADDR_SENIOR,
   ADDR_TEMPLATE,
@@ -64,7 +65,13 @@ import {
   generateVaultStateHistoricalId,
   generateTokenId,
   generateVaultId,
+  generateMarketId,
+  generateMarketTokenId,
 } from "../../src/utils";
+import {
+  MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
+  MARKET_TOKEN_ROLE_LPT_ASSET,
+} from "../../src/constants";
 import { CATEGORY_ASSETS, CATEGORY_SHARES } from "../../src/constants";
 
 // =============================================================================
@@ -678,11 +685,31 @@ describe("processDeposit", () => {
       "tokenAddress",
       ADDR_ASSET.toHexString()
     );
+    // ASSET rows carry the MARKET-SCOPED, ROLE-TAGGED id — the same value as
+    // DayMarketState.collateralTokenId, so the row joins straight to the market column
+    // naming this token in this role. SHARE rows deliberately keep the chain-global
+    // form; see the "a plain transfer" tests and marketAssetTokenId.
     assert.fieldEquals(
       "GlobalTokenTransfer",
       transferId,
       "tokenId",
-      generateTokenId(ADDR_ASSET.toHexString())
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
+    );
+    // ...and it matches the market row exactly. If these two ever diverge, the join a
+    // consumer would write on them silently returns nothing.
+    assert.fieldEquals(
+      "DayMarketState",
+      generateMarketId(ADDR_KERNEL.toHexString()),
+      "collateralTokenId",
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
     );
   });
 
@@ -762,6 +789,85 @@ describe("processRedeem", () => {
         ADDR_SENIOR.toHexString()
       );
     }
+
+    // EACH LEG CARRIES ITS OWN ROLE, and it is the LEG's role, not the redeeming
+    // vault's. This is a SENIOR redeem, yet leg 1 pays out the LPT asset — so a
+    // handler that tagged both legs from the emitting vault would stamp
+    // `collateralAsset` on leg 1 and the row would no longer join to
+    // DayMarketState.liquidityTrancheAssetTokenId.
+    const collateralLeg = generateGlobalTokenTransferId(
+      TX_HASH.toHexString(),
+      c.logIndex,
+      BigInt.zero()
+    );
+    const lptLeg = generateGlobalTokenTransferId(
+      TX_HASH.toHexString(),
+      c.logIndex,
+      BigInt.fromI32(1)
+    );
+    assert.fieldEquals(
+      "GlobalTokenTransfer",
+      collateralLeg,
+      "tokenId",
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
+    );
+    assert.fieldEquals(
+      "GlobalTokenTransfer",
+      lptLeg,
+      "tokenId",
+      generateMarketTokenId(
+        ADDR_LPT_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_LPT_ASSET
+      )
+    );
+    // ...and each matches its market column, which is the whole point of the format.
+    const marketId = generateMarketId(ADDR_KERNEL.toHexString());
+    assert.fieldEquals(
+      "DayMarketState",
+      marketId,
+      "liquidityTrancheAssetTokenId",
+      generateMarketTokenId(
+        ADDR_LPT_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_LPT_ASSET
+      )
+    );
+  });
+
+  test("SHARE rows keep the chain-global tokenId — two shapes in one column", () => {
+    // THE KNOWN COST of tagging only the asset rows: global_token_activity.token_id
+    // holds two shapes for royco-day. A share token has no role among
+    // {collateralAsset, lptAsset, quoteAsset} — it IS the vault — so share rows keep
+    // the chain-global form every sibling package writes. Branch on `category` before
+    // parsing this column; never assume one shape across it.
+    const market = DayMarketFixture.standard();
+    deployMarket(market);
+    mockFirstMint(ADDR_SENIOR, MINT_AMOUNT, claimsOf(4_100), claimsOf(4_200));
+
+    const c = ctx();
+    c.emitter = ADDR_SENIOR;
+    handleTransfer(
+      createTransferEvent<SeniorTransfer>(ADDR_ZERO, ADDR_ALICE, MINT_AMOUNT, c)
+    );
+
+    const shareRow = generateGlobalTokenTransferId(
+      TX_HASH.toHexString(),
+      c.logIndex,
+      BigInt.zero()
+    );
+    assert.fieldEquals("GlobalTokenTransfer", shareRow, "category", "shares");
+    // Chain-global: NO market, NO role suffix.
+    assert.fieldEquals(
+      "GlobalTokenTransfer",
+      shareRow,
+      "tokenId",
+      generateTokenId(ADDR_SENIOR.toHexString())
+    );
   });
 
   test("a zero leg is SKIPPED and the indices stay positional", () => {

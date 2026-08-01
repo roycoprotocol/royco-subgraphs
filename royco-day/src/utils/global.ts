@@ -129,9 +129,56 @@ export const generateMarketBlockRecordId = (
 
 // === TOKENS / VAULTS ===
 
+
 /** <CHAIN_ID>_<TOKEN_ADDRESS> */
 export const generateTokenId = (tokenAddress: string): string => {
   return CHAIN_ID.toString().concat("_").concat(tokenAddress);
+};
+
+/**
+ * DayMarketState's three MARKET-LEVEL token pointers:
+ *   <CHAIN_ID>_<TOKEN_ADDRESS>_<MARKET_ID>_<ROLE>
+ *
+ * DELIBERATELY A DIFFERENT SHAPE from generateTokenId below, which every other
+ * *TokenId column uses. The plain form is <CHAIN_ID>_<TOKEN_ADDRESS> — chain-global, so
+ * two markets sharing a collateral token produce the SAME id. These three are scoped to
+ * the market AND tagged with the role the token plays in it, so a token that is
+ * collateral in one market and the quote asset in another stays distinguishable, and a
+ * market's three token rows group under its own prefix.
+ *
+ * `role` is one of the MARKET_TOKEN_ROLE_* constants — never a literal, so the value that
+ * lands in Postgres has one definition (§9).
+ *
+ * WHO USES THIS SHAPE, as of the asset-token rollout:
+ *    DayMarketState.collateralTokenId / liquidityTrancheAssetTokenId /
+ *      quoteAssetTokenId   — set here, directly
+ *    DayVaultState.assetTokenId — set via marketAssetTokenId, which picks the role off
+ *      the vault's minorType
+ *    Global* tokenId on `category == "assets"` — inherited by reading
+ *      DayVaultState.assetTokenId, never recomputed
+ *
+ * !! AND WHO DELIBERATELY DOES NOT. DayVaultState.shareTokenId, and the Global* rows on
+ *    `category == "shares"` that carry it, stay chain-global: a share token has no role
+ *    among {collateralAsset, lptAsset, quoteAsset} — it IS the vault. So Global*
+ *    tokenId holds TWO SHAPES for royco-day; branch on `category` before parsing it.
+ *    That column is also a cross-package contract shared with royco-rwa, royco-usd and
+ *    staked-royco-usd, all of which write only the chain-global form — see the note on
+ *    marketAssetTokenId for what that means for a downstream join.
+ *
+ * `marketId` is the bare KERNEL ADDRESS (market.marketId), never the composite
+ * DayMarketState.id — passing the latter yields "1_0xtoken_1_0xkernel_role", which
+ * builds and indexes.
+ */
+export const generateMarketTokenId = (
+  tokenAddress: string,
+  marketId: string,
+  role: string
+): string => {
+  return generateTokenId(tokenAddress)
+    .concat("_")
+    .concat(marketId)
+    .concat("_")
+    .concat(role);
 };
 
 /** DayVaultState.id = <CHAIN_ID>_<VAULT_ADDRESS> */

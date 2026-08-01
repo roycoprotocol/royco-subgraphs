@@ -40,8 +40,14 @@ import {
   WAD,
 } from "../helpers/constants";
 import {
+  MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
+  MARKET_TOKEN_ROLE_LPT_ASSET,
+  MARKET_TOKEN_ROLE_QUOTE_ASSET,
+} from "../../src/constants";
+import {
   generateMarketId,
   generateMarketNavId,
+  generateMarketTokenId,
   generateTokenId,
   generateVaultId,
   generateVaultStateHistoricalId,
@@ -490,11 +496,56 @@ describe("handleMarketDeploymentCompleted", () => {
       "assetTokenAddress",
       ADDR_ASSET.toHexString()
     );
+    // THE TWO ID SHAPES SIDE BY SIDE, which is the whole point of this test now:
+    // shareTokenId above is chain-global; assetTokenId is market-scoped and role-tagged.
     assert.fieldEquals(
       "DayVaultState",
       SENIOR_ID,
       "assetTokenId",
-      generateTokenId(ADDR_ASSET.toHexString())
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
+    );
+    // ...and it equals the market's column for the same token in the same role. These
+    // travel completely different paths — tranche.asset() vs Kernel.COLLATERAL_ASSET() —
+    // so asserting they agree is a real check, not a tautology.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralTokenId",
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
+    );
+    // The JUNIOR vault SHARES the collateral role with senior — they are coinvested in
+    // one token, so both must produce the IDENTICAL id. A dispatch that gave junior its
+    // own role, or routed it to the LPT branch, would break the join to
+    // DayMarketState.collateralTokenId for half the market's asset rows.
+    assert.fieldEquals(
+      "DayVaultState",
+      JUNIOR_ID,
+      "assetTokenId",
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
+    );
+    // The LIQUIDITY vault takes the OTHER role off the same helper — a single shared
+    // dispatch, so a wrong branch shows up here rather than only in a transfer row.
+    assert.fieldEquals(
+      "DayVaultState",
+      LIQUIDITY_ID,
+      "assetTokenId",
+      generateMarketTokenId(
+        ADDR_LPT_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_LPT_ASSET
+      )
     );
     // decimals() is uint8 -> i32, and Int! IS i32 — assigned direct, never
     // lifted through BigInt.fromI32() (§4).
@@ -546,7 +597,11 @@ describe("handleMarketDeploymentCompleted", () => {
       "DayMarketState",
       MARKET_ID,
       "collateralTokenId",
-      generateTokenId(ADDR_ASSET.toHexString())
+      generateMarketTokenId(
+        ADDR_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_COLLATERAL_ASSET
+      )
     );
     // A DIFFERENT ERC20 from the collateral — the liquidity tranche has its own asset.
     assert.fieldEquals(
@@ -559,7 +614,11 @@ describe("handleMarketDeploymentCompleted", () => {
       "DayMarketState",
       MARKET_ID,
       "liquidityTrancheAssetTokenId",
-      generateTokenId(ADDR_LPT_ASSET.toHexString())
+      generateMarketTokenId(
+        ADDR_LPT_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_LPT_ASSET
+      )
     );
     // And a third that belongs to NO tranche — this row is its only home.
     assert.fieldEquals(
@@ -572,7 +631,11 @@ describe("handleMarketDeploymentCompleted", () => {
       "DayMarketState",
       MARKET_ID,
       "quoteAssetTokenId",
-      generateTokenId(ADDR_QUOTE_ASSET.toHexString())
+      generateMarketTokenId(
+        ADDR_QUOTE_ASSET.toHexString(),
+        ADDR_KERNEL.toHexString(),
+        MARKET_TOKEN_ROLE_QUOTE_ASSET
+      )
     );
     // 6, from the QUOTE token itself — not 18, which is what every other token in the
     // fixture reports. This is the only record of the quote asset's scale in the whole
@@ -651,7 +714,7 @@ describe("handleMarketDeploymentCompleted", () => {
       "DayMarketState",
       MARKET_ID,
       "quoteAssetTokenId",
-      generateTokenId(ADDR_ZERO_STR)
+      generateMarketTokenId(ADDR_ZERO_STR, ADDR_KERNEL.toHexString(), MARKET_TOKEN_ROLE_QUOTE_ASSET)
     );
     // Decimals fall back too, and CRUCIALLY without calling decimals() on the zero
     // address — an unmocked call there aborts the handler in matchstick and reverts on

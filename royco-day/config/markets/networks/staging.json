@@ -3,6 +3,6 @@
 
   "network": "mainnet",
   "chainId": 1,
-  "roycoFactoryContractAddress": "0xaabc4cfb4260066cef4ec23a46155d98082d23e6",
-  "roycoFactoryStartBlock": 25647237
+  "roycoFactoryContractAddress": "0xbb7c9faa185f3640cff8c1b6d0fb2b86d7f1c3c7",
+  "roycoFactoryStartBlock": 25654458
 }

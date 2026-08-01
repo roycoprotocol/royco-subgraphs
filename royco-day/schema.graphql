@@ -43,6 +43,23 @@ type GlobalTokenTransfer @entity(immutable: true) {
   category: String! # Category ("shares", "assets")
   subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
   tokenId: String! # Token ID
+  # ^ TWO SHAPES IN THIS COLUMN, for royco-day rows, and you must branch on `category`
+  #   before parsing it:
+  #     category == "assets"  -> <CHAIN_ID>_<TOKEN_ADDRESS>_<MARKET_ID>_<ROLE>, matching
+  #                              DayMarketState.collateralTokenId /
+  #                              liquidityTrancheAssetTokenId exactly
+  #     category == "shares"  -> <CHAIN_ID>_<TOKEN_ADDRESS>, chain-global
+  #   A share token has no role among {collateralAsset, lptAsset, quoteAsset} — it IS the
+  #   vault — so only the asset rows can be tagged. See marketAssetTokenId.
+  #
+  #   !! AND IT DIVERGES FROM THE OTHER PACKAGES sharing this table. royco-rwa, royco-usd
+  #      and staked-royco-usd all write the chain-global form into this same column. Rows
+  #      cannot collide (ids are chain+tx+log scoped), but a consumer joining token_id to
+  #      a chain-global token dimension will MISS royco-day's asset rows rather than
+  #      error. Join on `tokenAddress` — unchanged, present on every row in every
+  #      package — or strip the trailing <MARKET_ID>_<ROLE> first. This is the same class
+  #      of cross-package divergence already documented on generateGlobalTokenTransferId,
+  #      and the same rule applies: do NOT parse this column positionally.
   tokenAddress: String! # Token Address
   fromAddress: String! # From Address
   toAddress: String! # To Address
@@ -198,11 +215,23 @@ type DayMarketState @entity(immutable: false) {
   #    quoteAssetTokenAddress is the exception: it exists on NO tranche, so this is its
   #    only home.
   collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.COLLATERAL_ASSET()
-  collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>
+  collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>_<MARKET_ID>_collateralAsset
   liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.LPT_ASSET()
-  liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>
+  liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>_<MARKET_ID>_lptAsset
   quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.QUOTE_ASSET()
-  quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>
+  quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>_<MARKET_ID>_quoteAsset
+  # ^ THESE THREE ARE MARKET-SCOPED AND ROLE-TAGGED, unlike every other *TokenId column
+  #   in this schema. DayVaultState.assetTokenId / shareTokenId and the two frozen
+  #   Global* tokenId columns are chain-global (<CHAIN_ID>_<TOKEN_ADDRESS>), so two
+  #   markets sharing a collateral token produce the SAME id there. Here the market and
+  #   the token's ROLE are appended, so a token that is collateral in one market and the
+  #   quote asset in another stays distinguishable, and a market's three token rows group
+  #   under its own prefix. Built by generateMarketTokenId; the role suffix comes from a
+  #   MARKET_TOKEN_ROLE_* constant, never a literal.
+  #
+  #   Consequence for Neon: do NOT join these three to a chain-global token table on
+  #   equality — strip the trailing <MARKET_ID>_<ROLE>, or join on the *Address column
+  #   beside each of them, which is unchanged.
   quoteAssetTokenDecimals: Int! # Quote Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   balancerVaultAddress: String! # Balancer V3 Vault Address <- ABI: BalancerPoolToken(LPT_ASSET).getVault()
   quoteAssetPoolIndex: Int! # Which slot of the BPT's 2-token registration order the QUOTE asset occupies (0 or 1)
@@ -640,7 +669,14 @@ type DayVaultState @entity(immutable: false) {
   minorType: String! # Minor Type ("senior", "junior", "liquidity")
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
   marketId: String! # Market ID: <KERNEL_ADDRESS>
-  assetTokenId: String! # Asset Token ID
+  assetTokenId: String! # Asset Token ID: <CHAIN_ID>_<ASSET_TOKEN_ADDRESS>_<MARKET_ID>_<ROLE>
+  # ^ MARKET-SCOPED AND ROLE-TAGGED, matching DayMarketState.collateralTokenId (senior
+  #   and junior, which share one collateral token) or liquidityTrancheAssetTokenId
+  #   (liquidity). The role comes from this vault's own minorType. THE ONE DEFINITION:
+  #   the asset rows on the Global* tables read this column rather than recomputing it.
+  #
+  #   shareTokenId below is deliberately NOT tagged — a share token has no role among
+  #   {collateralAsset, lptAsset, quoteAsset}; it IS this vault. See marketAssetTokenId.
   assetTokenAddress: String! # Asset Token Address
   assetTokenDecimals: Int! # Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   shareTokenId: String! # Share Token ID

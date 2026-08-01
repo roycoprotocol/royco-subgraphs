@@ -40,6 +40,10 @@ export function processDeposit(
     SUB_CATEGORY_DEPOSIT,
     // An entity read, not an eth_call: the loaded vault already carries these.
     // royco-rwa binds the vault and calls asset() here, once per deposit forever.
+    //
+    // Market-scoped and role-tagged, straight off the vault — see marketAssetTokenId
+    // for the two shapes global_token_activity.token_id now holds, and what that means
+    // for a downstream join.
     vault.assetTokenId,
     vault.assetTokenAddress,
     sender.toHexString(),
