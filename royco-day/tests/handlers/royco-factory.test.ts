@@ -20,6 +20,8 @@ import { ctx } from "../helpers/event";
 import {
   ADDR_ACCOUNTANT,
   ADDR_ASSET,
+  ADDR_BLACKLIST,
+  ADDR_BPT_ORACLE,
   ADDR_LPT_ASSET,
   ADDR_QUOTE_ASSET,
   ADDR_ZERO,
@@ -388,6 +390,25 @@ describe("handleMarketDeploymentCompleted", () => {
       MARKET_ID,
       "liquidityTrancheOwnedSeniorTrancheShares",
       "5104"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "roycoBlacklistAddress",
+      ADDR_BLACKLIST.toHexString()
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "kernelPaused", "false");
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "bptOracleAddress",
+      ADDR_BPT_ORACLE.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "maxReinvestmentSlippageWAD",
+      "8201"
     );
   });
 

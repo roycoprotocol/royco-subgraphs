@@ -3,7 +3,9 @@ import { createMockedFunction } from "matchstick-as";
 import { AccountantState, mockAccountantGetState } from "./accountant";
 import {
   KernelState,
+  mockBalancerV3LiquidityVenueState,
   mockKernelGetState,
+  mockKernelPaused,
   mockPreviewSyncTrancheAccounting,
 } from "./kernel";
 import { Claims, TrancheState } from "../builders/shared";
@@ -13,6 +15,7 @@ import {
   ADDR_LPT_ASSET,
   ADDR_QUOTE_ASSET,
   ADDR_BALANCER_VAULT,
+  ADDR_BPT_ORACLE,
   ADDR_JUNIOR,
   ADDR_KERNEL,
   ADDR_LIQUIDITY,
@@ -287,6 +290,9 @@ export class DayMarketFixture {
   // lptAsset above IS the pool. Index 1 by default so the senior share sits in slot 0,
   // matching the venue's own "if tokens[0] == SENIOR_TRANCHE then quote is 1" branch.
   balancerVault: Address = ADDR_BALANCER_VAULT;
+  bptOracle: Address = ADDR_BPT_ORACLE;
+  maxReinvestmentSlippageWAD: BigInt = BigInt.zero();
+  kernelPaused: bool = false;
   quoteAssetPoolIndex: i32 = 1;
   // 1.0 would be indistinguishable from a hardcoded WAD, and equal rates would hide a
   // handler reading the wrong slot. A STANDARD quote really is FP(1) on chain — the
@@ -369,6 +375,7 @@ export class DayMarketFixture {
     m.kernelState.lptOwnedSeniorTrancheShares = BigInt.fromI32(5_104);
     m.kernelState.stalenessThresholdSeconds = BigInt.fromI32(5_201);
     m.kernelState.gracePeriodSeconds = BigInt.fromI32(5_202);
+    m.maxReinvestmentSlippageWAD = BigInt.fromI32(8_201);
 
     m.trancheState.marketState = 0;
     m.trancheState.collateralNAV = WAD.times(BigInt.fromI32(150));
@@ -445,6 +452,12 @@ export function mockDayMarket(m: DayMarketFixture): void {
   mockAccountantGetState(m.accountant, m.accountantState);
   mockAccountantKernel(m.accountant, m.kernel);
   mockKernelGetState(m.kernel, m.kernelState);
+  mockKernelPaused(m.kernel, m.kernelPaused);
+  mockBalancerV3LiquidityVenueState(
+    m.kernel,
+    m.bptOracle,
+    m.maxReinvestmentSlippageWAD
+  );
 
   mockPreviewSyncTrancheAccounting(
     m.kernel,

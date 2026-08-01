@@ -308,6 +308,31 @@
   },
   {
     "inputs": [],
+    "name": "getBalancerV3LiquidityVenueState",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "bptOracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "maxReinvestmentSlippageWAD",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct BalancerV3LiquidityVenue.BalancerV3LiquidityVenueState",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getImmutableState",
     "outputs": [
       {
@@ -1343,6 +1368,19 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "bptOracle",
+        "type": "address"
+      }
+    ],
+    "name": "BPTOracleUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "address",
         "name": "authority",
@@ -1426,6 +1464,19 @@
       }
     ],
     "name": "LiquidityPremiumReinvestmentFailed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "maxReinvestmentSlippageWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "MaxReinvestmentSlippageUpdated",
     "type": "event"
   },
   {

@@ -26,7 +26,7 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.0" # Note: bump when redeploying a changed schema/mapping
+version="1.0.3" # Note: bump when redeploying a changed schema/mapping
 
 prepare_and_deploy() {
     local network=$1
