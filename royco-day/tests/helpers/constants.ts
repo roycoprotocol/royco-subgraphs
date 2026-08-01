@@ -73,6 +73,9 @@ export const ADDR_ORACLE = Address.fromString(
 export const ADDR_SEQUENCER_FEED = Address.fromString(
   "0x00000000000000000000000000000000000000c2"
 );
+export const ADDR_BPT_ORACLE = Address.fromString(
+  "0x00000000000000000000000000000000000000c3"
+);
 
 export const ADDR_ALICE = Address.fromString(
   "0x00000000000000000000000000000000000000e1"

@@ -154,6 +154,16 @@ export function handleMarketDeploymentCompleted(
     kernelState.stalenessThresholdSeconds;
   market.sequencerUptimeFeedAddress = kernelState.sequencerUptimeFeed.toHexString();
   market.sequencerUptimeFeedGracePeriodSeconds = kernelState.gracePeriodSeconds;
+  market.roycoBlacklistAddress = kernelState.roycoBlacklist.toHexString();
+  market.kernelPaused = kernel.paused();
+
+  const venueState = kernel.try_getBalancerV3LiquidityVenueState();
+  market.bptOracleAddress = venueState.reverted
+    ? ZERO_ADDRESS
+    : venueState.value.bptOracle.toHexString();
+  market.maxReinvestmentSlippageWAD = venueState.reverted
+    ? BigInt.zero()
+    : venueState.value.maxReinvestmentSlippageWAD;
 
   // === the market's three asset tokens, from dedicated Kernel views ===
   //

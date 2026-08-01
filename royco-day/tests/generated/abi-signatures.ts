@@ -164,7 +164,7 @@ export const ROYCO_DAY_ACCOUNTANT__YIELD_SHARES_ACCRUED__EVENT: string =
 // RoycoDayKernel  (abis/RoycoDayKernel.json)
 // ==========================================================================
 
-// --- callable functions (47) — view/pure/nonpayable/constant ---
+// --- callable functions (48) — view/pure/nonpayable/constant ---
 export const ROYCO_DAY_KERNEL__ACCOUNTANT: string =
   "ACCOUNTANT():(address)";
 export const ROYCO_DAY_KERNEL__COLLATERAL_ASSET: string =
@@ -203,6 +203,8 @@ export const ROYCO_DAY_KERNEL__ENFORCE_NOT_BLACKLISTED__1: string =
   "enforceNotBlacklisted(address[])";
 export const ROYCO_DAY_KERNEL__GET_COLLATERAL_ASSET_ORACLE: string =
   "getCollateralAssetOracle():(address)";
+export const ROYCO_DAY_KERNEL__GET_BALANCER_V3_LIQUIDITY_VENUE_STATE: string =
+  "getBalancerV3LiquidityVenueState():((address,uint64))";
 export const ROYCO_DAY_KERNEL__GET_IMMUTABLE_STATE: string =
   "getImmutableState():((address,address,address,address,address,address,address))";
 export const ROYCO_DAY_KERNEL__GET_STATE: string =
@@ -260,7 +262,9 @@ export const ROYCO_DAY_KERNEL__SYNC_TRANCHE_ACCOUNTING_FOR: string =
 export const ROYCO_DAY_KERNEL__UNPAUSE: string =
   "unpause()";
 
-// --- event signatures (14) — these are the strings for subgraph.template.yaml `event:` ---
+// --- event signatures (16) — these are the strings for subgraph.template.yaml `event:` ---
+export const ROYCO_DAY_KERNEL__BPT_ORACLE_UPDATED__EVENT: string =
+  "BPTOracleUpdated(indexed address)";
 export const ROYCO_DAY_KERNEL__AUTHORITY_UPDATED__EVENT: string =
   "AuthorityUpdated(address)";
 export const ROYCO_DAY_KERNEL__COLLATERAL_ASSET_ORACLE_UPDATED__EVENT: string =
@@ -271,6 +275,8 @@ export const ROYCO_DAY_KERNEL__LIQUIDITY_PREMIUM_REINVESTED__EVENT: string =
   "LiquidityPremiumReinvested(uint256,uint256)";
 export const ROYCO_DAY_KERNEL__LIQUIDITY_PREMIUM_REINVESTMENT_FAILED__EVENT: string =
   "LiquidityPremiumReinvestmentFailed(uint256,uint256,bytes)";
+export const ROYCO_DAY_KERNEL__MAX_REINVESTMENT_SLIPPAGE_UPDATED__EVENT: string =
+  "MaxReinvestmentSlippageUpdated(uint64)";
 export const ROYCO_DAY_KERNEL__PAUSED__EVENT: string =
   "Paused(address)";
 export const ROYCO_DAY_KERNEL__POST_OP_TRANCHE_ACCOUNTING_SYNCED__EVENT: string =

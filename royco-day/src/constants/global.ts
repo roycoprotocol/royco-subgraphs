@@ -93,23 +93,20 @@ export const SYNC_TYPE_POST_OP = "postOp";
 // PostOpTrancheAccountingSynced's `op` (uint8 enum -> i32).
 //
 // Order is the on-chain `Operation` enum's declaration order
-// (contracts/libraries/Types.sol) — SIX members. The ABI carries the enum's TYPE name
-// but none of its member names, so this ordering comes from the source and is not
-// guessable (§4). It has already changed once: an earlier revision had eight, with
-// distinct LPT_MULTI_ASSET_DEPOSIT / _REDEMPTION members that were later folded into the
-// plain LPT ones. Re-read Types.sol whenever contracts/ changes; nothing about the ABI,
-// the build, or the tests will tell you this list has gone stale.
+// (contracts/libraries/Types.sol) — EIGHT members in the deployed contracts. The ABI
+// carries the enum's TYPE name but none of its member names, so this ordering comes
+// from the source and is not guessable (§4). A later candidate folds the distinct
+// LPT_MULTI_ASSET_DEPOSIT / _REDEMPTION members into the plain LPT ones. Re-read
+// Types.sol whenever contracts/ changes; the ABI, build, and tests cannot reveal drift.
 //
-// !! A MULTI-ASSET LP FLOW NOW REPORTS AS lptDeposit / lptRedeem, indistinguishable from
-//    a single-asset one by this column alone. To tell them apart, join the sync row to
-//    DayMultiAssetDepositActivity / DayMultiAssetRedeemActivity on transaction hash —
-//    those events still exist and are still indexed.
 export const OPERATION_ST_DEPOSIT = "stDeposit"; // enum 0
 export const OPERATION_ST_REDEEM = "stRedeem"; // enum 1
 export const OPERATION_JT_DEPOSIT = "jtDeposit"; // enum 2
 export const OPERATION_JT_REDEEM = "jtRedeem"; // enum 3
 export const OPERATION_LPT_DEPOSIT = "lptDeposit"; // enum 4
 export const OPERATION_LPT_REDEEM = "lptRedeem"; // enum 5
+export const OPERATION_LPT_MULTI_ASSET_DEPOSIT = "lptMultiAssetDeposit"; // enum 6
+export const OPERATION_LPT_MULTI_ASSET_REDEEM = "lptMultiAssetRedeem"; // enum 7
 // An out-of-range ordinal means the enum grew and this list did not — surfaced as
 // "unknown" rather than silently mapped to a neighbour.
 export const OPERATION_UNKNOWN = "unknown";

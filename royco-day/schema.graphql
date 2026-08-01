@@ -185,14 +185,13 @@ type DayMarketState @entity(immutable: false) {
   collateralAssetOracleStalenessThresholdSeconds: BigInt! # Staleness Threshold Seconds <- ABI: stalenessThresholdSeconds (uint48 -> BigInt, direct)
   sequencerUptimeFeedAddress: String! # Sequencer Uptime Feed Address <- ABI: sequencerUptimeFeed
   sequencerUptimeFeedGracePeriodSeconds: BigInt! # Grace Period Seconds <- ABI: gracePeriodSeconds (uint48 -> BigInt, direct)
-  # ^ The four above are new in v2 and each has its own event
-  #   (CollateralAssetOracleUpdated, SequencerUptimeFeedUpdated), so they stay fresh
-  #   without a getState() re-read. uint48 is >= uint32, so BigInt direct — NOT
-  #   BigInt.fromI32 (§4); only uint24-and-below decode to i32.
-  #
-  # NOTE: Kernel.getState() also returns `roycoBlacklist` (address), which this
-  # schema deliberately does not capture. RoycoBlacklistUpdated(address) is
-  # likewise unindexed. Add both together if it is ever needed.
+  roycoBlacklistAddress: String! # Royco blacklist contract used by the kernel
+  kernelPaused: Boolean! # Whether market operations are paused at the kernel
+  bptOracleAddress: String! # Balancer Pool Token Oracle Address <- ABI: getBalancerV3LiquidityVenueState().bptOracle
+  maxReinvestmentSlippageWAD: BigInt! # Maximum Liquidity Premium Reinvestment Slippage WAD <- ABI: getBalancerV3LiquidityVenueState().maxReinvestmentSlippageWAD
+  # ^ These configuration fields stay fresh through CollateralAssetOracleUpdated,
+  #   SequencerUptimeFeedUpdated, RoycoBlacklistUpdated, BPTOracleUpdated, and
+  #   MaxReinvestmentSlippageUpdated.
   # ======
   # ======
   # => the market's three ASSET TOKENS, from dedicated Kernel views
@@ -1072,16 +1071,9 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   #   queryable per Neon idiom.
   #   Enum order is the on-chain `Operation` declaration order
   #   (contracts/libraries/Types.sol): 0 stDeposit, 1 stRedeem, 2 jtDeposit, 3 jtRedeem,
-  #   4 lptDeposit, 5 lptRedeem. SIX members. The ABI carries the enum's TYPE but none of
-  #   its member names, so this ordering is read from source and is not guessable (§4) —
-  #   and it HAS changed: an earlier revision had eight, with distinct multi-asset LP
-  #   members later folded into the plain LPT ones.
-  #
-  # !! A MULTI-ASSET LP FLOW REPORTS AS lptDeposit / lptRedeem here, indistinguishable
-  #    from a single-asset one by this column alone. Join to DayMultiAssetDepositActivity
-  #    / DayMultiAssetRedeemActivity on transaction hash to tell them apart — those
-  #    events still fire and are still indexed. An out-of-range ordinal surfaces as
-  #    "unknown", never as a neighbouring member.
+  #   4 lptDeposit, 5 lptRedeem, 6 lptMultiAssetDeposit, 7 lptMultiAssetRedeem.
+  #   The ABI carries the enum's type but not its member names, so this ordering comes
+  #   from source. An out-of-range ordinal surfaces as "unknown".
   # --- The full SyncedAccountingState, in ABI order. ---
   marketState: String! # Market State ("perpetual" -> 0, "fixed" -> 1) <- ABI: resultingState.marketState (uint8 enum -> i32)
   # ^ !! LIVE state at sync time — NOT the same field as DayMarketState.marketState.

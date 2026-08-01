@@ -31,6 +31,11 @@ import {
   handleSeniorTrancheSelfLiquidationBonusUpdated,
   handlePreOpTrancheAccountingSynced,
   handlePostOpTrancheAccountingSynced,
+  handleBPTOracleUpdated,
+  handleMaxReinvestmentSlippageUpdated,
+  handleRoycoBlacklistUpdated,
+  handlePaused,
+  handleUnpaused,
 } from "../../src/royco-day-kernel";
 import {
   CoverageUpdated,
@@ -53,6 +58,11 @@ import {
 import {
   ProtocolFeeRecipientUpdated,
   SeniorTrancheSelfLiquidationBonusUpdated,
+  BPTOracleUpdated,
+  MaxReinvestmentSlippageUpdated,
+  RoycoBlacklistUpdated,
+  Paused,
+  Unpaused,
 } from "../../generated/templates/RoycoDayKernel/RoycoDayKernel";
 import {
   DeploymentResult,
@@ -76,6 +86,7 @@ import { ctx, EventContext } from "../helpers/event";
 import {
   ADDR_ACCOUNTANT,
   ADDR_ALICE,
+  ADDR_BLACKLIST,
   ADDR_BOB,
   ADDR_DEPLOYER,
   ADDR_KERNEL,
@@ -904,14 +915,8 @@ describe("the kernel sync handlers", () => {
     );
   });
 
-  test("the Operation enum maps 0..5, and anything beyond is 'unknown'", () => {
-    // THE ENUM HAS ALREADY CHANGED ONCE. An earlier contract revision had EIGHT members,
-    // with distinct LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION; those were folded into the plain
-    // LPT ones and it now has SIX. The ABI carries the enum's TYPE but none of its member
-    // names, so nothing about the ABI, the build or codegen can tell you this list has
-    // gone stale — only Types.sol can. This test is the tripwire: it pins every member
-    // AND the boundary, so a future member added on chain but not here shows up as a
-    // failing "unknown" rather than being silently mislabelled as its neighbour.
+  test("the deployed Operation enum maps 0..7, and anything beyond is 'unknown'", () => {
+    // The deployed contract has distinct multi-asset deposit and redeem ordinals.
     const names = [
       "stDeposit",
       "stRedeem",
@@ -919,6 +924,8 @@ describe("the kernel sync handlers", () => {
       "jtRedeem",
       "lptDeposit",
       "lptRedeem",
+      "lptMultiAssetDeposit",
+      "lptMultiAssetRedeem",
     ];
     for (let op = 0; op < names.length; op++) {
       clearStore();
@@ -936,13 +943,12 @@ describe("the kernel sync handlers", () => {
       );
     }
 
-    // 6 is one past the end of the current enum. If the contracts ever add a seventh
-    // member, THIS is the assertion that fails and sends you back to Types.sol.
+    // 8 is one past the end of the deployed enum.
     clearStore();
     deployMarket();
     const beyond = kernelCtx();
     handlePostOpTrancheAccountingSynced(
-      createPostOpSyncEvent(6, new TrancheState(), beyond)
+      createPostOpSyncEvent(8, new TrancheState(), beyond)
     );
     assert.fieldEquals(
       "DayTrancheAccountingSyncedHistory",
@@ -1912,6 +1918,24 @@ describe("kernel handlers", () => {
         kernelCtx()
       )
     );
+    handleBPTOracleUpdated(
+      createAddressEvent<BPTOracleUpdated>("bptOracle", ADDR_BOB, kernelCtx())
+    );
+    handleMaxReinvestmentSlippageUpdated(
+      createUintEvent<MaxReinvestmentSlippageUpdated>(
+        "maxReinvestmentSlippageWAD",
+        BigInt.fromI32(9_202),
+        kernelCtx()
+      )
+    );
+    handleRoycoBlacklistUpdated(
+      createAddressEvent<RoycoBlacklistUpdated>(
+        "roycoBlacklist",
+        ADDR_BLACKLIST,
+        kernelCtx()
+      )
+    );
+    handlePaused(createAddressEvent<Paused>("account", ADDR_ALICE, kernelCtx()));
 
     assert.fieldEquals(
       "DayMarketState",
@@ -1925,6 +1949,30 @@ describe("kernel handlers", () => {
       "seniorTrancheSelfLiquidationBonusWAD",
       "9201"
     );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "bptOracleAddress",
+      ADDR_BOB.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "maxReinvestmentSlippageWAD",
+      "9202"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "roycoBlacklistAddress",
+      ADDR_BLACKLIST.toHexString()
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "kernelPaused", "true");
+
+    handleUnpaused(
+      createAddressEvent<Unpaused>("account", ADDR_ALICE, kernelCtx())
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "kernelPaused", "false");
   });
 
   test("a kernel event for an unknown market is a no-op", () => {

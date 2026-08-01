@@ -3,6 +3,7 @@ import { createMockedFunction } from "matchstick-as";
 import { tuple, uint, uintI32, addr } from "../helpers/tuple";
 import {
   ADDR_BLACKLIST,
+  ADDR_BPT_ORACLE,
   ADDR_FEE_RECIPIENT,
   ADDR_ORACLE,
   ADDR_SEQUENCER_FEED,
@@ -10,14 +11,14 @@ import {
 import { Claims, TrancheState } from "../builders/shared";
 import {
   ROYCO_DAY_KERNEL__GET_STATE,
+  ROYCO_DAY_KERNEL__GET_BALANCER_V3_LIQUIDITY_VENUE_STATE,
   ROYCO_DAY_KERNEL__PREVIEW_SYNC_TRANCHE_ACCOUNTING_FOR,
 } from "../generated/abi-signatures";
 
 /**
  * RoycoDayKernel.getState() — a single 10-field tuple (was 7 in v1).
  *
- * Note `roycoBlacklist` (index 6) has no schema field today; it's mocked anyway
- * because the binding decodes the whole tuple regardless.
+ * The binding decodes the whole tuple, including the blacklist address.
  */
 export class KernelState {
   protocolFeeRecipient: Address = ADDR_FEE_RECIPIENT; // 0
@@ -51,6 +52,30 @@ export function mockKernelGetState(kernel: Address, s: KernelState): void {
   createMockedFunction(kernel, "getState", ROYCO_DAY_KERNEL__GET_STATE)
     .withArgs([])
     .returns([ethereum.Value.fromTuple(s.toTuple())]);
+}
+
+export function mockBalancerV3LiquidityVenueState(
+  kernel: Address,
+  bptOracle: Address = ADDR_BPT_ORACLE,
+  maxReinvestmentSlippageWAD: BigInt = BigInt.zero()
+): void {
+  createMockedFunction(
+    kernel,
+    "getBalancerV3LiquidityVenueState",
+    ROYCO_DAY_KERNEL__GET_BALANCER_V3_LIQUIDITY_VENUE_STATE
+  )
+    .withArgs([])
+    .returns([
+      ethereum.Value.fromTuple(
+        tuple([addr(bptOracle), uint(maxReinvestmentSlippageWAD)])
+      ),
+    ]);
+}
+
+export function mockKernelPaused(kernel: Address, paused: bool): void {
+  createMockedFunction(kernel, "paused", "paused():(bool)")
+    .withArgs([])
+    .returns([ethereum.Value.fromBoolean(paused)]);
 }
 
 /**

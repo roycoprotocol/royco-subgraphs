@@ -411,6 +411,21 @@ templates:
         - event: CollateralAssetOracleUpdated(indexed address,uint48)
           handler: handleCollateralAssetOracleUpdated
           receipt: true
+        - event: BPTOracleUpdated(indexed address)
+          handler: handleBPTOracleUpdated
+          receipt: true
+        - event: MaxReinvestmentSlippageUpdated(uint64)
+          handler: handleMaxReinvestmentSlippageUpdated
+          receipt: true
+        - event: RoycoBlacklistUpdated(address)
+          handler: handleRoycoBlacklistUpdated
+          receipt: true
+        - event: Paused(address)
+          handler: handlePaused
+          receipt: true
+        - event: Unpaused(address)
+          handler: handleUnpaused
+          receipt: true
         - event: SequencerUptimeFeedUpdated(indexed address,uint48)
           handler: handleSequencerUptimeFeedUpdated
           receipt: true
