@@ -1,6 +1,7 @@
 import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { MarketDeploymentCompleted as MarketDeploymentCompletedEvent } from "../generated/RoycoFactory/RoycoFactory";
 import {
+  DayAccountantMarketMap,
   DayMarketState,
   DayVaultState,
   DayVaultStateHistorical,
@@ -31,6 +32,7 @@ import {
   ZERO_ADDRESS,
 } from "./constants";
 import {
+  generateAccountantMarketMapId,
   generateMarketId,
   generateMarketTokenId,
   generateTokenId,
@@ -55,6 +57,7 @@ import {
  *   - 1 DayMarketState  (id = <CHAIN_ID>_<KERNEL>; the kernel address IS the marketId)
  *   - 3 DayVaultState        (senior / junior / liquidity)
  *   - 3 DayVaultStateHistorical for the creation block
+ *   - 1 DayAccountantMarketMap (accountant -> market, so accountant handlers need no eth_call)
  *
  * See CLAUDE.md §5 before adding any contract call, and §6 for the Claims struct.
  */
@@ -121,6 +124,10 @@ export function handleMarketDeploymentCompleted(
     accountantState.fixedTermDurationSeconds
   );
   market.fixedTermEndTimestamp = accountantState.fixedTermEndTimestamp;
+  // uint64 -> BigInt direct. THIS read is what actually fills the column: the matching
+  // event only fires from the accountant's initialize(), below this handler's log index.
+  market.fixedTermCommenceableAtTimestamp =
+    accountantState.fixedTermCommenceableAtTimestamp;
   market.lastYieldShareAccruedTimestamp =
     accountantState.lastYieldShareAccrualTimestamp;
   market.lastPremiumPaymentTimestamp = accountantState.lastPremiumPaymentTimestamp;
@@ -155,18 +162,24 @@ export function handleMarketDeploymentCompleted(
   market.sequencerUptimeFeedAddress = kernelState.sequencerUptimeFeed.toHexString();
   market.sequencerUptimeFeedGracePeriodSeconds = kernelState.gracePeriodSeconds;
 
-  // === the market's three asset tokens, from dedicated Kernel views ===
+  // === the market's three asset tokens ===
   //
-  // Three separate calls, not getState() members. Read once here and never again:
-  // all three are `immutable` on chain and no event exists for any of them.
+  // STRUCT MEMBERS OF kernelState, not standalone views. They used to be three separate
+  // calls — COLLATERAL_ASSET() / LPT_ASSET() / QUOTE_ASSET(), SCREAMING_CASE immutables —
+  // and every one of those was REMOVED when the kernel folded them into getState(). Left
+  // as calls they would have reverted: the two raw ones would have killed this handler
+  // and with it the market, all three vaults and every row hanging off them.
   //
-  // COLLATERAL_ASSET and LPT_ASSET are declared `public immutable` on RoycoDayKernel
-  // itself, so raw is correct — §5's "immutable metadata read once at deployment".
-  // The kernel's own constructor requires senior.asset() == junior.asset() ==
-  // COLLATERAL_ASSET and liquidity.asset() == LPT_ASSET, so these must agree with the
-  // per-vault assetTokenAddress that createVault reads below; storing them at market
-  // level saves a three-way join and gives Neon a free consistency check.
-  const collateralAsset = kernel.COLLATERAL_ASSET().toHexString();
+  // Reading them off the state packet already in hand costs THREE FEWER eth_calls per
+  // market and removes the try_ that QUOTE_ASSET needed, since a struct member cannot
+  // revert. A venue-less kernel simply reports the zero address there, which is the same
+  // answer the old fallback produced.
+  //
+  // The kernel's constructor requires senior.asset() == junior.asset() == collateralAsset
+  // and liquidity.asset() == lptAsset, so these must agree with the per-vault
+  // assetTokenAddress that createVault reads below; storing them at market level saves a
+  // three-way join and gives Neon a free consistency check.
+  const collateralAsset = kernelState.collateralAsset.toHexString();
   market.collateralTokenAddress = collateralAsset;
   market.collateralTokenId = generateMarketTokenId(
     collateralAsset,
@@ -174,7 +187,7 @@ export function handleMarketDeploymentCompleted(
     MARKET_TOKEN_ROLE_COLLATERAL_ASSET
   );
 
-  const lptAsset = kernel.LPT_ASSET().toHexString();
+  const lptAsset = kernelState.lptAsset.toHexString();
   market.liquidityTrancheAssetTokenAddress = lptAsset;
   market.liquidityTrancheAssetTokenId = generateMarketTokenId(
     lptAsset,
@@ -182,13 +195,11 @@ export function handleMarketDeploymentCompleted(
     MARKET_TOKEN_ROLE_LPT_ASSET
   );
 
-  // QUOTE_ASSET is the ONE that needs try_. It is `virtual` and BODYLESS on the base
-  // kernel — only the liquidity venue concretises it — so a kernel variant without a
-  // venue need not implement it. A raw revert here would take down this handler, and
-  // with it the market, all three vaults and every row that ever hangs off them. The
-  // zero address is the truthful answer for a venue-less market.
-  const quote = kernel.try_QUOTE_ASSET();
-  const quoteAsset = quote.reverted ? ZERO_ADDRESS : quote.value.toHexString();
+  // The quote asset needs NO try_ any more. It used to be a `virtual`, bodyless
+  // QUOTE_ASSET() that only the liquidity venue concretised, so a venue-less kernel
+  // reverted on it; now it is a plain struct member that reports the zero address in
+  // that case — the same answer, without the guard.
+  const quoteAsset = kernelState.quoteAsset.toHexString();
   market.quoteAssetTokenAddress = quoteAsset;
   market.quoteAssetTokenId = generateMarketTokenId(
     quoteAsset,
@@ -205,8 +216,8 @@ export function handleMarketDeploymentCompleted(
   // Written as if/else rather than a ternary: the two branches would be `i32` and
   // `CallResult<i32>`, and AS has no union to reconcile them (§3).
   let quoteDecimals = ERC20_DECIMALS_UNKNOWN;
-  if (!quote.reverted) {
-    const decimals = ERC20.bind(quote.value).try_decimals();
+  if (quoteAsset != ZERO_ADDRESS) {
+    const decimals = ERC20.bind(kernelState.quoteAsset).try_decimals();
     if (!decimals.reverted) {
       quoteDecimals = decimals.value;
     }
@@ -293,6 +304,25 @@ export function handleMarketDeploymentCompleted(
   market.updatedAtBlockTimestamp = event.block.timestamp;
 
   market.save();
+
+  // ACCOUNTANT -> MARKET, written in the same handler as the market itself and from the
+  // same DeploymentResult, so the pair cannot disagree and the row cannot be missing for
+  // a market that exists. This is what lets resolveMarketFromAccountant do a store load
+  // instead of an eth_call on every single accountant event; the pairing is 1:1 and fixed
+  // at deployment, so a row written once here is correct forever.
+  const accountantMap = new DayAccountantMarketMap(
+    generateAccountantMarketMapId(market.accountantAddress)
+  );
+  accountantMap.chainId = CHAIN_ID;
+  accountantMap.accountantAddress = market.accountantAddress;
+  accountantMap.marketId = marketId;
+  // The COMPOSITE id, so the resolver loads DayMarketState directly off this column
+  // rather than re-deriving it — one place builds the key, one place consumes it.
+  accountantMap.marketRefId = market.id;
+  accountantMap.createdAtTransactionHash = event.transaction.hash.toHexString();
+  accountantMap.createdAtBlockNumber = event.block.number;
+  accountantMap.createdAtBlockTimestamp = event.block.timestamp;
+  accountantMap.save();
 
   const senior = createVault(
     event,

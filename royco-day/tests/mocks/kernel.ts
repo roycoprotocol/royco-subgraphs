@@ -2,9 +2,16 @@ import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import { createMockedFunction } from "matchstick-as";
 import { tuple, uint, uintI32, addr } from "../helpers/tuple";
 import {
+  ADDR_ACCOUNTANT,
+  ADDR_ASSET,
   ADDR_BLACKLIST,
   ADDR_FEE_RECIPIENT,
+  ADDR_JUNIOR,
+  ADDR_LIQUIDITY,
+  ADDR_LPT_ASSET,
   ADDR_ORACLE,
+  ADDR_QUOTE_ASSET,
+  ADDR_SENIOR,
   ADDR_SEQUENCER_FEED,
 } from "../helpers/constants";
 import { Claims, TrancheState } from "../builders/shared";
@@ -14,35 +21,65 @@ import {
 } from "../generated/abi-signatures";
 
 /**
- * RoycoDayKernel.getState() — a single 10-field tuple (was 7 in v1).
+ * RoycoDayKernel.getState() — a single 19-field tuple.
  *
- * Note `roycoBlacklist` (index 6) has no schema field today; it's mocked anyway
- * because the binding decodes the whole tuple regardless.
+ * IT GREW FROM 10 AND REORDERED. The three asset addresses used to be standalone
+ * SCREAMING_CASE views (COLLATERAL_ASSET / LPT_ASSET / QUOTE_ASSET) with their own
+ * mocks; those functions were REMOVED from the kernel and folded in here, so the
+ * fixture supplies them through this struct instead.
+ *
+ * THE ORDER BELOW IS THE ABI'S, and it is load-bearing: toTuple() builds positionally,
+ * so a member in the wrong slot decodes as its neighbour and every assertion downstream
+ * reads a plausible wrong address. Re-derive it from abis/RoycoDayKernel.json — never
+ * from the Solidity struct, whose declaration order need not match — with:
+ *   jq -r '.[]|select(.name=="getState")|.outputs[0].components|to_entries[]
+ *          |"\(.key) \(.value.name):\(.value.type)"' abis/RoycoDayKernel.json
+ *
+ * `roycoBlacklist`, `oneWholeCollateralAsset` and `oneWholeLPTAsset` have no schema
+ * field today; they are mocked anyway because the binding decodes the whole tuple.
  */
 export class KernelState {
-  protocolFeeRecipient: Address = ADDR_FEE_RECIPIENT; // 0
+  seniorTranche: Address = ADDR_SENIOR; // 0
   stSelfLiquidationBonusWAD: BigInt = BigInt.zero(); // 1 uint64
-  totalCollateralAssets: BigInt = BigInt.zero(); // 2
-  totalLPTAssets: BigInt = BigInt.zero(); // 3
-  lptOwnedSeniorTrancheShares: BigInt = BigInt.zero(); // 4
-  roycoBlacklist: Address = ADDR_BLACKLIST; // 5
-  collateralAssetOracle: Address = ADDR_ORACLE; // 6
-  stalenessThresholdSeconds: BigInt = BigInt.zero(); // 7 uint48 -> BigInt
-  sequencerUptimeFeed: Address = ADDR_SEQUENCER_FEED; // 8
-  gracePeriodSeconds: BigInt = BigInt.zero(); // 9 uint48 -> BigInt
+  juniorTranche: Address = ADDR_JUNIOR; // 2
+  liquidityProviderTranche: Address = ADDR_LIQUIDITY; // 3
+  collateralAsset: Address = ADDR_ASSET; // 4
+  oneWholeCollateralAsset: BigInt = BigInt.zero(); // 5 uint64
+  lptAsset: Address = ADDR_LPT_ASSET; // 6
+  oneWholeLPTAsset: BigInt = BigInt.zero(); // 7 uint64
+  quoteAsset: Address = ADDR_QUOTE_ASSET; // 8
+  accountant: Address = ADDR_ACCOUNTANT; // 9
+  protocolFeeRecipient: Address = ADDR_FEE_RECIPIENT; // 10
+  roycoBlacklist: Address = ADDR_BLACKLIST; // 11
+  collateralAssetOracle: Address = ADDR_ORACLE; // 12
+  stalenessThresholdSeconds: BigInt = BigInt.zero(); // 13 uint48 -> BigInt
+  sequencerUptimeFeed: Address = ADDR_SEQUENCER_FEED; // 14
+  gracePeriodSeconds: BigInt = BigInt.zero(); // 15 uint48 -> BigInt
+  totalCollateralAssets: BigInt = BigInt.zero(); // 16
+  totalLPTAssets: BigInt = BigInt.zero(); // 17
+  lptOwnedSeniorTrancheShares: BigInt = BigInt.zero(); // 18
 
   toTuple(): ethereum.Tuple {
     return tuple([
-      addr(this.protocolFeeRecipient),
+      addr(this.seniorTranche),
       uint(this.stSelfLiquidationBonusWAD),
-      uint(this.totalCollateralAssets),
-      uint(this.totalLPTAssets),
-      uint(this.lptOwnedSeniorTrancheShares),
+      addr(this.juniorTranche),
+      addr(this.liquidityProviderTranche),
+      addr(this.collateralAsset),
+      uint(this.oneWholeCollateralAsset),
+      addr(this.lptAsset),
+      uint(this.oneWholeLPTAsset),
+      addr(this.quoteAsset),
+      addr(this.accountant),
+      addr(this.protocolFeeRecipient),
       addr(this.roycoBlacklist),
       addr(this.collateralAssetOracle),
       uint(this.stalenessThresholdSeconds),
       addr(this.sequencerUptimeFeed),
       uint(this.gracePeriodSeconds),
+      uint(this.totalCollateralAssets),
+      uint(this.totalLPTAssets),
+      uint(this.lptOwnedSeniorTrancheShares),
     ]);
   }
 }

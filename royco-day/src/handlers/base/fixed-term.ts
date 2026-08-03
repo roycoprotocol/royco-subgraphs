@@ -84,13 +84,20 @@ export function closeOpenFixedTerm(
  *      a real non-zero loss — and it emits it BEFORE its own
  *      FixedTermDurationUpdated(0), which is what closes the row a log later. So
  *      the row is still OPEN here. Patch it; the close follows.
- *   C) an incidental erase on an already-perpetual market. The last row was closed
- *      in an EARLIER tx. Skip — patching would overwrite a concluded term's loss
- *      with an unrelated number.
+ *   C) an incidental erase belonging to NO term — the last row closed in an EARLIER
+ *      tx, or no term has ever run because the market is still inside its
+ *      commencement grace period. Do NOT patch: that would overwrite a concluded
+ *      term's loss with an unrelated number. Give it a zero-length term of its own.
  *
- * Hence: patch iff the row is OPEN, or was CLOSED IN THIS TX. Case B is the one
- * that makes the naive "row must be closed" guard wrong — it drops the loss on
- * every mid-term setFixedTermDuration(0), silently.
+ * Hence: patch iff the row is OPEN, or was CLOSED IN THIS TX; otherwise open a
+ * zero-length term. Case B is the one that makes the naive "row must be closed" guard
+ * wrong — it drops the loss on every mid-term setFixedTermDuration(0), silently.
+ *
+ * EVERY NON-ZERO ERASE IS NOW RECORDED SOMEWHERE, which is what makes
+ * SUM(DayFixedTermHistory.juniorTrancheImpermanentLossNAV) reconcile with
+ * DayMarketState.juniorTrancheImpermanentLossNAV. Before, the paths above returned
+ * empty-handed and the market total drifted permanently above the sum of its rows,
+ * with the difference unattributable — no row, no timestamp, no way to ask when.
  *
  * The zero guard belongs to the caller: site :925 is UNGUARDED and fires even when
  * nothing was erased, while the sync site is guarded by `!= ZERO_NAV_UNITS`. That
@@ -122,7 +129,15 @@ export function recordFixedTermCoverageLoss(
     return;
   }
 
-  if (market.countFixedTermEntries.isZero()) return;
+  // A DURATION IS CONFIGURED BUT NO TERM HAS EVER RUN. The commonest reason is the
+  // COMMENCEMENT GRACE PERIOD: a market cannot enter a fixed term until
+  // block.timestamp >= fixedTermCommenceableAtTimestamp
+  // (RoycoDayAccountant.sol:550), and losses can absolutely be erased inside that
+  // window. There is no term to patch, so the loss gets a zero-length one of its own.
+  if (market.countFixedTermEntries.isZero()) {
+    openLossOnlyTerm(event, market, erased);
+    return;
+  }
 
   const entry = DayFixedTermHistory.load(
     generateMarketRecordId(
@@ -130,13 +145,21 @@ export function recordFixedTermCoverageLoss(
       market.countFixedTermEntries.minus(BigInt.fromI32(1)),
     ),
   );
-  if (!entry) return;
+  // Unreachable — the cursor says a row exists. Record the loss rather than lose it.
+  if (!entry) {
+    openLossOnlyTerm(event, market, erased);
+    return;
+  }
 
-  // Case C: closed, but in an earlier tx — not ours.
+  // Case C: the last term closed in an EARLIER tx, so this erase belongs to NO term —
+  // the market is between terms, or has gone perpetual. Patching that concluded term
+  // would overwrite its loss with an unrelated number, so it gets its own zero-length
+  // term instead of being dropped.
   if (
     !entry.endBlockTimestamp.isZero() &&
     entry.updatedAtTransactionHash != event.transaction.hash.toHexString()
   ) {
+    openLossOnlyTerm(event, market, erased);
     return;
   }
 

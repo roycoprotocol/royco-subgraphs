@@ -2,12 +2,9 @@
 pragma solidity ^0.8.28;
 
 import { AccessManagedUpgradeable } from "../../lib/openzeppelin-contracts-upgradeable/contracts/access/manager/AccessManagedUpgradeable.sol";
-import { UUPSUpgradeable } from "../../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { AccessManager } from "../../lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
-import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { BeaconProxy } from "../../lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
 import { CREATE3 } from "../../lib/solady/src/utils/CREATE3.sol";
-import { RoycoBase } from "../base/RoycoBase.sol";
-import { IRoycoAuth } from "../interfaces/IRoycoAuth.sol";
+import { RoycoUUPSBase } from "../base/RoycoUUPSBase.sol";
 import { IRoycoDayKernel } from "../interfaces/IRoycoDayKernel.sol";
 import { IBaseTemplate } from "../interfaces/factory/IBaseTemplate.sol";
 import { IRoycoFactory } from "../interfaces/factory/IRoycoFactory.sol";
@@ -21,7 +18,7 @@ import { DispatchLogic } from "../libraries/logic/DispatchLogic.sol";
  * @author Ankur Dubey, Shivaansh Kapoor
  * @notice Extensible template-driven factory for Royco markets
  */
-contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
+contract RoycoFactory is AccessManagedUpgradeable, RoycoUUPSBase, IRoycoFactory {
     using DispatchLogic for address;
 
     // keccak256(abi.encode(uint256(keccak256("Royco.storage.RoycoFactoryV2State")) - 1)) & ~bytes32(uint256(0xff))
@@ -152,30 +149,8 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @inheritdoc IRoycoFactory
-    function deployDeterministicProxy(
-        address _implementation,
-        bytes calldata _initData,
-        bytes32 _salt
-    )
-        external
-        override(IRoycoFactory)
-        restricted
-        whenNotPaused
-        returns (address deployed)
-    {
-        // Every market proxy must be a fresh deployment: reject a salt whose address is already occupied
-        deployed = CREATE3.predictDeterministicAddress(_salt);
-        require(deployed.code.length == 0, PROXY_ALREADY_DEPLOYED(deployed, _salt));
-
-        // Deploy the proxy
-        bytes memory creationCode = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_implementation, _initData));
-        deployed = CREATE3.deployDeterministic(creationCode, _salt);
-        emit ProxyDeployed(deployed, _implementation, _salt);
-    }
-
-    /// @inheritdoc IRoycoFactory
     function deployDeterministicProxyFromTemplate(
-        address _implementation,
+        address _beacon,
         bytes calldata _initData,
         bytes32 _salt
     )
@@ -190,7 +165,7 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
         if (deployed.code.length > 0) return (deployed, true);
 
         // Deploy the proxy
-        bytes memory creationCode = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_implementation, _initData));
+        bytes memory creationCode = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(_beacon, _initData));
         deployed = CREATE3.deployDeterministic(creationCode, _salt);
         return (deployed, false);
     }
@@ -260,14 +235,14 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
         external
         view
         override(IRoycoFactory)
-        returns (address seniorTranche, address juniorTranche, address liquidityProviderTranche, address kernel)
+        returns (address seniorTranche, address juniorTranche, address liquidityProviderTranche, address kernel, address accountant)
     {
         kernel = _getRoycoFactoryStorage().trancheToKernel[_tranche];
         // Unknown tranche: every component resolves to zero
-        if (kernel == address(0)) return (address(0), address(0), address(0), address(0));
-        // The kernel's immutables are the single source of truth for the market's tranche set
+        if (kernel == address(0)) return (address(0), address(0), address(0), address(0), address(0));
+        // The kernel's immutables are the single source of truth for the market's contract set
         IRoycoDayKernel dayKernel = IRoycoDayKernel(kernel);
-        return (dayKernel.SENIOR_TRANCHE(), dayKernel.JUNIOR_TRANCHE(), dayKernel.LIQUIDITY_PROVIDER_TRANCHE(), kernel);
+        return (dayKernel.seniorTranche(), dayKernel.juniorTranche(), dayKernel.liquidityProviderTranche(), kernel, dayKernel.accountant());
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

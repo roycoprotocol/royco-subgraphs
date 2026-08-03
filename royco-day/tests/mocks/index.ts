@@ -12,6 +12,7 @@ import {
   ADDR_ASSET,
   ADDR_LPT_ASSET,
   ADDR_QUOTE_ASSET,
+  ADDR_ZERO,
   ADDR_BALANCER_VAULT,
   ADDR_JUNIOR,
   ADDR_KERNEL,
@@ -26,9 +27,6 @@ import {
   ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE,
   ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS,
   ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS,
-  ROYCO_DAY_KERNEL__COLLATERAL_ASSET,
-  ROYCO_DAY_KERNEL__LPT_ASSET,
-  ROYCO_DAY_KERNEL__QUOTE_ASSET,
   ROYCO_SENIOR_TRANCHE__CONVERT_TO_ASSETS,
   ROYCO_SENIOR_TRANCHE__TRANCHE_TYPE,
 } from "../generated/abi-signatures";
@@ -60,22 +58,21 @@ export function mockTrancheToken(
   createMockedFunction(tranche, "totalSupply", "totalSupply():(uint256)")
     .withArgs([])
     .returns([ethereum.Value.fromUnsignedBigInt(totalSupply)]);
-  createMockedFunction(tranche, "KERNEL", "KERNEL():(address)")
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(ADDR_KERNEL)]);
 }
 
 /**
- * Mock ACCOUNTANT.KERNEL() — the accountant -> market hop.
+ * Point the accountant at its market.
  *
- * The accountant address is NOT the marketId; the kernel's is (§6). Every
- * accountant handler makes this call before it can touch a DayMarketState, so
- * without this mock every one of them aborts.
+ * THE KERNEL COMES OFF getState() NOW. ACCOUNTANT.KERNEL() was removed from the
+ * contract, so there is no separate call to mock — the address rides in the state
+ * struct, and mockAccountantGetState already registers it. This mutates the state the
+ * fixture will publish, so call it BEFORE mockDayMarket.
+ *
+ * The accountant address is NOT the marketId; the kernel's is (§6). Every accountant
+ * handler resolves through this before it can touch a DayMarketState.
  */
-export function mockAccountantKernel(accountant: Address, kernel: Address): void {
-  createMockedFunction(accountant, "KERNEL", "KERNEL():(address)")
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(kernel)]);
+export function mockAccountantKernel(state: AccountantState, kernel: Address): void {
+  state.kernel = kernel;
 }
 
 /** Mock the asset token itself (needed for DayVaultState.assetTokenDecimals). */
@@ -216,46 +213,23 @@ export function mockAssetPriceNAV(
 }
 
 /**
- * Mock the Kernel's three asset-token views.
+ * A kernel with NO liquidity venue: its quote asset is the zero address.
  *
- * All three are `immutable` on chain and have no event, so handleMarketDeploymentCompleted
- * is the only place they are ever read — but it reads them unconditionally, so leaving
- * any of the three unmocked aborts EVERY factory test with a "function not mocked" that
- * reads like a logic bug.
+ * There is no separate call to make revert any more. COLLATERAL_ASSET / LPT_ASSET /
+ * QUOTE_ASSET were standalone views — QUOTE_ASSET `virtual` and bodyless, so a
+ * venue-less kernel reverted on it — and all three were REMOVED when the kernel folded
+ * them into getState(). A struct member cannot revert, so the venue-less case is now
+ * expressed as data: the zero address in the quoteAsset slot.
  *
- * Distinct sentinels per token are the point: collateral and LPT are separate ERC20s in
- * v2, and quote is a third that belongs to no tranche at all. Shared values would let a
- * transposition among the three pass.
+ * Mutates the fixture rather than registering a mock, so it must be called BEFORE
+ * mockDayMarket rather than after.
  */
-export function mockKernelAssets(
-  kernel: Address,
-  collateralAsset: Address,
-  lptAsset: Address,
-  quoteAsset: Address
-): void {
-  createMockedFunction(kernel, "COLLATERAL_ASSET", ROYCO_DAY_KERNEL__COLLATERAL_ASSET)
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(collateralAsset)]);
-  createMockedFunction(kernel, "LPT_ASSET", ROYCO_DAY_KERNEL__LPT_ASSET)
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(lptAsset)]);
-  createMockedFunction(kernel, "QUOTE_ASSET", ROYCO_DAY_KERNEL__QUOTE_ASSET)
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(quoteAsset)]);
+export function withoutQuoteAsset(m: DayMarketFixture): DayMarketFixture {
+  m.quoteAsset = ADDR_ZERO;
+  m.kernelState.quoteAsset = ADDR_ZERO;
+  return m;
 }
 
-/**
- * Make QUOTE_ASSET revert — a kernel variant with no liquidity venue.
- *
- * It is the ONE of the three read with try_, because it is `virtual` and bodyless on the
- * base kernel. This exists so the zero-address fallback is actually exercised rather than
- * merely asserted in a comment.
- */
-export function mockQuoteAssetReverts(kernel: Address): void {
-  createMockedFunction(kernel, "QUOTE_ASSET", ROYCO_DAY_KERNEL__QUOTE_ASSET)
-    .withArgs([])
-    .reverts();
-}
 
 /**
  * A whole Day market's mockable surface, in one object.
@@ -350,6 +324,10 @@ export class DayMarketFixture {
     // them silently inverts every yield-share query in Neon.
     // Widths are load-bearing: uint32 timestamps, uint64 caps, uint192 accruals.
     m.accountantState.fixedTermEndTimestamp = BigInt.fromI32(1_700_100_001);
+    // DISTINCT from fixedTermEndTimestamp above: they are different clocks (a per-term
+    // scheduled end vs a one-time floor for the market's life), and equal values would
+    // let a handler read the wrong one and still pass.
+    m.accountantState.fixedTermCommenceableAtTimestamp = BigInt.fromI32(1_700_100_777);
     m.accountantState.lastYieldShareAccrualTimestamp = BigInt.fromI32(1_700_100_002);
     m.accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_100_003);
     m.accountantState.jtYieldShareProtocolFeeWAD = BigInt.fromI32(4_101);
@@ -442,8 +420,9 @@ function seedClaims(c: Claims, base: i32): void {
  * place. Mock generously.
  */
 export function mockDayMarket(m: DayMarketFixture): void {
+  // BEFORE mockAccountantGetState: this mutates the state that call publishes.
+  mockAccountantKernel(m.accountantState, m.kernel);
   mockAccountantGetState(m.accountant, m.accountantState);
-  mockAccountantKernel(m.accountant, m.kernel);
   mockKernelGetState(m.kernel, m.kernelState);
 
   mockPreviewSyncTrancheAccounting(
@@ -535,7 +514,11 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.seniorShareRate
   );
 
-  mockKernelAssets(m.kernel, m.collateralAsset, m.lptAsset, m.quoteAsset);
+  // The three asset addresses ride on getState() now, not on their own views. Mirrored
+  // onto the state struct here so a test can keep setting the friendly fixture fields.
+  m.kernelState.collateralAsset = m.collateralAsset;
+  m.kernelState.lptAsset = m.lptAsset;
+  m.kernelState.quoteAsset = m.quoteAsset;
 }
 
 /**

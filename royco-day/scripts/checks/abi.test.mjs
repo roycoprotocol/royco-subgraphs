@@ -27,13 +27,19 @@ const TRANCHES = [
  * The views handleMarketDeploymentCompleted calls on all three tranches through
  * ONE binding class. See the note on createVault in src/royco-factory.ts.
  */
+// The views src/ actually reaches through the SHARED RoycoSeniorTranche binding.
+//
+// KERNEL() was here and is gone: the contracts removed it (it is lowercase `kernel()`
+// now) and nothing in src/ ever called it on a tranche — the accountant -> market hop
+// rides on Accountant.getState().kernel instead. totalSupply() is kept even though src/
+// no longer calls it: the fixture mocks it, and it is exactly the kind of view a future
+// handler would reach for through this same binding.
 const SHARED_VIEWS = [
   "asset",
   "decimals",
   "totalSupply",
   "convertToAssets",
   "TRANCHE_TYPE",
-  "KERNEL",
 ];
 
 test("the three tranches' shared view surfaces are byte-identical", () => {

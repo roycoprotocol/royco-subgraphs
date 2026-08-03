@@ -127,6 +127,22 @@ export const generateMarketBlockRecordId = (
   return generateMarketId(marketId).concat("_").concat(blockNumber.toString());
 };
 
+/**
+ * DayAccountantMarketMap.id = <CHAIN_ID>_<ACCOUNTANT_ADDRESS>
+ *
+ * Keyed on the ACCOUNTANT because that is what the lookup has in hand: an accountant
+ * event carries its own address and nothing else that identifies the market.
+ *
+ * Pass the bare accountant address, lowercase hex from .toHexString() (rule 2) — a
+ * checksummed one silently misses on load and every accountant handler would then
+ * early-return as if the market did not exist.
+ */
+export const generateAccountantMarketMapId = (
+  accountantAddress: string
+): string => {
+  return CHAIN_ID.toString().concat("_").concat(accountantAddress);
+};
+
 // === TOKENS / VAULTS ===
 
 

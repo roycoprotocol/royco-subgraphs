@@ -223,8 +223,18 @@ deployer, DeploymentResult result)` deploys one market. `result` is an 8-tuple:
   silently never indexed — no error, just missing rows.
 
 The **accountant address is not the marketId**, so accountant handlers must
-resolve accountant → market (via `ACCOUNTANT.KERNEL()`, or a map entity like
-royco-rwa's `AccountantMarketMap`). Kernel handlers can look up directly.
+resolve accountant → market. They do it through **`DayAccountantMarketMap`**, a lookup
+row the factory writes at market creation — `resolveMarketFromAccountant` loads it and
+follows `marketRefId` to the market, at a cost of two store reads and **zero eth_calls**.
+
+Do not reintroduce the contract read. `Accountant.getState().kernel` (and `KERNEL()`
+before it) worked, but billed one eth_call on *every* accountant event to fetch a value
+that cannot change: the pairing is 1:1 and fixed at deployment, since `$.kernel` has a
+single assignment in `initialize()` (`RoycoDayAccountant.sol:122`) and no setter. A row
+written once is correct forever. `KernelUpdated(address)` does not contradict this — it
+fires for implementation upgrades, not re-pointing, and is deliberately not indexed.
+
+Kernel handlers need no hop at all: there, `event.address` IS the marketId.
 
 ### `Claims` — the quintuple
 
@@ -358,6 +368,7 @@ Every id has a generator in `src/utils/global.ts`. **Never inline an id.**
 | `GlobalTokenTransfer` | `<CHAIN>_<TX>_<LOG_IDX>_<TOKEN_IDX>` | ✅ |
 | `GlobalTokenActivity` | `<CHAIN>_<TX>_<LOG_IDX>_<VAULT>_<CAT>_<SUBCAT>_<TOKEN_IDX>` | ✅ |
 | `DayMarketState` | `<CHAIN>_<KERNEL>` | ❌ |
+| `DayAccountantMarketMap` | `<CHAIN>_<ACCOUNTANT>` | ✅ |
 | `DayMarketNav` | `<CHAIN>_<KERNEL>` | ❌ |
 | `DayMarketNavHistorical` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
 | `DayVaultState` | `<CHAIN>_<VAULT>` | ❌ |
@@ -379,6 +390,11 @@ nothing**; that's why the test harness exists.
 
 - Addresses in ids are lowercase-hex-with-0x, from `.toHexString()`. A
   checksummed address won't match on `load()` and silently creates a duplicate.
+- **`DayAccountantMarketMap` is the one immutable entity whose id carries no
+  `<ENTRY_INDEX>`/`<LOG_INDEX>`.** That is safe only because its subject is written
+  exactly once by construction — one accountant belongs to one market for life, and the
+  factory is its sole writer. `scripts/checks/schema.test.mjs` exempts it **by name**,
+  with the reason recorded; do not relax the discriminator list to admit another.
 - Mutable: `load()` → if null `new` + seed **every** non-null field → mutate →
   `save()`.
 - `DayMarketNav.id` is byte-identical to `DayMarketState.id` — one live NAV row per

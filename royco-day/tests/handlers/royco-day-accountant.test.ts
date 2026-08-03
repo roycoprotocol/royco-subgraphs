@@ -9,10 +9,11 @@ import {
 import { BigInt } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
 import {
-  handleCoverageUpdated,
-  handleLiquidityUpdated,
+  handleMinCoverageUpdated,
+  handleMinLiquidityUpdated,
   handleLiquidationCoverageUtilizationUpdated,
   handleFixedTermDurationUpdated,
+  handleFixedTermCommenceableAtTimestampUpdated,
   handleMaxYieldSharesUpdated,
   handleFixedTermCommenced,
   handleFixedTermEnded,
@@ -33,10 +34,11 @@ import {
   handlePostOpTrancheAccountingSynced,
 } from "../../src/royco-day-kernel";
 import {
-  CoverageUpdated,
-  LiquidityUpdated,
+  MinCoverageUpdated,
+  MinLiquidityUpdated,
   LiquidationCoverageUtilizationUpdated,
   FixedTermDurationUpdated,
+  FixedTermCommenceableAtTimestampUpdated,
   MaxYieldSharesUpdated,
   FixedTermCommenced,
   FixedTermEnded,
@@ -142,19 +144,19 @@ describe("accountant config handlers", () => {
   test("each config event writes its OWN field", () => {
     // Every one of these is a lone BigInt on a market row full of other lone
     // BigInts. Distinct sentinels are the only thing separating them: a handler
-    // writing minLiquidityWAD from the CoverageUpdated param would be invisible
+    // writing minLiquidityWAD from the MinCoverageUpdated param would be invisible
     // under shared values.
     deployMarket();
 
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>(
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>(
         "minCoverageWAD",
         BigInt.fromI32(9_001),
         accountantCtx()
       )
     );
-    handleLiquidityUpdated(
-      createUintEvent<LiquidityUpdated>(
+    handleMinLiquidityUpdated(
+      createUintEvent<MinLiquidityUpdated>(
         "minLiquidityWAD",
         BigInt.fromI32(9_002),
         accountantCtx()
@@ -344,7 +346,7 @@ describe("accountant config handlers", () => {
   });
 
   test("a config event for an unknown market is a no-op", () => {
-    // THE TEST PEOPLE FORGET. The Accountant's initialize() emits CoverageUpdated
+    // THE TEST PEOPLE FORGET. The Accountant's initialize() emits MinCoverageUpdated
     // and FixedTermDurationUpdated during deployMarket — at a LOWER log index than
     // the MarketDeploymentCompleted that creates this template and writes the
     // market. If graph-node ever replays those earlier same-block logs into the
@@ -353,8 +355,8 @@ describe("accountant config handlers", () => {
     const market = DayMarketFixture.standard();
     mockDayMarket(market); // KERNEL() still resolvable; the ENTITY is what's absent
 
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>(
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>(
         "minCoverageWAD",
         BigInt.fromI32(9_001),
         accountantCtx()
@@ -362,6 +364,47 @@ describe("accountant config handlers", () => {
     );
 
     assert.entityCount("DayMarketState", 0);
+  });
+
+  test("FixedTermCommenceableAtTimestampUpdated moves the commencement floor", () => {
+    // The floor is when fixed-term logic can FIRST activate — deployment time plus the
+    // grace period — and the accountant gates commencement on it
+    // (RoycoDayAccountant.sol:550, `block.timestamp < $.fixedTermCommenceableAtTimestamp`).
+    //
+    // Today the only emit is inside initialize(), which fires BELOW
+    // MarketDeploymentCompleted, so the null guard swallows it and the factory's
+    // getState() read fills the column. This drives the handler directly, so the wiring
+    // is proven now rather than the first time a setter is added.
+    deployMarket();
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700100777"
+    );
+
+    handleFixedTermCommenceableAtTimestampUpdated(
+      createUintEvent<FixedTermCommenceableAtTimestampUpdated>(
+        "fixedTermCommenceableAtTimestamp",
+        BigInt.fromI32(1_700_200_999),
+        accountantCtx()
+      )
+    );
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700200999"
+    );
+    // The neighbouring fixed-term clock is a DIFFERENT value and must not move: one is a
+    // per-term scheduled end, the other a one-time floor.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermEndTimestamp",
+      "1700100001"
+    );
   });
 
   test("a config write never re-stamps createdAt", () => {
@@ -372,8 +415,8 @@ describe("accountant config handlers", () => {
     const later = accountantCtx();
     later.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(3600));
     later.txHash = TX_HASH_2;
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>("minCoverageWAD", BigInt.fromI32(9_001), later)
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>("minCoverageWAD", BigInt.fromI32(9_001), later)
     );
 
     assert.fieldEquals(
@@ -653,15 +696,15 @@ describe("the kernel sync handlers", () => {
     // The config handler sets the truth first. NOTE these four are ACCOUNTANT events
     // and still hop ACCOUNTANT.KERNEL() to find their market, so they emit from the
     // accountant — only the sync moved onto the kernel in v2.
-    handleCoverageUpdated(
-      createUintEvent<CoverageUpdated>(
+    handleMinCoverageUpdated(
+      createUintEvent<MinCoverageUpdated>(
         "minCoverageWAD",
         BigInt.fromI32(5_001),
         accountantCtx()
       )
     );
-    handleLiquidityUpdated(
-      createUintEvent<LiquidityUpdated>(
+    handleMinLiquidityUpdated(
+      createUintEvent<MinLiquidityUpdated>(
         "minLiquidityWAD",
         BigInt.fromI32(5_002),
         accountantCtx()
@@ -1464,11 +1507,34 @@ describe("the kernel sync handlers", () => {
       )
     );
 
+    // The concluded term keeps ITS OWN loss — patching it would have overwritten 9303
+    // with an unrelated 7777, which is the corruption this guard exists to prevent.
     assert.fieldEquals(
       "DayFixedTermHistory",
       generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
       "juniorTrancheImpermanentLossNAV",
       "9303"
+    );
+    // ...and the orphaned erase is NOT dropped: it gets a zero-length term of its own.
+    // Skipping it would leave 7777 in the market's lifetime total with no row behind it.
+    assert.entityCount("DayFixedTermHistory", 2);
+    const orphan = generateMarketRecordId(
+      ADDR_KERNEL.toHexString(),
+      BigInt.fromI32(1)
+    );
+    assert.fieldEquals("DayFixedTermHistory", orphan, "duration", "0");
+    assert.fieldEquals(
+      "DayFixedTermHistory",
+      orphan,
+      "juniorTrancheImpermanentLossNAV",
+      "7777"
+    );
+    // SUM(rows) == the market's lifetime total: 9303 + 7777.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheImpermanentLossNAV",
+      "17080"
     );
   });
 
@@ -1826,22 +1892,39 @@ describe("the kernel sync handlers", () => {
     );
   });
 
-  test("a Reset before any term ever started still counts toward the total", () => {
-    // The two writes part ways here. A market can erase coverage loss having never
-    // run a fixed term at all (duration permanently 0, or JT wiped out), so there
-    // is no row to patch — but the loss was still real and belongs in the lifetime
-    // total. Writing only the row would silently lose it.
+  test("a Reset DURING the commencement grace period gets its own zero-length term", () => {
+    // A duration IS configured, but no term has ever run — the commonest reason being
+    // that the market is still inside its grace period: it cannot enter a fixed term
+    // until block.timestamp >= fixedTermCommenceableAtTimestamp
+    // (RoycoDayAccountant.sol:550). Losses can be erased inside that window regardless.
+    //
+    // There is no term to patch, and dropping it would leave the loss recorded ONLY in
+    // the market's lifetime total — unattributable, with no row and no timestamp to ask
+    // when it happened. It gets a zero-length term of its own instead.
     deployMarket();
+    assert.entityCount("DayFixedTermHistory", 0);
 
+    const c = accountantCtx();
+    c.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(321));
     handleJuniorTrancheImpermanentLossReset(
       createUintEvent<JuniorTrancheImpermanentLossReset>(
         "jtImpermanentLossErased",
         BigInt.fromI32(9_305),
-        accountantCtx()
+        c
       )
     );
 
-    assert.entityCount("DayFixedTermHistory", 0);
+    // One degenerate term, opened and closed on this event.
+    assert.entityCount("DayFixedTermHistory", 1);
+    const id = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
+    const t = c.blockTimestamp.toString();
+    assert.fieldEquals("DayFixedTermHistory", id, "startBlockTimestamp", t);
+    assert.fieldEquals("DayFixedTermHistory", id, "endBlockTimestamp", t);
+    assert.fieldEquals("DayFixedTermHistory", id, "duration", "0");
+    assert.fieldEquals("DayFixedTermHistory", id, "juniorTrancheImpermanentLossNAV", "9305");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "1");
+
+    // AND THE TWO RECONCILE — the whole point. SUM(rows) == the lifetime total.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,

@@ -325,8 +325,10 @@ function recordSync(
   syncType: string,
   op: i32
 ): void {
-  // THE KERNEL ADDRESS IS THE MARKET ID (§6) — no ACCOUNTANT.KERNEL() hop. In v1 this
-  // event lived on the accountant and paid an eth_call per sync just to find its market.
+  // THE KERNEL ADDRESS IS THE MARKET ID (§6) — no accountant -> market hop at all. In v1
+  // this event lived on the accountant and paid an eth_call per sync just to find its
+  // market; accountant events now resolve through the DayAccountantMarketMap row instead,
+  // and this one needs no lookup whatsoever.
   const market = DayMarketState.load(
     generateMarketId(event.address.toHexString())
   );

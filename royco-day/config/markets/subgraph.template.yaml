@@ -41,6 +41,9 @@ dataSources:
         # this same handler writes — no extra eth_calls (§ the note in schema.graphql).
         - DayMarketNav
         - DayMarketNavHistorical
+        # accountant -> market, written ONLY here. The accountant data source reads it
+        # to resolve its events without an eth_call; nothing else writes it.
+        - DayAccountantMarketMap
       abis:
         - name: RoycoFactory
           file: ./abis/RoycoFactory.json
@@ -253,6 +256,9 @@ templates:
       language: wasm/assemblyscript
       entities:
         - DayMarketState
+        # READ, never written here — resolveMarketFromAccountant loads it to map
+        # event.address (the accountant) to its market. The factory is the only writer.
+        - DayAccountantMarketMap
         # handleFixedTermCommenced creates these and handleFixedTermEnded /
         # handleFixedTermDurationUpdated(0) close them (§10.3).
         - DayFixedTermHistory
@@ -286,11 +292,17 @@ templates:
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
           receipt: true
-        - event: CoverageUpdated(uint64)
-          handler: handleCoverageUpdated
+        # Only emitted from the accountant's initialize(), which lands BELOW
+        # MarketDeploymentCompleted — the factory's getState() read is what fills the
+        # column. Wired so a future setter is picked up for free. See the handler.
+        - event: FixedTermCommenceableAtTimestampUpdated(uint64)
+          handler: handleFixedTermCommenceableAtTimestampUpdated
           receipt: true
-        - event: LiquidityUpdated(uint64)
-          handler: handleLiquidityUpdated
+        - event: MinCoverageUpdated(uint64)
+          handler: handleMinCoverageUpdated
+          receipt: true
+        - event: MinLiquidityUpdated(uint64)
+          handler: handleMinLiquidityUpdated
           receipt: true
         - event: LiquidationCoverageUtilizationUpdated(uint256)
           handler: handleLiquidationCoverageUtilizationUpdated

@@ -66,36 +66,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_implementation",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "_initData",
-        "type": "bytes"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "_salt",
-        "type": "bytes32"
-      }
-    ],
-    "name": "deployDeterministicProxy",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "deployed",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_implementation",
+        "name": "_beacon",
         "type": "address"
       },
       {
@@ -256,6 +227,11 @@
       {
         "internalType": "address",
         "name": "kernel",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "accountant",
         "type": "address"
       }
     ],
@@ -587,31 +563,6 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "proxy",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "implementation",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "salt",
-        "type": "bytes32"
-      }
-    ],
-    "name": "ProxyDeployed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
         "name": "template",
         "type": "address"
       }
@@ -760,11 +711,6 @@
   },
   {
     "inputs": [],
-    "name": "FACTORY_GRANT_ROLE_FORBIDDEN",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "FailedCall",
     "type": "error"
   },
@@ -806,22 +752,6 @@
   {
     "inputs": [],
     "name": "ONLY_ACTIVE_TEMPLATE",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "deployed",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "salt",
-        "type": "bytes32"
-      }
-    ],
-    "name": "PROXY_ALREADY_DEPLOYED",
     "type": "error"
   },
   {

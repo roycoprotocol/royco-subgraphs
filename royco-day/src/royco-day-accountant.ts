@@ -5,8 +5,9 @@ import {
   FixedTermCommenced as FixedTermCommencedEvent,
   FixedTermEnded as FixedTermEndedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
-  CoverageUpdated as CoverageUpdatedEvent,
-  LiquidityUpdated as LiquidityUpdatedEvent,
+  FixedTermCommenceableAtTimestampUpdated as FixedTermCommenceableAtTimestampUpdatedEvent,
+  MinCoverageUpdated as MinCoverageUpdatedEvent,
+  MinLiquidityUpdated as MinLiquidityUpdatedEvent,
   LiquidationCoverageUtilizationUpdated as LiquidationCoverageUtilizationUpdatedEvent,
   SeniorTrancheProtocolFeeUpdated as SeniorTrancheProtocolFeeUpdatedEvent,
   JuniorTrancheProtocolFeeUpdated as JuniorTrancheProtocolFeeUpdatedEvent,
@@ -49,6 +50,14 @@ import {
  * handler here re-reads getState(). The one exception is documented on
  * handleSeniorTrancheDustToleranceUpdated.
  *
+ * NOT INDEXED, deliberately:
+ *   KernelUpdated(address) — MISLEADINGLY NAMED. `$.kernel` is assigned in exactly one
+ *     place, inside initialize() (RoycoDayAccountant.sol:122), so this fires once per
+ *     accountant at init and never again; there is no setter that could re-point it.
+ *     DayMarketState already records the relationship from the factory's own
+ *     DeploymentResult, and resolveMarketFromAccountant reads the same value live. A
+ *     handler here would add a row that can never change. Do not "fix" this as a gap.
+ *
  * TYPE TRAPS (verified against generated/, see CLAUDE.md §4). Only ONE of the
  * fifteen is not a direct BigInt assign:
  *   FixedTermDurationUpdated(uint24) -> i32     !! needs BigInt.fromI32()
@@ -59,9 +68,10 @@ import {
  *
  * THE SYNC HANDLER NO LONGER LIVES HERE. v2 replaced the accountant's
  * TrancheAccountingSynced with the kernel's PreOp/PostOpTrancheAccountingSynced pair,
- * so it moved to src/royco-day-kernel.ts — where event.address IS the marketId, making
- * the ACCOUNTANT.KERNEL() hop every handler below still pays unnecessary for it.
- * Everything left in this file is a config or lifecycle event.
+ * so it moved to src/royco-day-kernel.ts — where event.address IS the marketId and no
+ * accountant -> market hop is needed at all. Everything left in this file is a config or
+ * lifecycle event, and each resolves through resolveMarketFromAccountant, which is now a
+ * DayAccountantMarketMap store load rather than an eth_call.
  */
 
 // =============================================================================
@@ -157,6 +167,37 @@ export function handleFixedTermEnded(event: FixedTermEndedEvent): void {
  * Also fires from initialize(), before the market entity exists. The null guard in
  * resolveMarketFromAccountant is what makes that a no-op rather than a crash.
  */
+/**
+ * The market's fixed-term grace period elapsed — i.e. the earliest timestamp at which a
+ * fixed term may commence. Deployment time plus the configured grace period.
+ *
+ * PURE CONFIG, carried on the event; no contract read.
+ *
+ * !! ITS ONLY EMIT SITE IS initialize() (RoycoDayAccountant.sol:125), which fires DURING
+ *    deployMarket at a LOWER log index than the MarketDeploymentCompleted that creates
+ *    this template and writes the market. So in practice the null guard swallows it and
+ *    the column is filled by the factory's own getState() read instead.
+ *
+ *    It is wired anyway, deliberately: the value has no setter TODAY, and if one is ever
+ *    added this handler picks it up with no further work. Its three neighbours —
+ *    MinCoverageUpdated, MinLiquidityUpdated, FixedTermDurationUpdated — each already
+ *    have a real set* and two emit sites, so this is the same shape as code that is
+ *    demonstrably live.
+ *
+ * uint64 -> BigInt direct. The uint24 lift that bites on fixedTermDurationSeconds does
+ * not apply (§4).
+ */
+export function handleFixedTermCommenceableAtTimestampUpdated(
+  event: FixedTermCommenceableAtTimestampUpdatedEvent
+): void {
+  const market = resolveMarketFromAccountant(event);
+  if (!market) return;
+
+  market.fixedTermCommenceableAtTimestamp =
+    event.params.fixedTermCommenceableAtTimestamp;
+  touchMarket(event, market);
+}
+
 export function handleFixedTermDurationUpdated(
   event: FixedTermDurationUpdatedEvent,
 ): void {
@@ -241,7 +282,7 @@ export function handleJuniorTrancheImpermanentLossReset(
 // CONFIG — each event carries its own new value; no contract reads needed.
 // =============================================================================
 
-export function handleCoverageUpdated(event: CoverageUpdatedEvent): void {
+export function handleMinCoverageUpdated(event: MinCoverageUpdatedEvent): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 
@@ -249,7 +290,7 @@ export function handleCoverageUpdated(event: CoverageUpdatedEvent): void {
   touchMarket(event, market);
 }
 
-export function handleLiquidityUpdated(event: LiquidityUpdatedEvent): void {
+export function handleMinLiquidityUpdated(event: MinLiquidityUpdatedEvent): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;
 

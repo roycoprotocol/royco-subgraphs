@@ -25,7 +25,7 @@ import {
   mockBalancerPool,
   mockBalancerPoolAbsent,
   mockValueToAssetsReverts,
-  mockQuoteAssetReverts,
+  withoutQuoteAsset,
 } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
@@ -762,9 +762,8 @@ describe("quoteAssetPriceNAV", () => {
     // quote price would be undetectable downstream, because the documented "read
     // balancerVaultAddress and quoteAssetPoolIndex together" contract would also say the
     // market has a venue.
-    const market = DayMarketFixture.standard();
+    const market = withoutQuoteAsset(DayMarketFixture.standard());
     mockDayMarket(market);
-    mockQuoteAssetReverts(ADDR_KERNEL);
     mockBalancerPool(
       ADDR_LPT_ASSET,
       ADDR_BALANCER_VAULT,

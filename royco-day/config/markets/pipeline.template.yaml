@@ -10,7 +10,7 @@
 # A hand-edit here is reverted by the next generate and caught by
 # `npm run check:drift`.
 #
-# Entities wired: 19
+# Entities wired: 20
 # =============================================================================
 apiVersion: 3
 name: {{pipelineName}}
@@ -34,6 +34,14 @@ sources:
     type: subgraph_entity
   royco_day_markets_day_market_state_reference:
     name: day_market_state
+    subgraphs:
+      {{#metadata}}
+      - name: royco-day-markets-{{network}}
+        version: {{version}}
+      {{/metadata}}
+    type: subgraph_entity
+  royco_day_markets_day_accountant_market_map_reference:
+    name: day_accountant_market_map
     subgraphs:
       {{#metadata}}
       - name: royco-day-markets-{{network}}
@@ -191,6 +199,13 @@ sinks:
     secret_name: NEON_ROYCO_ESTATE
     description: "Postgres sink for: day_market_state"
     from: royco_day_markets_day_market_state_reference
+  royco_day_markets_day_accountant_market_map_postgres:
+    type: postgres
+    table: day_accountant_market_map
+    schema: public
+    secret_name: NEON_ROYCO_ESTATE
+    description: "Postgres sink for: day_accountant_market_map"
+    from: royco_day_markets_day_accountant_market_map_reference
   royco_day_markets_day_market_nav_postgres:
     type: postgres
     table: day_market_nav

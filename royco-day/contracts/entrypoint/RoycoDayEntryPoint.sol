@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import { IERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import { SafeCast } from "../../lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
-import { RoycoBase } from "../base/RoycoBase.sol";
+import { RoycoUUPSBase } from "../base/RoycoUUPSBase.sol";
 import { IRoycoDayEntryPoint } from "../interfaces/IRoycoDayEntryPoint.sol";
 import { IRoycoDayKernel } from "../interfaces/IRoycoDayKernel.sol";
 import { IRoycoLiquidityProviderTranche } from "../interfaces/IRoycoLiquidityProviderTranche.sol";
@@ -12,7 +12,7 @@ import { IRoycoPriceOracle } from "../interfaces/IRoycoPriceOracle.sol";
 import { IRoycoVaultTranche } from "../interfaces/IRoycoVaultTranche.sol";
 import { IRoycoFactory } from "../interfaces/factory/IRoycoFactory.sol";
 import { MAX_TRANCHE_UNITS, WAD, ZERO_NAV_UNITS, ZERO_TRANCHE_UNITS } from "../libraries/Constants.sol";
-import { AssetClaims, SyncedAccountingState, TrancheType } from "../libraries/Types.sol";
+import { AssetClaims, TrancheType } from "../libraries/Types.sol";
 import { NAV_UNIT, RoycoUnitsMath, TRANCHE_UNIT, toTrancheUnits, toUint256 } from "../libraries/Units.sol";
 import { AssetLedgerLogic } from "../libraries/logic/AssetLedgerLogic.sol";
 import { DispatchLogic } from "../libraries/logic/DispatchLogic.sol";
@@ -32,7 +32,7 @@ import { ValuationLogic } from "../libraries/logic/ValuationLogic.sol";
  * @dev Partial execution is supported, allowing requests to be fulfilled incrementally as tranche capacity is freed up
  * @dev Screens interacting accounts against the market's blacklist, covering the request operators and every value flow that settles outside the kernel's own screened paths
  */
-contract RoycoDayEntryPoint is RoycoBase, IRoycoDayEntryPoint {
+contract RoycoDayEntryPoint is RoycoUUPSBase, IRoycoDayEntryPoint {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
     using RoycoUnitsMath for NAV_UNIT;
@@ -109,7 +109,6 @@ contract RoycoDayEntryPoint is RoycoBase, IRoycoDayEntryPoint {
         expiresAtTimestamp = uint32(Math.min(uint256(executableAtTimestamp) + config.baseConfig.depositExpirySeconds, type(uint32).max));
 
         // Populate the user's deposit request in memory before registering it
-        requestNonce = ++$.lastRequestNonce;
         DepositRequest memory request = DepositRequest({
             assets: _assets,
             // Snapshot the shares this deposit would mint at request-time pricing
@@ -123,7 +122,7 @@ contract RoycoDayEntryPoint is RoycoBase, IRoycoDayEntryPoint {
                 executorBonusWAD: _executorBonusWAD
             })
         });
-        $.userToNonceToDepositRequest[msg.sender][requestNonce] = request;
+        $.userToNonceToDepositRequest[msg.sender][(requestNonce = ++$.lastRequestNonce)] = request;
 
         // Transfer the requested amount of tranche assets into the entry point to queue the deposit
         IERC20(config.asset).safeTransferFrom(msg.sender, address(this), toUint256(_assets));
@@ -288,7 +287,6 @@ contract RoycoDayEntryPoint is RoycoBase, IRoycoDayEntryPoint {
         expiresAtTimestamp = uint32(Math.min(uint256(executableAtTimestamp) + config.baseConfig.redemptionExpirySeconds, type(uint32).max));
 
         // Populate the user's redemption request in memory before registering it
-        requestNonce = ++$.lastRequestNonce;
         RedemptionRequest memory request = RedemptionRequest({
             shares: _shares,
             // Snapshot the value of the escrowed shares
@@ -303,7 +301,7 @@ contract RoycoDayEntryPoint is RoycoBase, IRoycoDayEntryPoint {
                 executorBonusWAD: _executorBonusWAD
             })
         });
-        $.userToNonceToRedemptionRequest[msg.sender][requestNonce] = request;
+        $.userToNonceToRedemptionRequest[msg.sender][(requestNonce = ++$.lastRequestNonce)] = request;
 
         // Transfer the requested amount of tranche shares into the entry point to queue the redemption
         IERC20(_tranche).safeTransferFrom(msg.sender, address(this), _shares);

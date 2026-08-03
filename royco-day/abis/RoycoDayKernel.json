@@ -1,116 +1,12 @@
 [
   {
     "inputs": [],
-    "name": "ACCOUNTANT",
+    "name": "accountant",
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "accountant",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "COLLATERAL_ASSET",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "ENFORCE_TRANCHE_WHITELIST_ON_TRANSFER",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "JUNIOR_TRANCHE",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "LIQUIDITY_PROVIDER_TRANCHE",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "LPT_ASSET",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "QUOTE_ASSET",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "SENIOR_TRANCHE",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "UPGRADE_INTERFACE_VERSION",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -164,12 +60,7 @@
       },
       {
         "internalType": "NAV_UNIT",
-        "name": "_stEffectiveNAV",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_totalSTShares",
+        "name": "_stShareRate",
         "type": "uint256"
       }
     ],
@@ -185,6 +76,19 @@
       {
         "internalType": "address",
         "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "collateralAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "collateralAsset",
         "type": "address"
       }
     ],
@@ -364,7 +268,7 @@
         "components": [
           {
             "internalType": "address",
-            "name": "protocolFeeRecipient",
+            "name": "seniorTranche",
             "type": "address"
           },
           {
@@ -373,19 +277,49 @@
             "type": "uint64"
           },
           {
-            "internalType": "TRANCHE_UNIT",
-            "name": "totalCollateralAssets",
-            "type": "uint256"
+            "internalType": "address",
+            "name": "juniorTranche",
+            "type": "address"
           },
           {
-            "internalType": "TRANCHE_UNIT",
-            "name": "totalLPTAssets",
-            "type": "uint256"
+            "internalType": "address",
+            "name": "liquidityProviderTranche",
+            "type": "address"
           },
           {
-            "internalType": "uint256",
-            "name": "lptOwnedSeniorTrancheShares",
-            "type": "uint256"
+            "internalType": "address",
+            "name": "collateralAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "oneWholeCollateralAsset",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "lptAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "oneWholeLPTAsset",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "quoteAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "accountant",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "protocolFeeRecipient",
+            "type": "address"
           },
           {
             "internalType": "address",
@@ -411,6 +345,21 @@
             "internalType": "uint48",
             "name": "gracePeriodSeconds",
             "type": "uint48"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "totalCollateralAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "totalLPTAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lptOwnedSeniorTrancheShares",
+            "type": "uint256"
           }
         ],
         "internalType": "struct IRoycoDayKernel.RoycoDayKernelState",
@@ -562,6 +511,45 @@
         "internalType": "bytes4",
         "name": "",
         "type": "bytes4"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "juniorTranche",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "juniorTranche",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liquidityProviderTranche",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityProviderTranche",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lptAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "lptAsset",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -894,19 +882,6 @@
   },
   {
     "inputs": [],
-    "name": "proxiableUUID",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "queryCollateralAssetOracle",
     "outputs": [
       {
@@ -926,6 +901,19 @@
         "internalType": "NAV_UNIT",
         "name": "lptAssetPrice",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "quoteAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "quoteAsset",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -991,6 +979,19 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "seniorTranche",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "seniorTranche",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1319,24 +1320,6 @@
     "name": "unpause",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newImplementation",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "data",
-        "type": "bytes"
-      }
-    ],
-    "name": "upgradeToAndCall",
-    "outputs": [],
-    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -1709,30 +1692,6 @@
     "type": "event"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "implementation",
-        "type": "address"
-      }
-    ],
-    "name": "Upgraded",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "ACCOUNT_NOT_WHITELISTED_TRANCHE_LP",
-    "type": "error"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -1771,17 +1730,6 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "target",
-        "type": "address"
-      }
-    ],
-    "name": "AddressEmptyCode",
-    "type": "error"
-  },
-  {
     "inputs": [],
     "name": "CACHE_VALUE_OUT_OF_DOMAIN",
     "type": "error"
@@ -1802,22 +1750,6 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "implementation",
-        "type": "address"
-      }
-    ],
-    "name": "ERC1967InvalidImplementation",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ERC1967NonPayable",
-    "type": "error"
-  },
-  {
     "inputs": [],
     "name": "EnforcedPause",
     "type": "error"
@@ -1829,12 +1761,12 @@
   },
   {
     "inputs": [],
-    "name": "FailedCall",
+    "name": "GRACE_PERIOD_NOT_OVER",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "GRACE_PERIOD_NOT_OVER",
+    "name": "INVALID_COLLATERAL_ASSET_DECIMALS",
     "type": "error"
   },
   {
@@ -1844,7 +1776,7 @@
   },
   {
     "inputs": [],
-    "name": "INVALID_IMPLEMENTATION",
+    "name": "INVALID_LPT_ASSET_DECIMALS",
     "type": "error"
   },
   {
@@ -1925,22 +1857,6 @@
   {
     "inputs": [],
     "name": "TRANCHE_AND_KERNEL_ASSETS_MISMATCH",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UUPSUnauthorizedCallContext",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "slot",
-        "type": "bytes32"
-      }
-    ],
-    "name": "UUPSUnsupportedProxiableUUID",
     "type": "error"
   }
 ]

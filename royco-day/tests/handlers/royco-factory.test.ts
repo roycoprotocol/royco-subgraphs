@@ -14,7 +14,7 @@ import {
 import {
   DayMarketFixture,
   mockDayMarket,
-  mockQuoteAssetReverts,
+  withoutQuoteAsset,
 } from "../mocks";
 import { ctx } from "../helpers/event";
 import {
@@ -40,11 +40,13 @@ import {
   WAD,
 } from "../helpers/constants";
 import {
+  CHAIN_ID,
   MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
   MARKET_TOKEN_ROLE_LPT_ASSET,
   MARKET_TOKEN_ROLE_QUOTE_ASSET,
 } from "../../src/constants";
 import {
+  generateAccountantMarketMapId,
   generateMarketId,
   generateMarketNavId,
   generateMarketTokenId,
@@ -121,6 +123,57 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.dataSourceExists("RoycoLiquidityProviderTranche", ADDR_LIQUIDITY.toHexString());
     assert.dataSourceExists("RoycoDayAccountant", ADDR_ACCOUNTANT.toHexString());
     assert.dataSourceExists("RoycoDayKernel", ADDR_KERNEL.toHexString());
+  });
+
+  test("writes the accountant -> market map row, in full", () => {
+    // This row is the ONLY thing that lets an accountant handler find its market:
+    // resolveMarketFromAccountant loads it instead of paying an eth_call per event.
+    // Miss it and every accountant handler early-returns forever — no error, just a
+    // market whose config and sync columns never move again.
+    deployStandard();
+
+    assert.entityCount("DayAccountantMarketMap", 1);
+
+    // KEYED ON THE ACCOUNTANT, because that address is all an accountant event carries.
+    // Keyed on the kernel it would be unfindable, and the whole table pointless.
+    const mapId = generateAccountantMarketMapId(ADDR_ACCOUNTANT.toHexString());
+    assert.fieldEquals(
+      "DayAccountantMarketMap",
+      mapId,
+      "accountantAddress",
+      ADDR_ACCOUNTANT.toHexString()
+    );
+    // The two market columns are DIFFERENT SHAPES and the resolver only works with the
+    // composite one. Asserting both catches a swap, which would otherwise be a silent
+    // total failure of every accountant handler.
+    assert.fieldEquals(
+      "DayAccountantMarketMap",
+      mapId,
+      "marketId",
+      ADDR_KERNEL.toHexString()
+    );
+    assert.fieldEquals("DayAccountantMarketMap", mapId, "marketRefId", MARKET_ID);
+    assert.fieldEquals("DayAccountantMarketMap", mapId, "chainId", CHAIN_ID.toString());
+
+    // createdAt* is the row's only provenance — it is immutable and never updated.
+    assert.fieldEquals(
+      "DayAccountantMarketMap",
+      mapId,
+      "createdAtTransactionHash",
+      TX_HASH.toHexString()
+    );
+    assert.fieldEquals(
+      "DayAccountantMarketMap",
+      mapId,
+      "createdAtBlockNumber",
+      BLOCK_NUMBER.toString()
+    );
+    assert.fieldEquals(
+      "DayAccountantMarketMap",
+      mapId,
+      "createdAtBlockTimestamp",
+      BLOCK_TIMESTAMP.toString()
+    );
   });
 
   test("writes one DayMarketState keyed by the kernel address", () => {
@@ -237,6 +290,16 @@ describe("handleMarketDeploymentCompleted", () => {
       MARKET_ID,
       "minCoverageWAD",
       WAD.div(BigInt.fromI32(2)).toString()
+    );
+    // The fixed-term COMMENCEMENT floor — deployment time plus the grace period, i.e.
+    // when fixed-term logic can first activate. Seeded from getState() here because its
+    // event only fires from the accountant's initialize(), below this handler's log
+    // index. Distinct from fixedTermEndTimestamp so reading the wrong clock shows.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700100777"
     );
     assert.fieldEquals(
       "DayMarketState",
@@ -688,15 +751,17 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("a reverting QUOTE_ASSET falls back to the zero address, not a dead handler", () => {
-    // QUOTE_ASSET is the ONE of the three read with try_: it is `virtual` and BODYLESS
-    // on the base kernel, concretised only by the liquidity venue, so a venue-less
-    // kernel variant need not implement it. A raw revert here would kill
-    // handleMarketDeploymentCompleted outright — no market, no vaults, no downstream
-    // rows, ever. This proves the market is still fully written.
-    const market = DayMarketFixture.standard();
+  test("a venue-less kernel reports the zero-address quote asset, not a dead handler", () => {
+    // The quote asset used to be a `virtual`, bodyless QUOTE_ASSET() that only the
+    // liquidity venue concretised, so a venue-less kernel REVERTED on it and the read
+    // needed try_. It is a plain getState() member now, so the venue-less case is data
+    // rather than a failure: the zero address in the quoteAsset slot.
+    //
+    // Still worth a test — everything downstream keys off that zero address (the token
+    // id, the decimals read, and the Balancer pool binding all branch on it), so a
+    // market with no venue must still index completely.
+    const market = withoutQuoteAsset(DayMarketFixture.standard());
     mockDayMarket(market);
-    mockQuoteAssetReverts(market.kernel); // registered AFTER, so it wins
 
     handleMarketDeploymentCompleted(
       createMarketDeploymentCompletedEvent(
