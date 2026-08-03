@@ -17,10 +17,11 @@ import { RoycoDayAccountant as RoycoDayAccountantContract } from "../../../gener
  *   totalCollateralAssets                      DepositLogic (st/jt deposits),
  *                                              TrancheClaimsLogic (redeems)
  *   totalLiquidityTrancheAssets                DepositLogic (lpt deposits),
- *                                              TrancheClaimsLogic, BalancerV3VenueLogic
+ *                                              TrancheClaimsLogic,
+ *                                              BalancerV3LiquidityVenueLogic
  *   liquidityTrancheOwnedSeniorTrancheShares   FeeAndLiquidityPremiumLogic (premium
  *                                              mints), TrancheClaimsLogic,
- *                                              BalancerV3VenueLogic (reinvestment)
+ *                                              BalancerV3LiquidityVenueLogic (reinvestment)
  *   lastYieldShareAccruedTimestamp             RoycoDayAccountant, every accrual
  *   lastPremiumPaymentTimestamp                RoycoDayAccountant, every premium payout
  *   timeWeightedJuniorTrancheYieldShareAccruedWAD    incremented on every accrual (which
@@ -84,7 +85,7 @@ export function refreshMarketStoredState(
       accountantState.value.lastPremiumPaymentTimestamp;
     // THE TWO ACCUMULATORS, and they MUST be re-read here even though YieldSharesAccrued
     // already reports them. That event fires with the POST-increment values and then the
-    // very same call zeroes both (RoycoDayAccountant.sol:163-168, inside
+    // very same call zeroes both (RoycoDayAccountant.sol:158-163, inside
     // `if (premiumsPaid)`) EMITTING NOTHING — none of the accountant's sixteen events
     // signals the reset. So the event stream can only ever ratchet these up; it can
     // never bring them back down.

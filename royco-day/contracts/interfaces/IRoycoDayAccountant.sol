@@ -33,7 +33,7 @@ interface IRoycoDayAccountant {
         address kernel;
         address initialAuthority;
         // Deployment Configuration
-        uint256 fixedTermGracePeriodSeconds;
+        uint24 fixedTermGracePeriodSeconds;
         // Coverage configuration
         uint64 minCoverageWAD;
         uint256 coverageLiquidationUtilizationWAD;
@@ -188,13 +188,9 @@ interface IRoycoDayAccountant {
     /// @param minLiquidityWAD The new percentage of the senior tranche NAV that must be in the liquidity provider tranche's market making inventory, scaled to WAD precision
     event MinLiquidityUpdated(uint64 minLiquidityWAD);
 
-    /// @notice Emitted when the kernel is updated
-    /// @param kernel The new kernel address
-    event KernelUpdated(address kernel);
-
-    /// @notice Emitted when the fixed term commencement timestamp is updated
-    /// @param fixedTermCommenceableAtTimestamp The new fixed term commencement timestamp
-    event FixedTermCommenceableAtTimestampUpdated(uint64 fixedTermCommenceableAtTimestamp);
+    /// @notice Emitted when the timestamp at which the market can first enter a fixed term is set
+    /// @param fixedTermCommenceableAtTimestamp The timestamp at which the market can first enter a fixed term
+    event FixedTermCommenceableAt(uint64 fixedTermCommenceableAtTimestamp);
 
     /**
      * @notice Emitted when the maximum JT and LPT yield shares (premiums) are updated
@@ -220,9 +216,6 @@ interface IRoycoDayAccountant {
 
     /// @notice Thrown when the junior and liquidity provider tranche YDMs are identical
     error YDMS_CANNOT_BE_IDENTICAL();
-
-    /// @notice Thrown when the YDM failed to initialize
-    /// @param data The return data of the reverting YDM initialization
 
     /// @notice Thrown when the collateral NAV doesn't equal the sum of the effective NAVs of both tranches
     error NAV_CONSERVATION_VIOLATION();

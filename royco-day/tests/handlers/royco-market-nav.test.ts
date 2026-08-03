@@ -613,10 +613,16 @@ describe("quoteAssetPriceNAV", () => {
     );
   });
 
-  test("the quote slot is derived, so the OPPOSITE registration order still works", () => {
-    // Registration order is the pool deployer's choice. The venue branches on which slot
-    // holds SENIOR_TRANCHE and so must this — a hardcoded index would read the senior
-    // share's rate as the quote price here.
+  test("the quote slot is matched, so the OPPOSITE registration order still works", () => {
+    // A DEFENSIVE test, and deliberately kept as one. The 2026-08 venue PINS the order
+    // (tokens[0] == seniorTranche && tokens[1] == quoteAsset,
+    // BalancerV3LiquidityVenue.sol:97-100), so no deployable market has this layout any
+    // more — it used to, when the venue stored a resolved stShareIsPoolToken1 flag.
+    //
+    // The test still earns its place: it pins the SEARCH, not the contract. It is what
+    // fails if anyone "simplifies" resolveQuotePoolBinding to hardcode index 1 on the
+    // strength of that pin — after which a venue that ever relaxes it would read the
+    // senior share's rate as the quote price, silently, on every market.
     const market = DayMarketFixture.standard();
     market.quoteAssetPoolIndex = 0;
     mockDayMarket(market);

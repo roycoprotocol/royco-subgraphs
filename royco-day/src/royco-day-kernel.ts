@@ -57,8 +57,10 @@ import {
  * reinvestment events are RECORD streams (DayLiquidityPremiumReinvested/Reinvestment
  * FailedHistory): they append an immutable row and bump the market's cursor, and own
  * NO shares/positions/supply — the Reinvested success only moves kernel-internal
- * accounting ($.ltOwned*, BalancerV3VenueLogic.sol:208-209), not an indexed Transfer,
- * and the Failed case mutates nothing at all (:195-198). The reinvest events fire
+ * accounting ($.lptOwnedSeniorTrancheShares, BalancerV3LiquidityVenueLogic.sol:200-235),
+ * not an indexed Transfer, and the Failed case mutates nothing at all — every early
+ * return in attemptLiquidityPremiumReinvestment bails before touching state. The reinvest
+ * events fire
  * from a library inlined into the kernel, so event.address is the kernel (= marketId)
  * and resolution stays direct.
  *

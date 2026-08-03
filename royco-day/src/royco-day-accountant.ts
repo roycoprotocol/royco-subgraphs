@@ -5,7 +5,7 @@ import {
   FixedTermCommenced as FixedTermCommencedEvent,
   FixedTermEnded as FixedTermEndedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
-  FixedTermCommenceableAtTimestampUpdated as FixedTermCommenceableAtTimestampUpdatedEvent,
+  FixedTermCommenceableAt as FixedTermCommenceableAtEvent,
   MinCoverageUpdated as MinCoverageUpdatedEvent,
   MinLiquidityUpdated as MinLiquidityUpdatedEvent,
   LiquidationCoverageUtilizationUpdated as LiquidationCoverageUtilizationUpdatedEvent,
@@ -50,13 +50,11 @@ import {
  * handler here re-reads getState(). The one exception is documented on
  * handleSeniorTrancheDustToleranceUpdated.
  *
- * NOT INDEXED, deliberately:
- *   KernelUpdated(address) — MISLEADINGLY NAMED. `$.kernel` is assigned in exactly one
- *     place, inside initialize() (RoycoDayAccountant.sol:122), so this fires once per
- *     accountant at init and never again; there is no setter that could re-point it.
- *     DayMarketState already records the relationship from the factory's own
- *     DeploymentResult, and resolveMarketFromAccountant reads the same value live. A
- *     handler here would add a row that can never change. Do not "fix" this as a gap.
+ * KernelUpdated(address) IS GONE FROM THE CONTRACT — it was dropped in the 2026-08
+ * contract revision, which settles the question its name used to raise. `$.kernel` is
+ * assigned in exactly one place, inside initialize(), and there is neither a setter nor
+ * an event for it any more. That is the invariant DayAccountantMarketMap depends on: the
+ * factory records the accountant -> kernel pairing once, and nothing can re-point it.
  *
  * TYPE TRAPS (verified against generated/, see CLAUDE.md §4). Only ONE of the
  * fifteen is not a direct BigInt assign:
@@ -173,7 +171,7 @@ export function handleFixedTermEnded(event: FixedTermEndedEvent): void {
  *
  * PURE CONFIG, carried on the event; no contract read.
  *
- * !! ITS ONLY EMIT SITE IS initialize() (RoycoDayAccountant.sol:125), which fires DURING
+ * !! ITS ONLY EMIT SITE IS initialize() (RoycoDayAccountant.sol:122), which fires DURING
  *    deployMarket at a LOWER log index than the MarketDeploymentCompleted that creates
  *    this template and writes the market. So in practice the null guard swallows it and
  *    the column is filled by the factory's own getState() read instead.
@@ -187,8 +185,8 @@ export function handleFixedTermEnded(event: FixedTermEndedEvent): void {
  * uint64 -> BigInt direct. The uint24 lift that bites on fixedTermDurationSeconds does
  * not apply (§4).
  */
-export function handleFixedTermCommenceableAtTimestampUpdated(
-  event: FixedTermCommenceableAtTimestampUpdatedEvent
+export function handleFixedTermCommenceableAt(
+  event: FixedTermCommenceableAtEvent
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;

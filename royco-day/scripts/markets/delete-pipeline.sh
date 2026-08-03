@@ -12,6 +12,8 @@ set -uo pipefail
 pipeline_name="${1:-royco-day-markets-pipeline}"
 
 echo "Deleting ${pipeline_name}..."
-goldsky pipeline delete "${pipeline_name}"
+# --force: skip Goldsky's "retype the name" prompt. The human gate is running
+# this script at all (see the banner), not the CLI's re-prompt.
+goldsky pipeline delete "${pipeline_name}" --force
 
 echo "Script completed!"

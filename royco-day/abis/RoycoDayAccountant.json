@@ -185,9 +185,9 @@
             "type": "address"
           },
           {
-            "internalType": "uint256",
+            "internalType": "uint24",
             "name": "fixedTermGracePeriodSeconds",
-            "type": "uint256"
+            "type": "uint24"
           },
           {
             "internalType": "uint64",
@@ -1156,7 +1156,7 @@
         "type": "uint64"
       }
     ],
-    "name": "FixedTermCommenceableAtTimestampUpdated",
+    "name": "FixedTermCommenceableAt",
     "type": "event"
   },
   {
@@ -1254,19 +1254,6 @@
       }
     ],
     "name": "JuniorTrancheYieldShareProtocolFeeUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "kernel",
-        "type": "address"
-      }
-    ],
-    "name": "KernelUpdated",
     "type": "event"
   },
   {

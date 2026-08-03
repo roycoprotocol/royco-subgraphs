@@ -169,7 +169,8 @@ try/catch. `try_foo()` returns `{ value, reverted }` and never throws.
   A 3-tranche market with coverage/liquidity invariants *will* revert in edge
   states (paused, fixed-term ended, coverage liquidation). Assume it does.
 - **Raw is fine** for immutable metadata read once at deployment: `asset()`,
-  `decimals()`, `symbol()`, `KERNEL()`, `TRANCHE_TYPE()`.
+  `decimals()`, `symbol()`, `TRANCHE_TYPE()`. (`KERNEL()` was here and no longer
+  exists on any contract — the accountant -> market hop is `DayAccountantMarketMap`.)
 
 ```ts
 const res = tranche.try_convertToAssets(oneShare);
@@ -230,9 +231,9 @@ follows `marketRefId` to the market, at a cost of two store reads and **zero eth
 Do not reintroduce the contract read. `Accountant.getState().kernel` (and `KERNEL()`
 before it) worked, but billed one eth_call on *every* accountant event to fetch a value
 that cannot change: the pairing is 1:1 and fixed at deployment, since `$.kernel` has a
-single assignment in `initialize()` (`RoycoDayAccountant.sol:122`) and no setter. A row
-written once is correct forever. `KernelUpdated(address)` does not contradict this — it
-fires for implementation upgrades, not re-pointing, and is deliberately not indexed.
+single assignment in `initialize()` (`RoycoDayAccountant.sol:120`) and no setter. A row
+written once is correct forever. The `KernelUpdated(address)` event that used to muddy
+this was **removed** in the 2026-08 contract revision.
 
 Kernel handlers need no hop at all: there, `event.address` IS the marketId.
 

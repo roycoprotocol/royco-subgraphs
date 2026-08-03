@@ -31,7 +31,8 @@ const TRANCHES = [
 //
 // KERNEL() was here and is gone: the contracts removed it (it is lowercase `kernel()`
 // now) and nothing in src/ ever called it on a tranche — the accountant -> market hop
-// rides on Accountant.getState().kernel instead. totalSupply() is kept even though src/
+// is a DayAccountantMarketMap store load and makes no contract call at all.
+// totalSupply() is kept even though src/
 // no longer calls it: the fixture mocks it, and it is exactly the kind of view a future
 // handler would reach for through this same binding.
 const SHARED_VIEWS = [

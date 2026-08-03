@@ -62,7 +62,7 @@ export const ROYCO_DAY_ACCOUNTANT__COMMIT_LIQUIDITY_PROVIDER_TRANCHE_RAW_NAV: st
 export const ROYCO_DAY_ACCOUNTANT__GET_STATE: string =
   "getState():((uint64,uint64,uint64,uint64,uint64,uint64,uint24,uint8,uint32,uint32,uint32,address,uint64,address,uint64,uint128,uint128,address,uint64,uint256,uint256,uint256,uint256,uint256,uint256,uint256))";
 export const ROYCO_DAY_ACCOUNTANT__INITIALIZE: string =
-  "initialize((address,address,uint256,uint64,uint256,uint64,address,bytes,address,bytes,uint64,uint64,uint24,uint256,uint64,uint64,uint64,uint64))";
+  "initialize((address,address,uint24,uint64,uint256,uint64,address,bytes,address,bytes,uint64,uint64,uint24,uint256,uint64,uint64,uint64,uint64))";
 export const ROYCO_DAY_ACCOUNTANT__IS_CONSUMING_SCHEDULED_OP: string =
   "isConsumingScheduledOp():(bytes4)";
 export const ROYCO_DAY_ACCOUNTANT__MAX_JT_WITHDRAWAL: string =
@@ -110,13 +110,13 @@ export const ROYCO_DAY_ACCOUNTANT__SET_SENIOR_TRANCHE_PROTOCOL_FEE: string =
 export const ROYCO_DAY_ACCOUNTANT__UNPAUSE: string =
   "unpause()";
 
-// --- event signatures (22) — these are the strings for subgraph.template.yaml `event:` ---
+// --- event signatures (21) — these are the strings for subgraph.template.yaml `event:` ---
 export const ROYCO_DAY_ACCOUNTANT__AUTHORITY_UPDATED__EVENT: string =
   "AuthorityUpdated(address)";
 export const ROYCO_DAY_ACCOUNTANT__DUST_TOLERANCE_UPDATED__EVENT: string =
   "DustToleranceUpdated(uint256)";
-export const ROYCO_DAY_ACCOUNTANT__FIXED_TERM_COMMENCEABLE_AT_TIMESTAMP_UPDATED__EVENT: string =
-  "FixedTermCommenceableAtTimestampUpdated(uint64)";
+export const ROYCO_DAY_ACCOUNTANT__FIXED_TERM_COMMENCEABLE_AT__EVENT: string =
+  "FixedTermCommenceableAt(uint64)";
 export const ROYCO_DAY_ACCOUNTANT__FIXED_TERM_COMMENCED__EVENT: string =
   "FixedTermCommenced(uint32)";
 export const ROYCO_DAY_ACCOUNTANT__FIXED_TERM_DURATION_UPDATED__EVENT: string =
@@ -133,8 +133,6 @@ export const ROYCO_DAY_ACCOUNTANT__JUNIOR_TRANCHE_YDM_UPDATED__EVENT: string =
   "JuniorTrancheYDMUpdated(address)";
 export const ROYCO_DAY_ACCOUNTANT__JUNIOR_TRANCHE_YIELD_SHARE_PROTOCOL_FEE_UPDATED__EVENT: string =
   "JuniorTrancheYieldShareProtocolFeeUpdated(uint64)";
-export const ROYCO_DAY_ACCOUNTANT__KERNEL_UPDATED__EVENT: string =
-  "KernelUpdated(address)";
 export const ROYCO_DAY_ACCOUNTANT__LIQUIDATION_COVERAGE_UTILIZATION_UPDATED__EVENT: string =
   "LiquidationCoverageUtilizationUpdated(uint256)";
 export const ROYCO_DAY_ACCOUNTANT__LIQUIDITY_PROVIDER_TRANCHE_YDM_UPDATED__EVENT: string =
@@ -282,7 +280,7 @@ export const ROYCO_DAY_KERNEL__UNPAUSED__EVENT: string =
 // RoycoFactory  (abis/RoycoFactory.json)
 // ==========================================================================
 
-// --- callable functions (22) — view/pure/nonpayable/constant ---
+// --- callable functions (23) — view/pure/nonpayable/constant ---
 export const ROYCO_FACTORY__ROYCO_AUTHORITY: string =
   "ROYCO_AUTHORITY():(address)";
 export const ROYCO_FACTORY__ROYCO_FACTORY_GATEKEEPER: string =
@@ -309,6 +307,8 @@ export const ROYCO_FACTORY__IS_CONSUMING_SCHEDULED_OP: string =
   "isConsumingScheduledOp():(bytes4)";
 export const ROYCO_FACTORY__IS_TEMPLATE_ENABLED: string =
   "isTemplateEnabled(address):(bool)";
+export const ROYCO_FACTORY__MARKET_DEPLOYER: string =
+  "marketDeployer():(address)";
 export const ROYCO_FACTORY__PAUSE: string =
   "pause()";
 export const ROYCO_FACTORY__PAUSED: string =

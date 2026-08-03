@@ -58,10 +58,8 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
     // Initialization Functions
     // =============================
 
-    /**
-     * @notice Initializes the Royco accountant state
-     * @param _params The initialization parameters for the Royco accountant
-     */
+    /// @notice Initializes the Royco accountant state
+    /// @param _params The initialization parameters for the Royco accountant
     function initialize(RoycoDayAccountantInitParams calldata _params) external initializer {
         // Initialize the base state of the accountant
         __RoycoBase_init(_params.initialAuthority);
@@ -121,8 +119,7 @@ contract RoycoDayAccountant is IRoycoDayAccountant, RoycoBase {
         // Set the fields in slot 5 of storage
         $.kernel = _params.kernel;
         $.fixedTermCommenceableAtTimestamp = uint64(block.timestamp + _params.fixedTermGracePeriodSeconds);
-        emit KernelUpdated(_params.kernel);
-        emit FixedTermCommenceableAtTimestampUpdated($.fixedTermCommenceableAtTimestamp);
+        emit FixedTermCommenceableAt($.fixedTermCommenceableAtTimestamp);
 
         // Set the rest of the fields
         $.coverageLiquidationUtilizationWAD = _params.coverageLiquidationUtilizationWAD;

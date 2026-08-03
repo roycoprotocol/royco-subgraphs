@@ -22,11 +22,10 @@ import { generateAccountantMarketMapId } from "../../utils";
  *
  * THE PAIRING IS 1:1 AND IMMUTABLE, which is what makes the cached row safe. One
  * accountant per market, fixed at deployment: `$.kernel` has exactly ONE assignment in
- * the whole accountant, inside initialize() (RoycoDayAccountant.sol:122), and there is
- * no setter. The KernelUpdated(address) event is misleading — it fires for
- * implementation upgrades, not for re-pointing an accountant at a different market, and
- * is deliberately not indexed. So the call this replaces could never have returned
- * anything the map row doesn't already say.
+ * the whole accountant, inside initialize() (RoycoDayAccountant.sol:120), and there is
+ * no setter. The KernelUpdated(address) event that once muddied this is GONE as of the
+ * 2026-08 contract revision, so nothing even suggests the pairing can move. The call
+ * this replaces could never have returned anything the map row doesn't already say.
  *
  * RETURNS NULL, and callers MUST early-return on it. Not defensive padding, and it is
  * NOT weakened by dropping the call — a missing map row means exactly what an

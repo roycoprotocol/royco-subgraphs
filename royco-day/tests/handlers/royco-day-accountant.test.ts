@@ -13,7 +13,7 @@ import {
   handleMinLiquidityUpdated,
   handleLiquidationCoverageUtilizationUpdated,
   handleFixedTermDurationUpdated,
-  handleFixedTermCommenceableAtTimestampUpdated,
+  handleFixedTermCommenceableAt,
   handleMaxYieldSharesUpdated,
   handleFixedTermCommenced,
   handleFixedTermEnded,
@@ -38,7 +38,7 @@ import {
   MinLiquidityUpdated,
   LiquidationCoverageUtilizationUpdated,
   FixedTermDurationUpdated,
-  FixedTermCommenceableAtTimestampUpdated,
+  FixedTermCommenceableAt,
   MaxYieldSharesUpdated,
   FixedTermCommenced,
   FixedTermEnded,
@@ -366,7 +366,7 @@ describe("accountant config handlers", () => {
     assert.entityCount("DayMarketState", 0);
   });
 
-  test("FixedTermCommenceableAtTimestampUpdated moves the commencement floor", () => {
+  test("FixedTermCommenceableAt moves the commencement floor", () => {
     // The floor is when fixed-term logic can FIRST activate — deployment time plus the
     // grace period — and the accountant gates commencement on it
     // (RoycoDayAccountant.sol:550, `block.timestamp < $.fixedTermCommenceableAtTimestamp`).
@@ -383,8 +383,8 @@ describe("accountant config handlers", () => {
       "1700100777"
     );
 
-    handleFixedTermCommenceableAtTimestampUpdated(
-      createUintEvent<FixedTermCommenceableAtTimestampUpdated>(
+    handleFixedTermCommenceableAt(
+      createUintEvent<FixedTermCommenceableAt>(
         "fixedTermCommenceableAtTimestamp",
         BigInt.fromI32(1_700_200_999),
         accountantCtx()

@@ -132,7 +132,7 @@ export function recordFixedTermCoverageLoss(
   // A DURATION IS CONFIGURED BUT NO TERM HAS EVER RUN. The commonest reason is the
   // COMMENCEMENT GRACE PERIOD: a market cannot enter a fixed term until
   // block.timestamp >= fixedTermCommenceableAtTimestamp
-  // (RoycoDayAccountant.sol:550), and losses can absolutely be erased inside that
+  // (RoycoDayAccountant.sol:547), and losses can absolutely be erased inside that
   // window. There is no term to patch, so the loss gets a zero-length one of its own.
   if (market.countFixedTermEntries.isZero()) {
     openLossOnlyTerm(event, market, erased);

@@ -30,6 +30,9 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoUUPSBase, IRoycoFactory 
     /// @dev Holds the address of the template currently inside an `executeMarketDeployment` window, `address(0)` otherwise
     address private transient _activeTemplate;
 
+    /// @dev The account that initiated the in-flight market deployment, held transiently so the active template can pull the genesis seed from it
+    address private transient _marketDeployer;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // MODIFIERS
     // ═══════════════════════════════════════════════════════════════════════════
@@ -52,10 +55,8 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoUUPSBase, IRoycoFactory 
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes the factory proxy against a pre-deployed `RoycoAccessManager`
-     * @param _roycoAccessManager Pre-deployed access manager whose gatekeeper must already point back at this factory
-     */
+    /// @notice Initializes the factory proxy against a pre-deployed `RoycoAccessManager`
+    /// @param _roycoAccessManager Pre-deployed access manager whose gatekeeper must already point back at this factory
     function initialize(address _roycoAccessManager) external initializer {
         require(_roycoAccessManager != address(0), ACCESS_MANAGER_CANNOT_BE_ZERO_ADDRESS());
         require(_roycoAccessManager.code.length > 0, ACCESS_MANAGER_HAS_NO_CODE());
@@ -121,25 +122,31 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoUUPSBase, IRoycoFactory 
         require($.isTemplateEnabled[_template], TEMPLATE_NOT_ENABLED());
         require(_activeTemplate == address(0), NO_ACTIVE_TEMPLATE());
 
-        // Bind the active template
+        // Bind the active template and the deployment's initiator (the genesis seed's funder)
         _activeTemplate = _template;
+        _marketDeployer = msg.sender;
 
         // Deploy the market
         result = IBaseTemplate(_template).deployMarket(_params);
 
-        // A valid market must have a kernel, a senior tranche and a liquidity provider tranche
-        require(result.kernel != address(0) && result.seniorTranche != address(0) && result.liquidityProviderTranche != address(0), INVALID_DEPLOYMENT_RESULT());
+        // A valid market must have a kernel, a senior tranche, and at least one counterparty tranche: senior capital needs a junior buffer or a liquidity venue to trade against
+        require(
+            result.kernel != address(0) && result.seniorTranche != address(0)
+                && (result.juniorTranche != address(0) || result.liquidityProviderTranche != address(0)),
+            INVALID_DEPLOYMENT_RESULT()
+        );
 
-        // Register each deployed tranche against the market's kernel
+        // Register each deployed tranche against the market's kernel, guarding the optional slots so the null address never registers as a tranche
         $.trancheToKernel[result.seniorTranche] = result.kernel;
-        $.trancheToKernel[result.juniorTranche] = result.kernel;
-        $.trancheToKernel[result.liquidityProviderTranche] = result.kernel;
+        if (result.juniorTranche != address(0)) $.trancheToKernel[result.juniorTranche] = result.kernel;
+        if (result.liquidityProviderTranche != address(0)) $.trancheToKernel[result.liquidityProviderTranche] = result.kernel;
 
         // Configure the market's periphery, may read trancheToKernel mapping set above.
         IBaseTemplate(_template).postMarketRegistration(result, _params);
 
         // Explicitly clear for clarity: transient storage auto-clears at the end of the transaction as a backstop
         _activeTemplate = address(0);
+        _marketDeployer = address(0);
 
         emit MarketDeploymentCompleted(_template, msg.sender, result);
     }
@@ -147,6 +154,11 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoUUPSBase, IRoycoFactory 
     // ═══════════════════════════════════════════════════════════════════════════
     // TEMPLATE-CALLABLE PRIMITIVES
     // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @inheritdoc IRoycoFactory
+    function marketDeployer() external view override(IRoycoFactory) returns (address) {
+        return _marketDeployer;
+    }
 
     /// @inheritdoc IRoycoFactory
     function deployDeterministicProxyFromTemplate(

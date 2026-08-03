@@ -295,8 +295,8 @@ templates:
         # Only emitted from the accountant's initialize(), which lands BELOW
         # MarketDeploymentCompleted — the factory's getState() read is what fills the
         # column. Wired so a future setter is picked up for free. See the handler.
-        - event: FixedTermCommenceableAtTimestampUpdated(uint64)
-          handler: handleFixedTermCommenceableAtTimestampUpdated
+        - event: FixedTermCommenceableAt(uint64)
+          handler: handleFixedTermCommenceableAt
           receipt: true
         - event: MinCoverageUpdated(uint64)
           handler: handleMinCoverageUpdated

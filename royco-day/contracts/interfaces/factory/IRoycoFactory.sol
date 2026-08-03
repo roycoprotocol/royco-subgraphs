@@ -62,7 +62,7 @@ interface IRoycoFactory {
     /// @notice Thrown when a factory-forwarded call targets the access manager, which is only administrable through the typed role primitives
     error FACTORY_CALL_TARGET_FORBIDDEN();
 
-    /// @notice Thrown when a template returns a deployment result with a zero tranche or kernel address
+    /// @notice Thrown when a template returns a deployment result without a kernel, a senior tranche, or at least one counterparty tranche (junior or liquidity provider)
     error INVALID_DEPLOYMENT_RESULT();
 
     /// @notice Thrown when index-aligned array arguments have mismatched lengths
@@ -131,6 +131,12 @@ interface IRoycoFactory {
      * @dev A target failure bubbles verbatim
      */
     function executeAsFactory(address _target, bytes calldata _data) external returns (bytes memory result);
+
+    /**
+     * @notice Returns the account that initiated the in-flight market deployment, the genesis seed's funder
+     * @dev Held transiently for the deployment's duration, the null address outside one
+     */
+    function marketDeployer() external view returns (address deployer);
 
     /// @notice Returns the kernel a factory-deployed tranche belongs to (zero for unknown addresses)
     function trancheToKernel(address _tranche) external view returns (address kernel);
