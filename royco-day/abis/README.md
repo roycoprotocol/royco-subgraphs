@@ -6,5 +6,6 @@ and Kernel (`ef007dec3476ac4a7f3f6135542cf4661f5fa810`) predate that
 commit, so the root ABI files match the deployed implementations. The Accountant ABI
 additionally includes `FixedTermCommenceableAt` so one mapping supports both event names.
 
-`latest/` contains the unmodified next-revision ABIs carried with the vendored contract
-sources. They are references for the next deployment; codegen uses only `abis/*.json`.
+`contracts/` and `latest/` track
+`royco-day@c9ed039b4fa517d74c8da305e7f341a0a19e7a08`. They are references for
+the next deployment; codegen uses only `abis/*.json`.

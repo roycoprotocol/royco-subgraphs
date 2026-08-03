@@ -45,8 +45,6 @@ import {
 } from "../Roles.sol";
 import { BaseDeploymentTemplate } from "./base/BaseDeploymentTemplate.sol";
 import { TAG_ACCOUNTANT_PROXY, TAG_BALANCER_V3_POOL, TAG_JT_PROXY, TAG_KERNEL_PROXY, TAG_LPT_PROXY, TAG_ST_PROXY } from "./base/Constants.sol";
-import { EntryPointConfigurer } from "./periphery/EntryPointConfigurer.sol";
-import { MarketSyncerConfigurer } from "./periphery/MarketSyncerConfigurer.sol";
 
 /**
  * @notice Local single-function redeclaration of Balancer v3's two-argument `withdrawPoolCreatorFees(address,address)`
@@ -64,7 +62,7 @@ interface IWithdrawPoolCreatorFeesTwoArgOverload {
  * @author Ankur Dubey, Shivaansh Kapoor
  * @notice Abstract base for every Royco Day market that has their LPT deployed into a Balancer V3 Gyroscope ECLP pool
  */
-contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, EntryPointConfigurer, MarketSyncerConfigurer, AccessManaged {
+contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, AccessManaged {
     using SafeERC20 for IERC20;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -77,8 +75,6 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
      * @custom:field balancerV3PoolFactory - The Balancer V3 Gyro E-CLP pool factory
      * @custom:field eclpLPOracleFactory - The Balancer E-CLP LP oracle factory that creates each market's BPT TVL oracle
      * @custom:field bptOracleConstantPriceFeed - The shared stateless constant-1.0 price feed both pool legs are priced against
-     * @custom:field roycoDayEntryPoint - The chain's entry point singleton, configured with each market's tranches
-     * @custom:field roycoMarketSyncer - The chain's market syncer singleton, registered with each market's kernel
      * @custom:field roycoBlacklist - The chain's blacklist singleton every market this template deploys screens against
      * @custom:field seniorTrancheBeacon - The senior tranche beacon, holding the implementation every senior proxy resolves against
      * @custom:field juniorTrancheBeacon - The junior tranche beacon
@@ -91,8 +87,6 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
         GyroECLPPoolFactory balancerV3PoolFactory;
         ILPOracleFactoryBase eclpLPOracleFactory;
         address bptOracleConstantPriceFeed;
-        address roycoDayEntryPoint;
-        address roycoMarketSyncer;
         address roycoBlacklist;
         address seniorTrancheBeacon;
         address juniorTrancheBeacon;
@@ -154,8 +148,6 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
      * @custom:field stalenessThresholdSeconds - The maximum age in seconds an oracle price may have before it is considered stale
      * @custom:field sequencerUptimeFeed - The L2 sequencer uptime feed used to gate price queries (the null address when not applicable)
      * @custom:field gracePeriodSeconds - The grace period in seconds after the L2 sequencer is back up before oracle prices are trusted again
-     * @custom:field collateralAssetOracleBindingSelectors - The oracle's restricted selectors to bind, declared per oracle kind by the deployer (empty when the kind has no restricted surface)
-     * @custom:field collateralAssetOracleBindingRoleIds - The role ids bound to the oracle's restricted selectors, index-aligned with the selectors
      * @custom:field kernelSpecificParams - ABI-encoded liquidity venue initialization params
      * @custom:field entryPointTrancheConfigs - The per-tranche entry point configurations applied after the market is deployed (any oracle clock is deployed externally and passed by address)
      */
@@ -177,8 +169,6 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
         uint48 stalenessThresholdSeconds;
         address sequencerUptimeFeed;
         uint48 gracePeriodSeconds;
-        bytes4[] collateralAssetOracleBindingSelectors;
-        uint64[] collateralAssetOracleBindingRoleIds;
         bytes kernelSpecificParams;
         EntryPointTrancheConfigs entryPointTrancheConfigs;
     }
@@ -286,12 +276,7 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
 
     /// @notice Pins the template to the chain-wide contract set it deploys every market against
     /// @param _params The template's construction parameters
-    constructor(TemplateConstructionParams memory _params)
-        AccessManaged(_params.factory.ROYCO_AUTHORITY())
-        BaseDeploymentTemplate(_params.factory)
-        EntryPointConfigurer(_params.roycoDayEntryPoint, _params.factory)
-        MarketSyncerConfigurer(_params.roycoMarketSyncer)
-    {
+    constructor(TemplateConstructionParams memory _params) AccessManaged(_params.factory.ROYCO_AUTHORITY()) BaseDeploymentTemplate(_params.factory) {
         require(
             address(_params.balancerV3PoolFactory) != address(0) && address(_params.eclpLPOracleFactory) != address(0)
                 && _params.bptOracleConstantPriceFeed != address(0) && _params.roycoBlacklist != address(0) && _params.seniorTrancheBeacon != address(0)
@@ -402,12 +387,13 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
     ///  @inheritdoc IRoycoProtocolTemplate
     function deployMarket(bytes calldata _params) external override(IRoycoProtocolTemplate) onlyRoycoFactory returns (DeploymentResult memory result) {
         // Validate the deployer's params
-        MarketDeploymentValidationLogic.validateMarketParams(_params);
+        MarketParams memory params = MarketDeploymentValidationLogic.validateMarketParams(_params);
 
-        MarketParams memory params = abi.decode(_params, (MarketParams));
+        // The base salt is the hash of the params and the deployer's address.
+        bytes32 baseSalt = keccak256(abi.encode(params, ROYCO_FACTORY.marketDeployer()));
 
         // Predict the kernel's proxy address.
-        bytes32 kernelSalt = _marketComponentSalt(params.marketId, TAG_KERNEL_PROXY);
+        bytes32 kernelSalt = _marketComponentSalt(baseSalt, TAG_KERNEL_PROXY);
         address kernel = ROYCO_FACTORY.predictDeterministicAddress(kernelSalt);
         result.ydm = jtYdmFor(params.jtYdmType);
         result.lptYdm = lptYdmFor(params.lptYdmType);
@@ -415,7 +401,7 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
 
         // Deploy the senior tranche.
         result.seniorTranche = _deployProxy(
-            SENIOR_TRANCHE_BEACON, _encodeTrancheInitData(params.stParams, kernel, params.collateralAsset), _marketComponentSalt(params.marketId, TAG_ST_PROXY)
+            SENIOR_TRANCHE_BEACON, _encodeTrancheInitData(params.stParams, kernel, params.collateralAsset), _marketComponentSalt(baseSalt, TAG_ST_PROXY)
         );
 
         // Deploy the Balancer V3 pool and BPT oracle for the LP tranche.
@@ -428,30 +414,25 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
             params.quoteAsset,
             kernel,
             ROYCO_FACTORY.ROYCO_AUTHORITY(),
-            _marketComponentSalt(params.marketId, TAG_BALANCER_V3_POOL)
+            _marketComponentSalt(baseSalt, TAG_BALANCER_V3_POOL)
         );
 
         // Deploy the junior tranche.
         result.juniorTranche = _deployProxy(
-            JUNIOR_TRANCHE_BEACON, _encodeTrancheInitData(params.jtParams, kernel, params.collateralAsset), _marketComponentSalt(params.marketId, TAG_JT_PROXY)
+            JUNIOR_TRANCHE_BEACON, _encodeTrancheInitData(params.jtParams, kernel, params.collateralAsset), _marketComponentSalt(baseSalt, TAG_JT_PROXY)
         );
 
         // Deploy the liquidity provider tranche.
         result.liquidityProviderTranche = _deployProxy(
-            LIQUIDITY_PROVIDER_TRANCHE_BEACON,
-            _encodeTrancheInitData(params.lptParams, kernel, balancerPool),
-            _marketComponentSalt(params.marketId, TAG_LPT_PROXY)
+            LIQUIDITY_PROVIDER_TRANCHE_BEACON, _encodeTrancheInitData(params.lptParams, kernel, balancerPool), _marketComponentSalt(baseSalt, TAG_LPT_PROXY)
         );
 
         // Deploy the accountant.
         result.accountant = _deployProxy(
             ACCOUNTANT_BEACON,
             _encodeAccountantInitData(params.accountantParams, kernel, result.ydm, result.lptYdm),
-            _marketComponentSalt(params.marketId, TAG_ACCOUNTANT_PROXY)
+            _marketComponentSalt(baseSalt, TAG_ACCOUNTANT_PROXY)
         );
-
-        // Verify the Balancer V3 pool.
-        MarketDeploymentValidationLogic.verifyPool(BALANCER_V3_VAULT, balancerPool, result.seniorTranche, params.quoteAsset);
 
         // Deploy the kernel.
         result.kernel = _deployKernelProxy(params, result, balancerPool, bptOracle, kernelSalt);
@@ -460,7 +441,7 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
         // Verify the whole market's on-chain wiring.
         _validateDeployment(params, result, balancerPool);
 
-        // Apply selector->role bindings + post-init grants.
+        // Apply selector->role bindings.
         _applyRoleBindings(_buildRoleBindings(params, result));
 
         // Record the Balancer V3 pool and BPT oracle.
@@ -478,10 +459,8 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
         (tranches[1], configs[1]) = (_result.juniorTranche, params.entryPointTrancheConfigs.jt);
         (tranches[2], configs[2]) = (_result.liquidityProviderTranche, params.entryPointTrancheConfigs.lpt);
 
-        // Configure the market's tranches on the entry point and register its kernel on the market syncer
-        _configureEntryPointTrancheConfigs(ROYCO_FACTORY, tranches, configs);
-        _registerMarketKernelOnSyncer(ROYCO_FACTORY, _result.kernel);
-
+        // Configure the market's tranches on the entry point and register its kernel on the syncer
+        ROYCO_FACTORY.configureMarketPeriphery(tranches, configs, _result.kernel);
         // Seed the pool.
         _seedPool(params, _result.liquidityProviderTranche);
     }
@@ -604,17 +583,16 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
 
     /// @notice Assembles the market's full role-binding config, pairing each deployment's runtime target addresses with
     ///         the selector/role sets from the per-target binding helpers and the deployer-declared oracle bindings
-    function _buildRoleBindings(MarketParams memory _params, DeploymentResult memory _result) internal view returns (RoleBindings memory) {
+    function _buildRoleBindings(MarketParams memory _params, DeploymentResult memory _result) internal view returns (TargetBinding[] memory) {
         // Runtime target addresses, index-aligned with the binding helpers below
-        address[8] memory targets = [
+        address[7] memory targets = [
             _result.seniorTranche,
             _result.juniorTranche,
             _result.liquidityProviderTranche,
             _result.kernel,
             _result.accountant,
             address(BALANCER_V3_VAULT),
-            address(BALANCER_V3_VAULT.getProtocolFeeController()),
-            _params.collateralAssetOracle
+            address(BALANCER_V3_VAULT.getProtocolFeeController())
         ];
 
         IRoycoAccessManager accessManager = IRoycoAccessManager(ROYCO_FACTORY.ROYCO_AUTHORITY());
@@ -640,16 +618,8 @@ contract RoycoDayBalancerV3MarketDeploymentTemplate is BaseDeploymentTemplate, E
         if (accessManager.wasEverConfigured(targets[6])) (selectors, roleIds) = (new bytes4[](0), new uint64[](0));
         else (selectors, roleIds) = _balancerProtocolFeeControllerBinding();
         targetBindings[6] = TargetBinding({ target: targets[6], selectors: selectors, roleIds: roleIds });
-        // 7: collateral asset oracle restricted surface, declared per oracle kind by the deployer .
-        if (accessManager.wasEverConfigured(targets[7])) (selectors, roleIds) = (new bytes4[](0), new uint64[](0));
-        else (selectors, roleIds) = (_params.collateralAssetOracleBindingSelectors, _params.collateralAssetOracleBindingRoleIds);
-        targetBindings[7] = TargetBinding({ target: targets[7], selectors: selectors, roleIds: roleIds });
 
-        // Post-init grants: accountant SYNC (zero execution delay)
-        RoleGrant[] memory grants = new RoleGrant[](1);
-        grants[0] = RoleGrant({ roleId: SYNC_ROLE, account: _result.accountant, executionDelay: 0 });
-
-        return RoleBindings({ targetBindings: targetBindings, postInitGrants: grants });
+        return targetBindings;
     }
 
     /**

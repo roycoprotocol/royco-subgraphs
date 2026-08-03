@@ -647,14 +647,10 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("a market is born with zero supply, and the vault has no claims at all", () => {
-    // Supply IS zero at deployment — no _mint is reachable from
-    // deployMarket/initialize — and DayVaultState no longer carries either
-    // AssetClaims quintuple, so the factory calls convertToAssets ZERO times per
-    // vault. mockDayMarket deliberately does not mock it at 0: if this handler ever
-    // starts calling it again, these tests abort as unmocked rather than passing
-    // quietly. The market-wide price vector is asserted on DayMarketNav instead —
-    // see tests/handlers/royco-market-nav.test.ts.
+  test("the factory pass initializes the transfer accumulator at zero", () => {
+    // Graph Node replays this creation block for the newly spawned tranche templates,
+    // so deployment-time seed mints are applied by their Transfer handlers afterward.
+    // Starting from an end-of-block totalSupply() here would double-count those mints.
     deployStandard();
 
     assert.fieldEquals("DayVaultState", SENIOR_ID, "sharesTotalSupply", "0");
@@ -901,7 +897,7 @@ describe("handleMarketDeploymentCompleted", () => {
     deployStandard();
 
     const snapshotId = generateVaultStateHistoricalId(ADDR_JUNIOR.toHexString(), BLOCK_NUMBER);
-    // Zero, and that is the point: entry 0 records a market with no shares yet.
+    // The factory pass runs before the newly spawned tranche template replays this block.
     assert.fieldEquals(
       "DayVaultStateHistorical",
       snapshotId,
