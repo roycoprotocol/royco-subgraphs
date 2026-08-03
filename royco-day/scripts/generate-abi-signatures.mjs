@@ -3,7 +3,7 @@
  *
  * matchstick's createMockedFunction() matches on an exact ethabi signature
  * string. Hand-writing those is untenable here: RoycoDayAccountant.getState()
- * has a 27-member tuple output, and a single wrong character produces
+ * has a 26-member tuple output, and a single wrong character produces
  * "function not mocked" rather than "bad signature" — a genuinely confusing
  * failure to debug.
  *

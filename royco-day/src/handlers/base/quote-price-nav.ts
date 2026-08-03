@@ -57,8 +57,7 @@ export function resolveQuotePoolBinding(
 ): QuotePoolBinding {
   const binding = new QuotePoolBinding();
 
-  // NO QUOTE ASSET, NO POOL TO ASK. Kernel.QUOTE_ASSET() already reverted for a
-  // venue-less kernel and the caller passed the zero-address fallback, so there is
+  // NO QUOTE ASSET, NO POOL TO ASK. A venue-less kernel reports a zero quote address, so there is
   // nothing to resolve — and returning here spends ZERO eth_calls on that market
   // instead of two that could only fail or, worse, succeed against an unrelated pool.
   if (quoteAssetAddress == ZERO_ADDRESS) {

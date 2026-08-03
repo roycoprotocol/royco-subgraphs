@@ -1,0 +1,1862 @@
+[
+  {
+    "inputs": [],
+    "name": "accountant",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "accountant",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_seniorShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_quoteAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_minLPTAssetsOut",
+        "type": "uint256"
+      }
+    ],
+    "name": "addLiquidity",
+    "outputs": [
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "lptAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "lptAssetPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_stSharesToReinvest",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "_stShareRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "attemptLiquidityPremiumReinvestment",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "authority",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "collateralAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "collateralAsset",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_collateralAssets",
+        "type": "uint256"
+      }
+    ],
+    "name": "convertCollateralAssetsToValue",
+    "outputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_lptAssets",
+        "type": "uint256"
+      }
+    ],
+    "name": "convertLPTAssetsToValue",
+    "outputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "convertValueToCollateralAssets",
+    "outputs": [
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "collateralAssets",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "convertValueToLPTAssets",
+    "outputs": [
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "lptAssets",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_account",
+        "type": "address"
+      }
+    ],
+    "name": "enforceNotBlacklisted",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_accounts",
+        "type": "address[]"
+      }
+    ],
+    "name": "enforceNotBlacklisted",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getCollateralAssetOracle",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "collateralAssetOracle",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getImmutableState",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "seniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "juniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "collateralAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "liquidityProviderTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "lptAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "quoteAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "accountant",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct IRoycoDayKernel.RoycoDayKernelImmutableState",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getState",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "seniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "stSelfLiquidationBonusWAD",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "juniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "liquidityProviderTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "collateralAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "oneWholeCollateralAsset",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "lptAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "oneWholeLPTAsset",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "quoteAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "accountant",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "protocolFeeRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "roycoBlacklist",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "collateralAssetOracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint48",
+            "name": "stalenessThresholdSeconds",
+            "type": "uint48"
+          },
+          {
+            "internalType": "address",
+            "name": "sequencerUptimeFeed",
+            "type": "address"
+          },
+          {
+            "internalType": "uint48",
+            "name": "gracePeriodSeconds",
+            "type": "uint48"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "totalCollateralAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "totalLPTAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lptOwnedSeniorTrancheShares",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IRoycoDayKernel.RoycoDayKernelState",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_assets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      }
+    ],
+    "name": "inkindDeposit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "trancheSharesMinted",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      }
+    ],
+    "name": "inkindMaxDeposit",
+    "outputs": [
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      }
+    ],
+    "name": "inkindMaxRedeemable",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "maxRedeemableShares",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_shares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      }
+    ],
+    "name": "inkindRedeem",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "collateralAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "lptAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stShares",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "nav",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "userAssetClaims",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "isConsumingScheduledOp",
+    "outputs": [
+      {
+        "internalType": "bytes4",
+        "name": "",
+        "type": "bytes4"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "juniorTranche",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "juniorTranche",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "liquidityProviderTranche",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityProviderTranche",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lptAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "lptAsset",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_collateralAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_quoteAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_minLPTAssetsOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      }
+    ],
+    "name": "lptDepositMultiAsset",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "trancheSharesMinted",
+        "type": "uint256"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "lptAssetsOut",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      }
+    ],
+    "name": "lptMaxRedeemableMultiAsset",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "maxRedeemableShares",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_lptShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minSTSharesOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minQuoteAssetsOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      }
+    ],
+    "name": "lptRedeemMultiAsset",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "collateralAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "lptAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stShares",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "nav",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "stClaims",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quoteAssets",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_from",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "preTrancheBalanceUpdateHook",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum TrancheType",
+        "name": "_trancheType",
+        "type": "uint8"
+      }
+    ],
+    "name": "previewSyncTrancheAccountingFor",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "state",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "collateralAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "lptAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stShares",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "nav",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "claims",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTrancheShares",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "queryCollateralAssetOracle",
+    "outputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "collateralAssetPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "queryLPTAssetOracle",
+    "outputs": [
+      {
+        "internalType": "NAV_UNIT",
+        "name": "lptAssetPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "quoteAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "quoteAsset",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_stShares",
+        "type": "uint256"
+      }
+    ],
+    "name": "reinvestLiquidityPremium",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_lptAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minSTSharesOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minQuoteAssetsOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_quoteAssetsReceiver",
+        "type": "address"
+      }
+    ],
+    "name": "removeLiquidity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "stShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quoteAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "lptAssetPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "seniorTranche",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "seniorTranche",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newAuthority",
+        "type": "address"
+      }
+    ],
+    "name": "setAuthority",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_collateralAssetOracle",
+        "type": "address"
+      },
+      {
+        "internalType": "uint48",
+        "name": "_stalenessThresholdSeconds",
+        "type": "uint48"
+      },
+      {
+        "internalType": "bool",
+        "name": "_syncBeforeUpdate",
+        "type": "bool"
+      }
+    ],
+    "name": "setCollateralAssetOracle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_protocolFeeRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "setProtocolFeeRecipient",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_roycoBlacklist",
+        "type": "address"
+      }
+    ],
+    "name": "setRoycoBlacklist",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "_stSelfLiquidationBonusWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "setSeniorTrancheSelfLiquidationBonus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_sequencerUptimeFeed",
+        "type": "address"
+      },
+      {
+        "internalType": "uint48",
+        "name": "_gracePeriodSeconds",
+        "type": "uint48"
+      }
+    ],
+    "name": "setSequencerUptimeFeed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "syncTrancheAccounting",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "state",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum TrancheType",
+        "name": "_trancheType",
+        "type": "uint8"
+      }
+    ],
+    "name": "syncTrancheAccountingFor",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SyncedAccountingState",
+        "name": "state",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "collateralAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "TRANCHE_UNIT",
+            "name": "lptAssets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stShares",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "nav",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct AssetClaims",
+        "name": "claims",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalTrancheShares",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AuthorityUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "collateralAssetOracle",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "stalenessThresholdSeconds",
+        "type": "uint48"
+      }
+    ],
+    "name": "CollateralAssetOracleUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stSharesReinvested",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "TRANCHE_UNIT",
+        "name": "lptAssetsMinted",
+        "type": "uint256"
+      }
+    ],
+    "name": "LiquidityPremiumReinvested",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stSharesToReinvest",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "TRANCHE_UNIT",
+        "name": "minLPTAssetsOut",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "revertData",
+        "type": "bytes"
+      }
+    ],
+    "name": "LiquidityPremiumReinvestmentFailed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "enum Operation",
+        "name": "op",
+        "type": "uint8"
+      },
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct SyncedAccountingState",
+        "name": "resultingState",
+        "type": "tuple"
+      }
+    ],
+    "name": "PostOpTrancheAccountingSynced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct SyncedAccountingState",
+        "name": "resultingState",
+        "type": "tuple"
+      }
+    ],
+    "name": "PreOpTrancheAccountingSynced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "protocolFeeRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "ProtocolFeeRecipientUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "roycoBlacklist",
+        "type": "address"
+      }
+    ],
+    "name": "RoycoBlacklistUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "stSelfLiquidationBonusWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "SeniorTrancheSelfLiquidationBonusUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sequencerUptimeFeed",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "gracePeriodSeconds",
+        "type": "uint48"
+      }
+    ],
+    "name": "SequencerUptimeFeedUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AccessManagedInvalidAuthority",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "uint32",
+        "name": "delay",
+        "type": "uint32"
+      }
+    ],
+    "name": "AccessManagedRequiredDelay",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "AccessManagedUnauthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CACHE_VALUE_OUT_OF_DOMAIN",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "COLLATERAL_ASSET_ORACLE_MISMATCH",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "COVERAGE_REQUIREMENT_VIOLATED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DISABLED_IN_FIXED_TERM_STATE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EnforcedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ExpectedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "GRACE_PERIOD_NOT_OVER",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_COLLATERAL_ASSET_DECIMALS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_GRACE_PERIOD_SECONDS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_LPT_ASSET_DECIMALS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_PRICE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_SELF_LIQUIDATION_BONUS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_STALENESS_THRESHOLD_SECONDS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LIQUIDITY_REQUIREMENT_VIOLATED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MUST_MINT_NON_ZERO_SHARES",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MUST_REDEMPTION_NON_ZERO_SHARES",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NULL_ADDRESS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotInitializing",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ONLY_LIQUIDITY_PROVIDER_TRANCHE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ONLY_SELF",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ONLY_TRANCHE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SEQUENCER_DOWN",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "STALE_PRICE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TRANCHE_AND_KERNEL_ASSETS_MISMATCH",
+    "type": "error"
+  }
+]

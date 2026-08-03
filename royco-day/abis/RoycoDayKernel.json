@@ -1,5 +1,640 @@
 [
   {
+    "inputs": [
+      {
+        "internalType": "contract IVault",
+        "name": "_balancerV3Vault",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AccessManagedInvalidAuthority",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "uint32",
+        "name": "delay",
+        "type": "uint32"
+      }
+    ],
+    "name": "AccessManagedRequiredDelay",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "AccessManagedUnauthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "BPT_ORACLE_CANNOT_REVERT_WHILE_VAULT_UNLOCKED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "BPT_ORACLE_POOL_MISMATCH",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CACHE_VALUE_OUT_OF_DOMAIN",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "COLLATERAL_ASSET_ORACLE_MISMATCH",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "COVERAGE_REQUIREMENT_VIOLATED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DISABLED_IN_FIXED_TERM_STATE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EnforcedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ExpectedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "GRACE_PERIOD_NOT_OVER",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_BALANCER_V3_VAULT",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_COLLATERAL_ASSET_DECIMALS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_GRACE_PERIOD_SECONDS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_LPT_ASSET_DECIMALS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_MAX_REINVESTMENT_SLIPPAGE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_POOL_TOKEN_CONFIGURATION",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_PRICE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_SELF_LIQUIDATION_BONUS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_STALENESS_THRESHOLD_SECONDS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LIQUIDITY_REQUIREMENT_VIOLATED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MUST_MINT_NON_ZERO_SHARES",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MUST_REDEMPTION_NON_ZERO_SHARES",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NULL_ADDRESS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotInitializing",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ONLY_LIQUIDITY_PROVIDER_TRANCHE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ONLY_SELF",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ONLY_TRANCHE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "POOL_MUST_HAVE_TWO_TOKENS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "POOL_NOT_REGISTERED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "QUOTE_ASSET_MISMATCH",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SEQUENCER_DOWN",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SIMULATION_CANNOT_MUTATE_STATE",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "STALE_PRICE",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "SenderIsNotVault",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TRANCHE_AND_KERNEL_ASSETS_MISMATCH",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "VAULT_ALREADY_UNLOCKED",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AuthorityUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "bptOracle",
+        "type": "address"
+      }
+    ],
+    "name": "BPTOracleUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "collateralAssetOracle",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "stalenessThresholdSeconds",
+        "type": "uint48"
+      }
+    ],
+    "name": "CollateralAssetOracleUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stSharesReinvested",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "TRANCHE_UNIT",
+        "name": "lptAssetsMinted",
+        "type": "uint256"
+      }
+    ],
+    "name": "LiquidityPremiumReinvested",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "stSharesToReinvest",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "TRANCHE_UNIT",
+        "name": "minLPTAssetsOut",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "revertData",
+        "type": "bytes"
+      }
+    ],
+    "name": "LiquidityPremiumReinvestmentFailed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "maxReinvestmentSlippageWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "MaxReinvestmentSlippageUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "enum Operation",
+        "name": "op",
+        "type": "uint8"
+      },
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct SyncedAccountingState",
+        "name": "resultingState",
+        "type": "tuple"
+      }
+    ],
+    "name": "PostOpTrancheAccountingSynced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum MarketState",
+            "name": "marketState",
+            "type": "uint8"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "collateralNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptRawNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtEffectiveNAV",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtImpermanentLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptLiquidityPremium",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "stProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "jtProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "NAV_UNIT",
+            "name": "lptProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCoverageWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minLiquidityWAD",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct SyncedAccountingState",
+        "name": "resultingState",
+        "type": "tuple"
+      }
+    ],
+    "name": "PreOpTrancheAccountingSynced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "protocolFeeRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "ProtocolFeeRecipientUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "roycoBlacklist",
+        "type": "address"
+      }
+    ],
+    "name": "RoycoBlacklistUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "stSelfLiquidationBonusWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "SeniorTrancheSelfLiquidationBonusUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sequencerUptimeFeed",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint48",
+        "name": "gracePeriodSeconds",
+        "type": "uint48"
+      }
+    ],
+    "name": "SequencerUptimeFeedUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "accountant",
     "outputs": [
@@ -10,6 +645,45 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_seniorShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_quoteAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_minLPTAssetsOut",
+        "type": "uint256"
+      }
+    ],
+    "name": "addBalancerV3Liquidity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "lptAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "lptAssetPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -199,6 +873,36 @@
   },
   {
     "inputs": [],
+    "name": "getBalancerV3LiquidityVenueState",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "bptOracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "maxReinvestmentSlippageWAD",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bool",
+            "name": "stShareIsPoolToken1",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct BalancerV3LiquidityVenue.BalancerV3LiquidityVenueState",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getCollateralAssetOracle",
     "outputs": [
       {
@@ -255,6 +959,19 @@
         "internalType": "struct IRoycoDayKernel.RoycoDayKernelImmutableState",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "rate",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -368,6 +1085,113 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "initialAuthority",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "seniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "juniorTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "liquidityProviderTranche",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "collateralAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "lptAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "quoteAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "accountant",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "protocolFeeRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "stSelfLiquidationBonusWAD",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "roycoBlacklist",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "collateralAssetOracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint48",
+            "name": "stalenessThresholdSeconds",
+            "type": "uint48"
+          },
+          {
+            "internalType": "address",
+            "name": "sequencerUptimeFeed",
+            "type": "address"
+          },
+          {
+            "internalType": "uint48",
+            "name": "gracePeriodSeconds",
+            "type": "uint48"
+          }
+        ],
+        "internalType": "struct IRoycoDayKernel.RoycoDayKernelInitParams",
+        "name": "_standardParams",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "bptOracle",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "maxReinvestmentSlippageWAD",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct BalancerV3LiquidityVenue.LiquidityVenueInitParams",
+        "name": "_liquidityVenueParams",
+        "type": "tuple"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -960,6 +1784,55 @@
         "type": "address"
       }
     ],
+    "name": "removeBalancerV3Liquidity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "stShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quoteAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "NAV_UNIT",
+        "name": "lptAssetPrice",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum DispatchMode",
+        "name": "_mode",
+        "type": "uint8"
+      },
+      {
+        "internalType": "TRANCHE_UNIT",
+        "name": "_lptAssets",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minSTSharesOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minQuoteAssetsOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_quoteAssetsReceiver",
+        "type": "address"
+      }
+    ],
     "name": "removeLiquidity",
     "outputs": [
       {
@@ -1011,6 +1884,24 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "_bptOracle",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "_syncBeforeUpdate",
+        "type": "bool"
+      }
+    ],
+    "name": "setBPTOracle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "_collateralAssetOracle",
         "type": "address"
       },
@@ -1026,6 +1917,19 @@
       }
     ],
     "name": "setCollateralAssetOracle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "_maxReinvestmentSlippageWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "setMaxReinvestmentSlippage",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1321,542 +2225,5 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "authority",
-        "type": "address"
-      }
-    ],
-    "name": "AuthorityUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "collateralAssetOracle",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint48",
-        "name": "stalenessThresholdSeconds",
-        "type": "uint48"
-      }
-    ],
-    "name": "CollateralAssetOracleUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint64",
-        "name": "version",
-        "type": "uint64"
-      }
-    ],
-    "name": "Initialized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "stSharesReinvested",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "TRANCHE_UNIT",
-        "name": "lptAssetsMinted",
-        "type": "uint256"
-      }
-    ],
-    "name": "LiquidityPremiumReinvested",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "stSharesToReinvest",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "TRANCHE_UNIT",
-        "name": "minLPTAssetsOut",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes",
-        "name": "revertData",
-        "type": "bytes"
-      }
-    ],
-    "name": "LiquidityPremiumReinvestmentFailed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Paused",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "enum Operation",
-        "name": "op",
-        "type": "uint8"
-      },
-      {
-        "components": [
-          {
-            "internalType": "enum MarketState",
-            "name": "marketState",
-            "type": "uint8"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "collateralNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "lptRawNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "stEffectiveNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "jtEffectiveNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "jtImpermanentLoss",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "lptLiquidityPremium",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "stProtocolFee",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "jtProtocolFee",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "lptProtocolFee",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "coverageUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "liquidityUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint32",
-            "name": "fixedTermEndTimestamp",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint256",
-            "name": "minCoverageWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "minLiquidityWAD",
-            "type": "uint256"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct SyncedAccountingState",
-        "name": "resultingState",
-        "type": "tuple"
-      }
-    ],
-    "name": "PostOpTrancheAccountingSynced",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "enum MarketState",
-            "name": "marketState",
-            "type": "uint8"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "collateralNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "lptRawNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "stEffectiveNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "jtEffectiveNAV",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "jtImpermanentLoss",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "lptLiquidityPremium",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "stProtocolFee",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "jtProtocolFee",
-            "type": "uint256"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "lptProtocolFee",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "coverageUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "liquidityUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint32",
-            "name": "fixedTermEndTimestamp",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint256",
-            "name": "minCoverageWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "minLiquidityWAD",
-            "type": "uint256"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct SyncedAccountingState",
-        "name": "resultingState",
-        "type": "tuple"
-      }
-    ],
-    "name": "PreOpTrancheAccountingSynced",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "protocolFeeRecipient",
-        "type": "address"
-      }
-    ],
-    "name": "ProtocolFeeRecipientUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "roycoBlacklist",
-        "type": "address"
-      }
-    ],
-    "name": "RoycoBlacklistUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint64",
-        "name": "stSelfLiquidationBonusWAD",
-        "type": "uint64"
-      }
-    ],
-    "name": "SeniorTrancheSelfLiquidationBonusUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sequencerUptimeFeed",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint48",
-        "name": "gracePeriodSeconds",
-        "type": "uint48"
-      }
-    ],
-    "name": "SequencerUptimeFeedUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Unpaused",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "authority",
-        "type": "address"
-      }
-    ],
-    "name": "AccessManagedInvalidAuthority",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "caller",
-        "type": "address"
-      },
-      {
-        "internalType": "uint32",
-        "name": "delay",
-        "type": "uint32"
-      }
-    ],
-    "name": "AccessManagedRequiredDelay",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "caller",
-        "type": "address"
-      }
-    ],
-    "name": "AccessManagedUnauthorized",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CACHE_VALUE_OUT_OF_DOMAIN",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "COLLATERAL_ASSET_ORACLE_MISMATCH",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "COVERAGE_REQUIREMENT_VIOLATED",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "DISABLED_IN_FIXED_TERM_STATE",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "EnforcedPause",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ExpectedPause",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "GRACE_PERIOD_NOT_OVER",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "INVALID_COLLATERAL_ASSET_DECIMALS",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "INVALID_GRACE_PERIOD_SECONDS",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "INVALID_LPT_ASSET_DECIMALS",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "INVALID_PRICE",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "INVALID_SELF_LIQUIDATION_BONUS",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "INVALID_STALENESS_THRESHOLD_SECONDS",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidInitialization",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "LIQUIDITY_REQUIREMENT_VIOLATED",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MUST_MINT_NON_ZERO_SHARES",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "MUST_REDEMPTION_NON_ZERO_SHARES",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NULL_ADDRESS",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotInitializing",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ONLY_LIQUIDITY_PROVIDER_TRANCHE",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ONLY_SELF",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ONLY_TRANCHE",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ReentrancyGuardReentrantCall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "SEQUENCER_DOWN",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "STALE_PRICE",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TRANCHE_AND_KERNEL_ASSETS_MISMATCH",
-    "type": "error"
   }
 ]

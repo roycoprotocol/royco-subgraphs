@@ -97,7 +97,8 @@ contract with royco-rwa / royco-usd / staked-royco-usd.
 **`jtCoinvested` removed**.
 
 **`TrancheType.LIQUIDITY` → `LIQUIDITY_PROVIDER`** (ordinal still 2).
-**`Operation` 6 → 8** (adds `LPT_MULTI_ASSET_DEPOSIT/REDEEM`) — not indexed, no impact.
+**`Operation` remains 6 values.** Multi-asset LPT flows use the LPT deposit and
+redemption ordinals.
 
 **`Accountant.getState()` 27 → 24.** Three dust members → one `dustTolerance`.
 `lastSTRawNAV`+`lastJTRawNAV` → `lastCollateralNAV`. Accruals **uint192 → uint128** (still

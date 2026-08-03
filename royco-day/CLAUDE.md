@@ -4,8 +4,8 @@ A Graph Protocol subgraph indexing **Royco Day**: 3-tranche markets (senior /
 junior / liquidity). Deployed to **Goldsky**; its entities are mirrored into
 **Neon Postgres** by a Goldsky **Pipeline**.
 
-Status: **base setup only.** Every handler in `src/` is a wired, compiling
-no-op stub. Writing them is the next phase.
+The handlers index market, vault, position, accounting, NAV, fee, and activity
+state from Factory-discovered contracts.
 
 Sibling `../royco-rwa` is the architectural reference. It is a good pattern for
 structure and a bad one for tests (it has none) — copy its idioms, not its gaps.
@@ -95,7 +95,7 @@ this dead check at `src/royco-vault-tranche-v2.ts:36`. Don't copy it.
 ## 4. ABI → AssemblyScript types
 
 **The uint24/uint32 boundary is asymmetric, and it's the top build-breaker here** —
-`RoycoDayAccountant` packs its 27-field state with exactly these types.
+`RoycoDayAccountant` packs its 26-field state with exactly these types.
 (Verified against `generated/`, not folklore.)
 
 | Solidity | AS | into a `BigInt!` field |
@@ -169,8 +169,8 @@ try/catch. `try_foo()` returns `{ value, reverted }` and never throws.
   A 3-tranche market with coverage/liquidity invariants *will* revert in edge
   states (paused, fixed-term ended, coverage liquidation). Assume it does.
 - **Raw is fine** for immutable metadata read once at deployment: `asset()`,
-  `decimals()`, `symbol()`, `TRANCHE_TYPE()`. (`KERNEL()` was here and no longer
-  exists on any contract — the accountant -> market hop is `DayAccountantMarketMap`.)
+  `decimals()`, `symbol()`, `kernel()`, `TRANCHE_TYPE()`. Accountant handlers do
+  not call a kernel getter; they resolve through `DayAccountantMarketMap`.
 
 ```ts
 const res = tranche.try_convertToAssets(oneShare);
@@ -232,8 +232,9 @@ Do not reintroduce the contract read. `Accountant.getState().kernel` (and `KERNE
 before it) worked, but billed one eth_call on *every* accountant event to fetch a value
 that cannot change: the pairing is 1:1 and fixed at deployment, since `$.kernel` has a
 single assignment in `initialize()` (`RoycoDayAccountant.sol:120`) and no setter. A row
-written once is correct forever. The `KernelUpdated(address)` event that used to muddy
-this was **removed** in the 2026-08 contract revision.
+written once is correct forever. On the deployed revision, `KernelUpdated(address)`
+reports an implementation update rather than changing this pairing; the latest revision
+removes that event.
 
 Kernel handlers need no hop at all: there, `event.address` IS the marketId.
 
@@ -502,9 +503,9 @@ deliberately: `goldsky pipeline apply` mutates production Neon.
 Prepare the artifacts, run `/verify`, show the diff, and tell the user the exact
 command. Let them run it.
 
-**The factory isn't deployed yet.** `config/markets/networks/mainnet.json` **and
-`staging.json`** both hold a placeholder address and `startBlock: 0`. Fill those
-in before any real deploy.
+`config/markets/networks/staging.json` points to the current Ethereum test
+deployment. `mainnet.json` remains a placeholder until the production factory is
+deployed.
 
 ### mainnet vs staging — one word, two meanings
 

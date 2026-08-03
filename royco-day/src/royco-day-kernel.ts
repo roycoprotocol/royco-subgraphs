@@ -5,6 +5,11 @@ import {
   LiquidityPremiumReinvested as LiquidityPremiumReinvestedEvent,
   LiquidityPremiumReinvestmentFailed as LiquidityPremiumReinvestmentFailedEvent,
   CollateralAssetOracleUpdated as CollateralAssetOracleUpdatedEvent,
+  BPTOracleUpdated as BPTOracleUpdatedEvent,
+  MaxReinvestmentSlippageUpdated as MaxReinvestmentSlippageUpdatedEvent,
+  RoycoBlacklistUpdated as RoycoBlacklistUpdatedEvent,
+  Paused as PausedEvent,
+  Unpaused as UnpausedEvent,
   SequencerUptimeFeedUpdated as SequencerUptimeFeedUpdatedEvent,
   PreOpTrancheAccountingSynced as PreOpTrancheAccountingSyncedEvent,
   PostOpTrancheAccountingSynced as PostOpTrancheAccountingSyncedEvent,
@@ -43,8 +48,8 @@ import {
  *
  * Unlike the accountant, THE KERNEL ADDRESS IS THE MARKET ID (§6), so the lookup
  * is direct and costs no eth_call. Contrast
- * src/handlers/base/resolve-market.ts, which must hop accountant -> KERNEL() on
- * every accountant event. Do not import resolveMarketFromAccountant here.
+ * src/handlers/base/resolve-market.ts, which resolves accountant events through the
+ * factory-written DayAccountantMarketMap. Do not import it here.
  *
  * The null guard is still required. In practice it is unreachable — the factory
  * creates this template in the same handler that writes the market — but the
@@ -53,7 +58,7 @@ import {
  *
  * Every handler carries its new value on the event, so none reads getState().
  *
- * The two config setters update DayMarketState in place. The two liquidity-premium
+ * The config and pause events update DayMarketState in place. The two liquidity-premium
  * reinvestment events are RECORD streams (DayLiquidityPremiumReinvested/Reinvestment
  * FailedHistory): they append an immutable row and bump the market's cursor, and own
  * NO shares/positions/supply — the Reinvested success only moves kernel-internal
@@ -63,11 +68,6 @@ import {
  * events fire
  * from a library inlined into the kernel, so event.address is the kernel (= marketId)
  * and resolution stays direct.
- *
- * NOT INDEXED, deliberately:
- *   RoycoBlacklistUpdated — Kernel.getState().roycoBlacklist has no schema field.
- *     Add the field and the handler together, or neither; schema.graphql says so
- *     at the Kernel block.
  */
 export function handleProtocolFeeRecipientUpdated(
   event: ProtocolFeeRecipientUpdatedEvent
@@ -154,6 +154,60 @@ export function handleCollateralAssetOracleUpdated(
     event.params.collateralAssetOracle.toHexString();
   market.collateralAssetOracleStalenessThresholdSeconds =
     event.params.stalenessThresholdSeconds;
+  touchMarket(event, market);
+}
+
+export function handleBPTOracleUpdated(event: BPTOracleUpdatedEvent): void {
+  const market = DayMarketState.load(
+    generateMarketId(event.address.toHexString())
+  );
+  if (!market) return;
+
+  market.bptOracleAddress = event.params.bptOracle.toHexString();
+  touchMarket(event, market);
+}
+
+export function handleMaxReinvestmentSlippageUpdated(
+  event: MaxReinvestmentSlippageUpdatedEvent
+): void {
+  const market = DayMarketState.load(
+    generateMarketId(event.address.toHexString())
+  );
+  if (!market) return;
+
+  market.maxReinvestmentSlippageWAD = event.params.maxReinvestmentSlippageWAD;
+  touchMarket(event, market);
+}
+
+export function handleRoycoBlacklistUpdated(
+  event: RoycoBlacklistUpdatedEvent
+): void {
+  const market = DayMarketState.load(
+    generateMarketId(event.address.toHexString())
+  );
+  if (!market) return;
+
+  market.roycoBlacklistAddress = event.params.roycoBlacklist.toHexString();
+  touchMarket(event, market);
+}
+
+export function handlePaused(event: PausedEvent): void {
+  const market = DayMarketState.load(
+    generateMarketId(event.address.toHexString())
+  );
+  if (!market) return;
+
+  market.kernelPaused = true;
+  touchMarket(event, market);
+}
+
+export function handleUnpaused(event: UnpausedEvent): void {
+  const market = DayMarketState.load(
+    generateMarketId(event.address.toHexString())
+  );
+  if (!market) return;
+
+  market.kernelPaused = false;
   touchMarket(event, market);
 }
 
@@ -260,7 +314,7 @@ class SyncedState {
  *                                   hook, oracle updates, syncTrancheAccounting,
  *                                   reinvestLiquidityPremium, and the first half of
  *                                   every deposit and redemption.
- *   PostOpTrancheAccountingSynced — fires only on the eight deposit/redeem operations,
+ *   PostOpTrancheAccountingSynced — fires only on the six deposit/redeem operations,
  *                                   carrying the settled state plus the `op` enum.
  *
  * THE COLLAPSE RULE: one DayTrancheAccountingSyncedHistory row per (market, block).
@@ -426,14 +480,9 @@ function liveMarketStateName(marketState: i32): string {
  *
  * Declaration order from contracts/libraries/Types.sol — the ABI carries the enum's
  * TYPE but none of its member names, so this is read from source, never inferred (§4).
- * SIX members. It has ALREADY changed once: an earlier revision had eight, with distinct
- * LPT_MULTI_ASSET_DEPOSIT/_REDEMPTION members later folded into the plain LPT ones.
+ * The deployed enum has six members; multi-asset LPT flows use the LPT ordinals.
  * Re-read Types.sol whenever contracts/ changes — nothing about the ABI, the build or
  * the tests will tell you this list has gone stale.
- *
- * A multi-asset LP flow therefore reports as lptDeposit / lptRedeem, indistinguishable
- * from a single-asset one by this column alone; join to DayMultiAssetDepositActivity /
- * DayMultiAssetRedeemActivity on transaction hash to tell them apart.
  *
  * An unrecognised ordinal returns "unknown" rather than falling through to a neighbour:
  * if the enum ever grows, that surfaces in Neon as a value nobody expects instead of
@@ -448,7 +497,7 @@ function operationName(op: i32): string {
   if (op == 3) return OPERATION_JT_REDEEM;
   if (op == 4) return OPERATION_LPT_DEPOSIT;
   if (op == 5) return OPERATION_LPT_REDEEM;
-  // 6+ cannot occur against the current enum, which has exactly six members. Anything
+  // 6+ cannot occur against the current enum. Anything
   // higher means the enum grew and this list did not — reported as "unknown" rather
   // than silently mapped onto a neighbour.
   return OPERATION_UNKNOWN;

@@ -3,7 +3,9 @@ import { createMockedFunction } from "matchstick-as";
 import { AccountantState, mockAccountantGetState } from "./accountant";
 import {
   KernelState,
+  mockBalancerV3LiquidityVenueState,
   mockKernelGetState,
+  mockKernelPaused,
   mockPreviewSyncTrancheAccounting,
 } from "./kernel";
 import { Claims, TrancheState } from "../builders/shared";
@@ -14,6 +16,7 @@ import {
   ADDR_QUOTE_ASSET,
   ADDR_ZERO,
   ADDR_BALANCER_VAULT,
+  ADDR_BPT_ORACLE,
   ADDR_JUNIOR,
   ADDR_KERNEL,
   ADDR_LIQUIDITY,
@@ -58,15 +61,16 @@ export function mockTrancheToken(
   createMockedFunction(tranche, "totalSupply", "totalSupply():(uint256)")
     .withArgs([])
     .returns([ethereum.Value.fromUnsignedBigInt(totalSupply)]);
+  createMockedFunction(tranche, "kernel", "kernel():(address)")
+    .withArgs([])
+    .returns([ethereum.Value.fromAddress(ADDR_KERNEL)]);
 }
 
 /**
  * Point the accountant at its market.
  *
- * THE KERNEL COMES OFF getState() NOW. ACCOUNTANT.KERNEL() was removed from the
- * contract, so there is no separate call to mock — the address rides in the state
- * struct, and mockAccountantGetState already registers it. This mutates the state the
- * fixture will publish, so call it BEFORE mockDayMarket.
+ * The address rides in the accountant state struct, and mockAccountantGetState registers
+ * it. This mutates the state the fixture will publish, so call it before mockDayMarket.
  *
  * The accountant address is NOT the marketId; the kernel's is (§6). Every accountant
  * handler resolves through this before it can touch a DayMarketState.
@@ -74,7 +78,6 @@ export function mockTrancheToken(
 export function mockAccountantKernel(state: AccountantState, kernel: Address): void {
   state.kernel = kernel;
 }
-
 /** Mock the asset token itself (needed for DayVaultState.assetTokenDecimals). */
 export function mockAssetToken(asset: Address, decimals: i32): void {
   createMockedFunction(asset, "decimals", "decimals():(uint8)")
@@ -230,7 +233,6 @@ export function withoutQuoteAsset(m: DayMarketFixture): DayMarketFixture {
   return m;
 }
 
-
 /**
  * A whole Day market's mockable surface, in one object.
  *
@@ -261,6 +263,9 @@ export class DayMarketFixture {
   // lptAsset above IS the pool. Index 1 by default so the senior share sits in slot 0,
   // matching the venue's own "if tokens[0] == SENIOR_TRANCHE then quote is 1" branch.
   balancerVault: Address = ADDR_BALANCER_VAULT;
+  bptOracle: Address = ADDR_BPT_ORACLE;
+  maxReinvestmentSlippageWAD: BigInt = BigInt.zero();
+  kernelPaused: bool = false;
   quoteAssetPoolIndex: i32 = 1;
   // 1.0 would be indistinguishable from a hardcoded WAD, and equal rates would hide a
   // handler reading the wrong slot. A STANDARD quote really is FP(1) on chain — the
@@ -315,6 +320,8 @@ export class DayMarketFixture {
     m.accountantState.minCoverageWAD = WAD.div(BigInt.fromI32(2)); // 50%
     m.accountantState.minLiquidityWAD = WAD.div(BigInt.fromI32(4)); // 25%
     m.accountantState.fixedTermDurationSeconds = 30 * 24 * 60 * 60; // uint24
+    m.accountantState.fixedTermCommenceableAtTimestamp =
+      BigInt.fromI32(1_700_000_000);
     m.accountantState.lastMarketState = 0; // "perpetual"
 
     // Distinct non-zero sentinels for every member the handler reads. Left at the
@@ -347,6 +354,7 @@ export class DayMarketFixture {
     m.kernelState.lptOwnedSeniorTrancheShares = BigInt.fromI32(5_104);
     m.kernelState.stalenessThresholdSeconds = BigInt.fromI32(5_201);
     m.kernelState.gracePeriodSeconds = BigInt.fromI32(5_202);
+    m.maxReinvestmentSlippageWAD = BigInt.fromI32(8_201);
 
     m.trancheState.marketState = 0;
     m.trancheState.collateralNAV = WAD.times(BigInt.fromI32(150));
@@ -422,8 +430,21 @@ function seedClaims(c: Claims, base: i32): void {
 export function mockDayMarket(m: DayMarketFixture): void {
   // BEFORE mockAccountantGetState: this mutates the state that call publishes.
   mockAccountantKernel(m.accountantState, m.kernel);
+  m.kernelState.seniorTranche = m.seniorTranche;
+  m.kernelState.juniorTranche = m.juniorTranche;
+  m.kernelState.liquidityProviderTranche = m.liquidityTranche;
+  m.kernelState.collateralAsset = m.collateralAsset;
+  m.kernelState.lptAsset = m.lptAsset;
+  m.kernelState.quoteAsset = m.quoteAsset;
+  m.kernelState.accountant = m.accountant;
   mockAccountantGetState(m.accountant, m.accountantState);
   mockKernelGetState(m.kernel, m.kernelState);
+  mockKernelPaused(m.kernel, m.kernelPaused);
+  mockBalancerV3LiquidityVenueState(
+    m.kernel,
+    m.bptOracle,
+    m.maxReinvestmentSlippageWAD
+  );
 
   mockPreviewSyncTrancheAccounting(
     m.kernel,

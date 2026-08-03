@@ -5,18 +5,21 @@ import {
   ADDR_ACCOUNTANT,
   ADDR_ASSET,
   ADDR_BLACKLIST,
+  ADDR_BPT_ORACLE,
   ADDR_FEE_RECIPIENT,
   ADDR_JUNIOR,
   ADDR_LIQUIDITY,
   ADDR_LPT_ASSET,
   ADDR_ORACLE,
   ADDR_QUOTE_ASSET,
-  ADDR_SENIOR,
   ADDR_SEQUENCER_FEED,
+  ADDR_SENIOR,
+  WAD,
 } from "../helpers/constants";
 import { Claims, TrancheState } from "../builders/shared";
 import {
   ROYCO_DAY_KERNEL__GET_STATE,
+  ROYCO_DAY_KERNEL__GET_BALANCER_V3_LIQUIDITY_VENUE_STATE,
   ROYCO_DAY_KERNEL__PREVIEW_SYNC_TRANCHE_ACCOUNTING_FOR,
 } from "../generated/abi-signatures";
 
@@ -35,8 +38,8 @@ import {
  *   jq -r '.[]|select(.name=="getState")|.outputs[0].components|to_entries[]
  *          |"\(.key) \(.value.name):\(.value.type)"' abis/RoycoDayKernel.json
  *
- * `roycoBlacklist`, `oneWholeCollateralAsset` and `oneWholeLPTAsset` have no schema
- * field today; they are mocked anyway because the binding decodes the whole tuple.
+ * The one-whole-asset scale fields have no schema columns; they are still mocked because
+ * the binding decodes the whole tuple. The blacklist address is indexed.
  */
 export class KernelState {
   seniorTranche: Address = ADDR_SENIOR; // 0
@@ -44,9 +47,9 @@ export class KernelState {
   juniorTranche: Address = ADDR_JUNIOR; // 2
   liquidityProviderTranche: Address = ADDR_LIQUIDITY; // 3
   collateralAsset: Address = ADDR_ASSET; // 4
-  oneWholeCollateralAsset: BigInt = BigInt.zero(); // 5 uint64
+  oneWholeCollateralAsset: BigInt = WAD; // 5 uint64
   lptAsset: Address = ADDR_LPT_ASSET; // 6
-  oneWholeLPTAsset: BigInt = BigInt.zero(); // 7 uint64
+  oneWholeLPTAsset: BigInt = WAD; // 7 uint64
   quoteAsset: Address = ADDR_QUOTE_ASSET; // 8
   accountant: Address = ADDR_ACCOUNTANT; // 9
   protocolFeeRecipient: Address = ADDR_FEE_RECIPIENT; // 10
@@ -88,6 +91,30 @@ export function mockKernelGetState(kernel: Address, s: KernelState): void {
   createMockedFunction(kernel, "getState", ROYCO_DAY_KERNEL__GET_STATE)
     .withArgs([])
     .returns([ethereum.Value.fromTuple(s.toTuple())]);
+}
+
+export function mockBalancerV3LiquidityVenueState(
+  kernel: Address,
+  bptOracle: Address = ADDR_BPT_ORACLE,
+  maxReinvestmentSlippageWAD: BigInt = BigInt.zero()
+): void {
+  createMockedFunction(
+    kernel,
+    "getBalancerV3LiquidityVenueState",
+    ROYCO_DAY_KERNEL__GET_BALANCER_V3_LIQUIDITY_VENUE_STATE
+  )
+    .withArgs([])
+    .returns([
+      ethereum.Value.fromTuple(
+        tuple([addr(bptOracle), uint(maxReinvestmentSlippageWAD)])
+      ),
+    ]);
+}
+
+export function mockKernelPaused(kernel: Address, paused: bool): void {
+  createMockedFunction(kernel, "paused", "paused():(bool)")
+    .withArgs([])
+    .returns([ethereum.Value.fromBoolean(paused)]);
 }
 
 /**

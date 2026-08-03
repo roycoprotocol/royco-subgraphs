@@ -29,7 +29,9 @@ Gitignored (rendered per-network): `subgraph.yaml`, `src/constants/static.ts`.
 
 ## Deploys — human-gated
 
-`goldsky pipeline apply` mutates production Neon. Not deployed yet: `config/entrypoint/networks/mainnet.json` holds a placeholder address / `startBlock: 0` — fill in and bump `version` before deploying.
+`goldsky pipeline apply` mutates production Neon. Staging is configured for the
+current test deployment; `config/entrypoint/networks/mainnet.json` remains a
+placeholder until the production deployment is available.
 
 ```bash
 npm run deploy:subgraphs:entrypoint

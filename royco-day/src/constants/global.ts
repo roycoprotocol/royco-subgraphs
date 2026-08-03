@@ -15,8 +15,8 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
  * The value stored for an ERC20 `decimals()` that could not be read.
  *
  * `decimals()` is OPTIONAL in ERC20, and the one token this subgraph reads it from
- * without a guarantee is the venue's QUOTE_ASSET: on a venue-less market
- * Kernel.QUOTE_ASSET() itself reverts and the address falls back to ZERO_ADDRESS, so
+ * without a guarantee is the venue's quote asset: on a venue-less market
+ * Kernel.getState().quoteAsset is ZERO_ADDRESS, so
  * there is nothing to ask. An `Int!` cannot be null, so this is the sentinel.
  *
  * It is NOT distinguishable from a real 0-decimals token by itself — pair it with
@@ -93,17 +93,12 @@ export const SYNC_TYPE_POST_OP = "postOp";
 // PostOpTrancheAccountingSynced's `op` (uint8 enum -> i32).
 //
 // Order is the on-chain `Operation` enum's declaration order
-// (contracts/libraries/Types.sol) — SIX members. The ABI carries the enum's TYPE name
-// but none of its member names, so this ordering comes from the source and is not
-// guessable (§4). It has already changed once: an earlier revision had eight, with
-// distinct LPT_MULTI_ASSET_DEPOSIT / _REDEMPTION members that were later folded into the
-// plain LPT ones. Re-read Types.sol whenever contracts/ changes; nothing about the ABI,
-// the build, or the tests will tell you this list has gone stale.
+// (contracts/libraries/Types.sol) — six members in the deployed contracts. The ABI
+// carries the enum's TYPE name but none of its member names, so this ordering comes
+// from the source and is not guessable (§4). Multi-asset LPT flows use the plain LPT
+// operation values. Re-read
+// Types.sol whenever contracts/ changes; the ABI, build, and tests cannot reveal drift.
 //
-// !! A MULTI-ASSET LP FLOW NOW REPORTS AS lptDeposit / lptRedeem, indistinguishable from
-//    a single-asset one by this column alone. To tell them apart, join the sync row to
-//    DayMultiAssetDepositActivity / DayMultiAssetRedeemActivity on transaction hash —
-//    those events still exist and are still indexed.
 export const OPERATION_ST_DEPOSIT = "stDeposit"; // enum 0
 export const OPERATION_ST_REDEEM = "stRedeem"; // enum 1
 export const OPERATION_JT_DEPOSIT = "jtDeposit"; // enum 2

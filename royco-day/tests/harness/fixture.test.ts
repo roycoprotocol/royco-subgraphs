@@ -87,10 +87,10 @@ describe("DayMarketFixture.standard()", () => {
     const senior = RoycoSeniorTranche.bind(m.seniorTranche);
     assert.addressEquals(senior.asset(), ADDR_ASSET);
     assert.i32Equals(senior.decimals(), DECIMALS_18);
+    assert.addressEquals(senior.kernel(), ADDR_KERNEL);
     assert.bigIntEquals(senior.totalSupply(), m.sharesTotalSupply);
-    // The tranche's KERNEL() view was REMOVED (it is lowercase `kernel()` now, and the
-    // subgraph never calls either). The accountant -> market hop that DOES matter now
-    // rides on getState().kernel; it is asserted through the accountant below.
+    // Accountant events resolve through the factory-written map; getState().kernel is
+    // still asserted here because it is the immutable source of that pairing.
     assert.addressEquals(
       RoycoDayAccountant.bind(m.accountant).getState().kernel,
       ADDR_KERNEL

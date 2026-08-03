@@ -6,6 +6,7 @@ import {
   FixedTermEnded as FixedTermEndedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
   FixedTermCommenceableAt as FixedTermCommenceableAtEvent,
+  FixedTermCommenceableAtTimestampUpdated as FixedTermCommenceableAtTimestampUpdatedEvent,
   MinCoverageUpdated as MinCoverageUpdatedEvent,
   MinLiquidityUpdated as MinLiquidityUpdatedEvent,
   LiquidationCoverageUtilizationUpdated as LiquidationCoverageUtilizationUpdatedEvent,
@@ -42,7 +43,7 @@ import {
  *
  * EVERY handler here starts with resolveMarketFromAccountant() and returns on
  * null. The accountant address is NOT the marketId (§6), and the market may not
- * exist yet: initialize() emits CoverageUpdated and FixedTermDurationUpdated
+ * exist yet: initialize() emits MinCoverageUpdated and FixedTermDurationUpdated
  * during deployMarket, at a LOWER log index than the MarketDeploymentCompleted
  * that creates this template and writes the market.
  *
@@ -50,11 +51,10 @@ import {
  * handler here re-reads getState(). The one exception is documented on
  * handleSeniorTrancheDustToleranceUpdated.
  *
- * KernelUpdated(address) IS GONE FROM THE CONTRACT — it was dropped in the 2026-08
- * contract revision, which settles the question its name used to raise. `$.kernel` is
- * assigned in exactly one place, inside initialize(), and there is neither a setter nor
- * an event for it any more. That is the invariant DayAccountantMarketMap depends on: the
- * factory records the accountant -> kernel pairing once, and nothing can re-point it.
+ * `$.kernel` is assigned once in initialize() and has no setter. On the deployed
+ * revision, KernelUpdated(address) reports an implementation update; the latest revision
+ * removes it. Neither can re-point the accountant. That invariant is why the factory's
+ * DayAccountantMarketMap remains valid.
  *
  * TYPE TRAPS (verified against generated/, see CLAUDE.md §4). Only ONE of the
  * fifteen is not a direct BigInt assign:
@@ -216,6 +216,17 @@ export function handleFixedTermDurationUpdated(
     closeOpenFixedTerm(event, market);
   }
 
+  touchMarket(event, market);
+}
+
+export function handleFixedTermCommenceableAtTimestampUpdated(
+  event: FixedTermCommenceableAtTimestampUpdatedEvent,
+): void {
+  const market = resolveMarketFromAccountant(event);
+  if (!market) return;
+
+  market.fixedTermCommenceableAtTimestamp =
+    event.params.fixedTermCommenceableAtTimestamp;
   touchMarket(event, market);
 }
 

@@ -3,8 +3,8 @@
 Subgraph for **Royco Day** 3-tranche markets (senior / junior / liquidity).
 Deployed to Goldsky; entities mirrored to Neon Postgres by a Goldsky Pipeline.
 
-**Status: base setup.** Every handler in `src/` is a wired, compiling no-op stub.
-Writing them is the next phase.
+Indexes Royco Day market, vault, position, accounting, NAV, fee, and activity
+state from Factory-discovered contracts.
 
 > **Read [CLAUDE.md](./CLAUDE.md) before changing anything.** It is the real
 > documentation — build order, AssemblyScript traps, the ABI type table, entity
@@ -38,10 +38,10 @@ hand, keep the order.
 
 | Path | What |
 |---|---|
-| `schema.graphql` | 9 entities. Source of truth for the pipeline. |
-| `abis/` | 6 Day ABIs + ERC20 (for asset `decimals()`). |
+| `schema.graphql` | 20 entities. Source of truth for the pipeline. |
+| `abis/` | Deployment-compatible Day ABIs plus next-revision references in `latest/`. |
 | `config/markets/` | mustache templates + per-network values. **Edit here, not the rendered output.** |
-| `src/` | Handlers (stubs), constants, id generators. |
+| `src/` | Handlers, constants, and id generators. |
 | `scripts/` | Generators, checks, deploy scripts. |
 | `tests/` | matchstick harness + tests. |
 | `.claude/` | Subagents, slash commands, permissions. |
@@ -85,9 +85,8 @@ the `:staging` script variants (`npm run build:staging`). See CLAUDE.md §11 for
 why `network` means "chain" in `networks/*.json` but "deploy label" everywhere
 else.
 
-**Neither factory is deployed yet.** `config/markets/networks/mainnet.json` and
-`staging.json` both hold a placeholder address and `startBlock: 0`. Fill those in
-first.
+`staging.json` points to the current Ethereum test deployment. The production
+`mainnet.json` configuration remains a placeholder until that factory is deployed.
 
 ## Two things that will bite you
 

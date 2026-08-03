@@ -11,37 +11,37 @@ sources:
     name: day_entry_point_deployment_state
     subgraphs:
       - name: royco-day-entrypoint-staging
-        version: 2.0.1
+        version: 2.0.3
     type: subgraph_entity
   royco_day_entrypoint_day_entry_point_protocol_fee_collection_reference:
     name: day_entry_point_protocol_fee_collection
     subgraphs:
       - name: royco-day-entrypoint-staging
-        version: 2.0.1
+        version: 2.0.3
     type: subgraph_entity
   royco_day_entrypoint_day_entry_point_state_reference:
     name: day_entry_point_state
     subgraphs:
       - name: royco-day-entrypoint-staging
-        version: 2.0.1
+        version: 2.0.3
     type: subgraph_entity
   royco_day_entrypoint_day_entry_point_request_reference:
     name: day_entry_point_request
     subgraphs:
       - name: royco-day-entrypoint-staging
-        version: 2.0.1
+        version: 2.0.3
     type: subgraph_entity
   royco_day_entrypoint_day_entry_point_execution_reference:
     name: day_entry_point_execution
     subgraphs:
       - name: royco-day-entrypoint-staging
-        version: 2.0.1
+        version: 2.0.3
     type: subgraph_entity
   royco_day_entrypoint_global_token_activity_reference:
     name: global_token_activity
     subgraphs:
       - name: royco-day-entrypoint-staging
-        version: 2.0.1
+        version: 2.0.3
     type: subgraph_entity
 transforms: {}
 sinks:

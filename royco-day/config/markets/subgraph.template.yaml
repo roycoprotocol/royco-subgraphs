@@ -294,9 +294,12 @@ templates:
           receipt: true
         # Only emitted from the accountant's initialize(), which lands BELOW
         # MarketDeploymentCompleted — the factory's getState() read is what fills the
-        # column. Wired so a future setter is picked up for free. See the handler.
+        # column. Both names are wired for the deployed and latest contract revisions.
         - event: FixedTermCommenceableAt(uint64)
           handler: handleFixedTermCommenceableAt
+          receipt: true
+        - event: FixedTermCommenceableAtTimestampUpdated(uint64)
+          handler: handleFixedTermCommenceableAtTimestampUpdated
           receipt: true
         - event: MinCoverageUpdated(uint64)
           handler: handleMinCoverageUpdated
@@ -399,7 +402,7 @@ templates:
         # BOTH sync events, collapsing into one row per (market, block): pre-op creates
         # it, post-op overwrites it. Pre-op fires on EVERY sync (swap hook, oracle
         # updates, syncTrancheAccounting, reinvest, and the first half of each
-        # operation); post-op only on the eight deposit/redeem operations.
+        # operation); post-op only on the six deposit/redeem operations.
         # event.address is the KERNEL, so these resolve the market with no eth_call.
         - event: PreOpTrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
           handler: handlePreOpTrancheAccountingSynced
@@ -422,6 +425,21 @@ templates:
         # New in v2 — the kernel's oracle / sequencer-uptime configuration.
         - event: CollateralAssetOracleUpdated(indexed address,uint48)
           handler: handleCollateralAssetOracleUpdated
+          receipt: true
+        - event: BPTOracleUpdated(indexed address)
+          handler: handleBPTOracleUpdated
+          receipt: true
+        - event: MaxReinvestmentSlippageUpdated(uint64)
+          handler: handleMaxReinvestmentSlippageUpdated
+          receipt: true
+        - event: RoycoBlacklistUpdated(address)
+          handler: handleRoycoBlacklistUpdated
+          receipt: true
+        - event: Paused(address)
+          handler: handlePaused
+          receipt: true
+        - event: Unpaused(address)
+          handler: handleUnpaused
           receipt: true
         - event: SequencerUptimeFeedUpdated(indexed address,uint48)
           handler: handleSequencerUptimeFeedUpdated

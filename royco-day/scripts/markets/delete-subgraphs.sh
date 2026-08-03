@@ -22,14 +22,14 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.0"
+version="1.0.5"
 
 for network in "${networks[@]}"; do
     subgraph_name="royco-day-markets-${network}/${version}"
     echo "Deleting ${subgraph_name}..."
     # --force: skip Goldsky's "retype the name" prompt. The human gate is
     # running this script at all (see the banner), not the CLI's re-prompt.
-    goldsky subgraph delete "${subgraph_name}" --force
+    goldsky subgraph delete "${subgraph_name}" --force || exit 1
 done
 
 echo "Script completed!"

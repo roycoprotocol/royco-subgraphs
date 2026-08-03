@@ -22,4 +22,4 @@ npm test        # prepare → codegen → matchstick
 
 ## Deploys — human-gated
 
-`goldsky pipeline apply` mutates production Neon; never run `goldsky`, `npm run deploy:*`, or `npm run delete:*` without explicit approval. **Not deployed yet:** `config/entrypoint/networks/mainnet.json` holds a placeholder `entryPoints[].address` and `startBlock: 0` — fill those in and bump `version` before deploying.
+`goldsky pipeline apply` mutates production Neon; never run `goldsky`, `npm run deploy:*`, or `npm run delete:*` without explicit approval. Staging is configured for the current test deployment; `config/entrypoint/networks/mainnet.json` remains a placeholder until production deployment.

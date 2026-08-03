@@ -5,7 +5,7 @@ import { ADDR_JT_YDM, ADDR_KERNEL, ADDR_LT_YDM } from "../helpers/constants";
 import { ROYCO_DAY_ACCOUNTANT__GET_STATE } from "../generated/abi-signatures";
 
 /**
- * RoycoDayAccountant.getState() — a single 24-field tuple output (was 27 in v1).
+ * RoycoDayAccountant.getState() — a single 26-field tuple output.
  *
  * !! MEMBER ORDER CHANGED in v2, not just names. This was rebuilt against the generated
  *    signature rather than edited in place — a positional tuple that merely *looks*
@@ -39,8 +39,8 @@ export class AccountantState {
   maxLPTYieldShareWAD: BigInt = BigInt.zero(); // 14 uint64
   twJTYieldShareAccruedWAD: BigInt = BigInt.zero(); // 15 uint128
   twLPTYieldShareAccruedWAD: BigInt = BigInt.zero(); // 16 uint128
-  // 17-18 are NEW. `kernel` replaces the removed KERNEL() view — every accountant
-  // handler resolves its market through it, so a wrong slot here breaks all of them.
+  // 17-18 are new. The market pairing originates in `kernel`, even though handlers use
+  // the factory-written map.
   kernel: Address = ADDR_KERNEL; // 17
   fixedTermCommenceableAtTimestamp: BigInt = BigInt.zero(); // 18 uint64
   coverageLiquidationUtilizationWAD: BigInt = BigInt.zero(); // 19
