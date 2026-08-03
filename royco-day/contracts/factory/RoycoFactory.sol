@@ -2,12 +2,10 @@
 pragma solidity ^0.8.28;
 
 import { AccessManagedUpgradeable } from "../../lib/openzeppelin-contracts-upgradeable/contracts/access/manager/AccessManagedUpgradeable.sol";
-import { UUPSUpgradeable } from "../../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
-import { AccessManager } from "../../lib/openzeppelin-contracts/contracts/access/manager/AccessManager.sol";
-import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { BeaconProxy } from "../../lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
 import { CREATE3 } from "../../lib/solady/src/utils/CREATE3.sol";
-import { RoycoBase } from "../base/RoycoBase.sol";
-import { IRoycoAuth } from "../interfaces/IRoycoAuth.sol";
+import { RoycoUUPSBase } from "../base/RoycoUUPSBase.sol";
+import { IRoycoDayEntryPoint } from "../interfaces/IRoycoDayEntryPoint.sol";
 import { IRoycoDayKernel } from "../interfaces/IRoycoDayKernel.sol";
 import { IBaseTemplate } from "../interfaces/factory/IBaseTemplate.sol";
 import { IRoycoFactory } from "../interfaces/factory/IRoycoFactory.sol";
@@ -21,7 +19,7 @@ import { DispatchLogic } from "../libraries/logic/DispatchLogic.sol";
  * @author Ankur Dubey, Shivaansh Kapoor
  * @notice Extensible template-driven factory for Royco markets
  */
-contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
+contract RoycoFactory is AccessManagedUpgradeable, RoycoUUPSBase, IRoycoFactory {
     using DispatchLogic for address;
 
     // keccak256(abi.encode(uint256(keccak256("Royco.storage.RoycoFactoryV2State")) - 1)) & ~bytes32(uint256(0xff))
@@ -32,6 +30,9 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
 
     /// @dev Holds the address of the template currently inside an `executeMarketDeployment` window, `address(0)` otherwise
     address private transient _activeTemplate;
+
+    /// @dev The account that initiated the in-flight market deployment, held transiently so the active template can pull the genesis seed from it
+    address private transient _marketDeployer;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // MODIFIERS
@@ -55,10 +56,8 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes the factory proxy against a pre-deployed `RoycoAccessManager`
-     * @param _roycoAccessManager Pre-deployed access manager whose gatekeeper must already point back at this factory
-     */
+    /// @notice Initializes the factory proxy against a pre-deployed `RoycoAccessManager`
+    /// @param _roycoAccessManager Pre-deployed access manager whose gatekeeper must already point back at this factory
     function initialize(address _roycoAccessManager) external initializer {
         require(_roycoAccessManager != address(0), ACCESS_MANAGER_CANNOT_BE_ZERO_ADDRESS());
         require(_roycoAccessManager.code.length > 0, ACCESS_MANAGER_HAS_NO_CODE());
@@ -124,16 +123,21 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
         require($.isTemplateEnabled[_template], TEMPLATE_NOT_ENABLED());
         require(_activeTemplate == address(0), NO_ACTIVE_TEMPLATE());
 
-        // Bind the active template
+        // Bind the active template and the deployment's initiator (the genesis seed's funder)
         _activeTemplate = _template;
+        _marketDeployer = msg.sender;
 
         // Deploy the market
         result = IBaseTemplate(_template).deployMarket(_params);
 
-        // A valid market must have a kernel, a senior tranche and a liquidity provider tranche
-        require(result.kernel != address(0) && result.seniorTranche != address(0) && result.liquidityProviderTranche != address(0), INVALID_DEPLOYMENT_RESULT());
+        // A valid market must have a kernel, a senior tranche, and at least one counterparty tranche: senior capital needs a junior buffer or a liquidity venue to trade against
+        require(
+            result.kernel != address(0) && result.seniorTranche != address(0) && result.juniorTranche != address(0)
+                && result.liquidityProviderTranche != address(0),
+            INVALID_DEPLOYMENT_RESULT()
+        );
 
-        // Register each deployed tranche against the market's kernel
+        // Register each deployed tranche against the market's kernel, guarding the optional slots so the null address never registers as a tranche
         $.trancheToKernel[result.seniorTranche] = result.kernel;
         $.trancheToKernel[result.juniorTranche] = result.kernel;
         $.trancheToKernel[result.liquidityProviderTranche] = result.kernel;
@@ -143,6 +147,7 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
 
         // Explicitly clear for clarity: transient storage auto-clears at the end of the transaction as a backstop
         _activeTemplate = address(0);
+        _marketDeployer = address(0);
 
         emit MarketDeploymentCompleted(_template, msg.sender, result);
     }
@@ -152,30 +157,13 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @inheritdoc IRoycoFactory
-    function deployDeterministicProxy(
-        address _implementation,
-        bytes calldata _initData,
-        bytes32 _salt
-    )
-        external
-        override(IRoycoFactory)
-        restricted
-        whenNotPaused
-        returns (address deployed)
-    {
-        // Every market proxy must be a fresh deployment: reject a salt whose address is already occupied
-        deployed = CREATE3.predictDeterministicAddress(_salt);
-        require(deployed.code.length == 0, PROXY_ALREADY_DEPLOYED(deployed, _salt));
-
-        // Deploy the proxy
-        bytes memory creationCode = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_implementation, _initData));
-        deployed = CREATE3.deployDeterministic(creationCode, _salt);
-        emit ProxyDeployed(deployed, _implementation, _salt);
+    function marketDeployer() external view override(IRoycoFactory) returns (address) {
+        return _marketDeployer;
     }
 
     /// @inheritdoc IRoycoFactory
     function deployDeterministicProxyFromTemplate(
-        address _implementation,
+        address _beacon,
         bytes calldata _initData,
         bytes32 _salt
     )
@@ -190,7 +178,7 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
         if (deployed.code.length > 0) return (deployed, true);
 
         // Deploy the proxy
-        bytes memory creationCode = abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_implementation, _initData));
+        bytes memory creationCode = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(_beacon, _initData));
         deployed = CREATE3.deployDeterministic(creationCode, _salt);
         return (deployed, false);
     }
@@ -215,17 +203,17 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
     }
 
     /// @inheritdoc IRoycoFactory
-    function grantMarketRole(
-        uint64[] calldata _roleIds,
-        address[] calldata _accounts,
-        uint32[] calldata _executionDelays
+    function configureMarketPeriphery(
+        address[] calldata _tranches,
+        IRoycoDayEntryPoint.TrancheConfig[] calldata _configs,
+        address _kernel
     )
         external
         override(IRoycoFactory)
         whenNotPaused
         onlyActiveTemplate
     {
-        IRoycoFactoryGatekeeper(ROYCO_FACTORY_GATEKEEPER).grantMarketRoles(_roleIds, _accounts, _executionDelays);
+        IRoycoFactoryGatekeeper(ROYCO_FACTORY_GATEKEEPER).configureMarketPeriphery(_tranches, _configs, _kernel);
     }
 
     /// @inheritdoc IRoycoFactory
@@ -260,14 +248,14 @@ contract RoycoFactory is AccessManagedUpgradeable, RoycoBase, IRoycoFactory {
         external
         view
         override(IRoycoFactory)
-        returns (address seniorTranche, address juniorTranche, address liquidityProviderTranche, address kernel)
+        returns (address seniorTranche, address juniorTranche, address liquidityProviderTranche, address kernel, address accountant)
     {
         kernel = _getRoycoFactoryStorage().trancheToKernel[_tranche];
         // Unknown tranche: every component resolves to zero
-        if (kernel == address(0)) return (address(0), address(0), address(0), address(0));
-        // The kernel's immutables are the single source of truth for the market's tranche set
+        if (kernel == address(0)) return (address(0), address(0), address(0), address(0), address(0));
+        // The kernel's immutables are the single source of truth for the market's contract set
         IRoycoDayKernel dayKernel = IRoycoDayKernel(kernel);
-        return (dayKernel.SENIOR_TRANCHE(), dayKernel.JUNIOR_TRANCHE(), dayKernel.LIQUIDITY_PROVIDER_TRANCHE(), kernel);
+        return (dayKernel.seniorTranche(), dayKernel.juniorTranche(), dayKernel.liquidityProviderTranche(), kernel, dayKernel.accountant());
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

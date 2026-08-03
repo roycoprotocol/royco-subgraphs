@@ -61,9 +61,7 @@ import {
  *
  * THE SYNC HANDLER NO LONGER LIVES HERE. v2 replaced the accountant's
  * TrancheAccountingSynced with the kernel's PreOp/PostOpTrancheAccountingSynced pair,
- * so it moved to src/royco-day-kernel.ts — where event.address IS the marketId, making
- * the ACCOUNTANT.getState().kernel hop every handler below still pays unnecessary for it.
- * Everything left in this file is a config or lifecycle event.
+ * so it moved to src/royco-day-kernel.ts, where event.address is the marketId.
  */
 
 // =============================================================================
@@ -153,11 +151,23 @@ export function handleFixedTermEnded(event: FixedTermEndedEvent): void {
 }
 
 /**
- * The configured term length changed — and, if it changed to ZERO, the market was
- * force-flipped to perpetual WITHOUT a FixedTermEnded. See closeOpenFixedTerm.
- *
- * Also fires from initialize(), before the market entity exists. The null guard in
- * resolveMarketFromAccountant is what makes that a no-op rather than a crash.
+ * Update the earliest timestamp at which a fixed term may commence. The factory seeds
+ * the initial value because the initialization event precedes market creation.
+ */
+export function handleFixedTermCommenceableAt(
+  event: FixedTermCommenceableAtEvent
+): void {
+  const market = resolveMarketFromAccountant(event);
+  if (!market) return;
+
+  market.fixedTermCommenceableAtTimestamp =
+    event.params.fixedTermCommenceableAtTimestamp;
+  touchMarket(event, market);
+}
+
+/**
+ * Update the configured term length. Setting it to zero closes any open term without a
+ * FixedTermEnded event.
  */
 export function handleFixedTermDurationUpdated(
   event: FixedTermDurationUpdatedEvent,
@@ -184,17 +194,6 @@ export function handleFixedTermDurationUpdated(
 
 export function handleFixedTermCommenceableAtTimestampUpdated(
   event: FixedTermCommenceableAtTimestampUpdatedEvent,
-): void {
-  const market = resolveMarketFromAccountant(event);
-  if (!market) return;
-
-  market.fixedTermCommenceableAtTimestamp =
-    event.params.fixedTermCommenceableAtTimestamp;
-  touchMarket(event, market);
-}
-
-export function handleFixedTermCommenceableAt(
-  event: FixedTermCommenceableAtEvent,
 ): void {
   const market = resolveMarketFromAccountant(event);
   if (!market) return;

@@ -14,6 +14,7 @@ import {
   ADDR_ASSET,
   ADDR_LPT_ASSET,
   ADDR_QUOTE_ASSET,
+  ADDR_ZERO,
   ADDR_BALANCER_VAULT,
   ADDR_BPT_ORACLE,
   ADDR_JUNIOR,
@@ -29,9 +30,6 @@ import {
   ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE,
   ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_COLLATERAL_ASSETS,
   ROYCO_DAY_KERNEL__CONVERT_VALUE_TO_LPT_ASSETS,
-  ROYCO_DAY_KERNEL__COLLATERAL_ASSET,
-  ROYCO_DAY_KERNEL__LPT_ASSET,
-  ROYCO_DAY_KERNEL__QUOTE_ASSET,
   ROYCO_SENIOR_TRANCHE__CONVERT_TO_ASSETS,
   ROYCO_SENIOR_TRANCHE__TRANCHE_TYPE,
 } from "../generated/abi-signatures";
@@ -205,46 +203,11 @@ export function mockAssetPriceNAV(
     .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
 }
 
-/**
- * Mock the Kernel's three asset-token views.
- *
- * All three are `immutable` on chain and have no event, so handleMarketDeploymentCompleted
- * is the only place they are ever read — but it reads them unconditionally, so leaving
- * any of the three unmocked aborts EVERY factory test with a "function not mocked" that
- * reads like a logic bug.
- *
- * Distinct sentinels per token are the point: collateral and LPT are separate ERC20s in
- * v2, and quote is a third that belongs to no tranche at all. Shared values would let a
- * transposition among the three pass.
- */
-export function mockKernelAssets(
-  kernel: Address,
-  collateralAsset: Address,
-  lptAsset: Address,
-  quoteAsset: Address
-): void {
-  createMockedFunction(kernel, "collateralAsset", ROYCO_DAY_KERNEL__COLLATERAL_ASSET)
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(collateralAsset)]);
-  createMockedFunction(kernel, "lptAsset", ROYCO_DAY_KERNEL__LPT_ASSET)
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(lptAsset)]);
-  createMockedFunction(kernel, "quoteAsset", ROYCO_DAY_KERNEL__QUOTE_ASSET)
-    .withArgs([])
-    .returns([ethereum.Value.fromAddress(quoteAsset)]);
-}
-
-/**
- * Make QUOTE_ASSET revert — a kernel variant with no liquidity venue.
- *
- * It is the ONE of the three read with try_, because it is `virtual` and bodyless on the
- * base kernel. This exists so the zero-address fallback is actually exercised rather than
- * merely asserted in a comment.
- */
-export function mockQuoteAssetReverts(kernel: Address): void {
-  createMockedFunction(kernel, "quoteAsset", ROYCO_DAY_KERNEL__QUOTE_ASSET)
-    .withArgs([])
-    .reverts();
+/** Return a fixture whose kernel has no liquidity venue. */
+export function withoutQuoteAsset(m: DayMarketFixture): DayMarketFixture {
+  m.quoteAsset = ADDR_ZERO;
+  m.kernelState.quoteAsset = ADDR_ZERO;
+  return m;
 }
 
 /**
@@ -345,6 +308,8 @@ export class DayMarketFixture {
     // them silently inverts every yield-share query in Neon.
     // Widths are load-bearing: uint32 timestamps, uint64 caps, uint192 accruals.
     m.accountantState.fixedTermEndTimestamp = BigInt.fromI32(1_700_100_001);
+    // Distinct sentinels catch swaps between the per-term end and market-wide floor.
+    m.accountantState.fixedTermCommenceableAtTimestamp = BigInt.fromI32(1_700_100_777);
     m.accountantState.lastYieldShareAccrualTimestamp = BigInt.fromI32(1_700_100_002);
     m.accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_100_003);
     m.accountantState.jtYieldShareProtocolFeeWAD = BigInt.fromI32(4_101);
@@ -544,7 +509,6 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.seniorShareRate
   );
 
-  mockKernelAssets(m.kernel, m.collateralAsset, m.lptAsset, m.quoteAsset);
 }
 
 /**

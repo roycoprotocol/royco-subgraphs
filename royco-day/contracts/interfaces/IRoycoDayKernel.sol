@@ -11,30 +11,15 @@ import { NAV_UNIT, TRANCHE_UNIT } from "../libraries/Units.sol";
  */
 interface IRoycoDayKernel {
     /**
-     * @notice Construction parameters for the Royco Kernel
-     * @custom:field seniorTranche - The address of the Royco senior tranche associated with this kernel
-     * @custom:field juniorTranche - The address of the Royco junior tranche associated with this kernel
-     * @custom:field collateralAsset - The address of the coinvested collateral asset both the senior and junior tranches deposit
-     * @custom:field accountant - The address of the accountant for the Royco market
-     * @custom:field liquidityProviderTranche - The address of the Royco liquidity provider tranche associated with this kernel
-     * @custom:field lptAsset - The base asset of the liquidity provider tranche (the liquidity venue's market-making position token)
-     * @custom:field quoteAsset - The quote asset paired against the senior share in the liquidity venue, validated against the venue's registration
-     * @custom:field enforceVaultSharesTransferWhitelist Whether to enforce the vault shares transfer whitelist
-     */
-    struct RoycoDayKernelConstructionParams {
-        address seniorTranche;
-        address juniorTranche;
-        address collateralAsset;
-        address accountant;
-        address liquidityProviderTranche;
-        address lptAsset;
-        address quoteAsset;
-        bool enforceVaultSharesTransferWhitelist;
-    }
-
-    /**
      * @notice Initialization parameters for the Royco Kernel
      * @custom:field initialAuthority - The access manager for this kernel
+     * @custom:field seniorTranche - The address of the Royco senior tranche associated with this kernel
+     * @custom:field juniorTranche - The address of the Royco junior tranche associated with this kernel
+     * @custom:field liquidityProviderTranche - The address of the Royco liquidity provider tranche associated with this kernel
+     * @custom:field collateralAsset - The address of the coinvested collateral asset both the senior and junior tranches deposit
+     * @custom:field lptAsset - The base asset of the liquidity provider tranche (the liquidity venue's market-making position token)
+     * @custom:field quoteAsset - The quote asset paired against the senior share in the liquidity venue, validated against the venue's registration
+     * @custom:field accountant - The address of the accountant for the Royco market
      * @custom:field protocolFeeRecipient - The market's protocol fee recipient
      * @custom:field stSelfLiquidationBonusWAD - The market's configured ST self-liquidation bonus remitted to redeeming ST LPs when liquidation coverageUtilization threshold has been breached, scaled to WAD precision
      * @custom:field roycoBlacklist - The market's blacklist contract consulted on tranche balance updates (the null address disables blacklist screening)
@@ -45,6 +30,13 @@ interface IRoycoDayKernel {
      */
     struct RoycoDayKernelInitParams {
         address initialAuthority;
+        address seniorTranche;
+        address juniorTranche;
+        address liquidityProviderTranche;
+        address collateralAsset;
+        address lptAsset;
+        address quoteAsset;
+        address accountant;
         address protocolFeeRecipient;
         uint64 stSelfLiquidationBonusWAD;
         address roycoBlacklist;
@@ -57,28 +49,58 @@ interface IRoycoDayKernel {
     /**
      * @notice Storage state for the Royco Day Kernel
      * @custom:storage-location erc7201:Royco.storage.RoycoDayKernelState
-     * @custom:field protocolFeeRecipient - The market's configured protocol fee recipient
+     * @custom:field seniorTranche - The address of the Royco senior tranche associated with the kernel
      * @custom:field stSelfLiquidationBonusWAD - The market's configured ST self-liquidation bonus remitted to redeeming ST LPs when liquidation coverageUtilization threshold has been breached, scaled to WAD precision
-     * @custom:field totalCollateralAssets - The coinvested collateral assets held for the senior and junior tranches, in the collateral asset's units
-     * @custom:field totalLPTAssets - The yield bearing assets held by the liquidity provider tranche, in LPT's asset units
-     * @custom:field lptOwnedSeniorTrancheShares - The senior tranche shares held by the liquidity provider tranche (accumulated liquidity premium payments)
+     * @custom:field juniorTranche - The address of the Royco junior tranche associated with the kernel
+     * @custom:field liquidityProviderTranche - The address of the Royco liquidity provider tranche associated with the kernel
+     * @custom:field collateralAsset - The address of the coinvested collateral asset both the senior and junior tranches deposit
+     * @custom:field lptAsset - The base asset of the liquidity provider tranche (the liquidity venue's market-making position token)
+     * @custom:field lptAssetDecimals - The LPT asset's decimals, from which one whole LPT asset (10 ** decimals) is derived
+     * @custom:field quoteAsset - The quote asset paired against the senior share in the liquidity venue
+     * @custom:field accountant - The address of the accountant for the Royco market
+     * @custom:field protocolFeeRecipient - The market's configured protocol fee recipient
      * @custom:field roycoBlacklist - The market's blacklist contract consulted on tranche balance updates (the null address disables blacklist screening)
      * @custom:field collateralAssetOracle - The collateral asset oracle pricing 1 whole collateral asset in NAV units, also the clock the kernel pokes on every price-cached operation
      * @custom:field stalenessThresholdSeconds - The maximum age in seconds an oracle price may have before it is considered stale
+     * @custom:field collateralAssetDecimals - The collateral asset's decimals, from which one whole collateral asset (10 ** decimals) is derived
      * @custom:field sequencerUptimeFeed - The L2 sequencer uptime feed used to gate price queries (the null address when not applicable)
      * @custom:field gracePeriodSeconds - The grace period in seconds after the L2 sequencer is back up before oracle prices are trusted again
+     * @custom:field totalCollateralAssets - The coinvested collateral assets held for the senior and junior tranches, in the collateral asset's units
+     * @custom:field totalLPTAssets - The yield bearing assets held by the liquidity provider tranche, in LPT's asset units
+     * @custom:field lptOwnedSeniorTrancheShares - The senior tranche shares held by the liquidity provider tranche (accumulated liquidity premium payments)
      */
     struct RoycoDayKernelState {
-        address protocolFeeRecipient;
+        // Slot 0
+        address seniorTranche;
         uint64 stSelfLiquidationBonusWAD;
+        // Slot 1
+        address juniorTranche;
+        // Slot 2
+        address liquidityProviderTranche;
+        // Slot 3
+        address collateralAsset;
+        uint64 oneWholeCollateralAsset;
+        // Slot 4
+        address lptAsset;
+        uint64 oneWholeLPTAsset;
+        // Slot 5
+        address quoteAsset;
+        // Slot 6
+        address accountant;
+        // Slot 7
+        address protocolFeeRecipient;
+        // Slot 8
+        address roycoBlacklist;
+        // Slot 9
+        address collateralAssetOracle;
+        uint48 stalenessThresholdSeconds;
+        // Slot 10
+        address sequencerUptimeFeed;
+        uint48 gracePeriodSeconds;
+        // Slot 11-13
         TRANCHE_UNIT totalCollateralAssets;
         TRANCHE_UNIT totalLPTAssets;
         uint256 lptOwnedSeniorTrancheShares;
-        address roycoBlacklist;
-        address collateralAssetOracle;
-        uint48 stalenessThresholdSeconds;
-        address sequencerUptimeFeed;
-        uint48 gracePeriodSeconds;
     }
 
     /**
@@ -174,9 +196,6 @@ interface IRoycoDayKernel {
     /// @notice Thrown when a venue driver restricted to kernel self-calls is invoked by any other caller
     error ONLY_SELF();
 
-    /// @notice Thrown when the to address is not whitelisted on the tranche
-    error ACCOUNT_NOT_WHITELISTED_TRANCHE_LP(address to);
-
     /// @notice Thrown when the senior tranche self-liquidation bonus is set above 100% (WAD)
     error INVALID_SELF_LIQUIDATION_BONUS();
 
@@ -207,37 +226,42 @@ interface IRoycoDayKernel {
     /// @notice Thrown when the market's liquidity requirement is violated
     error LIQUIDITY_REQUIREMENT_VIOLATED();
 
+    /// @notice Thrown when the collateral asset's decimals are greater than 18
+    error INVALID_COLLATERAL_ASSET_DECIMALS();
+
+    /// @notice Thrown when the LPT asset's decimals are greater than 18
+    error INVALID_LPT_ASSET_DECIMALS();
+
+    /// @notice Thrown when the caller is not the accountant
+    error ONLY_ACCOUNTANT();
+
     /// @notice Retrieves the senior tranche address
     /// @return seniorTranche The address of the senior tranche for this Royco market
-    function SENIOR_TRANCHE() external view returns (address seniorTranche);
+    function seniorTranche() external view returns (address seniorTranche);
 
     /// @notice Retrieves the junior tranche address
     /// @return juniorTranche The address of the junior tranche for this Royco market
-    function JUNIOR_TRANCHE() external view returns (address juniorTranche);
+    function juniorTranche() external view returns (address juniorTranche);
 
     /// @notice Retrieves the coinvested collateral asset address
     /// @return collateralAsset The address of the coinvested collateral asset both the senior and junior tranches deposit
-    function COLLATERAL_ASSET() external view returns (address collateralAsset);
+    function collateralAsset() external view returns (address collateralAsset);
 
     /// @notice Retrieves the liquidity provider tranche address
     /// @return liquidityProviderTranche The address of the liquidity provider tranche for this Royco market
-    function LIQUIDITY_PROVIDER_TRANCHE() external view returns (address liquidityProviderTranche);
+    function liquidityProviderTranche() external view returns (address liquidityProviderTranche);
 
     /// @notice Retrieves the liquidity provider tranche's base asset (the liquidity venue's market-making position token) address
     /// @return lptAsset The liquidity provider tranche's base asset address
-    function LPT_ASSET() external view returns (address lptAsset);
+    function lptAsset() external view returns (address lptAsset);
 
     /// @notice Retrieves the quote asset paired against the senior share in the liquidity venue
     /// @return quoteAsset The quote asset's address
-    function QUOTE_ASSET() external view returns (address quoteAsset);
+    function quoteAsset() external view returns (address quoteAsset);
 
     /// @notice Retrieves the accountant address
     /// @return accountant The accountant responsible for maintaining this Royco market's accounting state and marking tranche NAVs to market
-    function ACCOUNTANT() external view returns (address accountant);
-
-    /// @notice Whether the market enforces the vault-shares transfer whitelist on tranche balance updates
-    /// @return enforced True if transfer-whitelist screening is enforced for this market
-    function ENFORCE_TRANCHE_WHITELIST_ON_TRANSFER() external view returns (bool enforced);
+    function accountant() external view returns (address accountant);
 
     /**
      * @notice Converts the specified collateral assets denominated in tranche units to their value in the kernel's NAV units
@@ -321,6 +345,16 @@ interface IRoycoDayKernel {
     function syncTrancheAccounting() external returns (SyncedAccountingState memory state);
 
     /**
+     * @notice Synchronizes and persists the raw and effective NAVs of all tranches from the accountant
+     * @dev Only executes a pre-op sync because there is no operation being executed in the same call as this sync
+     * @dev Never deploys the idle liquidity-premium senior shares: the pool hook routes this sync from inside the venue's
+     *      own frame, where a deployment's venue add would re-enter it
+     * @dev Only callable by the accountant
+     * @return state The synced NAV, impermanent loss, and fee accounting containing all mark-to-market accounting data
+     */
+    function syncTrancheAccountingFromAccountant() external returns (SyncedAccountingState memory state);
+
+    /**
      * @notice Synchronizes and persists the raw and effective NAVs of all tranches, returning the specified tranche's post-sync claims and supply
      * @dev Only executes a pre-op sync because there is no operation being executed in the same call as this sync
      * @dev Syncs every tranche exactly as `syncTrancheAccounting` does, the tranche type only scopes the claims and supply returned alongside the state
@@ -336,8 +370,7 @@ interface IRoycoDayKernel {
 
     /**
      * @notice Syncs the tranche accounting and attempts to reinvest the liquidity provider tranche's idle liquidity-premium senior shares into its market-making inventory
-     * @dev The on-demand deployment path: a sync never deploys the pile, so idle premium leaves the kernel only through an
-     *      operation's post-op sync or this entrypoint
+     * @dev The on-demand deployment path: a sync never deploys the pile, so idle premium leaves the kernel only through an operation's reinvestment tail or this entrypoint
      * @dev Values the reinvested shares against the freshly synced senior share rate, so a smaller amount can clear the venue's slippage gate when reinvesting the entire idle balance would not
      * @param _stShares The amount of idle liquidity-premium senior shares to reinvest, or type(uint256).max to reinvest the entire idle balance
      */
@@ -366,7 +399,7 @@ interface IRoycoDayKernel {
      * @dev A preview never returns: the flow unwinds every mutation by reverting with SIMULATION_RESULT carrying the ABI encoded return values
      * @param _mode The dispatch mode: SIMULATE computes the operation and unwinds every mutation by reverting with its result, EXECUTE settles it
      * @param _assets The amount of assets to deposit, denominated in the calling tranche's tranche units
-     * @param _caller The address that initiated the deposit on the tranche, screened with the receiver against the market's blacklist
+     * @param _caller The address that initiated the deposit on the tranche, screened with the receiver against the market's blacklist, the null address for a simulation's synthetic caller
      * @param _receiver The address that receives the minted tranche shares
      * @return trancheSharesMinted The number of tranche shares minted to the receiver for the deposit
      */
@@ -382,7 +415,7 @@ interface IRoycoDayKernel {
      * @dev A preview never returns: the flow unwinds every mutation by reverting with SIMULATION_RESULT carrying the ABI encoded return values
      * @param _mode The dispatch mode: SIMULATE computes the operation and unwinds every mutation by reverting with its result, EXECUTE settles it
      * @param _shares The number of shares to redeem
-     * @param _caller The address that initiated the redemption on the tranche, screened with the owner and receiver against the market's blacklist
+     * @param _caller The address that initiated the redemption on the tranche, screened with the owner and receiver against the market's blacklist, the null address for a simulation's synthetic caller that also skips the share burn
      * @param _owner The address whose tranche shares are burned for the redemption, the null address for a simulation's synthetic owner
      * @param _receiver The address that is receiving the assets
      * @return userAssetClaims The distribution of assets that were transferred to the receiver on redemption
@@ -409,7 +442,7 @@ interface IRoycoDayKernel {
      * @param _collateralAssets The amount of collateral to deposit for the senior leg, denominated in tranche units
      * @param _quoteAssets The amount of quote asset to add as the second venue leg
      * @param _minLPTAssetsOut The minimum LPT tranche assets the liquidity add must mint (slippage bound against an unfavorable venue state)
-     * @param _caller The address that initiated the deposit on the tranche, screened with the receiver against the market's blacklist
+     * @param _caller The address that initiated the deposit on the tranche, screened with the receiver against the market's blacklist, the null address for a simulation's synthetic caller
      * @param _receiver The address that receives the minted tranche shares
      * @return trancheSharesMinted The number of tranche shares minted to the receiver for the deposit
      * @return lptAssetsOut The amount of LPT tranche assets minted and credited to the liquidity provider tranche
@@ -434,7 +467,7 @@ interface IRoycoDayKernel {
      * @param _lptShares The number of LPT shares being redeemed (used to size the proportional LPT-asset slice)
      * @param _minSTSharesOut The minimum senior tranche shares the proportional removal must return (slippage bound)
      * @param _minQuoteAssetsOut The minimum quote to return (slippage bound)
-     * @param _caller The address that initiated the redemption on the tranche, screened with the owner and receiver against the market's blacklist
+     * @param _caller The address that initiated the redemption on the tranche, screened with the owner and receiver against the market's blacklist, the null address for a simulation's synthetic caller that also skips the share burn
      * @param _owner The address whose LPT shares are burned for the redemption, the null address for a simulation's synthetic owner
      * @param _receiver The address that receives the collateral and quote
      * @return stClaims The ST redemption asset claims transferred to the receiver (its collateral asset leg)
@@ -519,8 +552,11 @@ interface IRoycoDayKernel {
      */
     function enforceNotBlacklisted(address _account) external view;
 
-    /// @notice Retrieves the kernel's immutables carrier
-    /// @return immutables The kernel-level addresses the kernel passes to its delegatecalled logic libraries
+    /**
+     * @notice Retrieves the market's wiring in one carrier for external consumers (the entry point and other periphery)
+     * @dev The kernel's delegatecalled logic libraries read the wiring from the kernel's state directly, so this carrier never enters the operation hot paths
+     * @return immutables The market's tranche set, assets, and accountant
+     */
     function getImmutableState() external view returns (RoycoDayKernelImmutableState memory immutables);
 
     /// @notice Retrieves the state of the Royco kernel
@@ -560,7 +596,7 @@ interface IRoycoDayKernel {
      * @param _quoteAssetsReceiver The recipient of the withdrawn quote assets, the withdrawn senior shares are returned to the kernel for the combined senior unwind
      * @return stShares The senior tranche shares withdrawn by the removal
      * @return quoteAssets The quote assets withdrawn by the removal
-     * @return lptAssetPrice The value of 1 whole LPT asset against the post-remove venue state, the mark a caller's preview caches for the operation
+     * @return lptAssetPrice The value of 1 whole LPT asset against the post-remove venue state, produced only for a preview to cache for the operation (zero when settling)
      */
     function removeLiquidity(
         DispatchMode _mode,
@@ -576,8 +612,7 @@ interface IRoycoDayKernel {
      * @notice Attempts to reinvest the liquidity provider tranche's idle liquidity-premium senior shares into its market-making inventory
      * @dev Tolerates reversions gracefully so it is non-blocking for the tranche operation that invokes it
      * @param _stSharesToReinvest The amount of idle liquidity-premium senior shares to reinvest, or type(uint256).max to reinvest the entire idle balance
-     * @param _stEffectiveNAV The synced senior tranche effective NAV used to value the liquidity provider tranche's idle premium senior shares
-     * @param _totalSTShares The senior tranche share supply after the liquidity premium and senior tranche protocol fee shares are minted, the denominator of the senior share rate
+     * @param _stShareRate The senior share rate the pile is valued at, the NAV backing one whole (WAD) senior share at the operation's settled state
      */
-    function attemptLiquidityPremiumReinvestment(uint256 _stSharesToReinvest, NAV_UNIT _stEffectiveNAV, uint256 _totalSTShares) external;
+    function attemptLiquidityPremiumReinvestment(uint256 _stSharesToReinvest, NAV_UNIT _stShareRate) external;
 }

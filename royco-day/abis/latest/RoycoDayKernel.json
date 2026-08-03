@@ -1592,6 +1592,101 @@
   },
   {
     "type": "function",
+    "name": "syncTrancheAccountingFromAccountant",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "state",
+        "type": "tuple",
+        "internalType": "struct SyncedAccountingState",
+        "components": [
+          {
+            "name": "marketState",
+            "type": "uint8",
+            "internalType": "enum MarketState"
+          },
+          {
+            "name": "collateralNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptRawNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtEffectiveNAV",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtImpermanentLoss",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptLiquidityPremium",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "jtProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "lptProtocolFee",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "coverageUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "liquidityUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "fixedTermEndTimestamp",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minCoverageWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minLiquidityWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "unpause",
     "inputs": [],
     "outputs": [],
@@ -2148,6 +2243,11 @@
   {
     "type": "error",
     "name": "NotInitializing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ONLY_ACCOUNTANT",
     "inputs": []
   },
   {

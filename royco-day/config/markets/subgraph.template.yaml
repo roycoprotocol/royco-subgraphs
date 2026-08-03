@@ -41,6 +41,8 @@ dataSources:
         # this same handler writes — no extra eth_calls (§ the note in schema.graphql).
         - DayMarketNav
         - DayMarketNavHistorical
+        # Factory-owned accountant -> market lookup.
+        - DayAccountantMarketMap
       abis:
         - name: RoycoFactory
           file: ./abis/RoycoFactory.json
@@ -253,6 +255,8 @@ templates:
       language: wasm/assemblyscript
       entities:
         - DayMarketState
+        # Read-only here; the factory writes this lookup.
+        - DayAccountantMarketMap
         # handleFixedTermCommenced creates these and handleFixedTermEnded /
         # handleFixedTermDurationUpdated(0) close them (§10.3).
         - DayFixedTermHistory
@@ -286,6 +290,7 @@ templates:
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
           receipt: true
+        # Latest event name; the factory seeds the initial value from getState().
         - event: FixedTermCommenceableAt(uint64)
           handler: handleFixedTermCommenceableAt
           receipt: true

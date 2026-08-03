@@ -48,8 +48,8 @@ import {
  *
  * Unlike the accountant, THE KERNEL ADDRESS IS THE MARKET ID (§6), so the lookup
  * is direct and costs no eth_call. Contrast
- * src/handlers/base/resolve-market.ts, which must hop accountant -> getState().kernel on
- * every accountant event. Do not import resolveMarketFromAccountant here.
+ * src/handlers/base/resolve-market.ts, which resolves accountant events through the
+ * factory-written DayAccountantMarketMap. Do not import it here.
  *
  * The null guard is still required. In practice it is unreachable — the factory
  * creates this template in the same handler that writes the market — but the
@@ -62,10 +62,8 @@ import {
  * reinvestment events are RECORD streams (DayLiquidityPremiumReinvested/Reinvestment
  * FailedHistory): they append an immutable row and bump the market's cursor, and own
  * NO shares/positions/supply — the Reinvested success only moves kernel-internal
- * accounting ($.ltOwned*, BalancerV3VenueLogic.sol:208-209), not an indexed Transfer,
- * and the Failed case mutates nothing at all (:195-198). The reinvest events fire
- * from a library inlined into the kernel, so event.address is the kernel (= marketId)
- * and resolution stays direct.
+ * accounting, not an indexed Transfer; a failed reinvestment mutates nothing. These
+ * events are emitted from kernel code, so event.address remains the marketId.
  */
 export function handleProtocolFeeRecipientUpdated(
   event: ProtocolFeeRecipientUpdatedEvent
@@ -379,8 +377,7 @@ function recordSync(
   syncType: string,
   op: i32
 ): void {
-  // THE KERNEL ADDRESS IS THE MARKET ID (§6) — no accountant getState() hop. In v1 this
-  // event lived on the accountant and paid an eth_call per sync just to find its market.
+  // Kernel event addresses are market ids; no accountant lookup is required.
   const market = DayMarketState.load(
     generateMarketId(event.address.toHexString())
   );

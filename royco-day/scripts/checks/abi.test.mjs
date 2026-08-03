@@ -23,14 +23,10 @@ const TRANCHES = [
   "RoycoLiquidityProviderTranche",
 ];
 
-/**
- * The views handleMarketDeploymentCompleted calls on all three tranches through
- * ONE binding class. See the note on createVault in src/royco-factory.ts.
- */
+/** Views called through the shared RoycoSeniorTranche binding. */
 const SHARED_VIEWS = [
   "asset",
   "decimals",
-  "totalSupply",
   "convertToAssets",
   "TRANCHE_TYPE",
 ];

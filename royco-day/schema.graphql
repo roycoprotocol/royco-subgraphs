@@ -141,8 +141,11 @@ type DayMarketState @entity(immutable: false) {
   #   The LIVE state is previewSyncTrancheAccountingFor().state.marketState. They
   #   disagree between syncs — this field is deliberately the stored one.
   fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds <- ABI: fixedTermDurationSeconds (uint24 -> i32! needs BigInt.fromI32)
-  fixedTermCommenceableAtTimestamp: BigInt! # Earliest timestamp at which this market may enter a fixed term
   fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp <- ABI: fixedTermEndTimestamp (uint32 -> BigInt, direct)
+  fixedTermCommenceableAtTimestamp: BigInt! # Fixed Term Commenceable At Timestamp <- ABI: fixedTermCommenceableAtTimestamp (uint64 -> BigInt, direct)
+  # ^ Earliest time a term may begin. Unlike fixedTermEndTimestamp, this is a market-wide
+  #   floor. The factory seeds it from getState(); both deployed and latest event names
+  #   remain wired for later updates.
   lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp <- ABI: lastYieldShareAccrualTimestamp
   lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp <- ABI: lastPremiumPaymentTimestamp
   timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD (uint128 -> BigInt, direct)
@@ -153,7 +156,7 @@ type DayMarketState @entity(immutable: false) {
   #
   # !! SOURCED FROM getState() ON EVERY SYNC, not from YieldSharesAccrued alone. The
   #    event carries the POST-increment values and the same call then deletes both
-  #    (RoycoDayAccountant.sol:163-168) emitting nothing — no accountant event signals the
+  #    (RoycoDayAccountant.sol:158-163) emitting nothing — no accountant event signals the
   #    reset — so an event-only column could ratchet up and never come back down. It would
   #    also contradict lastPremiumPaymentTimestamp, which the reset stamps in the same
   #    block. See refreshMarketStoredState. (DayYieldSharesAccruedHistory's copies stay
@@ -195,14 +198,10 @@ type DayMarketState @entity(immutable: false) {
   #   MaxReinvestmentSlippageUpdated.
   # ======
   # ======
-  # => the market's three ASSET TOKENS, from dedicated Kernel views
-  #    (NOT getState() members — three separate calls).
+  # => the market's three ASSET TOKENS, from Kernel.getState().
   #
-  # Read ONCE at market creation and never updated, because all three are
-  # `immutable` on chain: COLLATERAL_ASSET and LPT_ASSET are declared
-  # `public immutable` on RoycoDayKernel itself, and QUOTE_ASSET is `public immutable`
-  # on the liquidity venue that concretises it. No event exists for any of them
-  # because none can ever change.
+  # Read ONCE at market creation and never updated. The contract fixes all three when the
+  # kernel/venue is initialized and exposes them in the state packet already being read.
   #
   # !! THESE ARE NOT INDEPENDENT DATA — the kernel's constructor requires
   #    seniorTranche.asset() == COLLATERAL_ASSET && juniorTranche.asset() == COLLATERAL_ASSET
@@ -214,11 +213,11 @@ type DayMarketState @entity(immutable: false) {
   #    and a free cross-check: if they ever disagree in Neon, something is very wrong.
   #    quoteAssetTokenAddress is the exception: it exists on NO tranche, so this is its
   #    only home.
-  collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.collateralAsset()
+  collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.getState().collateralAsset
   collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>_<MARKET_ID>_collateralAsset
-  liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.lptAsset()
+  liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.getState().lptAsset
   liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>_<MARKET_ID>_lptAsset
-  quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.quoteAsset()
+  quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.getState().quoteAsset
   quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>_<MARKET_ID>_quoteAsset
   # ^ THESE THREE ARE MARKET-SCOPED AND ROLE-TAGGED, unlike every other *TokenId column
   #   in this schema. DayVaultState.assetTokenId / shareTokenId and the two frozen
@@ -235,14 +234,12 @@ type DayMarketState @entity(immutable: false) {
   quoteAssetTokenDecimals: Int! # Quote Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   balancerVaultAddress: String! # Balancer V3 Vault Address <- ABI: BalancerPoolToken(LPT_ASSET).getVault()
   quoteAssetPoolIndex: Int! # Which slot of the BPT's 2-token registration order the QUOTE asset occupies (0 or 1)
-  # ^ THE LIQUIDITY TRANCHE'S DEPOSIT ASSET IS THE BPT, and that pool is a pair of
-  #   (senior tranche share token, quote asset) — the venue constructor enforces exactly
-  #   two tokens and requires one of them to be SENIOR_TRANCHE, taking QUOTE_ASSET as the
-  #   other. So the quote leg is derivable from the pool alone, which is how
-  #   quoteAssetPriceNAV is priced without any new kernel view.
+  # ^ The BPT pairs the senior share token with the quote asset. Current contracts pin
+  #   the quote asset to slot 1, but the subgraph still resolves it by address so the
+  #   stored index remains valid if venue ordering changes.
   #
-  #   BOTH ARE IMMUTABLE ON CHAIN — the vault is `immutable` on the venue and the index is
-  #   resolved once in its constructor — so they are read ONCE at market creation and
+  #   BOTH ARE IMMUTABLE ON CHAIN — the vault is `immutable` on the venue and the ordering
+  #   is fixed at pool registration — so they are read ONCE at market creation and
   #   cached here. That is the whole point of storing them: the sync path then needs a
   #   single getPoolTokenRates call instead of re-deriving the vault and the ordering on
   #   every sync, on the hottest path in the subgraph.
@@ -256,9 +253,8 @@ type DayMarketState @entity(immutable: false) {
   #   amounts on DayMultiAssetDepositActivity and DayMultiAssetRedeemActivity are raw
   #   integers with no scale attached and cannot be rendered or compared.
   #
-  #   Read with try_ and defaulting to 0, for the same reason as the address above: on a
-  #   venue-less market QUOTE_ASSET reverts, quoteAssetTokenAddress falls back to the zero
-  #   address, and ERC20(0x0).decimals() would revert too. 0 paired with a zero address is
+  #   Read with try_ and defaulting to 0. On a venue-less market getState().quoteAsset is
+  #   the zero address, and ERC20(0x0).decimals() would revert. 0 paired with a zero address is
   #   the truthful "no quote asset" answer — it is NOT a real 0-decimals token, and the
   #   address is what disambiguates.
   # ^ The venue's non-senior constituent — the token paid in on a multi-asset LP
@@ -266,14 +262,8 @@ type DayMarketState @entity(immutable: false) {
   #   `quoteAssets` column is denominated in it). It has no tranche and no DayVaultState,
   #   so without this field the amounts in those two tables have no token attached.
   #
-  #   ONLY THIS ONE IS READ WITH try_. COLLATERAL_ASSET and LPT_ASSET are concrete
-  #   `immutable`s on the base kernel, so raw is correct (§5). QUOTE_ASSET is declared
-  #   `virtual` and BODYLESS there and only implemented by the liquidity venue — a kernel
-  #   variant without a venue need not implement it at all. A raw call that reverted would
-  #   kill handleMarketDeploymentCompleted, and that is the worst possible place to fail:
-  #   the market, all three vaults and every downstream row would silently never exist.
-  #   On revert this falls back to the zero address, which is the truthful "no quote
-  #   asset" answer for a venue-less market.
+  #   The asset addresses themselves require no extra calls: all three come from the
+  #   already-decoded Kernel state. A venue-less market reports the zero quote address.
   # ======
   # ======
   # => data from "RoycoDayKernel.previewSyncTrancheAccountingFor(_trancheType)"
@@ -332,9 +322,8 @@ type DayMarketState @entity(immutable: false) {
   # Seed all five to BigInt.zero() in the MarketDeploymentCompleted handler's
   # `if (!entity)` branch — a non-null field left unset is fatal at index time (§8).
   countFixedTermEntries: BigInt! # Count of Fixed Term Entries -> DayFixedTermHistory
-  # ^ Advances on FixedTermCommenced, and ALSO on a coverage loss erased while the
-  #   market runs a zero fixedTermDurationSeconds — that opens a zero-length term of
-  #   its own (see openLossOnlyTerm). DayFixedTermHistory is the one MUTABLE record
+  # ^ Advances on FixedTermCommenced and on loss-only rows created while
+  #   fixedTermDurationSeconds is zero. DayFixedTermHistory is the one MUTABLE record
   #   stream: the close-out writes patch the row at (count - 1) and must NOT
   #   increment this.
   countYieldSharesAccruedEntries: BigInt! # Count of Yield Shares Accrued Entries -> DayYieldSharesAccruedHistory
@@ -379,6 +368,13 @@ type DayMarketState @entity(immutable: false) {
   updatedAtTransactionHash: String! # Updated At Transaction Hash
   updatedAtBlockNumber: BigInt! # Updated At Block Number
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
+}
+
+# Immutable accountant -> market lookup written by the factory. Accountant events emitted
+# before MarketDeploymentCompleted have no row yet and are intentionally skipped.
+type DayAccountantMarketMap @entity(immutable: true) {
+  id: String! # <CHAIN_ID>_<ACCOUNTANT_ADDRESS>
+  marketRefId: String! # DayMarketState.id: <CHAIN_ID>_<MARKET_ID>
 }
 
 # =============================================================================
@@ -884,7 +880,8 @@ type DayVaultStateHistorical @entity(immutable: false) {
 #    derive an entry index from block number or timestamp (§8).
 #
 # !! Events (1) and (2) are on RoycoDayAccountant, whose address is NOT the
-#    marketId (§6). Resolve accountant -> kernel via ACCOUNTANT.getState().kernel first.
+#    marketId (§6). Resolve accountant -> market via DayAccountantMarketMap first
+#    (resolveMarketFromAccountant), at zero eth_calls.
 #
 # !! CLOSING A TERM IS A UNION OF TWO EVENTS, NOT ONE. setFixedTermDuration(0)
 #    force-writes lastMarketState = PERPETUAL and deletes fixedTermEndTimestamp,
@@ -981,7 +978,8 @@ type DayFixedTermHistory @entity(immutable: false) {
 # genuinely one atomic event and get one row — no more rows that can never occur
 # independently, and no more chance of the two cursors drifting apart.
 #
-# The accountant address is NOT the marketId — resolve via ACCOUNTANT.getState().kernel (§6).
+# The accountant address is NOT the marketId — resolve via DayAccountantMarketMap (§6).
+# The map replaces a repeated getState().kernel call at zero eth_calls.
 #
 # ONE ROW PER EVENT — this stream does NOT collapse. Every accrual keeps its own
 # immutable row, cursored by DayMarketState.countYieldSharesAccruedEntries.
@@ -1043,8 +1041,8 @@ type DayYieldSharesAccruedHistory @entity(immutable: true) {
 #    `blockNumber`; there is no entryIndex on this table.
 #
 # !! ON THE KERNEL, NOT THE ACCOUNTANT. The kernel address IS the marketId (§6), so both
-#    handlers resolve the market directly — no accountant getState() eth_call per sync,
-#    which v1 paid on the hottest path in the subgraph.
+#    handlers resolve the market directly — no accountant -> market hop at all, which is
+#    what v1 paid an eth_call for on the hottest path in the subgraph.
 #
 # !! THE PLACEHOLDER-ZERO PROBLEM IS GONE. In v1 the single sync event carried
 #    `lptRawNAV: ZERO_NAV_UNITS` and `liquidityUtilizationWAD: 0` as placeholders, so
@@ -1125,8 +1123,8 @@ type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
 # <- ABI: RoycoSeniorTranche.LiquidityPremiumSharesMinted(indexed address holder, uint256 mintedLiquidityPremiumShares, uint256 totalTrancheShares)
 #
 # !! event.address is the SENIOR TRANCHE, not the kernel. Resolve marketId via
-#    SeniorTranche.kernel(), or cheaper: load this tranche's own DayVaultState and
-#    read its marketId, avoiding an eth_call per event.
+#    loading this tranche's own DayVaultState and reading its marketId — no eth_call per
+#    event.
 #    The market-keyed id is SAFE: exactly one senior tranche per market.
 type DayLiquidityPremiumSharesMintedHistory @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<MARKET_ID>_<ENTRY_INDEX>

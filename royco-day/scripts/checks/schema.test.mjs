@@ -34,12 +34,13 @@ test("toSnakeCase leaves digits attached to their word", () => {
   assert.equal(toSnakeCase("Erc20Token"), "erc20_token");
 });
 
-test("schema declares the 19 expected entities", () => {
+test("schema declares the 20 expected entities", () => {
   const entities = readEntities(SCHEMA);
   assert.deepEqual(entities, [
     "GlobalTokenTransfer",
     "GlobalTokenActivity",
     "DayMarketState",
+    "DayAccountantMarketMap",
     "DayMarketNav",
     "DayMarketNavHistorical",
     "DayVaultState",
@@ -71,28 +72,41 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  // 8. Two groups, and the split is SNAPSHOT vs RECORD:
+  // Nine immutable entities: four per-log rows, four cursor-keyed record streams,
+  // and one factory-owned lookup row.
   //
   //   - The four per-log activity/transfer rows, whose ids carry a <LOG_INDEX> and
   //     genuinely can never repeat.
   //   - The four immutable record streams — the three liquidity-premium ones plus
   //     DayYieldSharesAccruedHistory — whose ids carry an <ENTRY_INDEX> from a
   //     use-then-increment cursor, so every event gets a fresh id.
-  //
   // The *Historical SNAPSHOT tables are deliberately NOT here: they collapse to one row
   // per block, so a later write in the block updates the earlier rather than appending,
   // and their block-keyed ids are exactly the collision this check exists to prevent.
   // See "BLOCK-KEYED HISTORY" in schema.graphql. DayFixedTermHistory is entryIndex-keyed
   // but also correctly absent — it is mutable because the term close patches a row
   // opened in an earlier block.
-  assert.equal(blocks.length, 8, "expected 8 immutable entities");
+  assert.equal(blocks.length, 9, "expected 9 immutable entities");
+
+  // The factory writes this immutable accountant-keyed lookup once per market.
+  const SINGLE_WRITE_BY_CONSTRUCTION = new Set(["DayAccountantMarketMap"]);
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {
+    if (SINGLE_WRITE_BY_CONSTRUCTION.has(name)) continue;
     assert.ok(
       discriminators.some((d) => idComment.includes(d)),
       `${name}: immutable id "${idComment.trim()}" has no per-write discriminator ` +
         `(need one of ${discriminators.join(" / ")}). A second snapshot will collide.`,
+    );
+  }
+
+  const declared = new Set(blocks.map(([, name]) => name));
+  for (const name of SINGLE_WRITE_BY_CONSTRUCTION) {
+    assert.ok(
+      declared.has(name),
+      `${name} is exempted from the discriminator check but is no longer an ` +
+        `immutable entity. Drop the exemption.`,
     );
   }
 });

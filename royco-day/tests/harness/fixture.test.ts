@@ -89,6 +89,12 @@ describe("DayMarketFixture.standard()", () => {
     assert.i32Equals(senior.decimals(), DECIMALS_18);
     assert.addressEquals(senior.kernel(), ADDR_KERNEL);
     assert.bigIntEquals(senior.totalSupply(), m.sharesTotalSupply);
+    // Accountant events resolve through the factory-written map; getState().kernel is
+    // still asserted here because it is the immutable source of that pairing.
+    assert.addressEquals(
+      RoycoDayAccountant.bind(m.accountant).getState().kernel,
+      ADDR_KERNEL
+    );
   });
 
   test("mutating one field leaves the rest coherent", () => {

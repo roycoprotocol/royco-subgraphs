@@ -407,6 +407,39 @@ describe("accountant config handlers", () => {
     assert.entityCount("DayMarketState", 0);
   });
 
+  test("FixedTermCommenceableAt moves the commencement floor", () => {
+    // The factory seeds this floor; the handler supports subsequent event updates.
+    deployMarket();
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700100777"
+    );
+
+    handleFixedTermCommenceableAt(
+      createUintEvent<FixedTermCommenceableAt>(
+        "fixedTermCommenceableAtTimestamp",
+        BigInt.fromI32(1_700_200_999),
+        accountantCtx()
+      )
+    );
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700200999"
+    );
+    // The per-term scheduled end is independent.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermEndTimestamp",
+      "1700100001"
+    );
+  });
+
   test("a config write never re-stamps createdAt", () => {
     // Re-stamping builds fine, indexes fine, and quietly destroys every cohort
     // query in Neon (§8).
@@ -1862,10 +1895,6 @@ describe("the kernel sync handlers", () => {
   });
 
   test("a Reset before any term ever started still counts toward the total", () => {
-    // The two writes part ways here. A market can erase coverage loss having never
-    // run a fixed term at all (duration permanently 0, or JT wiped out), so there
-    // is no row to patch — but the loss was still real and belongs in the lifetime
-    // total. Writing only the row would silently lose it.
     deployMarket();
 
     handleJuniorTrancheImpermanentLossReset(

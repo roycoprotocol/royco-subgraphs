@@ -26,7 +26,7 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.5" # Note: bump when redeploying a changed schema/mapping
+version="1.0.0" # Clean re-index of the current Day staging deployment
 
 prepare_and_deploy() {
     local network=$1

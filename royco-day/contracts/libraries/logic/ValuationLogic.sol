@@ -18,7 +18,7 @@ library ValuationLogic {
 
     /**
      * @notice Returns the mark-to-market value of the coinvested collateral backing the senior and junior tranches, denominated in the NAV units (USD, BTC, etc.) for this kernel
-     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param $ The storage state of the Royco Kernel that is delegatecalling into this function
      * @return collateralNAV The pure value of the held collateral assets
      */
     function _getCollateralNAV(IRoycoDayKernel.RoycoDayKernelState storage $) internal view returns (NAV_UNIT collateralNAV) {
@@ -31,7 +31,7 @@ library ValuationLogic {
 
     /**
      * @notice Returns the raw net asset value of the liquidity provider tranche denominated in the NAV units (USD, BTC, etc.) for this kernel
-     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param $ The storage state of the Royco Kernel that is delegatecalling into this function
      * @return lptRawNAV The pure net asset value of the liquidity provider tranche invested assets
      */
     function _getLiquidityProviderTrancheRawNAV(IRoycoDayKernel.RoycoDayKernelState storage $) internal view returns (NAV_UNIT lptRawNAV) {
@@ -50,7 +50,7 @@ library ValuationLogic {
      *      The preview path uses the overload below to inject the post-mint count that storage does not yet reflect
      * @dev The senior NAV and share supply must be mutually consistent: the post-sync effective NAV against the
      *      post-carve-out-mint total supply, so the held senior shares are valued at the correct NAV per share
-     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param $ The storage state of the Royco Kernel that is delegatecalling into this function
      * @param _stEffectiveNAV The senior tranche's post-sync effective NAV: the total NAV backing all senior shares after reconciling unrealized PnL
      * @param _totalSeniorTrancheShares The total senior tranche shares outstanding after minting the premium and protocol fee shares
      * @return lptEffectiveNAV The effective net asset value of the liquidity provider tranche
@@ -72,7 +72,7 @@ library ValuationLogic {
      * @notice Returns the effective net asset value of the liquidity provider tranche for an explicitly supplied held senior-share count
      * @dev The preview path supplies the post-mint held-share count (current storage plus this sync's premium shares) before the
      *      premium mint commits it to storage, so the previewed LPT effective NAV matches the value execution computes from storage
-     * @param $ The mutable storage state of the Royco Kernel that is delegatecalling into this function
+     * @param $ The storage state of the Royco Kernel that is delegatecalling into this function
      * @param _stEffectiveNAV The senior tranche's post-sync effective NAV: the total NAV backing all senior shares after reconciling unrealized PnL
      * @param _totalSeniorTrancheShares The total senior tranche shares outstanding after minting the premium and protocol fee shares
      * @param _lptOwnedSeniorTrancheShares The senior tranche shares held by the liquidity provider tranche from accumulated liquidity premium payments
@@ -102,10 +102,9 @@ library ValuationLogic {
      * @notice Returns the number of shares that have a claim on the specified value, clamped by the protocol's max mint dilution
      * @dev The mint-sizing share conversion, shared by the tranches and the kernel-side mint sizing so both resolve identical share counts
      * @dev See _convertToSharesUnclamped for the clamp-free variant, used only as a valuation reference and never to size a real mint
-     * @dev The mint-dilution clamp: a single mint may own at most MAX_MINT_DILUTION_WAD / WAD of the post-mint effective supply, so the
-     *      minted shares never exceed supply · MAX_MINT_DILUTION_WAD / (WAD − MAX_MINT_DILUTION_WAD), the ownership bound restated as a max supply-growth ratio
-     * @dev The clamp arms only when the effective share price sits below (WAD − MAX_MINT_DILUTION_WAD) / MAX_MINT_DILUTION_WAD, the collapsed-price
-     *      regime a supply-inflation attack needs, so a mint into a healthily priced tranche always prices fairly
+     * @dev The mint-dilution clamp caps the share of the post-mint supply a single mint can own, bounding the share count any one mint can create
+     * @dev The clamp arms only in the collapsed-price regime where fair pricing itself mints runaway share counts, the state a
+     *      supply-inflation attack needs, so a mint into a healthily priced tranche always prices fairly
      * @dev With no shares outstanding the conversion stays 1:1 (a bootstrap mint dilutes nobody, so the clamp is exempt)
      * @param _value The value to convert in NAV units
      * @param _totalValue The total tranche controlled value in NAV units
@@ -115,14 +114,12 @@ library ValuationLogic {
      */
     function _convertToShares(NAV_UNIT _value, NAV_UNIT _totalValue, uint256 _totalSupply, Math.Rounding _rounding) internal pure returns (uint256 shares) {
         // The effective supply is the total supply plus the virtual shares
-        uint256 effectiveSupply = _totalSupply + VIRTUAL_SHARES;
-        NAV_UNIT denominator = _totalValue + VIRTUAL_VALUE;
-        // Arm the clamp only in the collapsed-price regime:
-        // price < (WAD − MAX_MINT_DILUTION_WAD) / MAX_MINT_DILUTION_WAD ⟺ ⌈supply · (WAD − MAX_MINT_DILUTION_WAD) / MAX_MINT_DILUTION_WAD⌉ > denominator
-        // The ceil keeps the strict integer comparison exact against the fractional threshold
+        uint256 effectiveSupply = (_totalSupply + VIRTUAL_SHARES);
+        NAV_UNIT denominator = (_totalValue + VIRTUAL_VALUE);
+        // Arm the clamp only in the collapsed-price regime where fair pricing itself mints massive share counts
         uint256 clampedShares = type(uint256).max;
         if (effectiveSupply.mulDiv((WAD - MAX_MINT_DILUTION_WAD), MAX_MINT_DILUTION_WAD, Math.Rounding.Ceil) > toUint256(denominator)) {
-            // Cap the mint at owning MAX_MINT_DILUTION_WAD of the post-mint effective supply
+            // Cap the mint at the max share of the post-mint effective supply a single mint may own
             clampedShares = effectiveSupply.mulDiv(MAX_MINT_DILUTION_WAD, (WAD - MAX_MINT_DILUTION_WAD), _rounding);
         }
         // Below the cap the mint takes the fair, unclamped virtual-shares price

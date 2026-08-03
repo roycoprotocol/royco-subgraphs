@@ -127,6 +127,13 @@ export const generateMarketBlockRecordId = (
   return generateMarketId(marketId).concat("_").concat(blockNumber.toString());
 };
 
+/** DayAccountantMarketMap.id = <CHAIN_ID>_<ACCOUNTANT_ADDRESS>. */
+export const generateAccountantMarketMapId = (
+  accountantAddress: string
+): string => {
+  return CHAIN_ID.toString().concat("_").concat(accountantAddress);
+};
+
 // === TOKENS / VAULTS ===
 
 

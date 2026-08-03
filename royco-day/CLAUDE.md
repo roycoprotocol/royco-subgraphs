@@ -169,7 +169,8 @@ try/catch. `try_foo()` returns `{ value, reverted }` and never throws.
   A 3-tranche market with coverage/liquidity invariants *will* revert in edge
   states (paused, fixed-term ended, coverage liquidation). Assume it does.
 - **Raw is fine** for immutable metadata read once at deployment: `asset()`,
-  `decimals()`, `symbol()`, `kernel()`, `TRANCHE_TYPE()`.
+  `decimals()`, `symbol()`, `kernel()`, `TRANCHE_TYPE()`. Accountant handlers do
+  not call a kernel getter; they resolve through `DayAccountantMarketMap`.
 
 ```ts
 const res = tranche.try_convertToAssets(oneShare);
@@ -223,8 +224,11 @@ deployer, DeploymentResult result)` deploys one market. `result` is an 8-tuple:
   silently never indexed — no error, just missing rows.
 
 The **accountant address is not the marketId**, so accountant handlers must
-resolve accountant → market (via `ACCOUNTANT.getState().kernel`, or a map entity like
-royco-rwa's `AccountantMarketMap`). Kernel handlers can look up directly.
+resolve accountant → market through **`DayAccountantMarketMap`**, written once by the
+factory. The pairing is immutable, so handlers use two store reads instead of an
+`Accountant.getState().kernel` call per event.
+
+Kernel handlers need no hop at all: there, `event.address` IS the marketId.
 
 ### `Claims` — the quintuple
 
@@ -358,6 +362,7 @@ Every id has a generator in `src/utils/global.ts`. **Never inline an id.**
 | `GlobalTokenTransfer` | `<CHAIN>_<TX>_<LOG_IDX>_<TOKEN_IDX>` | ✅ |
 | `GlobalTokenActivity` | `<CHAIN>_<TX>_<LOG_IDX>_<VAULT>_<CAT>_<SUBCAT>_<TOKEN_IDX>` | ✅ |
 | `DayMarketState` | `<CHAIN>_<KERNEL>` | ❌ |
+| `DayAccountantMarketMap` | `<CHAIN>_<ACCOUNTANT>` | ✅ |
 | `DayMarketNav` | `<CHAIN>_<KERNEL>` | ❌ |
 | `DayMarketNavHistorical` | `<CHAIN>_<KERNEL>_<BLOCK>` | ❌ |
 | `DayVaultState` | `<CHAIN>_<VAULT>` | ❌ |
@@ -379,6 +384,9 @@ nothing**; that's why the test harness exists.
 
 - Addresses in ids are lowercase-hex-with-0x, from `.toHexString()`. A
   checksummed address won't match on `load()` and silently creates a duplicate.
+- **`DayAccountantMarketMap` is the only immutable entity without an
+  `<ENTRY_INDEX>`/`<LOG_INDEX>`.** Its accountant-keyed row is written once by the
+  factory; `scripts/checks/schema.test.mjs` exempts it by name.
 - Mutable: `load()` → if null `new` + seed **every** non-null field → mutate →
   `save()`.
 - `DayMarketNav.id` is byte-identical to `DayMarketState.id` — one live NAV row per

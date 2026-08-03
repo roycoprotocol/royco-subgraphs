@@ -10,7 +10,7 @@
 # A hand-edit here is reverted by the next generate and caught by
 # `npm run check:drift`.
 #
-# Entities wired: 19
+# Entities wired: 19 (excluded: DayAccountantMarketMap)
 # =============================================================================
 apiVersion: 3
 name: {{pipelineName}}

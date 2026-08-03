@@ -26,7 +26,8 @@ import {
 /**
  * RoycoDayKernel.getState() — a single 19-field tuple.
  *
- * The binding decodes the whole tuple, including the blacklist address.
+ * Keep fields in generated ABI tuple order: toTuple() encodes them positionally. Fields
+ * not indexed by the schema are still required because the binding decodes the full tuple.
  */
 export class KernelState {
   seniorTranche: Address = ADDR_SENIOR; // 0

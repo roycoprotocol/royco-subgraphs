@@ -18,12 +18,8 @@ export class QuotePoolBinding {
 /**
  * Resolve the BPT's vault and which of its two slots holds the QUOTE asset.
  *
- * THE LIQUIDITY TRANCHE'S DEPOSIT ASSET *IS* THE BPT, and that pool is a pair of
- * (senior tranche share token, quote asset). The venue constructor enforces exactly
- * that — `POOL_MUST_HAVE_TWO_TOKENS`, then `INVALID_POOL_TOKEN_CONFIGURATION` unless one
- * of the two is SENIOR_TRANCHE — and takes QUOTE_ASSET as whichever is left. This
- * function reproduces that derivation, so it inherits those guarantees rather than
- * assuming them.
+ * Current venues pin the quote asset to slot 1. Matching by address keeps the resolver
+ * compatible if that ordering changes.
  *
  * In Balancer V3 the pool contract IS the BPT, so `lptAsset` is both the token the
  * liquidity tranche takes deposits in and the `pool` argument the vault expects. The
@@ -50,10 +46,7 @@ export function resolveQuotePoolBinding(
 ): QuotePoolBinding {
   const binding = new QuotePoolBinding();
 
-  // NO QUOTE ASSET, NO POOL TO ASK. Kernel.QUOTE_ASSET() already reverted for a
-  // venue-less kernel and the caller passed the zero-address fallback, so there is
-  // nothing to resolve — and returning here spends ZERO eth_calls on that market
-  // instead of two that could only fail or, worse, succeed against an unrelated pool.
+  // A zero quote address denotes a market without a liquidity venue.
   if (quoteAssetAddress == ZERO_ADDRESS) {
     return binding;
   }

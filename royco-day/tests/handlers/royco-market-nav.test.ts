@@ -25,7 +25,7 @@ import {
   mockBalancerPool,
   mockBalancerPoolAbsent,
   mockValueToAssetsReverts,
-  mockQuoteAssetReverts,
+  withoutQuoteAsset,
 } from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
@@ -613,10 +613,8 @@ describe("quoteAssetPriceNAV", () => {
     );
   });
 
-  test("the quote slot is derived, so the OPPOSITE registration order still works", () => {
-    // Registration order is the pool deployer's choice. The venue branches on which slot
-    // holds SENIOR_TRANCHE and so must this — a hardcoded index would read the senior
-    // share's rate as the quote price here.
+  test("the quote slot is matched, so the OPPOSITE registration order still works", () => {
+    // Defensive compatibility: match the quote asset instead of hardcoding slot 1.
     const market = DayMarketFixture.standard();
     market.quoteAssetPoolIndex = 0;
     mockDayMarket(market);
@@ -762,9 +760,8 @@ describe("quoteAssetPriceNAV", () => {
     // quote price would be undetectable downstream, because the documented "read
     // balancerVaultAddress and quoteAssetPoolIndex together" contract would also say the
     // market has a venue.
-    const market = DayMarketFixture.standard();
+    const market = withoutQuoteAsset(DayMarketFixture.standard());
     mockDayMarket(market);
-    mockQuoteAssetReverts(ADDR_KERNEL);
     mockBalancerPool(
       ADDR_LPT_ASSET,
       ADDR_BALANCER_VAULT,

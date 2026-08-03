@@ -12,6 +12,6 @@ set -uo pipefail
 pipeline_name="${1:-royco-day-markets-pipeline}"
 
 echo "Deleting ${pipeline_name}..."
-goldsky pipeline delete "${pipeline_name}"
+goldsky pipeline delete "${pipeline_name}" --force || exit 1
 
 echo "Script completed!"

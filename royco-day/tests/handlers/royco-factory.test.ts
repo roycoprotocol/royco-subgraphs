@@ -14,7 +14,7 @@ import {
 import {
   DayMarketFixture,
   mockDayMarket,
-  mockQuoteAssetReverts,
+  withoutQuoteAsset,
 } from "../mocks";
 import { ctx } from "../helpers/event";
 import {
@@ -47,6 +47,7 @@ import {
   MARKET_TOKEN_ROLE_QUOTE_ASSET,
 } from "../../src/constants";
 import {
+  generateAccountantMarketMapId,
   generateMarketId,
   generateMarketNavId,
   generateMarketTokenId,
@@ -123,6 +124,15 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.dataSourceExists("RoycoLiquidityProviderTranche", ADDR_LIQUIDITY.toHexString());
     assert.dataSourceExists("RoycoDayAccountant", ADDR_ACCOUNTANT.toHexString());
     assert.dataSourceExists("RoycoDayKernel", ADDR_KERNEL.toHexString());
+  });
+
+  test("writes the accountant -> market map row", () => {
+    deployStandard();
+
+    assert.entityCount("DayAccountantMarketMap", 1);
+
+    const mapId = generateAccountantMarketMapId(ADDR_ACCOUNTANT.toHexString());
+    assert.fieldEquals("DayAccountantMarketMap", mapId, "marketRefId", MARKET_ID);
   });
 
   test("writes one DayMarketState keyed by the kernel address", () => {
@@ -240,6 +250,13 @@ describe("handleMarketDeploymentCompleted", () => {
       "minCoverageWAD",
       WAD.div(BigInt.fromI32(2)).toString()
     );
+    // Seeded from getState() because the initialization event precedes this handler.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "fixedTermCommenceableAtTimestamp",
+      "1700100777"
+    );
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
@@ -254,12 +271,6 @@ describe("handleMarketDeploymentCompleted", () => {
       MARKET_ID,
       "fixedTermDurationSeconds",
       (30 * 24 * 60 * 60).toString()
-    );
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "fixedTermCommenceableAtTimestamp",
-      "1700000000"
     );
   });
 
@@ -590,14 +601,10 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("a market is born with zero supply, and the vault has no claims at all", () => {
-    // Supply IS zero at deployment — no _mint is reachable from
-    // deployMarket/initialize — and DayVaultState no longer carries either
-    // AssetClaims quintuple, so the factory calls convertToAssets ZERO times per
-    // vault. mockDayMarket deliberately does not mock it at 0: if this handler ever
-    // starts calling it again, these tests abort as unmocked rather than passing
-    // quietly. The market-wide price vector is asserted on DayMarketNav instead —
-    // see tests/handlers/royco-market-nav.test.ts.
+  test("the factory pass initializes the transfer accumulator at zero", () => {
+    // Graph Node replays this creation block for the newly spawned tranche templates,
+    // so deployment-time seed mints are applied by their Transfer handlers afterward.
+    // Starting from an end-of-block totalSupply() here would double-count those mints.
     deployStandard();
 
     assert.fieldEquals("DayVaultState", SENIOR_ID, "sharesTotalSupply", "0");
@@ -610,8 +617,7 @@ describe("handleMarketDeploymentCompleted", () => {
   });
 
   test("the three Kernel asset tokens land, each on its own pair of columns", () => {
-    // Three separate Kernel views, not getState() members. Six columns, and the ids
-    // must be chain-scoped rather than bare addresses.
+    // Asset addresses come from Kernel.getState(); ids remain market-scoped.
     deployStandard();
 
     assert.fieldEquals(
@@ -715,15 +721,10 @@ describe("handleMarketDeploymentCompleted", () => {
     );
   });
 
-  test("a reverting QUOTE_ASSET falls back to the zero address, not a dead handler", () => {
-    // QUOTE_ASSET is the ONE of the three read with try_: it is `virtual` and BODYLESS
-    // on the base kernel, concretised only by the liquidity venue, so a venue-less
-    // kernel variant need not implement it. A raw revert here would kill
-    // handleMarketDeploymentCompleted outright — no market, no vaults, no downstream
-    // rows, ever. This proves the market is still fully written.
-    const market = DayMarketFixture.standard();
+  test("a venue-less kernel reports the zero-address quote asset, not a dead handler", () => {
+    // A zero quote address is data, not a failed contract call.
+    const market = withoutQuoteAsset(DayMarketFixture.standard());
     mockDayMarket(market);
-    mockQuoteAssetReverts(market.kernel); // registered AFTER, so it wins
 
     handleMarketDeploymentCompleted(
       createMarketDeploymentCompletedEvent(
@@ -747,7 +748,7 @@ describe("handleMarketDeploymentCompleted", () => {
     // address — an unmocked call there aborts the handler in matchstick and reverts on
     // chain, so the guard is what keeps the whole market from failing to index.
     assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "0");
-    // The other two are raw reads and are unaffected.
+    // The other state fields are unaffected.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
@@ -842,7 +843,7 @@ describe("handleMarketDeploymentCompleted", () => {
     deployStandard();
 
     const snapshotId = generateVaultStateHistoricalId(ADDR_JUNIOR.toHexString(), BLOCK_NUMBER);
-    // Zero, and that is the point: entry 0 records a market with no shares yet.
+    // The factory pass runs before the newly spawned tranche template replays this block.
     assert.fieldEquals(
       "DayVaultStateHistorical",
       snapshotId,
