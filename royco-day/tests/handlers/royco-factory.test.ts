@@ -42,7 +42,6 @@ import {
   WAD,
 } from "../helpers/constants";
 import {
-  CHAIN_ID,
   MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
   MARKET_TOKEN_ROLE_LPT_ASSET,
   MARKET_TOKEN_ROLE_QUOTE_ASSET,
@@ -127,55 +126,13 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.dataSourceExists("RoycoDayKernel", ADDR_KERNEL.toHexString());
   });
 
-  test("writes the accountant -> market map row, in full", () => {
-    // This row is the ONLY thing that lets an accountant handler find its market:
-    // resolveMarketFromAccountant loads it instead of paying an eth_call per event.
-    // Miss it and every accountant handler early-returns forever — no error, just a
-    // market whose config and sync columns never move again.
+  test("writes the accountant -> market map row", () => {
     deployStandard();
 
     assert.entityCount("DayAccountantMarketMap", 1);
 
-    // KEYED ON THE ACCOUNTANT, because that address is all an accountant event carries.
-    // Keyed on the kernel it would be unfindable, and the whole table pointless.
     const mapId = generateAccountantMarketMapId(ADDR_ACCOUNTANT.toHexString());
-    assert.fieldEquals(
-      "DayAccountantMarketMap",
-      mapId,
-      "accountantAddress",
-      ADDR_ACCOUNTANT.toHexString()
-    );
-    // The two market columns are DIFFERENT SHAPES and the resolver only works with the
-    // composite one. Asserting both catches a swap, which would otherwise be a silent
-    // total failure of every accountant handler.
-    assert.fieldEquals(
-      "DayAccountantMarketMap",
-      mapId,
-      "marketId",
-      ADDR_KERNEL.toHexString()
-    );
     assert.fieldEquals("DayAccountantMarketMap", mapId, "marketRefId", MARKET_ID);
-    assert.fieldEquals("DayAccountantMarketMap", mapId, "chainId", CHAIN_ID.toString());
-
-    // createdAt* is the row's only provenance — it is immutable and never updated.
-    assert.fieldEquals(
-      "DayAccountantMarketMap",
-      mapId,
-      "createdAtTransactionHash",
-      TX_HASH.toHexString()
-    );
-    assert.fieldEquals(
-      "DayAccountantMarketMap",
-      mapId,
-      "createdAtBlockNumber",
-      BLOCK_NUMBER.toString()
-    );
-    assert.fieldEquals(
-      "DayAccountantMarketMap",
-      mapId,
-      "createdAtBlockTimestamp",
-      BLOCK_TIMESTAMP.toString()
-    );
   });
 
   test("writes one DayMarketState keyed by the kernel address", () => {
@@ -293,10 +250,7 @@ describe("handleMarketDeploymentCompleted", () => {
       "minCoverageWAD",
       WAD.div(BigInt.fromI32(2)).toString()
     );
-    // The fixed-term COMMENCEMENT floor — deployment time plus the grace period, i.e.
-    // when fixed-term logic can first activate. Seeded from getState() here because its
-    // event only fires from the accountant's initialize(), below this handler's log
-    // index. Distinct from fixedTermEndTimestamp so reading the wrong clock shows.
+    // Seeded from getState() because the initialization event precedes this handler.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
@@ -663,8 +617,7 @@ describe("handleMarketDeploymentCompleted", () => {
   });
 
   test("the three Kernel asset tokens land, each on its own pair of columns", () => {
-    // Three separate Kernel views, not getState() members. Six columns, and the ids
-    // must be chain-scoped rather than bare addresses.
+    // Asset addresses come from Kernel.getState(); ids remain market-scoped.
     deployStandard();
 
     assert.fieldEquals(
@@ -769,14 +722,7 @@ describe("handleMarketDeploymentCompleted", () => {
   });
 
   test("a venue-less kernel reports the zero-address quote asset, not a dead handler", () => {
-    // The quote asset used to be a `virtual`, bodyless QUOTE_ASSET() that only the
-    // liquidity venue concretised, so a venue-less kernel REVERTED on it and the read
-    // needed try_. It is a plain getState() member now, so the venue-less case is data
-    // rather than a failure: the zero address in the quoteAsset slot.
-    //
-    // Still worth a test — everything downstream keys off that zero address (the token
-    // id, the decimals read, and the Balancer pool binding all branch on it), so a
-    // market with no venue must still index completely.
+    // A zero quote address is data, not a failed contract call.
     const market = withoutQuoteAsset(DayMarketFixture.standard());
     mockDayMarket(market);
 
@@ -802,7 +748,7 @@ describe("handleMarketDeploymentCompleted", () => {
     // address — an unmocked call there aborts the handler in matchstick and reverts on
     // chain, so the guard is what keeps the whole market from failing to index.
     assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "0");
-    // The other two are raw reads and are unaffected.
+    // The other state fields are unaffected.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,

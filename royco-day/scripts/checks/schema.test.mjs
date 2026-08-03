@@ -72,15 +72,14 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     ),
   ];
 
-  // 9. Three groups, and the first split is SNAPSHOT vs RECORD:
+  // Nine immutable entities: four per-log rows, four cursor-keyed record streams,
+  // and one factory-owned lookup row.
   //
   //   - The four per-log activity/transfer rows, whose ids carry a <LOG_INDEX> and
   //     genuinely can never repeat.
   //   - The four immutable record streams — the three liquidity-premium ones plus
   //     DayYieldSharesAccruedHistory — whose ids carry an <ENTRY_INDEX> from a
   //     use-then-increment cursor, so every event gets a fresh id.
-  //   - One LOOKUP row, DayAccountantMarketMap, exempted BY NAME below.
-  //
   // The *Historical SNAPSHOT tables are deliberately NOT here: they collapse to one row
   // per block, so a later write in the block updates the earlier rather than appending,
   // and their block-keyed ids are exactly the collision this check exists to prevent.
@@ -89,19 +88,8 @@ test("every immutable entity's id carries a per-write discriminator", () => {
   // opened in an earlier block.
   assert.equal(blocks.length, 9, "expected 9 immutable entities");
 
-  // EXEMPT BY NAME, never by loosening the discriminator list. Adding
-  // "<ACCOUNTANT_ADDRESS>" to `discriminators` would green-light EVERY address-keyed
-  // immutable, and an address is only a safe immutable key when the subject is written
-  // exactly once by construction — which is true here and false for, say, a per-vault
-  // row. Each exemption states who the single writer is, so the claim can be rechecked.
-  const SINGLE_WRITE_BY_CONSTRUCTION = new Map([
-    [
-      "DayAccountantMarketMap",
-      "written once per accountant by handleMarketDeploymentCompleted; one accountant " +
-        "belongs to one market for life (RoycoDayAccountant.sol:122, no setter), and " +
-        "the factory cannot deploy the same accountant twice",
-    ],
-  ]);
+  // The factory writes this immutable accountant-keyed lookup once per market.
+  const SINGLE_WRITE_BY_CONSTRUCTION = new Set(["DayAccountantMarketMap"]);
 
   const discriminators = ["<ENTRY_INDEX>", "<LOG_INDEX>"];
   for (const [, name, idComment] of blocks) {
@@ -113,10 +101,8 @@ test("every immutable entity's id carries a per-write discriminator", () => {
     );
   }
 
-  // The exemption list must not outlive its entities — a stale name here silently
-  // stops guarding anything.
   const declared = new Set(blocks.map(([, name]) => name));
-  for (const name of SINGLE_WRITE_BY_CONSTRUCTION.keys()) {
+  for (const name of SINGLE_WRITE_BY_CONSTRUCTION) {
     assert.ok(
       declared.has(name),
       `${name} is exempted from the discriminator check but is no longer an ` +

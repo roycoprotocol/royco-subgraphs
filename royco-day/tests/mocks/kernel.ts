@@ -26,20 +26,8 @@ import {
 /**
  * RoycoDayKernel.getState() — a single 19-field tuple.
  *
- * IT GREW FROM 10 AND REORDERED. The three asset addresses used to be standalone
- * SCREAMING_CASE views (COLLATERAL_ASSET / LPT_ASSET / QUOTE_ASSET) with their own
- * mocks; those functions were REMOVED from the kernel and folded in here, so the
- * fixture supplies them through this struct instead.
- *
- * THE ORDER BELOW IS THE ABI'S, and it is load-bearing: toTuple() builds positionally,
- * so a member in the wrong slot decodes as its neighbour and every assertion downstream
- * reads a plausible wrong address. Re-derive it from abis/RoycoDayKernel.json — never
- * from the Solidity struct, whose declaration order need not match — with:
- *   jq -r '.[]|select(.name=="getState")|.outputs[0].components|to_entries[]
- *          |"\(.key) \(.value.name):\(.value.type)"' abis/RoycoDayKernel.json
- *
- * The one-whole-asset scale fields have no schema columns; they are still mocked because
- * the binding decodes the whole tuple. The blacklist address is indexed.
+ * Keep fields in generated ABI tuple order: toTuple() encodes them positionally. Fields
+ * not indexed by the schema are still required because the binding decodes the full tuple.
  */
 export class KernelState {
   seniorTranche: Address = ADDR_SENIOR; // 0

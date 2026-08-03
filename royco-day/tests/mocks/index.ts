@@ -66,18 +66,6 @@ export function mockTrancheToken(
     .returns([ethereum.Value.fromAddress(ADDR_KERNEL)]);
 }
 
-/**
- * Point the accountant at its market.
- *
- * The address rides in the accountant state struct, and mockAccountantGetState registers
- * it. This mutates the state the fixture will publish, so call it before mockDayMarket.
- *
- * The accountant address is NOT the marketId; the kernel's is (§6). Every accountant
- * handler resolves through this before it can touch a DayMarketState.
- */
-export function mockAccountantKernel(state: AccountantState, kernel: Address): void {
-  state.kernel = kernel;
-}
 /** Mock the asset token itself (needed for DayVaultState.assetTokenDecimals). */
 export function mockAssetToken(asset: Address, decimals: i32): void {
   createMockedFunction(asset, "decimals", "decimals():(uint8)")
@@ -215,18 +203,7 @@ export function mockAssetPriceNAV(
     .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
 }
 
-/**
- * A kernel with NO liquidity venue: its quote asset is the zero address.
- *
- * There is no separate call to make revert any more. COLLATERAL_ASSET / LPT_ASSET /
- * QUOTE_ASSET were standalone views — QUOTE_ASSET `virtual` and bodyless, so a
- * venue-less kernel reverted on it — and all three were REMOVED when the kernel folded
- * them into getState(). A struct member cannot revert, so the venue-less case is now
- * expressed as data: the zero address in the quoteAsset slot.
- *
- * Mutates the fixture rather than registering a mock, so it must be called BEFORE
- * mockDayMarket rather than after.
- */
+/** Return a fixture whose kernel has no liquidity venue. */
 export function withoutQuoteAsset(m: DayMarketFixture): DayMarketFixture {
   m.quoteAsset = ADDR_ZERO;
   m.kernelState.quoteAsset = ADDR_ZERO;
@@ -331,9 +308,7 @@ export class DayMarketFixture {
     // them silently inverts every yield-share query in Neon.
     // Widths are load-bearing: uint32 timestamps, uint64 caps, uint192 accruals.
     m.accountantState.fixedTermEndTimestamp = BigInt.fromI32(1_700_100_001);
-    // DISTINCT from fixedTermEndTimestamp above: they are different clocks (a per-term
-    // scheduled end vs a one-time floor for the market's life), and equal values would
-    // let a handler read the wrong one and still pass.
+    // Distinct sentinels catch swaps between the per-term end and market-wide floor.
     m.accountantState.fixedTermCommenceableAtTimestamp = BigInt.fromI32(1_700_100_777);
     m.accountantState.lastYieldShareAccrualTimestamp = BigInt.fromI32(1_700_100_002);
     m.accountantState.lastPremiumPaymentTimestamp = BigInt.fromI32(1_700_100_003);
@@ -428,8 +403,7 @@ function seedClaims(c: Claims, base: i32): void {
  * place. Mock generously.
  */
 export function mockDayMarket(m: DayMarketFixture): void {
-  // BEFORE mockAccountantGetState: this mutates the state that call publishes.
-  mockAccountantKernel(m.accountantState, m.kernel);
+  m.accountantState.kernel = m.kernel;
   m.kernelState.seniorTranche = m.seniorTranche;
   m.kernelState.juniorTranche = m.juniorTranche;
   m.kernelState.liquidityProviderTranche = m.liquidityTranche;
@@ -535,11 +509,6 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.seniorShareRate
   );
 
-  // The three asset addresses ride on getState() now, not on their own views. Mirrored
-  // onto the state struct here so a test can keep setting the friendly fixture fields.
-  m.kernelState.collateralAsset = m.collateralAsset;
-  m.kernelState.lptAsset = m.lptAsset;
-  m.kernelState.quoteAsset = m.quoteAsset;
 }
 
 /**

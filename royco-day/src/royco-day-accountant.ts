@@ -51,11 +51,6 @@ import {
  * handler here re-reads getState(). The one exception is documented on
  * handleSeniorTrancheDustToleranceUpdated.
  *
- * `$.kernel` is assigned once in initialize() and has no setter. On the deployed
- * revision, KernelUpdated(address) reports an implementation update; the latest revision
- * removes it. Neither can re-point the accountant. That invariant is why the factory's
- * DayAccountantMarketMap remains valid.
- *
  * TYPE TRAPS (verified against generated/, see CLAUDE.md §4). Only ONE of the
  * fifteen is not a direct BigInt assign:
  *   FixedTermDurationUpdated(uint24) -> i32     !! needs BigInt.fromI32()
@@ -66,10 +61,7 @@ import {
  *
  * THE SYNC HANDLER NO LONGER LIVES HERE. v2 replaced the accountant's
  * TrancheAccountingSynced with the kernel's PreOp/PostOpTrancheAccountingSynced pair,
- * so it moved to src/royco-day-kernel.ts — where event.address IS the marketId and no
- * accountant -> market hop is needed at all. Everything left in this file is a config or
- * lifecycle event, and each resolves through resolveMarketFromAccountant, which is now a
- * DayAccountantMarketMap store load rather than an eth_call.
+ * so it moved to src/royco-day-kernel.ts, where event.address is the marketId.
  */
 
 // =============================================================================
@@ -159,31 +151,8 @@ export function handleFixedTermEnded(event: FixedTermEndedEvent): void {
 }
 
 /**
- * The configured term length changed — and, if it changed to ZERO, the market was
- * force-flipped to perpetual WITHOUT a FixedTermEnded. See closeOpenFixedTerm.
- *
- * Also fires from initialize(), before the market entity exists. The null guard in
- * resolveMarketFromAccountant is what makes that a no-op rather than a crash.
- */
-/**
- * The market's fixed-term grace period elapsed — i.e. the earliest timestamp at which a
- * fixed term may commence. Deployment time plus the configured grace period.
- *
- * PURE CONFIG, carried on the event; no contract read.
- *
- * !! ITS ONLY EMIT SITE IS initialize() (RoycoDayAccountant.sol:122), which fires DURING
- *    deployMarket at a LOWER log index than the MarketDeploymentCompleted that creates
- *    this template and writes the market. So in practice the null guard swallows it and
- *    the column is filled by the factory's own getState() read instead.
- *
- *    It is wired anyway, deliberately: the value has no setter TODAY, and if one is ever
- *    added this handler picks it up with no further work. Its three neighbours —
- *    MinCoverageUpdated, MinLiquidityUpdated, FixedTermDurationUpdated — each already
- *    have a real set* and two emit sites, so this is the same shape as code that is
- *    demonstrably live.
- *
- * uint64 -> BigInt direct. The uint24 lift that bites on fixedTermDurationSeconds does
- * not apply (§4).
+ * Update the earliest timestamp at which a fixed term may commence. The factory seeds
+ * the initial value because the initialization event precedes market creation.
  */
 export function handleFixedTermCommenceableAt(
   event: FixedTermCommenceableAtEvent
@@ -196,6 +165,10 @@ export function handleFixedTermCommenceableAt(
   touchMarket(event, market);
 }
 
+/**
+ * Update the configured term length. Setting it to zero closes any open term without a
+ * FixedTermEnded event.
+ */
 export function handleFixedTermDurationUpdated(
   event: FixedTermDurationUpdatedEvent,
 ): void {

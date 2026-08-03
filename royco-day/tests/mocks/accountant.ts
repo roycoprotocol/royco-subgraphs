@@ -39,8 +39,6 @@ export class AccountantState {
   maxLPTYieldShareWAD: BigInt = BigInt.zero(); // 14 uint64
   twJTYieldShareAccruedWAD: BigInt = BigInt.zero(); // 15 uint128
   twLPTYieldShareAccruedWAD: BigInt = BigInt.zero(); // 16 uint128
-  // 17-18 are new. The market pairing originates in `kernel`, even though handlers use
-  // the factory-written map.
   kernel: Address = ADDR_KERNEL; // 17
   fixedTermCommenceableAtTimestamp: BigInt = BigInt.zero(); // 18 uint64
   coverageLiquidationUtilizationWAD: BigInt = BigInt.zero(); // 19

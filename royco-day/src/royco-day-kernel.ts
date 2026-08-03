@@ -62,12 +62,8 @@ import {
  * reinvestment events are RECORD streams (DayLiquidityPremiumReinvested/Reinvestment
  * FailedHistory): they append an immutable row and bump the market's cursor, and own
  * NO shares/positions/supply — the Reinvested success only moves kernel-internal
- * accounting ($.lptOwnedSeniorTrancheShares, BalancerV3LiquidityVenueLogic.sol:200-235),
- * not an indexed Transfer, and the Failed case mutates nothing at all — every early
- * return in attemptLiquidityPremiumReinvestment bails before touching state. The reinvest
- * events fire
- * from a library inlined into the kernel, so event.address is the kernel (= marketId)
- * and resolution stays direct.
+ * accounting, not an indexed Transfer; a failed reinvestment mutates nothing. These
+ * events are emitted from kernel code, so event.address remains the marketId.
  */
 export function handleProtocolFeeRecipientUpdated(
   event: ProtocolFeeRecipientUpdatedEvent
@@ -381,10 +377,7 @@ function recordSync(
   syncType: string,
   op: i32
 ): void {
-  // THE KERNEL ADDRESS IS THE MARKET ID (§6) — no accountant -> market hop at all. In v1
-  // this event lived on the accountant and paid an eth_call per sync just to find its
-  // market; accountant events now resolve through the DayAccountantMarketMap row instead,
-  // and this one needs no lookup whatsoever.
+  // Kernel event addresses are market ids; no accountant lookup is required.
   const market = DayMarketState.load(
     generateMarketId(event.address.toHexString())
   );

@@ -41,8 +41,7 @@ dataSources:
         # this same handler writes — no extra eth_calls (§ the note in schema.graphql).
         - DayMarketNav
         - DayMarketNavHistorical
-        # accountant -> market, written ONLY here. The accountant data source reads it
-        # to resolve its events without an eth_call; nothing else writes it.
+        # Factory-owned accountant -> market lookup.
         - DayAccountantMarketMap
       abis:
         - name: RoycoFactory
@@ -256,8 +255,7 @@ templates:
       language: wasm/assemblyscript
       entities:
         - DayMarketState
-        # READ, never written here — resolveMarketFromAccountant loads it to map
-        # event.address (the accountant) to its market. The factory is the only writer.
+        # Read-only here; the factory writes this lookup.
         - DayAccountantMarketMap
         # handleFixedTermCommenced creates these and handleFixedTermEnded /
         # handleFixedTermDurationUpdated(0) close them (§10.3).
@@ -292,9 +290,7 @@ templates:
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
           receipt: true
-        # Only emitted from the accountant's initialize(), which lands BELOW
-        # MarketDeploymentCompleted — the factory's getState() read is what fills the
-        # column. Both names are wired for the deployed and latest contract revisions.
+        # Latest event name; the factory seeds the initial value from getState().
         - event: FixedTermCommenceableAt(uint64)
           handler: handleFixedTermCommenceableAt
           receipt: true

@@ -143,25 +143,9 @@ type DayMarketState @entity(immutable: false) {
   fixedTermDurationSeconds: BigInt! # Fixed Term Duration Seconds <- ABI: fixedTermDurationSeconds (uint24 -> i32! needs BigInt.fromI32)
   fixedTermEndTimestamp: BigInt! # Fixed Term End Timestamp <- ABI: fixedTermEndTimestamp (uint32 -> BigInt, direct)
   fixedTermCommenceableAtTimestamp: BigInt! # Fixed Term Commenceable At Timestamp <- ABI: fixedTermCommenceableAtTimestamp (uint64 -> BigInt, direct)
-  # ^ WHEN FIXED-TERM LOGIC BECOMES AVAILABLE: the market's deployment time plus its
-  #   configured fixed-term grace period. Until this passes, a term cannot commence —
-  #   RoycoDayAccountant.sol:547 gates commencement on
-  #   `block.timestamp < $.fixedTermCommenceableAtTimestamp`.
-  #
-  #   NOT the same clock as its neighbours. fixedTermEndTimestamp is the CURRENT term's
-  #   scheduled end and is deleted/rewritten per term; this is a one-time floor for the
-  #   market's whole life. `fixedTermCommenceableAtTimestamp > now` and a `perpetual`
-  #   marketState means "cannot go fixed yet", which is different from "is not fixed
-  #   right now".
-  #
-  #   SET ONCE, in the accountant's initialize() (:121), and never again — there is no
-  #   setter. The factory's getState() read is what populates this column in practice;
-  #   FixedTermCommenceableAt (RENAMED from FixedTermCommenceableAtTimestampUpdated in the
-  #   2026-08 contracts) has exactly ONE emit site, at RoycoDayAccountant.sol:122 inside
-  #   that same initialize(), which fires at a LOWER log index than
-  #   MarketDeploymentCompleted and so lands before the market row exists. The handler is wired anyway so a future setter
-  #   is picked up automatically — contrast MinCoverageUpdated / MinLiquidityUpdated /
-  #   FixedTermDurationUpdated, which each have a real set* and two emit sites.
+  # ^ Earliest time a term may begin. Unlike fixedTermEndTimestamp, this is a market-wide
+  #   floor. The factory seeds it from getState(); both deployed and latest event names
+  #   remain wired for later updates.
   lastYieldShareAccruedTimestamp: BigInt! # Last Yield Share Accrued Timestamp <- ABI: lastYieldShareAccrualTimestamp
   lastPremiumPaymentTimestamp: BigInt! # Last Premium Payment Timestamp <- ABI: lastPremiumPaymentTimestamp
   timeWeightedJuniorTrancheYieldShareAccruedWAD: BigInt! # Time Weighted Junior Tranche Yield Share Accrued WAD <- ABI: twJTYieldShareAccruedWAD (uint128 -> BigInt, direct)
@@ -250,21 +234,9 @@ type DayMarketState @entity(immutable: false) {
   quoteAssetTokenDecimals: Int! # Quote Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   balancerVaultAddress: String! # Balancer V3 Vault Address <- ABI: BalancerPoolToken(LPT_ASSET).getVault()
   quoteAssetPoolIndex: Int! # Which slot of the BPT's 2-token registration order the QUOTE asset occupies (0 or 1)
-  # ^ THE LIQUIDITY TRANCHE'S DEPOSIT ASSET IS THE BPT, and that pool is a pair of
-  #   (senior tranche share token, quote asset). The venue enforces exactly two tokens
-  #   (POOL_MUST_HAVE_TWO_TOKENS) and then PINS THEIR POSITIONS:
-  #   `tokens[0] == seniorTranche && tokens[1] == quoteAsset`, or
-  #   INVALID_POOL_TOKEN_CONFIGURATION
-  #   (BalancerV3LiquidityVenue.sol:97-100). So the quote leg is derivable from the pool
-  #   alone, which is how quoteAssetPriceNAV is priced without any new kernel view.
-  #
-  #   !! THE ORDERING IS NOW STRUCTURAL, NOT RESOLVED. The 2026-08 contracts deleted the
-  #      venue's stored `stShareIsPoolToken1` flag, its `_poolTokenIndexes()` derivation
-  #      and the QUOTE_ASSET_MISMATCH error; a market whose pool did not mine to
-  #      senior-as-token0 simply cannot deploy. So for any market that exists, this column
-  #      is ALWAYS 1. The subgraph still LOCATES the quote asset by positive match rather
-  #      than hardcoding 1 — that keeps this column meaningful on its own and costs
-  #      nothing, since the token list is already in hand.
+  # ^ The BPT pairs the senior share token with the quote asset. Current contracts pin
+  #   the quote asset to slot 1, but the subgraph still resolves it by address so the
+  #   stored index remains valid if venue ordering changes.
   #
   #   BOTH ARE IMMUTABLE ON CHAIN — the vault is `immutable` on the venue and the ordering
   #   is fixed at pool registration — so they are read ONCE at market creation and
@@ -350,10 +322,8 @@ type DayMarketState @entity(immutable: false) {
   # Seed all five to BigInt.zero() in the MarketDeploymentCompleted handler's
   # `if (!entity)` branch — a non-null field left unset is fatal at index time (§8).
   countFixedTermEntries: BigInt! # Count of Fixed Term Entries -> DayFixedTermHistory
-  # ^ Advances on FixedTermCommenced, and ALSO on any coverage loss that belongs to no
-  #   term — a zero fixedTermDurationSeconds, a market still inside its commencement
-  #   grace period, or an erase after the last term already closed. Each opens a
-  #   zero-length term of its own (see openLossOnlyTerm). DayFixedTermHistory is the one MUTABLE record
+  # ^ Advances on FixedTermCommenced and on loss-only rows created while
+  #   fixedTermDurationSeconds is zero. DayFixedTermHistory is the one MUTABLE record
   #   stream: the close-out writes patch the row at (count - 1) and must NOT
   #   increment this.
   countYieldSharesAccruedEntries: BigInt! # Count of Yield Shares Accrued Entries -> DayYieldSharesAccruedHistory
@@ -400,45 +370,11 @@ type DayMarketState @entity(immutable: false) {
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# =============================================================================
-# ACCOUNTANT -> MARKET, so accountant handlers need NO eth_call.
-#
-# The accountant address is NOT the marketId — the KERNEL address is (§6) — so every
-# accountant handler has to make that hop. It used to be a contract read
-# (Accountant.getState().kernel, and KERNEL() before that): one eth_call on EVERY
-# accountant event, forever, to fetch a value that cannot change.
-#
-# WHY A TABLE IS CORRECT HERE, where §5 would normally prefer the read: the pairing is
-# 1:1 and IMMUTABLE. One accountant per market, fixed at deployment — `$.kernel` has a
-# single assignment in the whole contract, inside initialize() (RoycoDayAccountant.sol:120),
-# with no setter. So a row written once at market creation can never go stale, and the
-# call it replaces could never have returned anything different.
-#
-# The factory writes this in the SAME handler that writes the market, from the same
-# DeploymentResult, so the row cannot be missing for a market that exists.
-#
-# !! A MISSING ROW STILL MEANS "SKIP", NOT "GUESS". resolveMarketFromAccountant returns
-#    null and every caller early-returns, exactly as when the eth_call resolved to an
-#    unknown market. That path is reachable: initialize() emits MinCoverageUpdated and
-#    friends DURING deployMarket, at a LOWER log index than MarketDeploymentCompleted.
-#
-# Mirrors royco-rwa's AccountantMarketMap, deliberately — same shape, same purpose,
-# prefixed and given royco-day's createdAt* triple.
-# =============================================================================
+# Immutable accountant -> market lookup written by the factory. Accountant events emitted
+# before MarketDeploymentCompleted have no row yet and are intentionally skipped.
 type DayAccountantMarketMap @entity(immutable: true) {
   id: String! # <CHAIN_ID>_<ACCOUNTANT_ADDRESS>
-  # ^ IMMUTABLE with no <ENTRY_INDEX> or <LOG_INDEX>, and that is safe here: the
-  #   accountant address IS the per-write discriminator. One accountant belongs to
-  #   exactly one market and is written exactly once, by the factory, so a second save
-  #   on this id cannot occur.
-  chainId: BigInt! # Chain ID
-  accountantAddress: String! # Accountant Address
-  marketId: String! # Market ID: <KERNEL_ADDRESS>
-  marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID> — this IS DayMarketState.id, so the lookup is one load
-  # => general data
-  createdAtTransactionHash: String! # Created At Transaction Hash
-  createdAtBlockNumber: BigInt! # Created At Block Number
-  createdAtBlockTimestamp: BigInt! # Created At Block Timestamp
+  marketRefId: String! # DayMarketState.id: <CHAIN_ID>_<MARKET_ID>
 }
 
 # =============================================================================
@@ -1014,23 +950,14 @@ type DayFixedTermHistory @entity(immutable: false) {
   #                                   a real loss BEFORE its own
   #                                   FixedTermDurationUpdated(0), so the row is
   #                                   still OPEN.                           -> patch
-  #      C) an erase belonging to NO term -> the last row closed in an EARLIER tx, or
-  #                                   no term has ever run because the market is still
-  #                                   inside its commencement grace period
-  #                                   (block.timestamp <
-  #                                   fixedTermCommenceableAtTimestamp).
-  #                                                    -> DO NOT patch; give it a
-  #                                                       ZERO-LENGTH term of its own
-  #    So: patch iff the row is OPEN or was CLOSED IN THIS TX; otherwise open a
-  #    zero-length term. Case B is why "the row must be closed" is WRONG — it silently
-  #    drops the loss on every mid-term setFixedTermDuration(0).
-  #
-  #    EVERY NON-ZERO ERASE LANDS ON SOME ROW, so
-  #      SUM(DayFixedTermHistory.juniorTrancheImpermanentLossNAV)
-  #        == DayMarketState.juniorTrancheImpermanentLossNAV
-  #    Case C used to be skipped outright, which left the market total permanently above
-  #    the sum of its rows with the difference unattributable — no row, no timestamp, no
-  #    way to ask when it happened. See recordFixedTermCoverageLoss and openLossOnlyTerm.
+  #      C) incidental erase, market already perpetual -> the last row closed in an
+  #                                   EARLIER tx.                           -> skip
+  #    So: patch iff the row is OPEN or was CLOSED IN THIS TX.
+  #      if (erased.isZero()) return;                       // unguarded config site
+  #      if (!entry.endBlockTimestamp.isZero() &&
+  #          entry.updatedAtTransactionHash != thisTx) return;
+  #    Case B is why "the row must be closed" is WRONG — it silently drops the loss
+  #    on every mid-term setFixedTermDuration(0). See recordFixedTermCoverageLoss.
   # => general data
   createdAtTransactionHash: String! # Created At Transaction Hash
   createdAtBlockNumber: BigInt! # Created At Block Number

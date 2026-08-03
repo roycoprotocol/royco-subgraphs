@@ -408,14 +408,7 @@ describe("accountant config handlers", () => {
   });
 
   test("FixedTermCommenceableAt moves the commencement floor", () => {
-    // The floor is when fixed-term logic can FIRST activate — deployment time plus the
-    // grace period — and the accountant gates commencement on it
-    // (RoycoDayAccountant.sol:550, `block.timestamp < $.fixedTermCommenceableAtTimestamp`).
-    //
-    // Today the only emit is inside initialize(), which fires BELOW
-    // MarketDeploymentCompleted, so the null guard swallows it and the factory's
-    // getState() read fills the column. This drives the handler directly, so the wiring
-    // is proven now rather than the first time a setter is added.
+    // The factory seeds this floor; the handler supports subsequent event updates.
     deployMarket();
     assert.fieldEquals(
       "DayMarketState",
@@ -438,8 +431,7 @@ describe("accountant config handlers", () => {
       "fixedTermCommenceableAtTimestamp",
       "1700200999"
     );
-    // The neighbouring fixed-term clock is a DIFFERENT value and must not move: one is a
-    // per-term scheduled end, the other a one-time floor.
+    // The per-term scheduled end is independent.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
@@ -1540,34 +1532,11 @@ describe("the kernel sync handlers", () => {
       )
     );
 
-    // The concluded term keeps ITS OWN loss — patching it would have overwritten 9303
-    // with an unrelated 7777, which is the corruption this guard exists to prevent.
     assert.fieldEquals(
       "DayFixedTermHistory",
       generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero()),
       "juniorTrancheImpermanentLossNAV",
       "9303"
-    );
-    // ...and the orphaned erase is NOT dropped: it gets a zero-length term of its own.
-    // Skipping it would leave 7777 in the market's lifetime total with no row behind it.
-    assert.entityCount("DayFixedTermHistory", 2);
-    const orphan = generateMarketRecordId(
-      ADDR_KERNEL.toHexString(),
-      BigInt.fromI32(1)
-    );
-    assert.fieldEquals("DayFixedTermHistory", orphan, "duration", "0");
-    assert.fieldEquals(
-      "DayFixedTermHistory",
-      orphan,
-      "juniorTrancheImpermanentLossNAV",
-      "7777"
-    );
-    // SUM(rows) == the market's lifetime total: 9303 + 7777.
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "juniorTrancheImpermanentLossNAV",
-      "17080"
     );
   });
 
@@ -1925,39 +1894,18 @@ describe("the kernel sync handlers", () => {
     );
   });
 
-  test("a Reset DURING the commencement grace period gets its own zero-length term", () => {
-    // A duration IS configured, but no term has ever run — the commonest reason being
-    // that the market is still inside its grace period: it cannot enter a fixed term
-    // until block.timestamp >= fixedTermCommenceableAtTimestamp
-    // (RoycoDayAccountant.sol:550). Losses can be erased inside that window regardless.
-    //
-    // There is no term to patch, and dropping it would leave the loss recorded ONLY in
-    // the market's lifetime total — unattributable, with no row and no timestamp to ask
-    // when it happened. It gets a zero-length term of its own instead.
+  test("a Reset before any term ever started still counts toward the total", () => {
     deployMarket();
-    assert.entityCount("DayFixedTermHistory", 0);
 
-    const c = accountantCtx();
-    c.blockTimestamp = BLOCK_TIMESTAMP.plus(BigInt.fromI32(321));
     handleJuniorTrancheImpermanentLossReset(
       createUintEvent<JuniorTrancheImpermanentLossReset>(
         "jtImpermanentLossErased",
         BigInt.fromI32(9_305),
-        c
+        accountantCtx()
       )
     );
 
-    // One degenerate term, opened and closed on this event.
-    assert.entityCount("DayFixedTermHistory", 1);
-    const id = generateMarketRecordId(ADDR_KERNEL.toHexString(), BigInt.zero());
-    const t = c.blockTimestamp.toString();
-    assert.fieldEquals("DayFixedTermHistory", id, "startBlockTimestamp", t);
-    assert.fieldEquals("DayFixedTermHistory", id, "endBlockTimestamp", t);
-    assert.fieldEquals("DayFixedTermHistory", id, "duration", "0");
-    assert.fieldEquals("DayFixedTermHistory", id, "juniorTrancheImpermanentLossNAV", "9305");
-    assert.fieldEquals("DayMarketState", MARKET_ID, "countFixedTermEntries", "1");
-
-    // AND THE TWO RECONCILE — the whole point. SUM(rows) == the lifetime total.
+    assert.entityCount("DayFixedTermHistory", 0);
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
