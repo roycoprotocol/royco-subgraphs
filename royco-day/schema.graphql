@@ -285,7 +285,9 @@ type DayMarketState @entity(immutable: false) {
   # ^ REAL as of the v2 sync rework. Both sync events now emit AFTER _commitLPTRawNAV,
   #   which refreshes lptRawNAV and liquidityUtilizationWAD in the state packet in
   #   place. In v1 this column and the one below were permanently zero, because the
-  #   single sync event marshalled them as placeholders.
+  #   single sync event marshalled them as placeholders. A successful liquidity-premium
+  #   reinvestment can move the committed raw NAV after the sync event; its handler
+  #   patches this pair from the accountant's final block state.
   seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV <- ABI: state.stEffectiveNAV
   juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV <- ABI: state.jtEffectiveNAV
   juniorTrancheImpermanentLoss: BigInt! # Junior Tranche Impermanent Loss <- ABI: state.jtImpermanentLoss
@@ -333,9 +335,6 @@ type DayMarketState @entity(immutable: false) {
   countLiquidityPremiumSharesMintedEntries: BigInt! # Count of Liquidity Premium Shares Minted Entries -> DayLiquidityPremiumSharesMintedHistory
   countLiquidityPremiumReinvestedEntries: BigInt! # Count of Liquidity Premium Reinvested Entries -> DayLiquidityPremiumReinvestedHistory
   countLiquidityPremiumReinvestmentFailedEntries: BigInt! # Count of Liquidity Premium Reinvestment Failed Entries -> DayLiquidityPremiumReinvestmentFailedHistory
-  #   or redemption. NOT the AMM-frequency stream it was in v1: the pre-op event, which
-  #   is what fires on swaps, is deliberately not indexed (see that entity's note).
-  #
   # A LIFETIME ACCUMULATOR, not a cursor and not a mirror of any on-chain value.
   # Every JuniorTrancheImpermanentLossReset adds its erased amount here, so this only
   # ever grows: it answers "how much JT loss has this market written off in total?",
@@ -597,14 +596,9 @@ type DayMarketNav @entity(immutable: false) {
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# One immutable snapshot per write of the parent above: entry 0 at market creation,
-# then one per TrancheAccountingSynced.
-#
-# !! HOT / HIGH-CARDINALITY STREAM, for the same reason as
-#    DayTrancheAccountingSyncedHistory: the LT's Balancer V3 pool hook holds
-#    SYNC_ROLE and syncs on EVERY swap, so this grows at AMM-volume frequency. It
-#    is written UNCONDITIONALLY — one row per sync, even when no price moved — so
-#    the stream stays dense and 1:1 with the sync stream. Size Neon for it.
+# One block-collapsed snapshot per write of the parent above: entry 0 at market creation,
+# then one per block containing an explicit accounting sync. The Balancer pool is
+# hookless, so swaps do not create snapshots by themselves.
 # ONE ROW PER (MARKET, BLOCK) — THE LAST PRICE VECTOR THAT BLOCK SETTLED ON.
 #
 # Collapses exactly like DayTrancheAccountingSyncedHistory, and for the same reason: a
@@ -1024,7 +1018,7 @@ type DayYieldSharesAccruedHistory @entity(immutable: true) {
 # BOTH kernel sync events feed this table, and they COLLAPSE rather than accumulate:
 #   - the first sync in a block CREATES the row
 #   - every later sync in that SAME block OVERWRITES it in place
-# So a swap-only block leaves a `preOp` row; a deposit block leaves a `postOp` row,
+# So a block with only an explicit sync leaves a `preOp` row; a deposit block leaves a `postOp` row,
 # because the post-op fires second and wins. `syncType` records which one the row
 # actually settled on, and `operation` is non-null only when that was a post-op.
 #
@@ -1048,12 +1042,14 @@ type DayYieldSharesAccruedHistory @entity(immutable: true) {
 #    `lptRawNAV: ZERO_NAV_UNITS` and `liquidityUtilizationWAD: 0` as placeholders, so
 #    those two columns were permanently zero. Both events now emit AFTER
 #    _commitLPTRawNAV, which refreshes both members in the state packet in place, so
-#    every column below carries a real value.
+#    every column below carries a real value. The successful reinvestment tail is the
+#    one exception: it recommits raw NAV after emitting the sync packet, so the success
+#    handler patches raw NAV and liquidity utilization from final block state.
 #
-# Pre-op fires on EVERY sync — the liquidity venue's swap hook, oracle updates,
-# syncTrancheAccounting, reinvestLiquidityPremium, and the first half of every deposit
-# and redemption. Post-op fires only on the six deposit/redeem operations. Indexing
-# both is what keeps AMM- and oracle-driven price movement in this table.
+# Pre-op fires on every explicit sync — authorized sync calls, synchronizing config
+# updates, reinvestLiquidityPremium, and the first half of every deposit and redemption.
+# Post-op fires only on the six deposit/redeem operations. The Balancer pool is hookless;
+# an external keeper must create periodic idle-market anchors.
 type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID

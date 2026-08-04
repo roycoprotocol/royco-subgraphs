@@ -626,8 +626,7 @@ describe("the kernel sync handlers", () => {
   test("a reverting getState keeps the previous values, and does not stall", () => {
     // The factory reads these SAME two calls raw. Here they are guarded, deliberately:
     // at creation a revert costs one market, but on this path it would kill the handler
-    // and stall the whole subgraph — on the highest-frequency path there is, since the
-    // LT's Balancer pool hook syncs on every swap.
+    // and stall the whole subgraph on every later explicit accounting sync.
     deployMarket();
 
     const kernelState = new KernelState();
@@ -864,8 +863,8 @@ describe("the kernel sync handlers", () => {
   });
 
   test("does not touch any DayVaultState — the split is deliberate", () => {
-    // This fires on every Balancer pool swap. Refreshing the three vaults here
-    // would be ~6 eth_calls and 3 immutable history rows PER SWAP.
+    // Refreshing the three vaults here would add ~6 eth_calls and 3 history rows per
+    // explicit sync.
     deployMarket();
 
     const s = new TrancheState();

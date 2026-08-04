@@ -90,7 +90,7 @@ export function writeMarketNav(
     nav.marketId = market.marketId;
     // createdAt* EXACTLY ONCE (§8). Re-stamping on the sync path would build fine,
     // index fine, and quietly destroy every cohort/age query in Neon — and this row
-    // is written on every swap, so it would be re-stamped constantly.
+    // is rewritten on every explicit accounting sync.
     nav.createdAtTransactionHash = event.transaction.hash.toHexString();
     nav.createdAtBlockNumber = event.block.number;
     nav.createdAtBlockTimestamp = event.block.timestamp;
@@ -189,9 +189,10 @@ export function writeMarketNav(
 /**
  * Re-read the whole price vector from the contracts and write the row.
  *
- * !! COST: 5 eth_calls per call, on the HOTTEST path in this subgraph. The LT's
- *    Balancer V3 pool hook holds SYNC_ROLE and syncs on every swap, so this runs at
- *    AMM frequency. That cost is unavoidable rather than careless:
+ * !! COST: 6 eth_calls per explicit accounting sync. The Balancer pool is hookless,
+ *    so swaps do not invoke this path; authorized keepers, entrypoint operations,
+ *    tranche operations, reinvestment and synchronizing admin updates do. The cost is
+ *    unavoidable rather than careless:
  *      - The TrancheAccountingSynced payload is 16 MARKET-level fields (collateralNAV,
  *        jtEffectiveNAV, utilizations, ...). It carries no per-share and no
  *        per-asset-token price, so nothing here is derivable from it for free.
@@ -201,8 +202,8 @@ export function writeMarketNav(
  *      - DayVaultState holds NO price at all any more — not claims*, not sharePrice*,
  *        not assetPriceNAV. There is nothing on any other entity to copy, which is
  *        precisely because this row superseded all of them.
- *    handleTrancheAccountingSynced still deliberately does NOT refresh DayVaultState
- *    (that would be a further ~6 calls plus 3 immutable rows per swap). This is the
+ *    recordSync still deliberately does NOT refresh DayVaultState (that would be a
+ *    further ~6 calls plus 3 history rows per sync). This is the
  *    one contract-reading addition to that handler; keep it the only one.
  *
  * NO ELSE BRANCHES on the reverts, deliberately. Every one of these values was

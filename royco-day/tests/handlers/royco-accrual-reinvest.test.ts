@@ -4,6 +4,7 @@ import {
   test,
   clearStore,
   beforeEach,
+  createMockedFunction,
 } from "matchstick-as/assembly/index";
 import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { handleMarketDeploymentCompleted } from "../../src/royco-factory";
@@ -13,6 +14,7 @@ import {
 import {
   handleLiquidityPremiumReinvested,
   handleLiquidityPremiumReinvestmentFailed,
+  handlePostOpTrancheAccountingSynced,
 } from "../../src/royco-day-kernel";
 import {
   YieldSharesAccrued,
@@ -30,7 +32,14 @@ import {
   createFourUintEvent,
   createTwoUintBytesEvent,
 } from "../builders/accountant";
-import { DayMarketFixture, mockDayMarket } from "../mocks";
+import { createPostOpSyncEvent } from "../builders/kernel";
+import { TrancheState } from "../builders/shared";
+import {
+  AccountantState,
+  DayMarketFixture,
+  mockAccountantGetState,
+  mockDayMarket,
+} from "../mocks";
 import { ctx, EventContext } from "../helpers/event";
 import {
   BLOCK_NUMBER,
@@ -39,7 +48,12 @@ import {
   ADDR_KERNEL,
   ADDR_TEMPLATE,
 } from "../helpers/constants";
-import { generateMarketId, generateMarketRecordId } from "../../src/utils";
+import {
+  generateMarketBlockRecordId,
+  generateMarketId,
+  generateMarketRecordId,
+} from "../../src/utils";
+import { ROYCO_DAY_ACCOUNTANT__GET_STATE } from "../generated/abi-signatures";
 
 // =============================================================================
 // The four remaining record streams:
@@ -59,6 +73,9 @@ const MARKET_ID = generateMarketId(KERNEL);
 // event in the SAME block still gets RECORD1 — nothing here collapses.
 const RECORD0 = generateMarketRecordId(KERNEL, BigInt.zero());
 const RECORD1 = generateMarketRecordId(KERNEL, BigInt.fromI32(1));
+const ACCOUNTING_ID = generateMarketBlockRecordId(KERNEL, BLOCK_NUMBER);
+const UINT256_MAX =
+  "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 function deployMarket(): void {
   mockDayMarket(DayMarketFixture.standard());
@@ -84,6 +101,43 @@ function kernelCtx(): EventContext {
   const c = ctx();
   c.emitter = ADDR_KERNEL;
   return c;
+}
+
+function recordPreTailSync(
+  seniorTrancheEffectiveNAV: BigInt,
+  minLiquidityWAD: BigInt,
+  liquidityTrancheRawNAV: BigInt,
+  liquidityUtilizationWAD: BigInt
+): void {
+  const state = new TrancheState();
+  state.collateralNAV = BigInt.fromI32(101);
+  state.lptRawNAV = liquidityTrancheRawNAV;
+  state.stEffectiveNAV = seniorTrancheEffectiveNAV;
+  state.jtEffectiveNAV = BigInt.fromI32(102);
+  state.stProtocolFee = BigInt.fromI32(103);
+  state.liquidityUtilizationWAD = liquidityUtilizationWAD;
+  state.minLiquidityWAD = minLiquidityWAD;
+  handlePostOpTrancheAccountingSynced(
+    createPostOpSyncEvent(0, state, kernelCtx())
+  );
+}
+
+function recordSuccessfulReinvestment(postTailLPTRawNAV: BigInt): void {
+  const accountantState = new AccountantState();
+  accountantState.lastLPTRawNAV = postTailLPTRawNAV;
+  mockAccountantGetState(ADDR_ACCOUNTANT, accountantState);
+
+  const c = kernelCtx();
+  c.logIndex = c.logIndex.plus(BigInt.fromI32(1));
+  handleLiquidityPremiumReinvested(
+    createTwoUintEvent<LiquidityPremiumReinvested>(
+      "stSharesReinvested",
+      BigInt.fromI32(55),
+      "ltAssetsMinted",
+      BigInt.fromI32(66),
+      c
+    )
+  );
 }
 
 describe("handleYieldSharesAccrued", () => {
@@ -230,6 +284,200 @@ describe("handleYieldSharesAccrued", () => {
 describe("handleLiquidityPremiumReinvested / …ReinvestmentFailed", () => {
   beforeEach(() => {
     clearStore();
+  });
+
+  test("success reconciles the pre-tail sync row to the committed post-tail LPT accounting", () => {
+    deployMarket();
+    // The sync packet is emitted before the tail: raw NAV 2 and an intentionally stale
+    // utilization 99. The reinvestment's final accountant checkpoint is raw NAV 3.
+    recordPreTailSync(
+      BigInt.fromI32(7),
+      BigInt.fromI32(2),
+      BigInt.fromI32(2),
+      BigInt.fromI32(99)
+    );
+    recordSuccessfulReinvestment(BigInt.fromI32(3));
+
+    // Contract rounding is CEIL: ceil(7 * 2 / 3) = 5.
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityTrancheRawNAV",
+      "3"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityUtilizationWAD",
+      "5"
+    );
+    assert.fieldEquals("DayMarketState", MARKET_ID, "liquidityTrancheRawNAV", "3");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "liquidityUtilizationWAD", "5");
+
+    // Only the two tail-sensitive fields move. The row remains the real post-op sync,
+    // preserving its operation, NAV and per-sync fee rather than becoming a preview.
+    assert.entityCount("DayTrancheAccountingSyncedHistory", 1);
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "syncType",
+      "postOp"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "operation",
+      "stDeposit"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "collateralNAV",
+      "101"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "seniorTrancheProtocolFee",
+      "103"
+    );
+  });
+
+  test("post-tail liquidity utilization preserves the contract's zero sentinels", () => {
+    // No senior NAV => 0 even when raw NAV is also zero.
+    deployMarket();
+    recordPreTailSync(
+      BigInt.zero(),
+      BigInt.fromI32(2),
+      BigInt.fromI32(9),
+      BigInt.fromI32(99)
+    );
+    recordSuccessfulReinvestment(BigInt.zero());
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityUtilizationWAD",
+      "0"
+    );
+
+    // No minimum liquidity requirement => 0.
+    clearStore();
+    deployMarket();
+    recordPreTailSync(
+      BigInt.fromI32(7),
+      BigInt.zero(),
+      BigInt.fromI32(9),
+      BigInt.fromI32(99)
+    );
+    recordSuccessfulReinvestment(BigInt.zero());
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityUtilizationWAD",
+      "0"
+    );
+
+    // A positive requirement against zero inventory is effectively infinite.
+    clearStore();
+    deployMarket();
+    recordPreTailSync(
+      BigInt.fromI32(7),
+      BigInt.fromI32(2),
+      BigInt.fromI32(9),
+      BigInt.fromI32(99)
+    );
+    recordSuccessfulReinvestment(BigInt.zero());
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityUtilizationWAD",
+      UINT256_MAX
+    );
+  });
+
+  test("a reverting post-tail checkpoint keeps the sync packet and does not stall", () => {
+    deployMarket();
+    recordPreTailSync(
+      BigInt.fromI32(7),
+      BigInt.fromI32(2),
+      BigInt.fromI32(11),
+      BigInt.fromI32(13)
+    );
+    createMockedFunction(
+      ADDR_ACCOUNTANT,
+      "getState",
+      ROYCO_DAY_ACCOUNTANT__GET_STATE
+    )
+      .withArgs([])
+      .reverts();
+
+    const c = kernelCtx();
+    c.logIndex = c.logIndex.plus(BigInt.fromI32(1));
+    handleLiquidityPremiumReinvested(
+      createTwoUintEvent<LiquidityPremiumReinvested>(
+        "stSharesReinvested",
+        BigInt.fromI32(55),
+        "ltAssetsMinted",
+        BigInt.fromI32(66),
+        c
+      )
+    );
+
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityTrancheRawNAV",
+      "11"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityUtilizationWAD",
+      "13"
+    );
+    // The record stream and cursor still advance even though the optional refresh failed.
+    assert.entityCount("DayLiquidityPremiumReinvestedHistory", 1);
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "countLiquidityPremiumReinvestedEntries",
+      "1"
+    );
+  });
+
+  test("a failed reinvestment leaves the preceding accounting packet unchanged", () => {
+    deployMarket();
+    recordPreTailSync(
+      BigInt.fromI32(7),
+      BigInt.fromI32(2),
+      BigInt.fromI32(11),
+      BigInt.fromI32(13)
+    );
+
+    handleLiquidityPremiumReinvestmentFailed(
+      createTwoUintBytesEvent<LiquidityPremiumReinvestmentFailed>(
+        "stSharesToReinvest",
+        BigInt.fromI32(77),
+        "minLTAssetsOut",
+        BigInt.fromI32(88),
+        "revertData",
+        Bytes.fromHexString("0xdeadbeef"),
+        kernelCtx()
+      )
+    );
+
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityTrancheRawNAV",
+      "11"
+    );
+    assert.fieldEquals(
+      "DayTrancheAccountingSyncedHistory",
+      ACCOUNTING_ID,
+      "liquidityUtilizationWAD",
+      "13"
+    );
   });
 
   test("reinvested records realised shares/assets at entry 0 + bumps its cursor", () => {
