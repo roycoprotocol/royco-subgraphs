@@ -348,7 +348,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "kernel",
+        "name": "",
         "type": "address"
       }
     ],

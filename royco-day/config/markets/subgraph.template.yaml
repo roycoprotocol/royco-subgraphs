@@ -290,12 +290,9 @@ templates:
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
           receipt: true
-        # Latest event name; the factory seeds the initial value from getState().
+        # The factory seeds the initial value from getState().
         - event: FixedTermCommenceableAt(uint64)
           handler: handleFixedTermCommenceableAt
-          receipt: true
-        - event: FixedTermCommenceableAtTimestampUpdated(uint64)
-          handler: handleFixedTermCommenceableAtTimestampUpdated
           receipt: true
         - event: MinCoverageUpdated(uint64)
           handler: handleMinCoverageUpdated

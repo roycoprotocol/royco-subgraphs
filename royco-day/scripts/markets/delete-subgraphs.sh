@@ -22,7 +22,7 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.6"
+version="1.0.0"
 
 for network in "${networks[@]}"; do
     subgraph_name="royco-day-markets-${network}/${version}"

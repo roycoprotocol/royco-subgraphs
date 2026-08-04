@@ -14,7 +14,6 @@ import {
   handleLiquidationCoverageUtilizationUpdated,
   handleFixedTermDurationUpdated,
   handleFixedTermCommenceableAt,
-  handleFixedTermCommenceableAtTimestampUpdated,
   handleMaxYieldSharesUpdated,
   handleFixedTermCommenced,
   handleFixedTermEnded,
@@ -45,7 +44,6 @@ import {
   LiquidationCoverageUtilizationUpdated,
   FixedTermDurationUpdated,
   FixedTermCommenceableAt,
-  FixedTermCommenceableAtTimestampUpdated,
   MaxYieldSharesUpdated,
   FixedTermCommenced,
   FixedTermEnded,
@@ -210,21 +208,6 @@ describe("accountant config handlers", () => {
         accountantCtx()
       )
     );
-    handleFixedTermCommenceableAtTimestampUpdated(
-      createUintEvent<FixedTermCommenceableAtTimestampUpdated>(
-        "fixedTermCommenceableAtTimestamp",
-        BigInt.fromI32(9_008),
-        accountantCtx()
-      )
-    );
-
-    assert.fieldEquals(
-      "DayMarketState",
-      MARKET_ID,
-      "fixedTermCommenceableAtTimestamp",
-      "9008"
-    );
-
     handleFixedTermCommenceableAt(
       createUintEvent<FixedTermCommenceableAt>(
         "fixedTermCommenceableAtTimestamp",

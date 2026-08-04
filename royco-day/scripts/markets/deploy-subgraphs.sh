@@ -26,7 +26,7 @@ if [ "$#" -gt 0 ]; then
     networks=("$@")
 fi
 
-version="1.0.6" # Reinvestment-consistent successor to the live 1.0.5 staging deployment
+version="1.0.0"
 
 prepare_and_deploy() {
     local network=$1

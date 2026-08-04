@@ -240,29 +240,6 @@
   },
   {
     "type": "function",
-    "name": "grantMarketRole",
-    "inputs": [
-      {
-        "name": "_roleIds",
-        "type": "uint64[]",
-        "internalType": "uint64[]"
-      },
-      {
-        "name": "_accounts",
-        "type": "address[]",
-        "internalType": "address[]"
-      },
-      {
-        "name": "_executionDelays",
-        "type": "uint32[]",
-        "internalType": "uint32[]"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "initialize",
     "inputs": [
       {
@@ -794,5 +771,73 @@
         "internalType": "bytes32"
       }
     ]
+  },
+  {
+    "type": "function",
+    "name": "configureMarketPeriphery",
+    "inputs": [
+      {
+        "name": "_tranches",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "_configs",
+        "type": "tuple[]",
+        "internalType": "struct IRoycoDayEntryPoint.TrancheConfig[]",
+        "components": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "depositDelaySeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "depositExpirySeconds",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "redemptionDelaySeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "redemptionExpirySeconds",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "gateByOracleUpdate",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      },
+      {
+        "name": "_kernel",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "marketDeployer",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   }
 ]

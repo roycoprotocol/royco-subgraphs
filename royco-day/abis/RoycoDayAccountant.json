@@ -154,19 +154,6 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint64",
-        "name": "fixedTermCommenceableAtTimestamp",
-        "type": "uint64"
-      }
-    ],
-    "name": "FixedTermCommenceableAtTimestampUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
         "internalType": "uint32",
         "name": "fixedTermEndTimestamp",
         "type": "uint32"
@@ -257,19 +244,6 @@
       }
     ],
     "name": "JuniorTrancheYieldShareProtocolFeeUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "kernel",
-        "type": "address"
-      }
-    ],
-    "name": "KernelUpdated",
     "type": "event"
   },
   {
@@ -595,111 +569,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "kernel",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "initialAuthority",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "fixedTermGracePeriodSeconds",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint64",
-            "name": "minCoverageWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint256",
-            "name": "coverageLiquidationUtilizationWAD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint64",
-            "name": "minLiquidityWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "address",
-            "name": "jtYDM",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "jtYDMInitializationData",
-            "type": "bytes"
-          },
-          {
-            "internalType": "address",
-            "name": "lptYDM",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "lptYDMInitializationData",
-            "type": "bytes"
-          },
-          {
-            "internalType": "uint64",
-            "name": "maxJTYieldShareWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint64",
-            "name": "maxLPTYieldShareWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint24",
-            "name": "fixedTermDurationSeconds",
-            "type": "uint24"
-          },
-          {
-            "internalType": "NAV_UNIT",
-            "name": "dustTolerance",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint64",
-            "name": "stProtocolFeeWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint64",
-            "name": "jtProtocolFeeWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint64",
-            "name": "jtYieldShareProtocolFeeWAD",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint64",
-            "name": "lptYieldShareProtocolFeeWAD",
-            "type": "uint64"
-          }
-        ],
-        "internalType": "struct IRoycoDayAccountant.RoycoDayAccountantInitParams",
-        "name": "_params",
-        "type": "tuple"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1559,5 +1428,110 @@
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "_params",
+        "type": "tuple",
+        "internalType": "struct IRoycoDayAccountant.RoycoDayAccountantInitParams",
+        "components": [
+          {
+            "name": "kernel",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "initialAuthority",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "fixedTermGracePeriodSeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "minCoverageWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "coverageLiquidationUtilizationWAD",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minLiquidityWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "jtYDM",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "jtYDMInitializationData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "lptYDM",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "lptYDMInitializationData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "maxJTYieldShareWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "maxLPTYieldShareWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "fixedTermDurationSeconds",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "dustTolerance",
+            "type": "uint256",
+            "internalType": "NAV_UNIT"
+          },
+          {
+            "name": "stProtocolFeeWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "jtProtocolFeeWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "jtYieldShareProtocolFeeWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lptYieldShareProtocolFeeWAD",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   }
 ]

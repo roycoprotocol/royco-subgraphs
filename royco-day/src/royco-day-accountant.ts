@@ -6,7 +6,6 @@ import {
   FixedTermEnded as FixedTermEndedEvent,
   FixedTermDurationUpdated as FixedTermDurationUpdatedEvent,
   FixedTermCommenceableAt as FixedTermCommenceableAtEvent,
-  FixedTermCommenceableAtTimestampUpdated as FixedTermCommenceableAtTimestampUpdatedEvent,
   MinCoverageUpdated as MinCoverageUpdatedEvent,
   MinLiquidityUpdated as MinLiquidityUpdatedEvent,
   LiquidationCoverageUtilizationUpdated as LiquidationCoverageUtilizationUpdatedEvent,
@@ -189,17 +188,6 @@ export function handleFixedTermDurationUpdated(
     closeOpenFixedTerm(event, market);
   }
 
-  touchMarket(event, market);
-}
-
-export function handleFixedTermCommenceableAtTimestampUpdated(
-  event: FixedTermCommenceableAtTimestampUpdatedEvent,
-): void {
-  const market = resolveMarketFromAccountant(event);
-  if (!market) return;
-
-  market.fixedTermCommenceableAtTimestamp =
-    event.params.fixedTermCommenceableAtTimestamp;
   touchMarket(event, market);
 }
 
