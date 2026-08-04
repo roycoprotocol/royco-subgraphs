@@ -55,13 +55,7 @@ export function generateVaultId(vaultAddress: string): string {
   return CHAIN_ID.toString().concat("_").concat(vaultAddress);
 }
 
-// <CHAIN_ID>_<TOKEN_ADDRESS> — the share token (== the vault).
+// <CHAIN_ID>_<TOKEN_ADDRESS>
 export function generateTokenId(tokenAddress: string): string {
   return CHAIN_ID.toString().concat("_").concat(tokenAddress);
-}
-
-// <CHAIN_ID>_<TOKEN_ADDRESS>_<VAULT_ADDRESS> — the deposit (asset) token, scoped
-// by vault since one asset can back several vaults.
-export function generateTokenVaultId(tokenAddress: string, vaultAddress: string): string {
-  return CHAIN_ID.toString().concat("_").concat(tokenAddress).concat("_").concat(vaultAddress);
 }

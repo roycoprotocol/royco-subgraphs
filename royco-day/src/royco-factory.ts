@@ -24,9 +24,6 @@ import {
   VAULT_MAJOR_TYPE,
   ERC20_DECIMALS_UNKNOWN,
   ERC20_SYMBOL_UNKNOWN,
-  MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
-  MARKET_TOKEN_ROLE_LPT_ASSET,
-  MARKET_TOKEN_ROLE_QUOTE_ASSET,
   TRANCHE_TYPE_SENIOR,
   TRANCHE_TYPE_JUNIOR,
   TRANCHE_TYPE_LIQUIDITY,
@@ -35,13 +32,11 @@ import {
 import {
   generateAccountantMarketMapId,
   generateMarketId,
-  generateMarketTokenId,
   generateTokenId,
   generateVaultId,
   isZeroAddress,
 } from "./utils";
 import { snapshotVault } from "./handlers/base/update-vault";
-import { marketAssetTokenId } from "./handlers/base/market-token-id";
 import { resolveQuotePoolBinding } from "./handlers/base/quote-price-nav";
 import {
   marketNavPricesFromVaults,
@@ -68,22 +63,11 @@ export function handleMarketDeploymentCompleted(
 ): void {
   const result = event.params.result;
 
-  // Spawn the templates FIRST. `ydm`/`ltYdm` get no template: this schema indexes no
-  // YDM events, it only records their addresses.
-  //
-  // The junior and liquidity slots are OPTIONAL — a market carries a senior plus at
-  // least one counterparty, so exactly one of the two may be the zero address
-  // (RoycoFactory.sol:132-137). Instantiating a template on 0x0 would spawn a data
-  // source that binds an ABI to the null address; its first eth_call would revert and
-  // stall the subgraph. Skip the absent slot entirely — with no template it emits no
-  // events, which is the correct outcome for a tranche that does not exist.
+  // Spawn all five templates first. YDM events are not indexed; only their
+  // addresses are stored on the market.
   RoycoSeniorTranche.create(result.seniorTranche);
-  if (!isZeroAddress(result.juniorTranche)) {
-    RoycoJuniorTranche.create(result.juniorTranche);
-  }
-  if (!isZeroAddress(result.liquidityProviderTranche)) {
-    RoycoLiquidityProviderTranche.create(result.liquidityProviderTranche);
-  }
+  RoycoJuniorTranche.create(result.juniorTranche);
+  RoycoLiquidityProviderTranche.create(result.liquidityProviderTranche);
   RoycoDayAccountant.create(result.accountant);
   RoycoDayKernel.create(result.kernel);
 
@@ -188,11 +172,7 @@ export function handleMarketDeploymentCompleted(
   // A venue-less market reports the zero address for quoteAsset.
   const collateralAsset = kernelState.collateralAsset.toHexString();
   market.collateralTokenAddress = collateralAsset;
-  market.collateralTokenId = generateMarketTokenId(
-    collateralAsset,
-    marketId,
-    MARKET_TOKEN_ROLE_COLLATERAL_ASSET
-  );
+  market.collateralTokenId = generateTokenId(collateralAsset);
   // The DECIMALS duplicate the senior and junior DayVaultState.assetTokenDecimals — same
   // token, same read — for the same reason the address above duplicates their
   // assetTokenAddress: one market row instead of a three-way vault join, plus a free
@@ -202,26 +182,15 @@ export function handleMarketDeploymentCompleted(
 
   const lptAsset = kernelState.lptAsset.toHexString();
   market.liquidityTrancheAssetTokenAddress = lptAsset;
-  market.liquidityTrancheAssetTokenId = generateMarketTokenId(
-    lptAsset,
-    marketId,
-    MARKET_TOKEN_ROLE_LPT_ASSET
-  );
-  // Same duplication against the LIQUIDITY vault — except that slot is OPTIONAL, so when
-  // the market omits its liquidity tranche there is no DayVaultState to duplicate and
-  // these are the only scale and label the LPT asset has anywhere. Sourced from the
-  // ADDRESS the kernel reports rather than from the vault for exactly that reason: the
-  // two stop agreeing precisely when the vault stops existing.
+  market.liquidityTrancheAssetTokenId = generateTokenId(lptAsset);
+  // Store the LPT asset metadata on the market for consumers that do not join
+  // through the liquidity vault.
   market.liquidityTrancheAssetTokenSymbol = erc20Symbol(kernelState.lptAsset);
   market.liquidityTrancheAssetTokenDecimals = erc20Decimals(kernelState.lptAsset);
 
   const quoteAsset = kernelState.quoteAsset.toHexString();
   market.quoteAssetTokenAddress = quoteAsset;
-  market.quoteAssetTokenId = generateMarketTokenId(
-    quoteAsset,
-    marketId,
-    MARKET_TOKEN_ROLE_QUOTE_ASSET
-  );
+  market.quoteAssetTokenId = generateTokenId(quoteAsset);
   // The only one of the three whose token may genuinely not exist: a venue-less kernel
   // reports the zero address here, and "" / 0 beside a zero address is the truthful "no
   // quote asset" answer. This is also the ONLY place the quote token's scale and label
@@ -250,11 +219,6 @@ export function handleMarketDeploymentCompleted(
   // off the addresses the DeploymentResult already gave us — no extra hop, and no vault
   // needed. Fixed at initialize() with no event for either, so once at creation is the
   // only read (§5).
-  //
-  // Both counterparty slots are OPTIONAL, and BOTH helpers guard the zero address, so an
-  // omitted junior or liquidity tranche stores "" / 0 rather than calling into 0x0 and
-  // killing this handler. That is the same guard the quote asset relies on, which is why
-  // it is worth having in one place.
   //
   // The decimals DUPLICATE each tranche's DayVaultState.shareTokenDecimals — same token,
   // same view — for the same reason the asset columns above duplicate the vaults': a
@@ -349,21 +313,13 @@ export function handleMarketDeploymentCompleted(
     TRANCHE_TYPE_SENIOR,
     market
   );
-  // The junior vault's return IS needed: the collateral ASSET price covers senior and
-  // junior together (one shared token), but each tranche has its OWN share price, so all
-  // three vaults are passed through.
-  //
-  // Both counterparty slots are OPTIONAL and a null return means the market omitted that
-  // tranche (its address was 0x0) — NOT a failure. createVaultIfPresent skips the vault,
-  // its creation snapshot and every eth_call for that slot; marketNavPricesFromVaults
-  // below takes the nullable results and prices only the tranches that exist.
-  const junior = createVaultIfPresent(
+  const junior = createVault(
     event,
     result.juniorTranche,
     TRANCHE_TYPE_JUNIOR,
     market
   );
-  const liquidity = createVaultIfPresent(
+  const liquidity = createVault(
     event,
     result.liquidityProviderTranche,
     TRANCHE_TYPE_LIQUIDITY,
@@ -378,26 +334,7 @@ export function handleMarketDeploymentCompleted(
   );
 }
 
-/**
- * One ERC20's `decimals()`, or ERC20_DECIMALS_UNKNOWN when it cannot be read.
- *
- * Backs SIX columns now: the three asset tokens' *TokenDecimals and the three tranche
- * share tokens'. `decimals()` is uint8 -> i32 and `Int!` IS i32, so the value is assigned
- * direct — never BigInt.fromI32() (§4).
- *
- * GUARDED ON BOTH FAILURE MODES, which are distinct:
- *   - the token is ABSENT. A venue-less kernel reports the zero address for its quote
- *     asset, and an omitted junior or liquidity tranche arrives as 0x0 in the
- *     DeploymentResult; calling decimals() on 0x0 reverts.
- *   - the token EXISTS but omits `decimals()`, which is OPTIONAL in ERC20.
- * Either way 0 is the honest reading. It is NOT distinguishable on its own from a real
- * 0-decimals token — the address column beside it is what disambiguates.
- *
- * `try_` matters more here than anywhere else in this file: a raw call that reverted
- * would kill handleMarketDeploymentCompleted, and with it the market, all three vaults
- * and every row that would ever hang off them (§5). Immutable metadata read once at
- * deployment, so there is no refresh path to get it right later.
- */
+/** One ERC20's decimals, or the unknown sentinel when the view is unavailable. */
 function erc20Decimals(token: Address): i32 {
   if (isZeroAddress(token)) {
     return ERC20_DECIMALS_UNKNOWN;
@@ -406,26 +343,7 @@ function erc20Decimals(token: Address): i32 {
   return decimals.reverted ? ERC20_DECIMALS_UNKNOWN : decimals.value;
 }
 
-/**
- * One ERC20's `symbol()`, or ERC20_SYMBOL_UNKNOWN when it cannot be read.
- *
- * The string twin of erc20Decimals, guarded on the same two cases and for the same
- * reason, and backing the same six tokens: the three asset tokens and the three tranche
- * share tokens. The ABSENT case differs per token — a venue-less kernel for the quote
- * asset, an omitted counterparty slot for a tranche.
- *
- * `symbol()` is the SHAKIER of the two reads and the guard is load-bearing rather than
- * defensive: it is optional in ERC20 like `decimals()`, and older tokens additionally
- * declare it as `bytes32` instead of `string`, which decodes as a revert against this
- * ABI rather than as a value. The tranches themselves are ordinary OZ-style ERC20s, so
- * neither case is expected — but this runs inside the one handler whose failure would
- * cost the market, all three vaults and every row downstream of them (§5).
- *
- * Assigned direct to a `String!`: `symbol()` returns a Solidity `string`, which decodes
- * to an AS `string` already. This is NOT an address or a Bytes, so there is no
- * .toHexString() here — that rule (§3) is about raw bytes, and applying it to a real
- * string would hex-encode a symbol that is already text.
- */
+/** One ERC20's symbol, or the unknown sentinel when the view is unavailable. */
 function erc20Symbol(token: Address): string {
   if (isZeroAddress(token)) {
     return ERC20_SYMBOL_UNKNOWN;
@@ -476,31 +394,6 @@ function marketStateName(lastMarketState: i32): string {
  *      subgraph stalls; `try_` does not save you, because the host errors before
  *      it can hand back a reverted result.
  */
-/**
- * createVault for an OPTIONAL tranche slot.
- *
- * A market may omit its junior OR its liquidity tranche (never both — RoycoFactory
- * requires a senior plus one counterparty, RoycoFactory.sol:132-137), and an omitted
- * slot arrives as the zero address. Binding a vault to 0x0 and calling asset() /
- * decimals() on it would revert and stall the subgraph, so return null instead: the
- * slot gets no DayVaultState, no creation snapshot and no eth_call. DayMarketState still
- * stores the zero address in that slot's *Address column, which is how a downstream
- * consumer tells the tranche is absent.
- *
- * Wraps createVault rather than duplicating it, so the two paths cannot drift.
- */
-function createVaultIfPresent(
-  event: MarketDeploymentCompletedEvent,
-  trancheAddress: Address,
-  minorType: string,
-  market: DayMarketState
-): DayVaultState | null {
-  if (isZeroAddress(trancheAddress)) {
-    return null;
-  }
-  return createVault(event, trancheAddress, minorType, market);
-}
-
 function createVault(
   event: MarketDeploymentCompletedEvent,
   trancheAddress: Address,
@@ -524,14 +417,7 @@ function createVault(
   const assetToken = tranche.asset();
   const assetAddress = assetToken.toHexString();
   vault.assetTokenAddress = assetAddress;
-  // MARKET-SCOPED AND ROLE-TAGGED, matching DayMarketState.collateralTokenId /
-  // liquidityTrancheAssetTokenId for the same token in the same role. Set AFTER
-  // assetTokenAddress, minorType and marketId, because marketAssetTokenId reads all
-  // three off the vault.
-  //
-  // This is the ONE definition: the Global* asset rows read this column rather than
-  // recomputing, so a vault's asset id and its transfer rows cannot drift apart.
-  vault.assetTokenId = marketAssetTokenId(vault);
+  vault.assetTokenId = generateTokenId(assetAddress);
   // decimals() is uint8 -> i32, and Int! IS i32 — assign direct, never
   // BigInt.fromI32() (§4).
   vault.assetTokenDecimals = ERC20.bind(assetToken).decimals();

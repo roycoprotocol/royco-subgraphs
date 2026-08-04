@@ -192,36 +192,9 @@ export function handleFixedTermDurationUpdated(
 }
 
 /**
- * The JT impermanent loss that was erased — the ONLY witness to that
- * number anywhere on chain. The Accountant copies it into a local and zeroes
- * storage BEFORE marshalling state, so by the time anything else can observe the
- * market, both the preview and getState() already read 0.
- *
- * WRITES TWO THINGS, WITH DELIBERATELY DIFFERENT RULES:
- *
- *   1. DayMarketState.juniorTrancheCoverageLossNAV — a LIFETIME TOTAL. EVERY
- *      erase adds to it, term-end or not, so it only ever grows. No contract
- *      tracks this; the subgraph is the only place it exists.
- *
- *   2. DayFixedTermHistory.juniorTrancheImpermanentLossNAV — PER-TERM, and
- *      only for the erase that ended THAT term. An erase does NOT imply a term
- *      ended (the erase branch has four disjuncts and three of them fire on
- *      already-perpetual markets), so this one is guarded. All the subtlety is in
- *      recordFixedTermCoverageLoss — read its note before touching either.
- *
- * The two therefore disagree on purpose: the market total is >= the sum of the
- * per-term rows, and the difference is exactly the erases that ended no term.
- *
- * NO DOUBLE-COUNT: one erase can emit at most one NON-ZERO Reset. If the sync
- * erases, it zeroes storage, so a setFixedTermDuration(0) body re-emitting in the
- * same tx necessarily carries 0 and the zero guard drops it. If the sync did not
- * erase, only the body's Reset fires. Two non-zero Resets in one tx would mean two
- * genuinely distinct erasures, and adding both is correct.
- *
- * It does NOT touch juniorTrancheImpermanentLoss — that is the LIVE value
- * from the preview block and belongs to handleTrancheAccountingSynced (still a
- * stub). See the schema note: the two names differ by one word and mean opposite
- * things.
+ * Add every nonzero erased JT loss to the market's lifetime total. If the reset
+ * ended a real fixed term, also attach it to that term; resets while perpetual do
+ * not create synthetic fixed-term rows.
  */
 export function handleJuniorTrancheImpermanentLossReset(
   event: JuniorTrancheImpermanentLossResetEvent,
@@ -238,11 +211,6 @@ export function handleJuniorTrancheImpermanentLossReset(
   market.juniorTrancheImpermanentLossNAV =
     market.juniorTrancheImpermanentLossNAV.plus(erased);
 
-  // BEFORE touchMarket, not after. On a market with a zero fixedTermDurationSeconds
-  // this opens a new history row and ADVANCES countFixedTermEntries on the in-memory
-  // market; touchMarket is the save that persists it. Called after the save, the
-  // cursor bump would be silently dropped and the next loss would overwrite this
-  // row's id. Same ordering as handleFixedTermCommenced and handleFixedTermEnded.
   recordFixedTermCoverageLoss(event, market, erased);
 
   touchMarket(event, market);

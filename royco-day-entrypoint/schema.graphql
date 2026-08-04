@@ -27,7 +27,7 @@ type GlobalTokenActivity @entity(immutable: true) {
   accountAddress: String!
   type: String!
   tokenIndex: BigInt!
-  tokenId: String!
+  tokenId: String! # <CHAIN_ID>_<TOKEN_ADDRESS>
   tokenAddress: String!
   value: BigInt!
   status: String!
@@ -74,7 +74,7 @@ type DayEntryPointState @entity(immutable: false) {
   vaultAddress: String! # the Day tranche
   vaultId: String! # <CHAIN_ID>_<TRANCHE_ADDRESS>
   depositTokenAddress: String! # <- tranche.asset()
-  depositTokenId: String!
+  depositTokenId: String! # <CHAIN_ID>_<DEPOSIT_TOKEN_ADDRESS>
   shareTokenAddress: String! # == the tranche address
   shareTokenId: String!
   isEnabled: Boolean! # <- config.enabled
@@ -110,7 +110,7 @@ type DayEntryPointRequest @entity(immutable: false) {
   requestReceiverAddress: String! # <- *Requested.receiver
   category: String! # "assets" (deposit) | "shares" (redemption)
   subCategory: String! # "deposit" | "withdraw"
-  tokenId: String!
+  tokenId: String! # <CHAIN_ID>_<TOKEN_ADDRESS>
   tokenAddress: String!
   currValue: BigInt! # remaining escrow (assets for deposits, shares for redemptions)
   initValue: BigInt! # <- *Requested.assets / .shares

@@ -11,34 +11,10 @@
 // === GLOBAL ===
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-/**
- * The value stored for an ERC20 `decimals()` that could not be read.
- *
- * `decimals()` is OPTIONAL in ERC20, and the token may not exist at all — on a venue-less
- * market Kernel.getState().quoteAsset is ZERO_ADDRESS, so there is nothing to ask. An
- * `Int!` cannot be null, so this is the sentinel for both cases.
- *
- * It is NOT distinguishable from a real 0-decimals token by itself — pair it with the
- * `*TokenAddress` column beside it (`== ZERO_ADDRESS`) to tell the two apart. It backs
- * all three of DayMarketState's *TokenDecimals columns, which read through
- * `erc20Decimals` in src/royco-factory.ts. The PER-VAULT reads
- * (DayVaultState.assetTokenDecimals / shareTokenDecimals) stay raw calls: those tokens
- * are guaranteed to exist by the kernel's constructor (§5).
- */
+/** Sentinel for an unavailable optional ERC20 decimals view. */
 export const ERC20_DECIMALS_UNKNOWN: i32 = 0;
 
-/**
- * The value stored for an ERC20 `symbol()` that could not be read.
- *
- * Same two cases as ERC20_DECIMALS_UNKNOWN above — the token does not exist, or it exists
- * and omits the optional view — and the same disambiguation: pair it with the `*Address`
- * column beside it. It backs the same six DayMarketState columns: the three asset tokens'
- * symbols and the three tranche share tokens'.
- *
- * The empty string is chosen over a literal like "UNKNOWN" because it cannot collide with
- * a real symbol: an ERC20 may legitimately be called UNKNOWN, but a deployed token's
- * symbol is never "".
- */
+/** Sentinel for an unavailable optional ERC20 symbol view. */
 export const ERC20_SYMBOL_UNKNOWN = "";
 
 // === UPDATE TYPES ===
@@ -83,7 +59,7 @@ export const MARKET_STATE_FIXED = "fixed"; // enum 1
 export const TOKEN_INDEX_SINGLE: i32 = 0; // logs that move exactly one token
 // TWO legs in v2, not three: AssetClaims merged its separate senior and junior asset
 // legs into one `collateralAssets`. The indices stay POSITIONAL — index 0 is always the
-// collateral leg and 1 always the liquidity leg, even when one of them is absent.
+// collateral leg and 1 always the liquidity leg, even when one amount is zero.
 export const REDEEM_TOKEN_INDEX_COLLATERAL_ASSETS: i32 = 0;
 export const REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS: i32 = 1;
 
@@ -123,18 +99,6 @@ export const OPERATION_LPT_REDEEM = "lptRedeem"; // enum 5
 // An out-of-range ordinal means the enum grew and this list did not — surfaced as
 // "unknown" rather than silently mapped to a neighbour.
 export const OPERATION_UNKNOWN = "unknown";
-
-// === MARKET TOKEN ROLES ===
-// The trailing component of DayMarketState's three market-level token ids
-// (generateMarketTokenId). These land in Postgres inside the id string, so they are part
-// of the public contract exactly like a column value — adding is cheap, changing is a
-// migration (§9).
-//
-// They name the role a token plays IN A MARKET, not the token itself: the same ERC20 can
-// be collateral in one market and the quote asset in another.
-export const MARKET_TOKEN_ROLE_COLLATERAL_ASSET = "collateralAsset";
-export const MARKET_TOKEN_ROLE_LPT_ASSET = "lptAsset";
-export const MARKET_TOKEN_ROLE_QUOTE_ASSET = "quoteAsset";
 
 // === TRANCHE TYPES ===
 // DayVaultState.minorType / DayVaultStateHistorical.minorType.

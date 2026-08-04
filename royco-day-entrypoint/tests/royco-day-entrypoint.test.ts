@@ -40,6 +40,7 @@ import {
   generateEntryPointStateId,
   generateExecutionId,
   generateGlobalTokenActivityId,
+  generateTokenId,
 } from "../src/utils";
 
 const ENTITY = "DayEntryPointRequest";
@@ -219,6 +220,12 @@ describe("TrancheConfigUpdated", () => {
     assert.fieldEquals("DayEntryPointState", id, "redemptionExpirySeconds", "600");
     assert.fieldEquals("DayEntryPointState", id, "gateByOracleUpdate", "true");
     assert.fieldEquals("DayEntryPointState", id, "depositTokenAddress", ASSET.toHexString());
+    assert.fieldEquals(
+      "DayEntryPointState",
+      id,
+      "depositTokenId",
+      generateTokenId(ASSET.toHexString())
+    );
   });
 
   test("oracle pokes and pause events maintain executable-state inputs", () => {
@@ -306,6 +313,7 @@ describe("deposit lifecycle", () => {
     assert.fieldEquals(ENTITY, id, "expiresAtTimestamp", EXPIRES_AT.toString());
     assert.fieldEquals(ENTITY, id, "equivalentSharesAtRequestTime", "10000");
     assert.fieldEquals(ENTITY, id, "remainingEquivalentSharesAtRequestTime", "10000");
+    assert.fieldEquals(ENTITY, id, "tokenId", generateTokenId(ASSET.toHexString()));
     assert.entityCount("GlobalTokenActivity", 1);
     const actId = generateGlobalTokenActivityId(
       rq.transaction.hash.toHexString(), rq.logIndex, TRANCHE.toHexString(), "assets", "deposit", BigInt.zero()
@@ -314,6 +322,12 @@ describe("deposit lifecycle", () => {
     assert.fieldEquals("GlobalTokenActivity", actId, "status", "pending");
     assert.fieldEquals("GlobalTokenActivity", actId, "value", "1000");
     assert.fieldEquals("GlobalTokenActivity", actId, "accountAddress", ALICE.toHexString());
+    assert.fieldEquals(
+      "GlobalTokenActivity",
+      actId,
+      "tokenId",
+      generateTokenId(ASSET.toHexString())
+    );
   });
 
   test("partial then full execution consumes deposited assets while bonus is paid in shares", () => {
@@ -432,6 +446,12 @@ describe("redemption lifecycle", () => {
     );
     assert.fieldEquals("GlobalTokenActivity", redActId, "status", "updated");
     assert.fieldEquals("GlobalTokenActivity", redActId, "value", "600");
+    assert.fieldEquals(
+      "GlobalTokenActivity",
+      redActId,
+      "tokenId",
+      generateTokenId(TRANCHE.toHexString())
+    );
 
     const ev2 = at(
       redemptionExecuted(

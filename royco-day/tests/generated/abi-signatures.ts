@@ -155,66 +155,6 @@ export const ROYCO_DAY_ACCOUNTANT__FIXED_TERM_COMMENCEABLE_AT__EVENT: string =
   "FixedTermCommenceableAt(uint64)";
 
 // ==========================================================================
-// RoycoDayAdaptiveCurveYdmV1  (abis/RoycoDayAdaptiveCurveYdmV1.json)
-// ==========================================================================
-
-// --- callable functions (9) — view/pure/nonpayable/constant ---
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__ADAPTATION_SPEED_AT_BOUNDARY_WAD: string =
-  "ADAPTATION_SPEED_AT_BOUNDARY_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__MAX_ADAPTATION_SPEED_WAD: string =
-  "MAX_ADAPTATION_SPEED_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__MAX_YIELD_SHARE_AT_TARGET_WAD: string =
-  "MAX_YIELD_SHARE_AT_TARGET_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__MIN_YIELD_SHARE_AT_TARGET_WAD: string =
-  "MIN_YIELD_SHARE_AT_TARGET_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__TARGET_UTILIZATION_WAD: string =
-  "TARGET_UTILIZATION_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__ACCOUNTANT_TO_CURVE: string =
-  "accountantToCurve(address):(uint64,uint32,uint160)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__INITIALIZE_YDM_FOR_MARKET: string =
-  "initializeYDMForMarket(uint64,uint64)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__PREVIEW_YIELD_SHARE: string =
-  "previewYieldShare(uint8,uint256):(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__YIELD_SHARE: string =
-  "yieldShare(uint8,uint256):(uint256)";
-
-// --- event signatures (2) — these are the strings for subgraph.template.yaml `event:` ---
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__ADAPTIVE_CURVE_YDM_INITIALIZED__EVENT: string =
-  "AdaptiveCurveYdmInitialized(indexed address,uint256,uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V1__YDM_ADAPTED_OUTPUT__EVENT: string =
-  "YdmAdaptedOutput(indexed address,uint256,uint256)";
-
-// ==========================================================================
-// RoycoDayAdaptiveCurveYdmV2  (abis/RoycoDayAdaptiveCurveYdmV2.json)
-// ==========================================================================
-
-// --- callable functions (9) — view/pure/nonpayable/constant ---
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__ADAPTATION_SPEED_AT_BOUNDARY_WAD: string =
-  "ADAPTATION_SPEED_AT_BOUNDARY_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__MAX_ADAPTATION_SPEED_WAD: string =
-  "MAX_ADAPTATION_SPEED_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__MAX_YIELD_SHARE_AT_TARGET_WAD: string =
-  "MAX_YIELD_SHARE_AT_TARGET_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__MIN_YIELD_SHARE_AT_TARGET_WAD: string =
-  "MIN_YIELD_SHARE_AT_TARGET_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__TARGET_UTILIZATION_WAD: string =
-  "TARGET_UTILIZATION_WAD():(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__ACCOUNTANT_TO_CURVE: string =
-  "accountantToCurve(address):(uint64,uint32,uint64,uint64)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__INITIALIZE_YDM_FOR_MARKET: string =
-  "initializeYDMForMarket(uint64,uint64,uint64)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__PREVIEW_YIELD_SHARE: string =
-  "previewYieldShare(uint8,uint256):(uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__YIELD_SHARE: string =
-  "yieldShare(uint8,uint256):(uint256)";
-
-// --- event signatures (2) — these are the strings for subgraph.template.yaml `event:` ---
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__ADAPTIVE_CURVE_YDM_INITIALIZED__EVENT: string =
-  "AdaptiveCurveYdmInitialized(indexed address,uint256,uint256,uint256)";
-export const ROYCO_DAY_ADAPTIVE_CURVE_YDM_V2__YDM_ADAPTED_OUTPUT__EVENT: string =
-  "YdmAdaptedOutput(indexed address,uint256,uint256)";
-
-// ==========================================================================
 // RoycoDayKernel  (abis/RoycoDayKernel.json)
 // ==========================================================================
 
@@ -355,28 +295,6 @@ export const ROYCO_DAY_KERNEL__SEQUENCER_UPTIME_FEED_UPDATED__EVENT: string =
   "SequencerUptimeFeedUpdated(indexed address,uint48)";
 export const ROYCO_DAY_KERNEL__UNPAUSED__EVENT: string =
   "Unpaused(address)";
-
-// ==========================================================================
-// RoycoDayStaticCurveYdm  (abis/RoycoDayStaticCurveYdm.json)
-// ==========================================================================
-
-// --- callable functions (5) — view/pure/nonpayable/constant ---
-export const ROYCO_DAY_STATIC_CURVE_YDM__TARGET_UTILIZATION_WAD: string =
-  "TARGET_UTILIZATION_WAD():(uint256)";
-export const ROYCO_DAY_STATIC_CURVE_YDM__ACCOUNTANT_TO_CURVE: string =
-  "accountantToCurve(address):(uint64,uint64,uint64,uint64)";
-export const ROYCO_DAY_STATIC_CURVE_YDM__INITIALIZE_YDM_FOR_MARKET: string =
-  "initializeYDMForMarket(uint64,uint64,uint64)";
-export const ROYCO_DAY_STATIC_CURVE_YDM__PREVIEW_YIELD_SHARE: string =
-  "previewYieldShare(uint8,uint256):(uint256)";
-export const ROYCO_DAY_STATIC_CURVE_YDM__YIELD_SHARE: string =
-  "yieldShare(uint8,uint256):(uint256)";
-
-// --- event signatures (2) — these are the strings for subgraph.template.yaml `event:` ---
-export const ROYCO_DAY_STATIC_CURVE_YDM__STATIC_CURVE_YDM_INITIALIZED__EVENT: string =
-  "StaticCurveYdmInitialized(indexed address,uint256,uint256,uint256)";
-export const ROYCO_DAY_STATIC_CURVE_YDM__YDM_OUTPUT__EVENT: string =
-  "YdmOutput(indexed address,uint256)";
 
 // ==========================================================================
 // RoycoFactory  (abis/RoycoFactory.json)

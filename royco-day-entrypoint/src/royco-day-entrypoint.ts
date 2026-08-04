@@ -45,7 +45,6 @@ import {
   generateGlobalTokenActivityId,
   generateVaultId,
   generateTokenId,
-  generateTokenVaultId,
 } from "./utils";
 
 // The EntryPoint is a per-chain singleton — every event emits from its one
@@ -97,7 +96,7 @@ function getOrCreateState(
   state.vaultAddress = trancheAddress;
   state.vaultId = generateVaultId(trancheAddress);
   state.depositTokenAddress = depositTokenAddress;
-  state.depositTokenId = generateTokenVaultId(depositTokenAddress, trancheAddress);
+  state.depositTokenId = generateTokenId(depositTokenAddress);
   state.shareTokenAddress = trancheAddress;
   state.shareTokenId = generateTokenId(trancheAddress);
   state.isEnabled = false; // real values arrive via TrancheConfigUpdated
@@ -150,10 +149,7 @@ function initRequest(
   request.requestReceiverAddress = requestReceiverAddress;
   request.category = category;
   request.subCategory = subCategory;
-  request.tokenId =
-    category == CATEGORY_ASSETS
-      ? generateTokenVaultId(tokenAddress, trancheAddress)
-      : generateTokenId(tokenAddress);
+  request.tokenId = generateTokenId(tokenAddress);
   request.tokenAddress = tokenAddress;
   request.currValue = initValue;
   request.initValue = initValue;
