@@ -45,11 +45,19 @@ export const TRANCHE_SENIOR: i32 = 0;
 export const TRANCHE_JUNIOR: i32 = 1;
 export const TRANCHE_LIQUIDITY: i32 = 2; // TrancheType.LIQUIDITY_PROVIDER in v2
 
-/** Mock the ERC20-ish surface every tranche shares. */
+/**
+ * Mock the ERC20-ish surface every tranche shares.
+ *
+ * `symbol` is what DayMarketState's three *TrancheTokenSymbol columns read. Pass a
+ * DISTINCT one per tranche — the three share `decimals` in every fixture here, so the
+ * symbol is the only thing that makes a senior/junior/liquidity transposition across
+ * those columns fail rather than pass on identical values.
+ */
 export function mockTrancheToken(
   tranche: Address,
   asset: Address,
   decimals: i32,
+  symbol: string,
   totalSupply: BigInt
 ): void {
   createMockedFunction(tranche, "asset", "asset():(address)")
@@ -58,6 +66,9 @@ export function mockTrancheToken(
   createMockedFunction(tranche, "decimals", "decimals():(uint8)")
     .withArgs([])
     .returns([ethereum.Value.fromI32(decimals)]);
+  createMockedFunction(tranche, "symbol", "symbol():(string)")
+    .withArgs([])
+    .returns([ethereum.Value.fromString(symbol)]);
   createMockedFunction(tranche, "totalSupply", "totalSupply():(uint256)")
     .withArgs([])
     .returns([ethereum.Value.fromUnsignedBigInt(totalSupply)]);
@@ -66,11 +77,25 @@ export function mockTrancheToken(
     .returns([ethereum.Value.fromAddress(ADDR_KERNEL)]);
 }
 
-/** Mock the asset token itself (needed for DayVaultState.assetTokenDecimals). */
-export function mockAssetToken(asset: Address, decimals: i32): void {
+/**
+ * Mock the asset token itself: `decimals()` for DayVaultState.assetTokenDecimals, and
+ * `symbol()` for DayMarketState's three *AssetTokenSymbol columns.
+ *
+ * Pass a DISTINCT symbol per token. The collateral and the BPT share `assetDecimals` in
+ * the default fixture, so the symbol is what makes a collateral/LPT transposition across
+ * those columns fail rather than pass on two identical 18s.
+ */
+export function mockAssetToken(
+  asset: Address,
+  decimals: i32,
+  symbol: string
+): void {
   createMockedFunction(asset, "decimals", "decimals():(uint8)")
     .withArgs([])
     .returns([ethereum.Value.fromI32(decimals)]);
+  createMockedFunction(asset, "symbol", "symbol():(string)")
+    .withArgs([])
+    .returns([ethereum.Value.fromString(symbol)]);
 }
 
 /**
@@ -203,6 +228,25 @@ export function mockAssetPriceNAV(
     .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
 }
 
+/**
+ * Mock ONLY the LPT leg of the pair above, at its own input — for when the collateral
+ * and the LPT asset do not share a scale. Each converter is keyed on 10 ** its OWN
+ * asset's decimals, and mockAssetPriceNAV registers both at one input.
+ */
+export function mockLPTAssetPriceNAV(
+  kernel: Address,
+  oneLPTAssetToken: BigInt,
+  lptNAV: BigInt
+): void {
+  createMockedFunction(
+    kernel,
+    "convertLPTAssetsToValue",
+    ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE
+  )
+    .withArgs([ethereum.Value.fromUnsignedBigInt(oneLPTAssetToken)])
+    .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
+}
+
 /** Return a fixture whose kernel has no liquidity venue. */
 export function withoutQuoteAsset(m: DayMarketFixture): DayMarketFixture {
   m.quoteAsset = ADDR_ZERO;
@@ -231,6 +275,28 @@ export class DayMarketFixture {
   quoteAsset: Address = ADDR_QUOTE_ASSET;
   assetDecimals: i32 = DECIMALS_18;
   trancheDecimals: i32 = DECIMALS_18;
+  // The three tranches' own ERC20 symbols, behind DayMarketState's *TrancheTokenSymbol
+  // columns. DELIBERATELY DISTINCT, and the only thing that is: all three tranches share
+  // `trancheDecimals`, so a transposition across the senior/junior/liquidity columns is
+  // invisible on the decimals alone. Kept short and unlike each other so a swapped pair
+  // reads as an obviously wrong string rather than a near-miss.
+  seniorTrancheSymbol: string = "DAY-SNR";
+  juniorTrancheSymbol: string = "DAY-JNR";
+  liquidityTrancheSymbol: string = "DAY-LPT";
+  // The three ASSET tokens' symbols, behind DayMarketState's *AssetTokenSymbol columns.
+  // Distinct for the same reason as the tranche symbols above, and doing more work here:
+  // the collateral and the BPT share `assetDecimals` by default, so these are the only
+  // fixture values that separate those two columns at all.
+  collateralAssetSymbol: string = "WETH";
+  lptAssetSymbol: string = "BPT-DAY";
+  quoteAssetSymbol: string = "USDC";
+  // The BPT's own scale, separate from `assetDecimals` because the LPT asset is a
+  // DIFFERENT token from the collateral and DayMarketState now records both scales
+  // (collateralAssetTokenDecimals / liquidityTrancheAssetTokenDecimals). Defaults to 18
+  // — EQUAL to assetDecimals — so nothing that predates it moves; a test that wants a
+  // collateral/LPT transposition to be visible sets this to something else, and
+  // mockDayMarket then registers the LPT NAV converter at that scale too.
+  lptAssetDecimals: i32 = DECIMALS_18;
   // 6, NOT 18, on purpose: the quote asset is the one token whose decimals differ from
   // everything else in the fixture (USDC is the real-world case), so a handler that
   // reads the wrong token's decimals for it shows up as a wrong number rather than a
@@ -442,8 +508,20 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.totalTrancheShares
   );
 
-  mockTrancheToken(m.seniorTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
-  mockTrancheToken(m.juniorTranche, m.asset, m.trancheDecimals, m.sharesTotalSupply);
+  mockTrancheToken(
+    m.seniorTranche,
+    m.asset,
+    m.trancheDecimals,
+    m.seniorTrancheSymbol,
+    m.sharesTotalSupply
+  );
+  mockTrancheToken(
+    m.juniorTranche,
+    m.asset,
+    m.trancheDecimals,
+    m.juniorTrancheSymbol,
+    m.sharesTotalSupply
+  );
   // The LIQUIDITY tranche's asset is the BPT, NOT the collateral. The kernel
   // constructor requires liquidityProviderTranche.asset() == LPT_ASSET, so a fixture
   // that reported the collateral here would describe a market that cannot exist — and
@@ -453,6 +531,7 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.liquidityTranche,
     m.lptAsset,
     m.trancheDecimals,
+    m.liquidityTrancheSymbol,
     m.sharesTotalSupply
   );
 
@@ -491,13 +570,25 @@ export function mockDayMarket(m: DayMarketFixture): void {
     m.bootstrapLPTAssets
   );
 
-  mockAssetToken(m.asset, m.assetDecimals);
+  mockAssetToken(m.asset, m.assetDecimals, m.collateralAssetSymbol);
   // The BPT is an ERC20 too — createVault reads decimals off the liquidity tranche's
-  // asset, which is now (correctly) this one.
-  mockAssetToken(m.lptAsset, m.assetDecimals);
-  // The quote asset's own decimals. It has no tranche, so nothing else mocks it, and
-  // handleMarketDeploymentCompleted reads it straight off the ERC20.
-  mockAssetToken(m.quoteAsset, m.quoteAssetDecimals);
+  // asset, which is now (correctly) this one, and handleMarketDeploymentCompleted reads
+  // the same token again for DayMarketState.liquidityTrancheAssetToken{Symbol,Decimals}.
+  mockAssetToken(m.lptAsset, m.lptAssetDecimals, m.lptAssetSymbol);
+  // The LPT NAV converter is keyed on 10 ** the LPT ASSET's decimals, so when the BPT
+  // has a scale of its own the converter has to be registered at that input as well.
+  // Additive: withArgs matching means the pair registered above at 10 ** assetDecimals
+  // survives, which is what the collateral leg still calls with.
+  if (m.lptAssetDecimals != m.assetDecimals) {
+    mockLPTAssetPriceNAV(
+      m.kernel,
+      BigInt.fromI32(10).pow(u8(m.lptAssetDecimals)),
+      m.liquidityAssetPriceNAV
+    );
+  }
+  // The quote asset's own decimals and symbol. It has no tranche, so nothing else mocks
+  // it, and handleMarketDeploymentCompleted reads both straight off the ERC20.
+  mockAssetToken(m.quoteAsset, m.quoteAssetDecimals, m.quoteAssetSymbol);
   // The BPT is the liquidity tranche's asset AND the Balancer pool.
   mockBalancerPool(
     m.lptAsset,

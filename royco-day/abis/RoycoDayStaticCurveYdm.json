@@ -1,0 +1,207 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_targetUtilizationWAD",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "TARGET_UTILIZATION_WAD",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "accountant",
+        "type": "address"
+      }
+    ],
+    "name": "accountantToCurve",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "yieldShareAtZeroUtilWAD",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "slopeLtTargetUtilWAD",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "yieldShareAtTargetWAD",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "slopeGteTargetUtilWAD",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "_yieldShareAtZeroUtilWAD",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "_yieldShareAtTargetWAD",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "_yieldShareAtFullUtilWAD",
+        "type": "uint64"
+      }
+    ],
+    "name": "initializeYDMForMarket",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum MarketState",
+        "name": "",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_utilizationWAD",
+        "type": "uint256"
+      }
+    ],
+    "name": "previewYieldShare",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum MarketState",
+        "name": "",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_utilizationWAD",
+        "type": "uint256"
+      }
+    ],
+    "name": "yieldShare",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "yieldShareWAD",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "accountant",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "yieldShareAtZeroUtilWAD",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slopeLtTargetUtilWAD",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slopeGteTargetUtilWAD",
+        "type": "uint256"
+      }
+    ],
+    "name": "StaticCurveYdmInitialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "accountant",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "yieldShareWAD",
+        "type": "uint256"
+      }
+    ],
+    "name": "YdmOutput",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "INVALID_YDM_INITIALIZATION",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "bits",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "SafeCastOverflowedUintDowncast",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UNINITIALIZED_YDM",
+    "type": "error"
+  }
+]

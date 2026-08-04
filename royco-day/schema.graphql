@@ -198,15 +198,21 @@ type DayMarketState @entity(immutable: false) {
   #   MaxReinvestmentSlippageUpdated.
   # ======
   # ======
-  # => the market's three ASSET TOKENS, from Kernel.getState().
+  # => the market's three ASSET TOKENS, from Kernel.getState() — members 4, 6 and 8 of
+  #    RoycoDayKernelState. They were standalone SCREAMING_CASE views until the 2026-08
+  #    kernel folded them in, and QUOTE_ASSET was `virtual` and bodyless there, so a
+  #    venue-less kernel reverted on it; a struct member cannot.
   #
-  # Read ONCE at market creation and never updated. The contract fixes all three when the
-  # kernel/venue is initialized and exposes them in the state packet already being read.
+  # Read ONCE at market creation and never updated, but NOT because they are Solidity
+  # `immutable` — RoycoDayKernel is a beacon proxy with no constructor and declares no
+  # `immutable` at all. They are ERC-7201 storage slots assigned exactly once in
+  # InitializationLogic.sol:48-52, and held fixed by the ABSENCE OF A SETTER (that is
+  # the real guarantee, and it is why no event exists for any of them).
   #
-  # !! THESE ARE NOT INDEPENDENT DATA — the kernel's constructor requires
+  # !! THESE ARE NOT INDEPENDENT DATA — the kernel's INITIALIZER requires
   #    seniorTranche.asset() == COLLATERAL_ASSET && juniorTranche.asset() == COLLATERAL_ASSET
   #    && liquidityProviderTranche.asset() == LPT_ASSET
-  #    (RoycoDayKernel.sol, TRANCHE_AND_KERNEL_ASSETS_MISMATCH). So
+  #    (InitializationLogic.sol:29-33, TRANCHE_AND_KERNEL_ASSETS_MISMATCH). So
   #    collateralTokenAddress MUST equal the senior and junior DayVaultState.assetTokenAddress,
   #    and liquidityTrancheAssetTokenAddress MUST equal the liquidity one. Storing them
   #    here is a market-level convenience — one row instead of a three-way vault join —
@@ -215,10 +221,35 @@ type DayMarketState @entity(immutable: false) {
   #    only home.
   collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.getState().collateralAsset
   collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>_<MARKET_ID>_collateralAsset
+  collateralAssetTokenSymbol: String! # Collateral Asset Token Symbol (ERC20.symbol())
+  collateralAssetTokenDecimals: Int! # Collateral Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.getState().lptAsset
   liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>_<MARKET_ID>_lptAsset
+  liquidityTrancheAssetTokenSymbol: String! # Liquidity Tranche Asset Token Symbol (ERC20.symbol())
+  liquidityTrancheAssetTokenDecimals: Int! # Liquidity Tranche Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.getState().quoteAsset
   quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>_<MARKET_ID>_quoteAsset
+  quoteAssetTokenSymbol: String! # Quote Asset Token Symbol (ERC20.symbol())
+  # ^ EVERY *TokenSymbol / *TokenDecimals COLUMN DESCRIBES THE TOKEN IN THE *TokenAddress
+  #   COLUMN BESIDE IT, and all six are read the same way: ERC20.symbol() / .decimals() at
+  #   market creation, guarded (erc20Symbol / erc20Decimals in src/royco-factory.ts). Read
+  #   once and never refreshed, because all three tokens are `immutable` on the kernel —
+  #   neither view can change its answer and no event exists for any of them (§5).
+  #
+  #   THE DECIMALS on the first two DUPLICATE the matching DayVaultState.assetTokenDecimals
+  #   — collateral on senior and junior, LPT on liquidity — deliberately, for exactly the
+  #   reason the addresses above are duplicated: one market row instead of a three-way
+  #   vault join, and a free cross-check if the two ever disagree in Neon. THE SYMBOLS have
+  #   no counterpart at all: DayVaultState carries no symbol column, so these three plus
+  #   the tranche symbols below are the whole schema's supply of human-readable token
+  #   labels, and the only way to render a market without an off-chain token list.
+  #
+  #   "" AND 0 ARE THE SENTINELS ON ALL SIX, never a symbol-less token and never a real
+  #   0-decimals one — pair each with the *TokenAddress beside it, which is the zero
+  #   address exactly when the token is absent. That matters most on the counterparty
+  #   slots: a market may omit its junior OR its liquidity tranche, and an omitted slot
+  #   gets no DayVaultState at all, so a consumer cannot fall back to the vault column
+  #   for it.
   # ^ THESE THREE ARE MARKET-SCOPED AND ROLE-TAGGED, unlike every other *TokenId column
   #   in this schema. DayVaultState.assetTokenId / shareTokenId and the two frozen
   #   Global* tokenId columns are chain-global (<CHAIN_ID>_<TOKEN_ADDRESS>), so two
@@ -248,8 +279,8 @@ type DayMarketState @entity(immutable: false) {
   #   (a kernel with no Balancer venue). Read it together with that field, never alone;
   #   0 is both "slot 0" and "unknown", exactly as quoteAssetTokenDecimals is.
   # ^ THE ONLY RECORD OF THE QUOTE TOKEN'S SCALE anywhere in this schema. The other two
-  #   asset tokens carry their decimals on their tranche's DayVaultState; the quote asset
-  #   has no tranche and no DayVaultState, so without this column the `quoteAssets`
+  #   asset tokens ALSO carry their decimals on their tranche's DayVaultState; the quote
+  #   asset has no tranche and no DayVaultState, so without this column the `quoteAssets`
   #   amounts on DayMultiAssetDepositActivity and DayMultiAssetRedeemActivity are raw
   #   integers with no scale attached and cannot be rendered or compared.
   #
@@ -264,6 +295,36 @@ type DayMarketState @entity(immutable: false) {
   #
   #   The asset addresses themselves require no extra calls: all three come from the
   #   already-decoded Kernel state. A venue-less market reports the zero quote address.
+  #
+  #   THE SYMBOL AND DECIMALS BESIDE THEM STILL NEED A GUARD — every *TokenSymbol and
+  #   *TokenDecimals column goes through erc20Symbol / erc20Decimals in
+  #   src/royco-factory.ts. A raw call that reverted would kill
+  #   handleMarketDeploymentCompleted, taking the market, all three vaults and every
+  #   downstream row with it.
+  # ======
+  # ======
+  # => the three tranches' SHARE TOKEN metadata, read once at market creation.
+  #
+  # A TRANCHE IS ITS OWN SHARE TOKEN, so these are symbol()/decimals() on the addresses
+  # already in the *TrancheAddress columns above. Fixed when the tranche initialises, with
+  # no event for either, so they are read once and never refreshed (§5).
+  #
+  # The DECIMALS duplicate DayVaultState.shareTokenDecimals for the same tranche — one
+  # market row instead of a three-way vault join, plus a free cross-check if the two ever
+  # disagree in Neon. The SYMBOLS have no counterpart anywhere: DayVaultState carries no
+  # symbol column, so this row is the only place a market's tranches can be labelled
+  # without an off-chain token list.
+  #
+  # AN ABSENT COUNTERPARTY TRANCHE READS AS "" / 0 — a market carries a senior plus at
+  # least one counterparty, so the junior OR the liquidity slot may be the zero address,
+  # and that slot gets no DayVaultState at all. Pair these with the matching
+  # *TrancheAddress, which is zero exactly when the tranche does not exist.
+  seniorTrancheTokenSymbol: String! # Senior Tranche Share Token Symbol <- ABI: seniorTranche.symbol()
+  seniorTrancheTokenDecimals: Int! # Senior Tranche Share Token Decimals <- ABI: seniorTranche.decimals() (uint8 -> i32; Int! IS i32, assign direct)
+  juniorTrancheTokenSymbol: String! # Junior Tranche Share Token Symbol <- ABI: juniorTranche.symbol()
+  juniorTrancheTokenDecimals: Int! # Junior Tranche Share Token Decimals <- ABI: juniorTranche.decimals()
+  liquidityTrancheTokenSymbol: String! # Liquidity Tranche Share Token Symbol <- ABI: liquidityProviderTranche.symbol()
+  liquidityTrancheTokenDecimals: Int! # Liquidity Tranche Share Token Decimals <- ABI: liquidityProviderTranche.decimals()
   # ======
   # ======
   # => data from "RoycoDayKernel.previewSyncTrancheAccountingFor(_trancheType)"
