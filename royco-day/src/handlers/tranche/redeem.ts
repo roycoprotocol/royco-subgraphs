@@ -54,10 +54,14 @@ export function processRedeem(
   // The collateral leg's token is read off the SENIOR vault, but it is equally the
   // junior's — they share one asset in v2, which is why the two legs merged. The
   // liquidity leg pays a different token, so it comes from its own vault row.
-  // Three entity loads, zero eth_calls.
+  //
+  // The senior tranche is MANDATORY (RoycoFactory.sol:132-137), so a missing senior is a
+  // real fault and we bail. The liquidity tranche is OPTIONAL: a market may omit it, in
+  // which case there is no vault, no lptAssets leg is ever paid, and only the collateral
+  // leg is emitted. Two entity loads, zero eth_calls.
   const senior = DayVaultState.load(market.seniorTrancheId);
+  if (!senior) return;
   const liquidity = DayVaultState.load(market.liquidityTrancheId);
-  if (!senior || !liquidity) return;
 
   // Unrolled, not a loop over a lookup table: AS has no closures (§3).
   emitLeg(
@@ -68,14 +72,18 @@ export function processRedeem(
     claims.collateralAssets,
     REDEEM_TOKEN_INDEX_COLLATERAL_ASSETS
   );
-  emitLeg(
-    event,
-    vault,
-    receiver,
-    liquidity,
-    claims.lptAssets,
-    REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS
-  );
+  // Only when the market has a liquidity tranche. Absent it, claims.lptAssets is zero and
+  // emitLeg would skip the row anyway, but there is no vault to attribute it to either.
+  if (liquidity) {
+    emitLeg(
+      event,
+      vault,
+      receiver,
+      liquidity,
+      claims.lptAssets,
+      REDEEM_TOKEN_INDEX_LIQUIDITY_TRANCHE_ASSETS
+    );
+  }
 }
 
 /**
