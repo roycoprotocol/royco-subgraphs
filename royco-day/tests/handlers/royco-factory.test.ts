@@ -67,6 +67,13 @@ import {
 // assert.dataSourceCount/dataSourceExists read it. "No store effect" does not
 // mean "unobservable"; missing a template is the silent failure CLAUDE.md §6
 // warns about, so it is asserted directly below.
+//
+// !! THAT REGISTRY IS NOT CLEARED BY clearStore(), which only clears entities. It
+//    accumulates across the whole file, deduplicated by address — so the counts below
+//    read 1 only because that test runs FIRST and every deploy here reuses the same
+//    tranche addresses. A count assertion anywhere later in this suite is measuring
+//    every preceding test, not the one it sits in. Assert dataSourceExists on the
+//    specific address instead.
 // =============================================================================
 
 const MARKET_ID = generateMarketId(ADDR_KERNEL.toHexString());
@@ -690,13 +697,35 @@ describe("handleMarketDeploymentCompleted", () => {
       "liquidityTrancheAssetTokenDecimals",
       "18"
     );
+    // The three SYMBOLS, which are distinct in the fixture and so pin each column to its
+    // own token on their own. Nothing else in the schema carries these — DayVaultState
+    // has no symbol column — so a wrong one here is unrecoverable downstream.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralAssetTokenSymbol",
+      "WETH"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheAssetTokenSymbol",
+      "BPT-DAY"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "quoteAssetTokenSymbol",
+      "USDC"
+    );
   });
 
   test("collateral and LPT decimals come from their OWN tokens, not each other's", () => {
     // The standard fixture gives the collateral and the BPT the same 18 decimals, so a
-    // swap between these two columns — reading kernelState.lptAsset for the collateral
-    // one and vice versa — passes every other assertion in this file. Giving the BPT a
-    // scale of its own is the only thing that separates them.
+    // swap between these two DECIMALS columns survives every assertion that reads them.
+    // (The symbol columns beside them are distinct and would catch an address-level swap;
+    // this catches the narrower case of the two decimals reads alone being crossed.)
+    // Giving the BPT a scale of its own is what separates them.
     //
     // It also separates them from the per-vault columns they duplicate: senior and junior
     // must report the COLLATERAL scale and liquidity the LPT one, which is the kernel's
@@ -721,6 +750,127 @@ describe("handleMarketDeploymentCompleted", () => {
     assert.fieldEquals("DayVaultState", SENIOR_ID, "assetTokenDecimals", "18");
     assert.fieldEquals("DayVaultState", JUNIOR_ID, "assetTokenDecimals", "18");
     assert.fieldEquals("DayVaultState", LIQUIDITY_ID, "assetTokenDecimals", "6");
+  });
+
+  test("each tranche's share-token symbol and decimals come from that tranche", () => {
+    // A TRANCHE IS ITS OWN SHARE TOKEN, so these six columns are symbol()/decimals()
+    // called on the three addresses the DeploymentResult carried — no vault, no kernel
+    // hop. The SYMBOLS are distinct per tranche and pin their own columns.
+    //
+    // THE DECIMALS NEED A SCALE SPLIT to assert anything at all. Under the fixture's
+    // default 18s every asset token reports exactly what the tranches do, so sourcing one
+    // of these columns from the collateral asset or the BPT still reads 18 and passes —
+    // and a right symbol does NOT imply a right decimals, they are two independent reads.
+    // Dropping both ASSET scales to 6 while the tranches stay at WAD makes any
+    // asset/share crossing fail. This mirrors the real hazard: RoycoVaultTranche hardcodes
+    // decimals() = 18 for every tranche, so on a USDC-collateral market the two genuinely
+    // differ and a crossing writes 6 where 18 belongs, once, with no refresh path.
+    const market = DayMarketFixture.standard();
+    market.assetDecimals = DECIMALS_6;
+    market.lptAssetDecimals = DECIMALS_6;
+    market.trancheDecimals = DECIMALS_18;
+    deploy(market);
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "seniorTrancheTokenSymbol",
+      "DAY-SNR"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheTokenSymbol",
+      "DAY-JNR"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheTokenSymbol",
+      "DAY-LPT"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "seniorTrancheTokenDecimals",
+      "18"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheTokenDecimals",
+      "18"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheTokenDecimals",
+      "18"
+    );
+
+    // The decimals half duplicates DayVaultState.shareTokenDecimals, which travels a
+    // different path — createVault reads it off its own tranche binding. Asserting they
+    // agree is the same cross-check the asset columns get above, not a tautology.
+    assert.fieldEquals("DayVaultState", SENIOR_ID, "shareTokenDecimals", "18");
+    assert.fieldEquals("DayVaultState", JUNIOR_ID, "shareTokenDecimals", "18");
+    assert.fieldEquals("DayVaultState", LIQUIDITY_ID, "shareTokenDecimals", "18");
+  });
+
+  test("an omitted counterparty tranche reads as '' / 0, not a dead handler", () => {
+    // A market needs a senior plus at least ONE counterparty, so the junior OR the
+    // liquidity slot may legitimately be the zero address (RoycoFactory.sol:132-137).
+    // That slot gets no DayVaultState, so these two market columns are the only place
+    // its absence is recorded — and reaching symbol()/decimals() on 0x0 would revert and
+    // take the whole market down with it, which is what the guard is for.
+    const market = DayMarketFixture.standard();
+    mockDayMarket(market);
+
+    const result = new DeploymentResult();
+    result.juniorTranche = ADDR_ZERO;
+
+    handleMarketDeploymentCompleted(
+      createMarketDeploymentCompletedEvent(
+        ADDR_TEMPLATE,
+        ADDR_DEPLOYER,
+        result,
+        ctx()
+      )
+    );
+
+    assert.entityCount("DayMarketState", 1);
+    // Two vaults, not three: the absent slot gets no DayVaultState.
+    //
+    // The MISSING template is deliberately NOT asserted here. matchstick's data-source
+    // registry is not cleared by clearStore() (see the file header), so by this point in
+    // the suite RoycoJuniorTranche already carries a leaked entry at ADDR_JUNIOR from
+    // every earlier deploy — dataSourceCount would read 1 no matter what this handler
+    // did. It IS checkable in the negative: assert.dataSourceExists(..., ADDR_ZERO_STR)
+    // fails, which is how the skip was confirmed, but matchstick has no "does not exist"
+    // assertion to encode that.
+    assert.entityCount("DayVaultState", 2);
+
+    assert.fieldEquals("DayMarketState", MARKET_ID, "juniorTrancheTokenSymbol", "");
+    assert.fieldEquals("DayMarketState", MARKET_ID, "juniorTrancheTokenDecimals", "0");
+    // The address column is what disambiguates "" / 0 from a real symbol-less token.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "juniorTrancheAddress",
+      ADDR_ZERO_STR
+    );
+    // The guard is PER TOKEN: an absent junior must not blank its neighbours.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "seniorTrancheTokenSymbol",
+      "DAY-SNR"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheTokenSymbol",
+      "DAY-LPT"
+    );
   });
 
   test("collateral matches what the tranches report — the kernel's own invariant", () => {
@@ -794,8 +944,11 @@ describe("handleMarketDeploymentCompleted", () => {
     // address — an unmocked call there aborts the handler in matchstick and reverts on
     // chain, so the guard is what keeps the whole market from failing to index.
     assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "0");
-    // The other two tokens still exist, so their scales are read normally — the guard is
-    // per-token, not per-market.
+    // The symbol falls back to "" on the same guard: symbol() on the zero address is
+    // just as fatal as decimals().
+    assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenSymbol", "");
+    // The other two tokens still exist, so their scale and label are read normally — the
+    // guard is per-token, not per-market.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,

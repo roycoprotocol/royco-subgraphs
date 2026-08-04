@@ -23,6 +23,7 @@ import {
   MARKET_STATE_PERPETUAL,
   VAULT_MAJOR_TYPE,
   ERC20_DECIMALS_UNKNOWN,
+  ERC20_SYMBOL_UNKNOWN,
   MARKET_TOKEN_ROLE_COLLATERAL_ASSET,
   MARKET_TOKEN_ROLE_LPT_ASSET,
   MARKET_TOKEN_ROLE_QUOTE_ASSET,
@@ -192,9 +193,11 @@ export function handleMarketDeploymentCompleted(
     marketId,
     MARKET_TOKEN_ROLE_COLLATERAL_ASSET
   );
-  // DUPLICATES the senior and junior DayVaultState.assetTokenDecimals — same token, same
-  // read — for the same reason the address above duplicates their assetTokenAddress: one
-  // market row instead of a three-way vault join, plus a free cross-check.
+  // The DECIMALS duplicate the senior and junior DayVaultState.assetTokenDecimals — same
+  // token, same read — for the same reason the address above duplicates their
+  // assetTokenAddress: one market row instead of a three-way vault join, plus a free
+  // cross-check. The SYMBOL has no vault counterpart; DayVaultState carries none.
+  market.collateralAssetTokenSymbol = erc20Symbol(kernelState.collateralAsset);
   market.collateralAssetTokenDecimals = erc20Decimals(kernelState.collateralAsset);
 
   const lptAsset = kernelState.lptAsset.toHexString();
@@ -206,9 +209,10 @@ export function handleMarketDeploymentCompleted(
   );
   // Same duplication against the LIQUIDITY vault — except that slot is OPTIONAL, so when
   // the market omits its liquidity tranche there is no DayVaultState to duplicate and
-  // this column is the only scale the LPT asset has anywhere. Sourced from the ADDRESS
-  // the kernel reports rather than from the vault for exactly that reason: the two stop
-  // agreeing precisely when the vault stops existing.
+  // these are the only scale and label the LPT asset has anywhere. Sourced from the
+  // ADDRESS the kernel reports rather than from the vault for exactly that reason: the
+  // two stop agreeing precisely when the vault stops existing.
+  market.liquidityTrancheAssetTokenSymbol = erc20Symbol(kernelState.lptAsset);
   market.liquidityTrancheAssetTokenDecimals = erc20Decimals(kernelState.lptAsset);
 
   const quoteAsset = kernelState.quoteAsset.toHexString();
@@ -219,9 +223,10 @@ export function handleMarketDeploymentCompleted(
     MARKET_TOKEN_ROLE_QUOTE_ASSET
   );
   // The only one of the three whose token may genuinely not exist: a venue-less kernel
-  // reports the zero address here, and 0 decimals beside a zero address is the truthful
-  // "no quote asset" answer. This is also the ONLY place the quote token's scale is
-  // recorded — it has no tranche and therefore no DayVaultState (see the schema note).
+  // reports the zero address here, and "" / 0 beside a zero address is the truthful "no
+  // quote asset" answer. This is also the ONLY place the quote token's scale and label
+  // are recorded — it has no tranche and therefore no DayVaultState (see the schema note).
+  market.quoteAssetTokenSymbol = erc20Symbol(kernelState.quoteAsset);
   market.quoteAssetTokenDecimals = erc20Decimals(kernelState.quoteAsset);
 
   // === the BPT's vault + which slot holds the quote asset ===
@@ -238,6 +243,32 @@ export function handleMarketDeploymentCompleted(
   const quotePool = resolveQuotePoolBinding(lptAsset, quoteAsset);
   market.balancerVaultAddress = quotePool.vaultAddress;
   market.quoteAssetPoolIndex = quotePool.quoteAssetPoolIndex;
+
+  // === the three tranches' share-token metadata ===
+  //
+  // A TRANCHE IS ITS OWN SHARE TOKEN, so these read `symbol()` and `decimals()` straight
+  // off the addresses the DeploymentResult already gave us — no extra hop, and no vault
+  // needed. Fixed at initialize() with no event for either, so once at creation is the
+  // only read (§5).
+  //
+  // Both counterparty slots are OPTIONAL, and BOTH helpers guard the zero address, so an
+  // omitted junior or liquidity tranche stores "" / 0 rather than calling into 0x0 and
+  // killing this handler. That is the same guard the quote asset relies on, which is why
+  // it is worth having in one place.
+  //
+  // The decimals DUPLICATE each tranche's DayVaultState.shareTokenDecimals — same token,
+  // same view — for the same reason the asset columns above duplicate the vaults': a
+  // market-level row instead of a three-way join. The symbols exist nowhere else.
+  market.seniorTrancheTokenSymbol = erc20Symbol(result.seniorTranche);
+  market.seniorTrancheTokenDecimals = erc20Decimals(result.seniorTranche);
+  market.juniorTrancheTokenSymbol = erc20Symbol(result.juniorTranche);
+  market.juniorTrancheTokenDecimals = erc20Decimals(result.juniorTranche);
+  market.liquidityTrancheTokenSymbol = erc20Symbol(
+    result.liquidityProviderTranche
+  );
+  market.liquidityTrancheTokenDecimals = erc20Decimals(
+    result.liquidityProviderTranche
+  );
 
   // === from RoycoDayKernel.previewSyncTrancheAccountingFor(_trancheType) ===
   //
@@ -350,15 +381,17 @@ export function handleMarketDeploymentCompleted(
 /**
  * One ERC20's `decimals()`, or ERC20_DECIMALS_UNKNOWN when it cannot be read.
  *
- * Backs all three of DayMarketState's *TokenDecimals columns. `decimals()` is uint8 ->
- * i32 and `Int!` IS i32, so the value is assigned direct — never BigInt.fromI32() (§4).
+ * Backs SIX columns now: the three asset tokens' *TokenDecimals and the three tranche
+ * share tokens'. `decimals()` is uint8 -> i32 and `Int!` IS i32, so the value is assigned
+ * direct — never BigInt.fromI32() (§4).
  *
  * GUARDED ON BOTH FAILURE MODES, which are distinct:
- *   - the token is ABSENT. A venue-less kernel reports the zero address for QUOTE_ASSET,
- *     and calling decimals() on 0x0 reverts.
+ *   - the token is ABSENT. A venue-less kernel reports the zero address for its quote
+ *     asset, and an omitted junior or liquidity tranche arrives as 0x0 in the
+ *     DeploymentResult; calling decimals() on 0x0 reverts.
  *   - the token EXISTS but omits `decimals()`, which is OPTIONAL in ERC20.
  * Either way 0 is the honest reading. It is NOT distinguishable on its own from a real
- * 0-decimals token — the *TokenAddress column beside it is what disambiguates.
+ * 0-decimals token — the address column beside it is what disambiguates.
  *
  * `try_` matters more here than anywhere else in this file: a raw call that reverted
  * would kill handleMarketDeploymentCompleted, and with it the market, all three vaults
@@ -371,6 +404,34 @@ function erc20Decimals(token: Address): i32 {
   }
   const decimals = ERC20.bind(token).try_decimals();
   return decimals.reverted ? ERC20_DECIMALS_UNKNOWN : decimals.value;
+}
+
+/**
+ * One ERC20's `symbol()`, or ERC20_SYMBOL_UNKNOWN when it cannot be read.
+ *
+ * The string twin of erc20Decimals, guarded on the same two cases and for the same
+ * reason, and backing the same six tokens: the three asset tokens and the three tranche
+ * share tokens. The ABSENT case differs per token — a venue-less kernel for the quote
+ * asset, an omitted counterparty slot for a tranche.
+ *
+ * `symbol()` is the SHAKIER of the two reads and the guard is load-bearing rather than
+ * defensive: it is optional in ERC20 like `decimals()`, and older tokens additionally
+ * declare it as `bytes32` instead of `string`, which decodes as a revert against this
+ * ABI rather than as a value. The tranches themselves are ordinary OZ-style ERC20s, so
+ * neither case is expected — but this runs inside the one handler whose failure would
+ * cost the market, all three vaults and every row downstream of them (§5).
+ *
+ * Assigned direct to a `String!`: `symbol()` returns a Solidity `string`, which decodes
+ * to an AS `string` already. This is NOT an address or a Bytes, so there is no
+ * .toHexString() here — that rule (§3) is about raw bytes, and applying it to a real
+ * string would hex-encode a symbol that is already text.
+ */
+function erc20Symbol(token: Address): string {
+  if (isZeroAddress(token)) {
+    return ERC20_SYMBOL_UNKNOWN;
+  }
+  const symbol = ERC20.bind(token).try_symbol();
+  return symbol.reverted ? ERC20_SYMBOL_UNKNOWN : symbol.value;
 }
 
 /**

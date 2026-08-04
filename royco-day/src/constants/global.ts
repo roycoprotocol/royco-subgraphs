@@ -27,6 +27,20 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
  */
 export const ERC20_DECIMALS_UNKNOWN: i32 = 0;
 
+/**
+ * The value stored for an ERC20 `symbol()` that could not be read.
+ *
+ * Same two cases as ERC20_DECIMALS_UNKNOWN above — the token does not exist, or it exists
+ * and omits the optional view — and the same disambiguation: pair it with the `*Address`
+ * column beside it. It backs the same six DayMarketState columns: the three asset tokens'
+ * symbols and the three tranche share tokens'.
+ *
+ * The empty string is chosen over a literal like "UNKNOWN" because it cannot collide with
+ * a real symbol: an ERC20 may legitimately be called UNKNOWN, but a deployed token's
+ * symbol is never "".
+ */
+export const ERC20_SYMBOL_UNKNOWN = "";
+
 // === UPDATE TYPES ===
 export const UPDATE_TYPE_MULTIPLIER = "multiplier";
 export const UPDATE_TYPE_OVERRIDE = "override";
