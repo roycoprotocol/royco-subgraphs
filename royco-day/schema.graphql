@@ -215,10 +215,28 @@ type DayMarketState @entity(immutable: false) {
   #    only home.
   collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.getState().collateralAsset
   collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>_<MARKET_ID>_collateralAsset
+  collateralAssetTokenDecimals: Int! # Collateral Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.getState().lptAsset
   liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>_<MARKET_ID>_lptAsset
+  liquidityTrancheAssetTokenDecimals: Int! # Liquidity Tranche Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.getState().quoteAsset
   quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>_<MARKET_ID>_quoteAsset
+  # ^ ALL THREE *TokenDecimals COLUMNS DESCRIBE THE TOKEN IN THE *TokenAddress COLUMN
+  #   BESIDE THEM, and each is read the same way: ERC20.decimals() at market creation,
+  #   guarded (see erc20Decimals in src/royco-factory.ts). Read once and never refreshed,
+  #   because all three tokens are `immutable` on the kernel — decimals() cannot change
+  #   and no event exists for any of them (§5).
+  #
+  #   The first two DUPLICATE the matching DayVaultState.assetTokenDecimals — collateral
+  #   on senior and junior, LPT on liquidity — deliberately, for exactly the reason the
+  #   addresses above are duplicated: one market row instead of a three-way vault join,
+  #   and a free cross-check if the two ever disagree in Neon.
+  #
+  #   0 IS THE SENTINEL ON ALL THREE, never a real 0-decimals token — pair it with the
+  #   *TokenAddress beside it, which is the zero address exactly when the token is
+  #   absent. That matters most on the counterparty slots: a market may omit its junior
+  #   OR its liquidity tranche, and an omitted slot gets no DayVaultState at all, so a
+  #   consumer cannot fall back to the vault column for it.
   # ^ THESE THREE ARE MARKET-SCOPED AND ROLE-TAGGED, unlike every other *TokenId column
   #   in this schema. DayVaultState.assetTokenId / shareTokenId and the two frozen
   #   Global* tokenId columns are chain-global (<CHAIN_ID>_<TOKEN_ADDRESS>), so two
@@ -248,8 +266,8 @@ type DayMarketState @entity(immutable: false) {
   #   (a kernel with no Balancer venue). Read it together with that field, never alone;
   #   0 is both "slot 0" and "unknown", exactly as quoteAssetTokenDecimals is.
   # ^ THE ONLY RECORD OF THE QUOTE TOKEN'S SCALE anywhere in this schema. The other two
-  #   asset tokens carry their decimals on their tranche's DayVaultState; the quote asset
-  #   has no tranche and no DayVaultState, so without this column the `quoteAssets`
+  #   asset tokens ALSO carry their decimals on their tranche's DayVaultState; the quote
+  #   asset has no tranche and no DayVaultState, so without this column the `quoteAssets`
   #   amounts on DayMultiAssetDepositActivity and DayMultiAssetRedeemActivity are raw
   #   integers with no scale attached and cannot be rendered or compared.
   #

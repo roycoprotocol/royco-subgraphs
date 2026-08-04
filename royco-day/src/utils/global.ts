@@ -1,5 +1,24 @@
-import { BigInt } from "@graphprotocol/graph-ts";
-import { CHAIN_ID } from "../constants";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
+import { CHAIN_ID, ZERO_ADDRESS } from "../constants";
+
+// =============================================================================
+// Address helpers.
+// =============================================================================
+
+/**
+ * True when `address` is the null address (0x000…000).
+ *
+ * A Day market's junior OR liquidity tranche is optional — RoycoFactory requires a
+ * senior plus at least one counterparty, so exactly one of the two may be omitted
+ * (RoycoFactory.sol:132-137). An omitted slot arrives in the DeploymentResult as the
+ * zero address, and every consumer of a tranche address routes its "is this slot
+ * present?" check through here rather than re-typing the literal, so the sentinel has
+ * one definition (matching ZERO_ADDRESS, the same value the manifest template and the
+ * quote-asset guards already use).
+ */
+export function isZeroAddress(address: Address): boolean {
+  return address.toHexString() == ZERO_ADDRESS;
+}
 
 // =============================================================================
 // Entity ID generators.

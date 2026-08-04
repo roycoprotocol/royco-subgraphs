@@ -616,8 +616,9 @@ describe("handleMarketDeploymentCompleted", () => {
     // tests/handlers/royco-market-nav.test.ts.
   });
 
-  test("the three Kernel asset tokens land, each on its own pair of columns", () => {
-    // Asset addresses come from Kernel.getState(); ids remain market-scoped.
+  test("the three Kernel asset tokens land, each on its own trio of columns", () => {
+    // Address, id and decimals per token. Addresses come from Kernel.getState(); ids
+    // remain market-scoped rather than bare addresses.
     deployStandard();
 
     assert.fieldEquals(
@@ -675,6 +676,51 @@ describe("handleMarketDeploymentCompleted", () => {
     // schema (it has no tranche and no DayVaultState), and it is what makes the
     // `quoteAssets` amounts on the two multi-asset activity tables interpretable.
     assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "6");
+    // The other two scales. Both are 18 in the standard fixture, so this pair only
+    // proves the columns are POPULATED — the test below separates them.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralAssetTokenDecimals",
+      "18"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheAssetTokenDecimals",
+      "18"
+    );
+  });
+
+  test("collateral and LPT decimals come from their OWN tokens, not each other's", () => {
+    // The standard fixture gives the collateral and the BPT the same 18 decimals, so a
+    // swap between these two columns — reading kernelState.lptAsset for the collateral
+    // one and vice versa — passes every other assertion in this file. Giving the BPT a
+    // scale of its own is the only thing that separates them.
+    //
+    // It also separates them from the per-vault columns they duplicate: senior and junior
+    // must report the COLLATERAL scale and liquidity the LPT one, which is the kernel's
+    // own constructor invariant (senior.asset() == junior.asset() == COLLATERAL_ASSET,
+    // liquidity.asset() == LPT_ASSET) seen from the subgraph side.
+    const market = DayMarketFixture.standard();
+    market.lptAssetDecimals = DECIMALS_6;
+    deploy(market);
+
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralAssetTokenDecimals",
+      "18"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheAssetTokenDecimals",
+      "6"
+    );
+    assert.fieldEquals("DayVaultState", SENIOR_ID, "assetTokenDecimals", "18");
+    assert.fieldEquals("DayVaultState", JUNIOR_ID, "assetTokenDecimals", "18");
+    assert.fieldEquals("DayVaultState", LIQUIDITY_ID, "assetTokenDecimals", "6");
   });
 
   test("collateral matches what the tranches report — the kernel's own invariant", () => {
@@ -748,12 +794,25 @@ describe("handleMarketDeploymentCompleted", () => {
     // address — an unmocked call there aborts the handler in matchstick and reverts on
     // chain, so the guard is what keeps the whole market from failing to index.
     assert.fieldEquals("DayMarketState", MARKET_ID, "quoteAssetTokenDecimals", "0");
-    // The other state fields are unaffected.
+    // The other two tokens still exist, so their scales are read normally — the guard is
+    // per-token, not per-market.
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
       "collateralTokenAddress",
       ADDR_ASSET.toHexString()
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "collateralAssetTokenDecimals",
+      "18"
+    );
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "liquidityTrancheAssetTokenDecimals",
+      "18"
     );
   });
 

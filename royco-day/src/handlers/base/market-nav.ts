@@ -230,13 +230,16 @@ export function refreshMarketNav(
   // SHARE decimals, and the two differ whenever a tranche's share token and its
   // underlying disagree.
   const senior = DayVaultState.load(market.seniorTrancheId);
+  // The senior tranche is MANDATORY on every market (RoycoFactory.sol:132-137), and the
+  // factory writes it in the same handler that writes the market, so a missing senior is
+  // a real fault. Bail: a vector with no senior price is indistinguishable in Neon from a
+  // market whose senior tranche is genuinely worthless.
+  if (!senior) return;
+  // The junior and liquidity slots are OPTIONAL — one of the two may be the zero address,
+  // in which case no vault was ever created and this load is legitimately null. That is
+  // NOT a fault; price the tranches that exist and leave the absent one at its fallback.
   const junior = DayVaultState.load(market.juniorTrancheId);
   const liquidity = DayVaultState.load(market.liquidityTrancheId);
-  // The factory writes all three vaults in the same handler that writes the market,
-  // so this is unreachable in practice. Bailing beats writing a half-priced row: a
-  // partial vector with three zeros in it is indistinguishable in Neon from a market
-  // whose junior tranche is genuinely worthless.
-  if (!senior || !junior || !liquidity) return;
 
   // The previous row supplies the per-leg fallback. Reusing MarketNavPrices for it
   // is not just tidiness: every field of it defaults to zero, which is exactly the right
@@ -286,48 +289,67 @@ export function refreshMarketNav(
     senior.assetTokenDecimals,
     fallback.collateralAssetPriceNAV
   );
-  prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
-    market.kernelAddress,
-    liquidity.minorType,
-    liquidity.assetTokenDecimals,
-    fallback.liquidityTrancheAssetPriceNAV
-  );
-  // The third asset price, and the only one not from a Kernel view. ONE call, using the
-  // vault and slot resolved once at market creation — re-deriving them per sync would
-  // cost two more on the hottest path in the subgraph.
-  //
-  // The pool address is the KERNEL's LPT_ASSET, not liquidity.assetTokenAddress. The two
-  // are the same token on chain (the kernel constructor requires
-  // liquidityProviderTranche.asset() == LPT_ASSET), but LPT_ASSET is the authoritative
-  // one and is literally what the venue passes as `pool`. Sourcing it from the kernel
-  // rather than the tranche means this does not silently depend on that invariant.
-  prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
-    market.balancerVaultAddress,
-    market.liquidityTrancheAssetTokenAddress,
-    market.quoteAssetPoolIndex,
-    fallback.quoteAssetPriceNAV
-  );
 
-  // One call per tranche returns that tranche's WHOLE quintuple — adding the four
-  // extra legs per tranche cost no extra eth_call, the handler was simply discarding
-  // them. The five legs also fall back TOGETHER on a revert, which is right: they are
-  // one atomic read of one struct, and mixing four fresh legs with one stale one
-  // would produce a claim that never existed at any instant.
+  // The senior tranche always exists, so its share price is always re-read. One call
+  // returns the WHOLE quintuple — adding the four extra legs cost no extra eth_call, the
+  // handler was simply discarding them. The five legs also fall back TOGETHER on a
+  // revert, which is right: they are one atomic read of one struct, and mixing four fresh
+  // legs with one stale one would produce a claim that never existed at any instant.
   prices.seniorTrancheSharePrice = sharePriceClaims(
     senior,
     market.kernelAddress,
     fallback.seniorTrancheSharePrice
   );
-  prices.juniorTrancheSharePrice = sharePriceClaims(
-    junior,
-    market.kernelAddress,
-    fallback.juniorTrancheSharePrice
-  );
-  prices.liquidityTrancheSharePrice = sharePriceClaims(
-    liquidity,
-    market.kernelAddress,
-    fallback.liquidityTrancheSharePrice
-  );
+
+  // The junior tranche is OPTIONAL. When absent its share price keeps the fallback (the
+  // previous row's value, or zero if none) rather than being read off a vault that does
+  // not exist.
+  if (junior) {
+    prices.juniorTrancheSharePrice = sharePriceClaims(
+      junior,
+      market.kernelAddress,
+      fallback.juniorTrancheSharePrice
+    );
+  } else {
+    prices.juniorTrancheSharePrice = fallback.juniorTrancheSharePrice;
+  }
+
+  // The liquidity tranche is OPTIONAL, and it carries THREE legs of the vector: its own
+  // asset price, the quote leg derived from its BPT, and its share price. When it is
+  // absent the market has no LPT asset and no Balancer venue at all, so all three keep
+  // the fallback and no eth_call is spent chasing a pool that was never deployed.
+  if (liquidity) {
+    prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
+      market.kernelAddress,
+      liquidity.minorType,
+      liquidity.assetTokenDecimals,
+      fallback.liquidityTrancheAssetPriceNAV
+    );
+    // The third asset price, and the only one not from a Kernel view. ONE call, using the
+    // vault and slot resolved once at market creation — re-deriving them per sync would
+    // cost two more on the hottest path in the subgraph.
+    //
+    // The pool address is the KERNEL's LPT_ASSET, not liquidity.assetTokenAddress. The
+    // two are the same token on chain (the kernel constructor requires
+    // liquidityProviderTranche.asset() == LPT_ASSET), but LPT_ASSET is the authoritative
+    // one and is literally what the venue passes as `pool`. Sourcing it from the kernel
+    // rather than the tranche means this does not silently depend on that invariant.
+    prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
+      market.balancerVaultAddress,
+      market.liquidityTrancheAssetTokenAddress,
+      market.quoteAssetPoolIndex,
+      fallback.quoteAssetPriceNAV
+    );
+    prices.liquidityTrancheSharePrice = sharePriceClaims(
+      liquidity,
+      market.kernelAddress,
+      fallback.liquidityTrancheSharePrice
+    );
+  } else {
+    prices.liquidityTrancheAssetPriceNAV = fallback.liquidityTrancheAssetPriceNAV;
+    prices.quoteAssetPriceNAV = fallback.quoteAssetPriceNAV;
+    prices.liquidityTrancheSharePrice = fallback.liquidityTrancheSharePrice;
+  }
 
   writeMarketNav(event, market, prices);
 }
@@ -437,8 +459,8 @@ function sharePriceClaims(
 export function marketNavPricesFromVaults(
   market: DayMarketState,
   senior: DayVaultState,
-  junior: DayVaultState,
-  liquidity: DayVaultState
+  junior: DayVaultState | null,
+  liquidity: DayVaultState | null
 ): MarketNavPrices {
   const prices = new MarketNavPrices();
   // No previous row exists at creation, so the fallback is zero (§5/§8).
@@ -448,21 +470,27 @@ export function marketNavPricesFromVaults(
     senior.assetTokenDecimals,
     BigInt.zero()
   );
-  prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
-    market.kernelAddress,
-    liquidity.minorType,
-    liquidity.assetTokenDecimals,
-    BigInt.zero()
-  );
-  // Priced at creation like its two siblings, so entry 0 carries a real vector rather
-  // than a zero this column would otherwise keep until the first sync. The caller has
-  // already resolved the vault and slot onto `market`, so this is one call.
-  prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
-    market.balancerVaultAddress,
-    market.liquidityTrancheAssetTokenAddress,
-    market.quoteAssetPoolIndex,
-    BigInt.zero()
-  );
+  // The liquidity tranche is OPTIONAL. When it is absent the market has no LPT asset and
+  // no Balancer venue, so both its asset price and the quote leg derived from its BPT
+  // stay at the zero default — the honest value for a leg that does not exist. The
+  // guarded reads also avoid dereferencing a null vault for its minorType/decimals.
+  if (liquidity) {
+    prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
+      market.kernelAddress,
+      liquidity.minorType,
+      liquidity.assetTokenDecimals,
+      BigInt.zero()
+    );
+    // Priced at creation like its two siblings, so entry 0 carries a real vector rather
+    // than a zero this column would otherwise keep until the first sync. The caller has
+    // already resolved the vault and slot onto `market`, so this is one call.
+    prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
+      market.balancerVaultAddress,
+      market.liquidityTrancheAssetTokenAddress,
+      market.quoteAssetPoolIndex,
+      BigInt.zero()
+    );
+  }
 
   // THE THREE SHARE PRICES, at the BOOTSTRAP rate — and with no eth_call, because the
   // answer is known rather than looked up.
@@ -485,12 +513,23 @@ export function marketNavPricesFromVaults(
   //
   // Only the NAV leg is set. The other three legs are genuinely zero — a virtual value
   // backs the price, but the tranche holds no collateral, LPT assets or ST shares yet.
+  //
+  // Each counterparty tranche is bootstrapped only when it exists; an absent slot keeps
+  // the zero-default quintuple, which is the truthful price of a tranche the market does
+  // not have.
   prices.seniorTrancheSharePrice = bootstrapSharePrice(senior, market.kernelAddress);
-  prices.juniorTrancheSharePrice = bootstrapSharePrice(junior, market.kernelAddress);
-  prices.liquidityTrancheSharePrice = bootstrapSharePrice(
-    liquidity,
-    market.kernelAddress
-  );
+  if (junior) {
+    prices.juniorTrancheSharePrice = bootstrapSharePrice(
+      junior,
+      market.kernelAddress
+    );
+  }
+  if (liquidity) {
+    prices.liquidityTrancheSharePrice = bootstrapSharePrice(
+      liquidity,
+      market.kernelAddress
+    );
+  }
   return prices;
 }
 

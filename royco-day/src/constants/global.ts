@@ -14,15 +14,16 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 /**
  * The value stored for an ERC20 `decimals()` that could not be read.
  *
- * `decimals()` is OPTIONAL in ERC20, and the one token this subgraph reads it from
- * without a guarantee is the venue's quote asset: on a venue-less market
- * Kernel.getState().quoteAsset is ZERO_ADDRESS, so
- * there is nothing to ask. An `Int!` cannot be null, so this is the sentinel.
+ * `decimals()` is OPTIONAL in ERC20, and the token may not exist at all — on a venue-less
+ * market Kernel.getState().quoteAsset is ZERO_ADDRESS, so there is nothing to ask. An
+ * `Int!` cannot be null, so this is the sentinel for both cases.
  *
- * It is NOT distinguishable from a real 0-decimals token by itself — pair it with
- * `quoteAssetTokenAddress == ZERO_ADDRESS` to tell the two apart. Every other decimals
- * read in this subgraph is on a tranche's own asset or share token, which the kernel's
- * constructor guarantees exists, and those stay raw calls (§5).
+ * It is NOT distinguishable from a real 0-decimals token by itself — pair it with the
+ * `*TokenAddress` column beside it (`== ZERO_ADDRESS`) to tell the two apart. It backs
+ * all three of DayMarketState's *TokenDecimals columns, which read through
+ * `erc20Decimals` in src/royco-factory.ts. The PER-VAULT reads
+ * (DayVaultState.assetTokenDecimals / shareTokenDecimals) stay raw calls: those tokens
+ * are guaranteed to exist by the kernel's constructor (§5).
  */
 export const ERC20_DECIMALS_UNKNOWN: i32 = 0;
 

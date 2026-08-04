@@ -203,6 +203,25 @@ export function mockAssetPriceNAV(
     .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
 }
 
+/**
+ * Mock ONLY the LPT leg of the pair above, at its own input — for when the collateral
+ * and the LPT asset do not share a scale. Each converter is keyed on 10 ** its OWN
+ * asset's decimals, and mockAssetPriceNAV registers both at one input.
+ */
+export function mockLPTAssetPriceNAV(
+  kernel: Address,
+  oneLPTAssetToken: BigInt,
+  lptNAV: BigInt
+): void {
+  createMockedFunction(
+    kernel,
+    "convertLPTAssetsToValue",
+    ROYCO_DAY_KERNEL__CONVERT_LPT_ASSETS_TO_VALUE
+  )
+    .withArgs([ethereum.Value.fromUnsignedBigInt(oneLPTAssetToken)])
+    .returns([ethereum.Value.fromUnsignedBigInt(lptNAV)]);
+}
+
 /** Return a fixture whose kernel has no liquidity venue. */
 export function withoutQuoteAsset(m: DayMarketFixture): DayMarketFixture {
   m.quoteAsset = ADDR_ZERO;
@@ -231,6 +250,13 @@ export class DayMarketFixture {
   quoteAsset: Address = ADDR_QUOTE_ASSET;
   assetDecimals: i32 = DECIMALS_18;
   trancheDecimals: i32 = DECIMALS_18;
+  // The BPT's own scale, separate from `assetDecimals` because the LPT asset is a
+  // DIFFERENT token from the collateral and DayMarketState now records both scales
+  // (collateralAssetTokenDecimals / liquidityTrancheAssetTokenDecimals). Defaults to 18
+  // — EQUAL to assetDecimals — so nothing that predates it moves; a test that wants a
+  // collateral/LPT transposition to be visible sets this to something else, and
+  // mockDayMarket then registers the LPT NAV converter at that scale too.
+  lptAssetDecimals: i32 = DECIMALS_18;
   // 6, NOT 18, on purpose: the quote asset is the one token whose decimals differ from
   // everything else in the fixture (USDC is the real-world case), so a handler that
   // reads the wrong token's decimals for it shows up as a wrong number rather than a
@@ -493,8 +519,20 @@ export function mockDayMarket(m: DayMarketFixture): void {
 
   mockAssetToken(m.asset, m.assetDecimals);
   // The BPT is an ERC20 too — createVault reads decimals off the liquidity tranche's
-  // asset, which is now (correctly) this one.
-  mockAssetToken(m.lptAsset, m.assetDecimals);
+  // asset, which is now (correctly) this one, and handleMarketDeploymentCompleted reads
+  // the same token again for DayMarketState.liquidityTrancheAssetTokenDecimals.
+  mockAssetToken(m.lptAsset, m.lptAssetDecimals);
+  // The LPT NAV converter is keyed on 10 ** the LPT ASSET's decimals, so when the BPT
+  // has a scale of its own the converter has to be registered at that input as well.
+  // Additive: withArgs matching means the pair registered above at 10 ** assetDecimals
+  // survives, which is what the collateral leg still calls with.
+  if (m.lptAssetDecimals != m.assetDecimals) {
+    mockLPTAssetPriceNAV(
+      m.kernel,
+      BigInt.fromI32(10).pow(u8(m.lptAssetDecimals)),
+      m.liquidityAssetPriceNAV
+    );
+  }
   // The quote asset's own decimals. It has no tranche, so nothing else mocks it, and
   // handleMarketDeploymentCompleted reads it straight off the ERC20.
   mockAssetToken(m.quoteAsset, m.quoteAssetDecimals);
