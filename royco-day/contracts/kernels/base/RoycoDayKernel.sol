@@ -29,7 +29,7 @@ abstract contract RoycoDayKernel is IRoycoDayKernel, RoycoBase, ReentrancyGuardT
 
     /// @dev Storage slot for RoycoDayKernelState using ERC-7201 pattern
     /// @dev keccak256(abi.encode(uint256(keccak256("Royco.storage.RoycoDayKernelState")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ROYCO_DAY_KERNEL_STORAGE_SLOT = 0xc366ce7b07de4bd3f36c874874355fb088fd2057e716d8a9786c17b22e6fec00;
+    bytes32 private constant _ROYCO_DAY_KERNEL_STORAGE_SLOT = 0xc366ce7b07de4bd3f36c874874355fb088fd2057e716d8a9786c17b22e6fec00;
 
     /// @dev Permissions the function to only be callable by this contract via a self-call, the seam through which the delegatecall logic libraries reach callback into the kernel
     modifier onlySelf() {
@@ -549,37 +549,37 @@ abstract contract RoycoDayKernel is IRoycoDayKernel, RoycoBase, ReentrancyGuardT
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function seniorTranche() external view override(IRoycoDayKernel) returns (address seniorTranche) {
+    function seniorTranche() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().seniorTranche;
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function juniorTranche() external view override(IRoycoDayKernel) returns (address juniorTranche) {
+    function juniorTranche() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().juniorTranche;
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function collateralAsset() external view override(IRoycoDayKernel) returns (address collateralAsset) {
+    function collateralAsset() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().collateralAsset;
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function liquidityProviderTranche() external view override(IRoycoDayKernel) returns (address liquidityProviderTranche) {
+    function liquidityProviderTranche() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().liquidityProviderTranche;
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function lptAsset() external view override(IRoycoDayKernel) returns (address lptAsset) {
+    function lptAsset() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().lptAsset;
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function quoteAsset() external view override(IRoycoDayKernel) returns (address quoteAsset) {
+    function quoteAsset() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().quoteAsset;
     }
 
     /// @inheritdoc IRoycoDayKernel
-    function accountant() external view override(IRoycoDayKernel) returns (address accountant) {
+    function accountant() external view override(IRoycoDayKernel) returns (address) {
         return _getRoycoDayKernelStorage().accountant;
     }
 
@@ -614,7 +614,7 @@ abstract contract RoycoDayKernel is IRoycoDayKernel, RoycoBase, ReentrancyGuardT
      */
     function _getRoycoDayKernelStorage() internal pure returns (RoycoDayKernelState storage $) {
         assembly ("memory-safe") {
-            $.slot := ROYCO_DAY_KERNEL_STORAGE_SLOT
+            $.slot := _ROYCO_DAY_KERNEL_STORAGE_SLOT
         }
     }
 }

@@ -39,7 +39,7 @@ hand, keep the order.
 | Path | What |
 |---|---|
 | `schema.graphql` | 20 entities. Source of truth for the pipeline. |
-| `abis/` | Deployment-compatible Day ABIs plus next-revision references in `latest/`. |
+| `abis/` | Deployment-compatible Day ABIs plus active ABI mirrors in `latest/`. |
 | `config/markets/` | mustache templates + per-network values. **Edit here, not the rendered output.** |
 | `src/` | Handlers, constants, and id generators. |
 | `scripts/` | Generators, checks, deploy scripts. |

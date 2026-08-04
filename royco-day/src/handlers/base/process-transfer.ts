@@ -1,7 +1,7 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 import { GlobalTokenTransfer } from "../../../generated/schema";
 import { CHAIN_ID } from "../../constants";
-import { generateGlobalTokenTransferId } from "../../utils";
+import { generateGlobalTokenTransferId, generateTokenId } from "../../utils";
 
 // =============================================================================
 // OWNERSHIP INVARIANT — read before touching any tranche handler.
@@ -23,20 +23,14 @@ import { generateGlobalTokenTransferId } from "../../utils";
 /**
  * Build a GlobalTokenTransfer row.
  *
- * `save = false` is not a convenience: processRedeem needs the row's shape to
- * derive its activity rows from, without persisting it. See its own note.
- *
- * Callers pass tokenId/tokenAddress rather than having this function resolve
- * them. royco-rwa binds the vault and calls `asset()` here — an eth_call per
- * deposit. Every caller in royco-day already holds a loaded DayVaultState, which
- * carries both, so the call is pure waste.
+ * Derives the canonical token id here so no caller can write a market-scoped id
+ * into the shared Global tables.
  */
 export function processGlobalTokenTransfer(
   vaultId: string,
   vaultAddress: string,
   category: string,
   subCategory: string,
-  tokenId: string,
   tokenAddress: string,
   fromAddress: string,
   toAddress: string,
@@ -45,8 +39,7 @@ export function processGlobalTokenTransfer(
   blockNumber: BigInt,
   blockTimestamp: BigInt,
   transactionHash: string,
-  logIndex: BigInt,
-  save: boolean
+  logIndex: BigInt
 ): GlobalTokenTransfer {
   const entity = new GlobalTokenTransfer(
     generateGlobalTokenTransferId(
@@ -61,7 +54,7 @@ export function processGlobalTokenTransfer(
   entity.vaultAddress = vaultAddress;
   entity.category = category;
   entity.subCategory = subCategory;
-  entity.tokenId = tokenId;
+  entity.tokenId = generateTokenId(tokenAddress);
   entity.tokenAddress = tokenAddress;
   entity.fromAddress = fromAddress;
   entity.toAddress = toAddress;
@@ -72,9 +65,7 @@ export function processGlobalTokenTransfer(
   entity.logIndex = logIndex;
   entity.createdAt = blockTimestamp;
 
-  if (save) {
-    entity.save();
-  }
+  entity.save();
 
   return entity;
 }

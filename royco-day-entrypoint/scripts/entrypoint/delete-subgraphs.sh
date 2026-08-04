@@ -11,7 +11,7 @@ networks=(
     staging
 )
 
-version="2.0.3"
+version="1.0.0"
 
 for network in "${networks[@]}"; do
     subgraph_name="royco-day-entrypoint-${network}/${version}"

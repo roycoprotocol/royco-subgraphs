@@ -45,10 +45,10 @@ import { RoycoDayAccountant as RoycoDayAccountantContract } from "../../../gener
  * tranche accounting in the same transaction, so syncing is a superset of the events
  * that move these values — there is no path that changes one without a sync following.
  *
- * !! COST: TWO eth_calls per sync, on the hottest path in this subgraph. The liquidity
- *    tranche's Balancer pool hook holds SYNC_ROLE and syncs on EVERY swap, so this is
- *    AMM-frequency. Together with refreshMarketNav's six that makes eight per sync. Both
- *    are unavoidable for these columns; do not add a third without the same argument.
+ * !! COST: TWO eth_calls per explicit sync. The Balancer pool is hookless, so swaps do
+ *    not invoke this path. Together with refreshMarketNav's six that makes eight per
+ *    sync. Both are unavoidable for these columns; do not add a third without the same
+ *    argument.
  *
  * !! GUARDED, where the factory reads the SAME calls raw, and the asymmetry is
  *    deliberate (§5). getState() is a plain storage read that should not revert, and at

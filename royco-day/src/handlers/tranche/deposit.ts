@@ -38,13 +38,6 @@ export function processDeposit(
     vaultAddress,
     CATEGORY_ASSETS,
     SUB_CATEGORY_DEPOSIT,
-    // An entity read, not an eth_call: the loaded vault already carries these.
-    // royco-rwa binds the vault and calls asset() here, once per deposit forever.
-    //
-    // Market-scoped and role-tagged, straight off the vault — see marketAssetTokenId
-    // for the two shapes global_token_activity.token_id now holds, and what that means
-    // for a downstream join.
-    vault.assetTokenId,
     vault.assetTokenAddress,
     sender.toHexString(),
     // THE VAULT deposited into — matching royco-rwa, which sets toAddress to its
@@ -65,8 +58,7 @@ export function processDeposit(
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
-    event.logIndex,
-    true
+    event.logIndex
   );
 
   // The stub TODO named only GlobalTokenTransfer. Implementing it literally would

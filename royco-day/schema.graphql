@@ -43,23 +43,7 @@ type GlobalTokenTransfer @entity(immutable: true) {
   category: String! # Category ("shares", "assets")
   subCategory: String! # Sub Category ("mint", "burn", "transferIn", "transferOut", "deposit", "withdraw")
   tokenId: String! # Token ID
-  # ^ TWO SHAPES IN THIS COLUMN, for royco-day rows, and you must branch on `category`
-  #   before parsing it:
-  #     category == "assets"  -> <CHAIN_ID>_<TOKEN_ADDRESS>_<MARKET_ID>_<ROLE>, matching
-  #                              DayMarketState.collateralTokenId /
-  #                              liquidityTrancheAssetTokenId exactly
-  #     category == "shares"  -> <CHAIN_ID>_<TOKEN_ADDRESS>, chain-global
-  #   A share token has no role among {collateralAsset, lptAsset, quoteAsset} — it IS the
-  #   vault — so only the asset rows can be tagged. See marketAssetTokenId.
-  #
-  #   !! AND IT DIVERGES FROM THE OTHER PACKAGES sharing this table. royco-rwa, royco-usd
-  #      and staked-royco-usd all write the chain-global form into this same column. Rows
-  #      cannot collide (ids are chain+tx+log scoped), but a consumer joining token_id to
-  #      a chain-global token dimension will MISS royco-day's asset rows rather than
-  #      error. Join on `tokenAddress` — unchanged, present on every row in every
-  #      package — or strip the trailing <MARKET_ID>_<ROLE> first. This is the same class
-  #      of cross-package divergence already documented on generateGlobalTokenTransferId,
-  #      and the same rule applies: do NOT parse this column positionally.
+  # ^ <CHAIN_ID>_<TOKEN_ADDRESS>, matching the shared backend token index.
   tokenAddress: String! # Token Address
   fromAddress: String! # From Address
   toAddress: String! # To Address
@@ -220,48 +204,21 @@ type DayMarketState @entity(immutable: false) {
   #    quoteAssetTokenAddress is the exception: it exists on NO tranche, so this is its
   #    only home.
   collateralTokenAddress: String! # Collateral Token Address <- ABI: Kernel.getState().collateralAsset
-  collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>_<MARKET_ID>_collateralAsset
+  collateralTokenId: String! # Collateral Token ID: <CHAIN_ID>_<COLLATERAL_TOKEN_ADDRESS>
   collateralAssetTokenSymbol: String! # Collateral Asset Token Symbol (ERC20.symbol())
   collateralAssetTokenDecimals: Int! # Collateral Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   liquidityTrancheAssetTokenAddress: String! # Liquidity Tranche Asset Token Address <- ABI: Kernel.getState().lptAsset
-  liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>_<MARKET_ID>_lptAsset
+  liquidityTrancheAssetTokenId: String! # Liquidity Tranche Asset Token ID: <CHAIN_ID>_<LPT_ASSET_ADDRESS>
   liquidityTrancheAssetTokenSymbol: String! # Liquidity Tranche Asset Token Symbol (ERC20.symbol())
   liquidityTrancheAssetTokenDecimals: Int! # Liquidity Tranche Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   quoteAssetTokenAddress: String! # Quote Asset Token Address <- ABI: Kernel.getState().quoteAsset
-  quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>_<MARKET_ID>_quoteAsset
+  quoteAssetTokenId: String! # Quote Asset Token ID: <CHAIN_ID>_<QUOTE_ASSET_ADDRESS>
   quoteAssetTokenSymbol: String! # Quote Asset Token Symbol (ERC20.symbol())
-  # ^ EVERY *TokenSymbol / *TokenDecimals COLUMN DESCRIBES THE TOKEN IN THE *TokenAddress
-  #   COLUMN BESIDE IT, and all six are read the same way: ERC20.symbol() / .decimals() at
-  #   market creation, guarded (erc20Symbol / erc20Decimals in src/royco-factory.ts). Read
-  #   once and never refreshed, because all three tokens are `immutable` on the kernel —
-  #   neither view can change its answer and no event exists for any of them (§5).
-  #
-  #   THE DECIMALS on the first two DUPLICATE the matching DayVaultState.assetTokenDecimals
-  #   — collateral on senior and junior, LPT on liquidity — deliberately, for exactly the
-  #   reason the addresses above are duplicated: one market row instead of a three-way
-  #   vault join, and a free cross-check if the two ever disagree in Neon. THE SYMBOLS have
-  #   no counterpart at all: DayVaultState carries no symbol column, so these three plus
-  #   the tranche symbols below are the whole schema's supply of human-readable token
-  #   labels, and the only way to render a market without an off-chain token list.
-  #
-  #   "" AND 0 ARE THE SENTINELS ON ALL SIX, never a symbol-less token and never a real
-  #   0-decimals one — pair each with the *TokenAddress beside it, which is the zero
-  #   address exactly when the token is absent. That matters most on the counterparty
-  #   slots: a market may omit its junior OR its liquidity tranche, and an omitted slot
-  #   gets no DayVaultState at all, so a consumer cannot fall back to the vault column
-  #   for it.
-  # ^ THESE THREE ARE MARKET-SCOPED AND ROLE-TAGGED, unlike every other *TokenId column
-  #   in this schema. DayVaultState.assetTokenId / shareTokenId and the two frozen
-  #   Global* tokenId columns are chain-global (<CHAIN_ID>_<TOKEN_ADDRESS>), so two
-  #   markets sharing a collateral token produce the SAME id there. Here the market and
-  #   the token's ROLE are appended, so a token that is collateral in one market and the
-  #   quote asset in another stays distinguishable, and a market's three token rows group
-  #   under its own prefix. Built by generateMarketTokenId; the role suffix comes from a
-  #   MARKET_TOKEN_ROLE_* constant, never a literal.
-  #
-  #   Consequence for Neon: do NOT join these three to a chain-global token table on
-  #   equality — strip the trailing <MARKET_ID>_<ROLE>, or join on the *Address column
-  #   beside each of them, which is unchanged.
+  # ^ Token metadata is read once at market creation. The kernel asset addresses are fixed
+  #   during initialization and have no setters. "" / 0 are used when an optional ERC20
+  #   metadata view cannot be read; check the adjacent address to distinguish a missing
+  #   quote token from a real empty symbol or 0-decimal token.
+  # ^ All token IDs use the canonical chain-global format expected by shared consumers.
   quoteAssetTokenDecimals: Int! # Quote Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   balancerVaultAddress: String! # Balancer V3 Vault Address <- ABI: BalancerPoolToken(LPT_ASSET).getVault()
   quoteAssetPoolIndex: Int! # Which slot of the BPT's 2-token registration order the QUOTE asset occupies (0 or 1)
@@ -303,22 +260,9 @@ type DayMarketState @entity(immutable: false) {
   #   downstream row with it.
   # ======
   # ======
-  # => the three tranches' SHARE TOKEN metadata, read once at market creation.
-  #
-  # A TRANCHE IS ITS OWN SHARE TOKEN, so these are symbol()/decimals() on the addresses
-  # already in the *TrancheAddress columns above. Fixed when the tranche initialises, with
-  # no event for either, so they are read once and never refreshed (§5).
-  #
-  # The DECIMALS duplicate DayVaultState.shareTokenDecimals for the same tranche — one
-  # market row instead of a three-way vault join, plus a free cross-check if the two ever
-  # disagree in Neon. The SYMBOLS have no counterpart anywhere: DayVaultState carries no
-  # symbol column, so this row is the only place a market's tranches can be labelled
-  # without an off-chain token list.
-  #
-  # AN ABSENT COUNTERPARTY TRANCHE READS AS "" / 0 — a market carries a senior plus at
-  # least one counterparty, so the junior OR the liquidity slot may be the zero address,
-  # and that slot gets no DayVaultState at all. Pair these with the matching
-  # *TrancheAddress, which is zero exactly when the tranche does not exist.
+  # => the three tranches' share-token metadata, read once at market creation. Each
+  # tranche is its own share token; decimals duplicate DayVaultState for convenient
+  # market-level reads, while symbols exist only on this entity.
   seniorTrancheTokenSymbol: String! # Senior Tranche Share Token Symbol <- ABI: seniorTranche.symbol()
   seniorTrancheTokenDecimals: Int! # Senior Tranche Share Token Decimals <- ABI: seniorTranche.decimals() (uint8 -> i32; Int! IS i32, assign direct)
   juniorTrancheTokenSymbol: String! # Junior Tranche Share Token Symbol <- ABI: juniorTranche.symbol()
@@ -346,7 +290,9 @@ type DayMarketState @entity(immutable: false) {
   # ^ REAL as of the v2 sync rework. Both sync events now emit AFTER _commitLPTRawNAV,
   #   which refreshes lptRawNAV and liquidityUtilizationWAD in the state packet in
   #   place. In v1 this column and the one below were permanently zero, because the
-  #   single sync event marshalled them as placeholders.
+  #   single sync event marshalled them as placeholders. A successful liquidity-premium
+  #   reinvestment can move the committed raw NAV after the sync event; its handler
+  #   patches this pair from the accountant's final block state.
   seniorTrancheEffectiveNAV: BigInt! # Senior Tranche Effective NAV <- ABI: state.stEffectiveNAV
   juniorTrancheEffectiveNAV: BigInt! # Junior Tranche Effective NAV <- ABI: state.jtEffectiveNAV
   juniorTrancheImpermanentLoss: BigInt! # Junior Tranche Impermanent Loss <- ABI: state.jtImpermanentLoss
@@ -383,10 +329,8 @@ type DayMarketState @entity(immutable: false) {
   # Seed all five to BigInt.zero() in the MarketDeploymentCompleted handler's
   # `if (!entity)` branch — a non-null field left unset is fatal at index time (§8).
   countFixedTermEntries: BigInt! # Count of Fixed Term Entries -> DayFixedTermHistory
-  # ^ Advances on FixedTermCommenced and on loss-only rows created while
-  #   fixedTermDurationSeconds is zero. DayFixedTermHistory is the one MUTABLE record
-  #   stream: the close-out writes patch the row at (count - 1) and must NOT
-  #   increment this.
+  # ^ Advances only on FixedTermCommenced. DayFixedTermHistory is the one MUTABLE
+  #   record stream: close-out writes patch the row at (count - 1) without incrementing.
   countYieldSharesAccruedEntries: BigInt! # Count of Yield Shares Accrued Entries -> DayYieldSharesAccruedHistory
   # ^ ONE cursor where v1 had two. v2 merged JuniorTrancheYieldShareAccrued and
   #   LiquidityTrancheYieldShareAccrued into a single YieldSharesAccrued carrying all
@@ -394,9 +338,6 @@ type DayMarketState @entity(immutable: false) {
   countLiquidityPremiumSharesMintedEntries: BigInt! # Count of Liquidity Premium Shares Minted Entries -> DayLiquidityPremiumSharesMintedHistory
   countLiquidityPremiumReinvestedEntries: BigInt! # Count of Liquidity Premium Reinvested Entries -> DayLiquidityPremiumReinvestedHistory
   countLiquidityPremiumReinvestmentFailedEntries: BigInt! # Count of Liquidity Premium Reinvestment Failed Entries -> DayLiquidityPremiumReinvestmentFailedHistory
-  #   or redemption. NOT the AMM-frequency stream it was in v1: the pre-op event, which
-  #   is what fires on swaps, is deliberately not indexed (see that entity's note).
-  #
   # A LIFETIME ACCUMULATOR, not a cursor and not a mirror of any on-chain value.
   # Every JuniorTrancheImpermanentLossReset adds its erased amount here, so this only
   # ever grows: it answers "how much JT loss has this market written off in total?",
@@ -658,14 +599,9 @@ type DayMarketNav @entity(immutable: false) {
   updatedAtBlockTimestamp: BigInt! # Updated At Block Timestamp
 }
 
-# One immutable snapshot per write of the parent above: entry 0 at market creation,
-# then one per TrancheAccountingSynced.
-#
-# !! HOT / HIGH-CARDINALITY STREAM, for the same reason as
-#    DayTrancheAccountingSyncedHistory: the LT's Balancer V3 pool hook holds
-#    SYNC_ROLE and syncs on EVERY swap, so this grows at AMM-volume frequency. It
-#    is written UNCONDITIONALLY — one row per sync, even when no price moved — so
-#    the stream stays dense and 1:1 with the sync stream. Size Neon for it.
+# One block-collapsed snapshot per write of the parent above: entry 0 at market creation,
+# then one per block containing an explicit accounting sync. The Balancer pool is
+# hookless, so swaps do not create snapshots by themselves.
 # ONE ROW PER (MARKET, BLOCK) — THE LAST PRICE VECTOR THAT BLOCK SETTLED ON.
 #
 # Collapses exactly like DayTrancheAccountingSyncedHistory, and for the same reason: a
@@ -726,14 +662,7 @@ type DayVaultState @entity(immutable: false) {
   minorType: String! # Minor Type ("senior", "junior", "liquidity")
   marketRefId: String! # Market Reference ID: <CHAIN_ID>_<MARKET_ID>
   marketId: String! # Market ID: <KERNEL_ADDRESS>
-  assetTokenId: String! # Asset Token ID: <CHAIN_ID>_<ASSET_TOKEN_ADDRESS>_<MARKET_ID>_<ROLE>
-  # ^ MARKET-SCOPED AND ROLE-TAGGED, matching DayMarketState.collateralTokenId (senior
-  #   and junior, which share one collateral token) or liquidityTrancheAssetTokenId
-  #   (liquidity). The role comes from this vault's own minorType. THE ONE DEFINITION:
-  #   the asset rows on the Global* tables read this column rather than recomputing it.
-  #
-  #   shareTokenId below is deliberately NOT tagged — a share token has no role among
-  #   {collateralAsset, lptAsset, quoteAsset}; it IS this vault. See marketAssetTokenId.
+  assetTokenId: String! # Asset Token ID: <CHAIN_ID>_<ASSET_TOKEN_ADDRESS>
   assetTokenAddress: String! # Asset Token Address
   assetTokenDecimals: Int! # Asset Token Decimals (ERC20.decimals() -> uint8 -> i32; Int! IS i32, assign direct)
   shareTokenId: String! # Share Token ID
@@ -1085,7 +1014,7 @@ type DayYieldSharesAccruedHistory @entity(immutable: true) {
 # BOTH kernel sync events feed this table, and they COLLAPSE rather than accumulate:
 #   - the first sync in a block CREATES the row
 #   - every later sync in that SAME block OVERWRITES it in place
-# So a swap-only block leaves a `preOp` row; a deposit block leaves a `postOp` row,
+# So a block with only an explicit sync leaves a `preOp` row; a deposit block leaves a `postOp` row,
 # because the post-op fires second and wins. `syncType` records which one the row
 # actually settled on, and `operation` is non-null only when that was a post-op.
 #
@@ -1109,12 +1038,14 @@ type DayYieldSharesAccruedHistory @entity(immutable: true) {
 #    `lptRawNAV: ZERO_NAV_UNITS` and `liquidityUtilizationWAD: 0` as placeholders, so
 #    those two columns were permanently zero. Both events now emit AFTER
 #    _commitLPTRawNAV, which refreshes both members in the state packet in place, so
-#    every column below carries a real value.
+#    every column below carries a real value. The successful reinvestment tail is the
+#    one exception: it recommits raw NAV after emitting the sync packet, so the success
+#    handler patches raw NAV and liquidity utilization from final block state.
 #
-# Pre-op fires on EVERY sync — the liquidity venue's swap hook, oracle updates,
-# syncTrancheAccounting, reinvestLiquidityPremium, and the first half of every deposit
-# and redemption. Post-op fires only on the six deposit/redeem operations. Indexing
-# both is what keeps AMM- and oracle-driven price movement in this table.
+# Pre-op fires on every explicit sync — authorized sync calls, synchronizing config
+# updates, reinvestLiquidityPremium, and the first half of every deposit and redemption.
+# Post-op fires only on the six deposit/redeem operations. The Balancer pool is hookless;
+# an external keeper must create periodic idle-market anchors.
 type DayTrancheAccountingSyncedHistory @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<MARKET_ID>_<BLOCK_NUMBER>
   chainId: BigInt! # Chain ID

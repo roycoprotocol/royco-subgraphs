@@ -30,7 +30,7 @@ abstract contract RoycoVaultTranche is IRoycoVaultTranche, RoycoBase, ERC20Burna
 
     /// @dev Storage slot for RoycoVaultTrancheState using ERC-7201 pattern
     // keccak256(abi.encode(uint256(keccak256("Royco.storage.RoycoVaultTrancheState")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ROYCO_VAULT_TRANCHE_STORAGE_SLOT = 0xb29e56aa3db56637b513fb077b36928988b241f28eccd4f6a5bd34624bbe3900;
+    bytes32 private constant _ROYCO_VAULT_TRANCHE_STORAGE_SLOT = 0xb29e56aa3db56637b513fb077b36928988b241f28eccd4f6a5bd34624bbe3900;
 
     /// @dev Permissions the function to only be callable by the kernel, the single source of truth for sync-driven share mints
     modifier onlyKernel() {
@@ -147,16 +147,16 @@ abstract contract RoycoVaultTranche is IRoycoVaultTranche, RoycoBase, ERC20Burna
 
     /// @inheritdoc IRoycoVaultTranche
     function convertToShares(TRANCHE_UNIT _assets) public view virtual override(IRoycoVaultTranche) returns (uint256 shares) {
-        address kernel = kernel();
+        address kernel_ = kernel();
 
         // Value the assets specified in NAV units
         NAV_UNIT value = (TRANCHE_TYPE() == TrancheType.LIQUIDITY_PROVIDER)
-            ? IRoycoDayKernel(kernel).convertLPTAssetsToValue(_assets)
-            : IRoycoDayKernel(kernel).convertCollateralAssetsToValue(_assets);
+            ? IRoycoDayKernel(kernel_).convertLPTAssetsToValue(_assets)
+            : IRoycoDayKernel(kernel_).convertCollateralAssetsToValue(_assets);
 
         // Get the post-sync tranche state
         (SyncedAccountingState memory state, AssetClaims memory trancheClaims, uint256 trancheTotalShares) =
-            IRoycoDayKernel(kernel).previewSyncTrancheAccountingFor(TRANCHE_TYPE());
+            IRoycoDayKernel(kernel_).previewSyncTrancheAccountingFor(TRANCHE_TYPE());
 
         // We exclude any idle (not reinvested) ST shares from the LPT NAV basis in order to ensure that its NAV per share does not drop due to slippage incurred on reinvestment
         NAV_UNIT navBasis = ((TRANCHE_TYPE() == TrancheType.LIQUIDITY_PROVIDER) ? state.lptRawNAV : trancheClaims.nav);
@@ -178,7 +178,7 @@ abstract contract RoycoVaultTranche is IRoycoVaultTranche, RoycoBase, ERC20Burna
     }
 
     /// @inheritdoc IRoycoVaultTranche
-    function kernel() public view virtual override(IRoycoVaultTranche) returns (address kernel) {
+    function kernel() public view virtual override(IRoycoVaultTranche) returns (address) {
         return _getRoycoVaultTrancheStorage().kernel;
     }
 
@@ -307,7 +307,7 @@ abstract contract RoycoVaultTranche is IRoycoVaultTranche, RoycoBase, ERC20Burna
      */
     function _getRoycoVaultTrancheStorage() internal pure returns (RoycoVaultTrancheState storage $) {
         assembly ("memory-safe") {
-            $.slot := ROYCO_VAULT_TRANCHE_STORAGE_SLOT
+            $.slot := _ROYCO_VAULT_TRANCHE_STORAGE_SLOT
         }
     }
 }

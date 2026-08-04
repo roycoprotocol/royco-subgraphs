@@ -290,12 +290,9 @@ templates:
         - event: FixedTermDurationUpdated(uint24)
           handler: handleFixedTermDurationUpdated
           receipt: true
-        # Latest event name; the factory seeds the initial value from getState().
+        # The factory seeds the initial value from getState().
         - event: FixedTermCommenceableAt(uint64)
           handler: handleFixedTermCommenceableAt
-          receipt: true
-        - event: FixedTermCommenceableAtTimestampUpdated(uint64)
-          handler: handleFixedTermCommenceableAtTimestampUpdated
           receipt: true
         - event: MinCoverageUpdated(uint64)
           handler: handleMinCoverageUpdated
@@ -396,9 +393,10 @@ templates:
           file: ./abis/RoycoDayAccountant.json
       eventHandlers:
         # BOTH sync events, collapsing into one row per (market, block): pre-op creates
-        # it, post-op overwrites it. Pre-op fires on EVERY sync (swap hook, oracle
-        # updates, syncTrancheAccounting, reinvest, and the first half of each
-        # operation); post-op only on the six deposit/redeem operations.
+        # it, post-op overwrites it. Pre-op fires on every explicit sync (authorized
+        # sync calls, synchronizing config updates, reinvest, and the first half of
+        # each operation); post-op only on the six deposit/redeem operations. The
+        # Balancer pool is hookless, so swaps themselves do not emit either event.
         # event.address is the KERNEL, so these resolve the market with no eth_call.
         - event: PreOpTrancheAccountingSynced((uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint32,uint256,uint256,uint256))
           handler: handlePreOpTrancheAccountingSynced

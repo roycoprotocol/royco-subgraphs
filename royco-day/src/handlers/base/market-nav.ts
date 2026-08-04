@@ -90,7 +90,7 @@ export function writeMarketNav(
     nav.marketId = market.marketId;
     // createdAt* EXACTLY ONCE (§8). Re-stamping on the sync path would build fine,
     // index fine, and quietly destroy every cohort/age query in Neon — and this row
-    // is written on every swap, so it would be re-stamped constantly.
+    // is rewritten on every explicit accounting sync.
     nav.createdAtTransactionHash = event.transaction.hash.toHexString();
     nav.createdAtBlockNumber = event.block.number;
     nav.createdAtBlockTimestamp = event.block.timestamp;
@@ -189,9 +189,10 @@ export function writeMarketNav(
 /**
  * Re-read the whole price vector from the contracts and write the row.
  *
- * !! COST: 5 eth_calls per call, on the HOTTEST path in this subgraph. The LT's
- *    Balancer V3 pool hook holds SYNC_ROLE and syncs on every swap, so this runs at
- *    AMM frequency. That cost is unavoidable rather than careless:
+ * !! COST: 6 eth_calls per explicit accounting sync. The Balancer pool is hookless,
+ *    so swaps do not invoke this path; authorized keepers, entrypoint operations,
+ *    tranche operations, reinvestment and synchronizing admin updates do. The cost is
+ *    unavoidable rather than careless:
  *      - The TrancheAccountingSynced payload is 16 MARKET-level fields (collateralNAV,
  *        jtEffectiveNAV, utilizations, ...). It carries no per-share and no
  *        per-asset-token price, so nothing here is derivable from it for free.
@@ -201,8 +202,8 @@ export function writeMarketNav(
  *      - DayVaultState holds NO price at all any more — not claims*, not sharePrice*,
  *        not assetPriceNAV. There is nothing on any other entity to copy, which is
  *        precisely because this row superseded all of them.
- *    handleTrancheAccountingSynced still deliberately does NOT refresh DayVaultState
- *    (that would be a further ~6 calls plus 3 immutable rows per swap). This is the
+ *    recordSync still deliberately does NOT refresh DayVaultState (that would be a
+ *    further ~6 calls plus 3 history rows per sync). This is the
  *    one contract-reading addition to that handler; keep it the only one.
  *
  * NO ELSE BRANCHES on the reverts, deliberately. Every one of these values was
@@ -230,16 +231,13 @@ export function refreshMarketNav(
   // SHARE decimals, and the two differ whenever a tranche's share token and its
   // underlying disagree.
   const senior = DayVaultState.load(market.seniorTrancheId);
-  // The senior tranche is MANDATORY on every market (RoycoFactory.sol:132-137), and the
-  // factory writes it in the same handler that writes the market, so a missing senior is
-  // a real fault. Bail: a vector with no senior price is indistinguishable in Neon from a
-  // market whose senior tranche is genuinely worthless.
-  if (!senior) return;
-  // The junior and liquidity slots are OPTIONAL — one of the two may be the zero address,
-  // in which case no vault was ever created and this load is legitimately null. That is
-  // NOT a fault; price the tranches that exist and leave the absent one at its fallback.
   const junior = DayVaultState.load(market.juniorTrancheId);
   const liquidity = DayVaultState.load(market.liquidityTrancheId);
+  // The factory writes all three vaults in the same handler that writes the market,
+  // so this is unreachable in practice. Bailing beats writing a half-priced row: a
+  // partial vector with three zeros in it is indistinguishable in Neon from a market
+  // whose junior tranche is genuinely worthless.
+  if (!senior || !junior || !liquidity) return;
 
   // The previous row supplies the per-leg fallback. Reusing MarketNavPrices for it
   // is not just tidiness: every field of it defaults to zero, which is exactly the right
@@ -289,67 +287,48 @@ export function refreshMarketNav(
     senior.assetTokenDecimals,
     fallback.collateralAssetPriceNAV
   );
+  prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
+    market.kernelAddress,
+    liquidity.minorType,
+    liquidity.assetTokenDecimals,
+    fallback.liquidityTrancheAssetPriceNAV
+  );
+  // The third asset price, and the only one not from a Kernel view. ONE call, using the
+  // vault and slot resolved once at market creation — re-deriving them per sync would
+  // cost two more on the hottest path in the subgraph.
+  //
+  // The pool address is the KERNEL's LPT_ASSET, not liquidity.assetTokenAddress. The two
+  // are the same token on chain (the kernel constructor requires
+  // liquidityProviderTranche.asset() == LPT_ASSET), but LPT_ASSET is the authoritative
+  // one and is literally what the venue passes as `pool`. Sourcing it from the kernel
+  // rather than the tranche means this does not silently depend on that invariant.
+  prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
+    market.balancerVaultAddress,
+    market.liquidityTrancheAssetTokenAddress,
+    market.quoteAssetPoolIndex,
+    fallback.quoteAssetPriceNAV
+  );
 
-  // The senior tranche always exists, so its share price is always re-read. One call
-  // returns the WHOLE quintuple — adding the four extra legs cost no extra eth_call, the
-  // handler was simply discarding them. The five legs also fall back TOGETHER on a
-  // revert, which is right: they are one atomic read of one struct, and mixing four fresh
-  // legs with one stale one would produce a claim that never existed at any instant.
+  // One call per tranche returns that tranche's WHOLE quintuple — adding the four
+  // extra legs per tranche cost no extra eth_call, the handler was simply discarding
+  // them. The five legs also fall back TOGETHER on a revert, which is right: they are
+  // one atomic read of one struct, and mixing four fresh legs with one stale one
+  // would produce a claim that never existed at any instant.
   prices.seniorTrancheSharePrice = sharePriceClaims(
     senior,
     market.kernelAddress,
     fallback.seniorTrancheSharePrice
   );
-
-  // The junior tranche is OPTIONAL. When absent its share price keeps the fallback (the
-  // previous row's value, or zero if none) rather than being read off a vault that does
-  // not exist.
-  if (junior) {
-    prices.juniorTrancheSharePrice = sharePriceClaims(
-      junior,
-      market.kernelAddress,
-      fallback.juniorTrancheSharePrice
-    );
-  } else {
-    prices.juniorTrancheSharePrice = fallback.juniorTrancheSharePrice;
-  }
-
-  // The liquidity tranche is OPTIONAL, and it carries THREE legs of the vector: its own
-  // asset price, the quote leg derived from its BPT, and its share price. When it is
-  // absent the market has no LPT asset and no Balancer venue at all, so all three keep
-  // the fallback and no eth_call is spent chasing a pool that was never deployed.
-  if (liquidity) {
-    prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
-      market.kernelAddress,
-      liquidity.minorType,
-      liquidity.assetTokenDecimals,
-      fallback.liquidityTrancheAssetPriceNAV
-    );
-    // The third asset price, and the only one not from a Kernel view. ONE call, using the
-    // vault and slot resolved once at market creation — re-deriving them per sync would
-    // cost two more on the hottest path in the subgraph.
-    //
-    // The pool address is the KERNEL's LPT_ASSET, not liquidity.assetTokenAddress. The
-    // two are the same token on chain (the kernel constructor requires
-    // liquidityProviderTranche.asset() == LPT_ASSET), but LPT_ASSET is the authoritative
-    // one and is literally what the venue passes as `pool`. Sourcing it from the kernel
-    // rather than the tranche means this does not silently depend on that invariant.
-    prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
-      market.balancerVaultAddress,
-      market.liquidityTrancheAssetTokenAddress,
-      market.quoteAssetPoolIndex,
-      fallback.quoteAssetPriceNAV
-    );
-    prices.liquidityTrancheSharePrice = sharePriceClaims(
-      liquidity,
-      market.kernelAddress,
-      fallback.liquidityTrancheSharePrice
-    );
-  } else {
-    prices.liquidityTrancheAssetPriceNAV = fallback.liquidityTrancheAssetPriceNAV;
-    prices.quoteAssetPriceNAV = fallback.quoteAssetPriceNAV;
-    prices.liquidityTrancheSharePrice = fallback.liquidityTrancheSharePrice;
-  }
+  prices.juniorTrancheSharePrice = sharePriceClaims(
+    junior,
+    market.kernelAddress,
+    fallback.juniorTrancheSharePrice
+  );
+  prices.liquidityTrancheSharePrice = sharePriceClaims(
+    liquidity,
+    market.kernelAddress,
+    fallback.liquidityTrancheSharePrice
+  );
 
   writeMarketNav(event, market, prices);
 }
@@ -432,35 +411,17 @@ function sharePriceClaims(
 }
 
 /**
- * Assemble the whole price vector at MARKET CREATION. TWO eth_calls.
+ * Assemble the provisional creation-block price vector.
  *
- * The asset prices are read here rather than copied off the vaults: DayVaultState no
- * longer stores a price of any kind, so this is their only source. Two calls, not
- * three — senior and junior are coinvested in one collateral asset and share a
- * converter, so `senior` below stands in for both.
- *
- * All fifteen SHARE-price legs are left at MarketNavPrices' zero defaults, and that
- * is an assertion about the contracts, not a shortcut: a market has no shares at
- * deployment (every _mint lives in deposit / depositMultiAsset / mint /
- * mintProtocolFeeShares / mintLiquidityPremiumShares, none reachable from
- * deployMarket or initialize), and _scaleAssetClaims returns the zero struct whenever
- * total shares is zero, for ANY input — including one whole share
- * (TrancheClaimsLogic.sol:126). So three try_convertToAssets calls here would spend an
- * eth_call each to be told zero.
- *
- * !! If a future template CAN seed supply during deployMarket, this goes silently
- *    wrong — the zero guard in _scaleAssetClaims is the only thing holding it up, and
- *    nothing here would notice. The fix then is to call sharePriceClaims() per tranche
- *    rather than to reintroduce a vault copy: DayVaultState no longer stores these.
- *
- * NOT valid anywhere but creation. Mid-life the answer must come from the chain — see
- * refreshMarketNav.
+ * The deployment seeds the LPT before MarketDeploymentCompleted. Graph Node replays
+ * the new templates' earlier same-block events after this handler, so their Transfer
+ * and sync handlers replace this bootstrap snapshot with the final block state.
  */
 export function marketNavPricesFromVaults(
   market: DayMarketState,
   senior: DayVaultState,
-  junior: DayVaultState | null,
-  liquidity: DayVaultState | null
+  junior: DayVaultState,
+  liquidity: DayVaultState
 ): MarketNavPrices {
   const prices = new MarketNavPrices();
   // No previous row exists at creation, so the fallback is zero (§5/§8).
@@ -470,98 +431,35 @@ export function marketNavPricesFromVaults(
     senior.assetTokenDecimals,
     BigInt.zero()
   );
-  // The liquidity tranche is OPTIONAL. When it is absent the market has no LPT asset and
-  // no Balancer venue, so both its asset price and the quote leg derived from its BPT
-  // stay at the zero default — the honest value for a leg that does not exist. The
-  // guarded reads also avoid dereferencing a null vault for its minorType/decimals.
-  if (liquidity) {
-    prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
-      market.kernelAddress,
-      liquidity.minorType,
-      liquidity.assetTokenDecimals,
-      BigInt.zero()
-    );
-    // Priced at creation like its two siblings, so entry 0 carries a real vector rather
-    // than a zero this column would otherwise keep until the first sync. The caller has
-    // already resolved the vault and slot onto `market`, so this is one call.
-    prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
-      market.balancerVaultAddress,
-      market.liquidityTrancheAssetTokenAddress,
-      market.quoteAssetPoolIndex,
-      BigInt.zero()
-    );
-  }
+  prices.liquidityTrancheAssetPriceNAV = assetPriceNAV(
+    market.kernelAddress,
+    liquidity.minorType,
+    liquidity.assetTokenDecimals,
+    BigInt.zero()
+  );
+  // Priced at creation like its two siblings, so entry 0 carries a real vector rather
+  // than a zero this column would otherwise keep until the first sync. The caller has
+  // already resolved the vault and slot onto `market`, so this is one call.
+  prices.quoteAssetPriceNAV = quoteAssetPriceNAV(
+    market.balancerVaultAddress,
+    market.liquidityTrancheAssetTokenAddress,
+    market.quoteAssetPoolIndex,
+    BigInt.zero()
+  );
 
-  // THE THREE SHARE PRICES, at the BOOTSTRAP rate — and with no eth_call, because the
-  // answer is known rather than looked up.
-  //
-  // Every tranche is provably empty here: deployMarket only predicts addresses and
-  // wires roles, and every mint path (kernelMint, the protocol-fee mint, the senior
-  // premium mint) is onlyKernel and guarded, so none can have run. At zero supply the
-  // protocol's own share rate — ValuationLogic._computeTrancheShareRate, i.e.
-  // _convertToValue(WAD, supply, nav) — is
-  //     (0 + VIRTUAL_VALUE) * WAD / (0 + VIRTUAL_SHARES)  ==  1 * 1e18 / 1  ==  1e18
-  // one WHOLE NAV UNIT per whole share. $1, the numeraire being pinned to USD by the
-  // quote leg's rate. That is also the ratio the first depositor mints at, since
-  // _convertToSharesUnclamped is the same expression inverted.
-  //
-  // Calling convertToAssets instead would return the ZERO struct and be WRONG for the
-  // nav leg: that function is the pro-rata claim on REAL assets, and
-  // AssetLedgerLogic._scaleAssetClaims short-circuits at `_totalTrancheShares == 0`
-  // BEFORE the virtual-share arithmetic that defines the price. sharePriceClaims patches
-  // that same hole on the sync path; here we skip the call entirely.
-  //
-  // Only the NAV leg is set. The other three legs are genuinely zero — a virtual value
-  // backs the price, but the tranche holds no collateral, LPT assets or ST shares yet.
-  //
-  // Each counterparty tranche is bootstrapped only when it exists; an absent slot keeps
-  // the zero-default quintuple, which is the truthful price of a tranche the market does
-  // not have.
+  // The factory handler has not replayed same-block tranche transfers yet, so all three
+  // in-memory supplies are still zero. Seed the virtual-share bootstrap; a deployment
+  // sync later in the block replaces it for the already-seeded LPT.
   prices.seniorTrancheSharePrice = bootstrapSharePrice(senior, market.kernelAddress);
-  if (junior) {
-    prices.juniorTrancheSharePrice = bootstrapSharePrice(
-      junior,
-      market.kernelAddress
-    );
-  }
-  if (liquidity) {
-    prices.liquidityTrancheSharePrice = bootstrapSharePrice(
-      liquidity,
-      market.kernelAddress
-    );
-  }
+  prices.juniorTrancheSharePrice = bootstrapSharePrice(junior, market.kernelAddress);
+  prices.liquidityTrancheSharePrice = bootstrapSharePrice(
+    liquidity,
+    market.kernelAddress
+  );
   return prices;
 }
 
-/**
- * One whole share of an EMPTY tranche, at the virtual-share bootstrap rate.
- *
- * nav = 10 ** shareTokenDecimals — one whole NAV unit, $1. See the note at the call site
- * in marketNavPricesFromVaults for why that is the contract's own answer and
- * convertToAssets' zero is not.
- *
- * THE ASSET LEG IS THE SAME VALUE, DENOMINATED IN THAT TRANCHE'S OWN ASSET, obtained by
- * running the nav back through the kernel's inverse converter. It is not a second,
- * independent price: `convertValueToCollateralAssets` / `convertValueToLPTAssets` are the
- * exact inverses of the `convert*AssetsToValue` pair used for *AssetPriceNAV, so the leg
- * answers "how much of this tranche's asset is one whole share worth" at the same oracle
- * mark. On a $1 share and a $1 asset it lands on one whole asset token; on a 4000/unit
- * collateral it lands on 1/4000th.
- *
- * ONE CONVERTER PER TRANCHE, dispatched on minorType — never on TRANCHE_TYPE() == 0/1/2,
- * whose ordering is an inference (§6). Senior and junior share the collateral converter
- * because they share the asset; only the liquidity tranche has its own.
- *
- * WHICH LEG IS FILLED matches the branch in TrancheClaimsLogic exactly, so the zero
- * pattern the schema documents is preserved: SENIOR/JUNIOR fill collateralAssets and
- * leave lptAssets and stShares at 0; LIQUIDITY fills lptAssets and leaves
- * collateralAssets at 0. stShares is 0 on every tranche.
- *
- * `try_` because both converters DIVIDE BY AN ORACLE PRICE (_getCollateralAssetPrice /
- * _getLPTAssetPrice): a stale feed, a downed sequencer or a zero price all revert. On a
- * revert the asset leg stays 0 while nav keeps its bootstrap value — the price of the
- * share is still known, only its asset denomination is not.
- */
+/** One whole share at the virtual-share bootstrap rate, converted to its asset leg. */
 function bootstrapSharePrice(
   vault: DayVaultState,
   kernelAddress: string

@@ -397,7 +397,7 @@ describe("DayMarketNav on TrancheAccountingSynced", () => {
 
   test("createdAt is stamped once; only updatedAt follows the sync", () => {
     // Re-stamping createdAt builds fine, indexes fine, and quietly destroys every
-    // cohort/age query in Neon — and this row is rewritten on every swap, so it
+    // cohort/age query in Neon — and this row is rewritten on every sync, so it
     // would be re-stamped constantly.
     deployMarket();
 
@@ -473,8 +473,8 @@ describe("DayMarketNav on TrancheAccountingSynced", () => {
   });
 
   test("a sync while the tranche is STILL EMPTY reports $1, not zero", () => {
-    // THE REALISTIC GAP: a market is created, and before anyone deposits, the LT's
-    // Balancer pool hook fires a swap-driven sync. Supply is still zero, so
+    // THE REALISTIC GAP: a market is created and an explicit accounting sync runs
+    // before anyone deposits. Supply is still zero, so
     // convertToAssets returns the ZERO struct — AssetLedgerLogic._scaleAssetClaims
     // short-circuits at `_totalTrancheShares == 0` before the virtual-share arithmetic.
     //

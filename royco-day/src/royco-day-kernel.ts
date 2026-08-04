@@ -1,4 +1,4 @@
-import { BigInt, ethereum } from "@graphprotocol/graph-ts";
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts";
 import {
   ProtocolFeeRecipientUpdated as ProtocolFeeRecipientUpdatedEvent,
   SeniorTrancheSelfLiquidationBonusUpdated as SeniorTrancheSelfLiquidationBonusUpdatedEvent,
@@ -14,6 +14,7 @@ import {
   PreOpTrancheAccountingSynced as PreOpTrancheAccountingSyncedEvent,
   PostOpTrancheAccountingSynced as PostOpTrancheAccountingSyncedEvent,
 } from "../generated/templates/RoycoDayKernel/RoycoDayKernel";
+import { RoycoDayAccountant as RoycoDayAccountantContract } from "../generated/templates/RoycoDayKernel/RoycoDayAccountant";
 import {
   DayMarketState,
   DayLiquidityPremiumReinvestedHistory,
@@ -127,8 +128,87 @@ export function handleLiquidityPremiumReinvested(
   entry.save();
 
   market.countLiquidityPremiumReinvestedEntries = entryIndex.plus(BigInt.fromI32(1));
+
+  // The successful reinvestment log is emitted before the kernel recommits the fresh
+  // LPT raw NAV. The preceding sync packet is therefore pre-tail, while every eth_call
+  // made by a subgraph handler observes this block's final state. Patch only the two
+  // fields the tail can change; all other accounting fields still come from the actual
+  // sync event and must not be replaced with a hypothetical preview.
+  refreshPostReinvestmentAccounting(event, market);
+
   // Persists the cursor bump as well as updatedAt*.
   touchMarket(event, market);
+}
+
+/**
+ * Reconcile the block-collapsed accounting row after a successful reinvestment tail.
+ *
+ * Event order on chain is:
+ *   PostOp/PreOpTrancheAccountingSynced -> LiquidityPremiumReinvested
+ *   -> commitLiquidityProviderTrancheRawNAV (no event).
+ *
+ * graph-node contract calls are block-scoped rather than log-scoped, so getState()
+ * observes the final commit even though it executes after the success log. Reading the
+ * committed value is both cheaper and safer than previewing a new sync: a preview can
+ * change PnL/fees/state, can revert, and would describe accounting that never committed.
+ */
+function refreshPostReinvestmentAccounting(
+  event: LiquidityPremiumReinvestedEvent,
+  market: DayMarketState
+): void {
+  const accountingId = generateMarketBlockRecordId(
+    market.marketId,
+    event.block.number
+  );
+  const accounting = DayTrancheAccountingSyncedHistory.load(accountingId);
+  // Every successful reinvestment is preceded by a sync in the same transaction, but a
+  // guard keeps a malformed or partially indexed deployment from stalling the subgraph.
+  if (!accounting) return;
+
+  const accountant = RoycoDayAccountantContract.bind(
+    Address.fromString(market.accountantAddress)
+  );
+  const stored = accountant.try_getState();
+  // A plain storage read should not revert. Keep the event-sourced values if it ever
+  // does; a raw call here would halt indexing for every market.
+  if (stored.reverted) return;
+
+  const lptRawNAV = stored.value.lastLPTRawNAV;
+  const liquidityUtilizationWAD = computeLiquidityUtilizationWAD(
+    accounting.seniorTrancheEffectiveNAV,
+    accounting.minLiquidityWAD,
+    lptRawNAV
+  );
+
+  accounting.liquidityTrancheRawNAV = lptRawNAV;
+  accounting.liquidityUtilizationWAD = liquidityUtilizationWAD;
+  // Keep the row's syncType, operation, fees and updatedAt* anchored to the real sync.
+  accounting.save();
+
+  market.liquidityTrancheRawNAV = lptRawNAV;
+  market.liquidityUtilizationWAD = liquidityUtilizationWAD;
+}
+
+/** Exact AssemblyScript twin of UtilizationLogic._computeLiquidityUtilization. */
+function computeLiquidityUtilizationWAD(
+  seniorTrancheEffectiveNAV: BigInt,
+  minLiquidityWAD: BigInt,
+  liquidityTrancheRawNAV: BigInt
+): BigInt {
+  if (seniorTrancheEffectiveNAV.isZero() || minLiquidityWAD.isZero()) {
+    return BigInt.zero();
+  }
+  if (liquidityTrancheRawNAV.isZero()) {
+    return BigInt.fromString(
+      "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    );
+  }
+
+  const numerator = seniorTrancheEffectiveNAV.times(minLiquidityWAD);
+  const quotient = numerator.div(liquidityTrancheRawNAV);
+  return numerator.mod(liquidityTrancheRawNAV).isZero()
+    ? quotient
+    : quotient.plus(BigInt.fromI32(1));
 }
 
 /**
@@ -306,8 +386,8 @@ class SyncedState {
 /**
  * BOTH kernel sync events land here, and they COLLAPSE PER BLOCK.
  *
- *   PreOpTrancheAccountingSynced  — fires on EVERY sync: the liquidity venue's swap
- *                                   hook, oracle updates, syncTrancheAccounting,
+ *   PreOpTrancheAccountingSynced  — fires on every explicit sync: authorized sync
+ *                                   calls, accounting/oracle updates that synchronize,
  *                                   reinvestLiquidityPremium, and the first half of
  *                                   every deposit and redemption.
  *   PostOpTrancheAccountingSynced — fires only on the six deposit/redeem operations,
@@ -315,7 +395,7 @@ class SyncedState {
  *
  * THE COLLAPSE RULE: one DayTrancheAccountingSyncedHistory row per (market, block).
  * The first sync in a block creates it; every later sync in that same block
- * OVERWRITES it. So a swap-only block leaves a `preOp` row, and a
+ * OVERWRITES it. So a block with only an explicit sync leaves a `preOp` row, and a
  * deposit block leaves a `postOp` row because the post-op fires second and wins.
  *
  * That is why the id is keyed by BLOCK NUMBER and why the entity is `immutable: false`
@@ -443,8 +523,8 @@ function recordSync(
   // An EMPTY tranche is handled inside sharePriceClaims, not here: convertToAssets
   // returns the ZERO struct at zero supply, which is the pro-rata claim on real assets
   // and NOT the share price, so it substitutes the $1 virtual-share bootstrap. That
-  // matters on this path specifically — the LT's Balancer hook can sync on a swap before
-  // anyone has deposited, and taking the contract's zero at face value would drop the
+  // matters on this path specifically — an explicit sync can run before anyone has
+  // deposited, and taking the contract's zero at face value would drop the
   // price from the $1 written at creation to 0 and snap it back on the first deposit.
   refreshMarketNav(event, market);
 

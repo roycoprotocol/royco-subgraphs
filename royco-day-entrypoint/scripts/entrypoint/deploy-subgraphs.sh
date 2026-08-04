@@ -12,7 +12,7 @@ networks=(
     staging
 )
 
-version="2.0.3"
+version="1.0.0"
 
 prepare_and_deploy() {
     local network=$1

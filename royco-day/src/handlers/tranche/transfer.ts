@@ -87,7 +87,6 @@ export function processTransfer(
     vaultAddress,
     CATEGORY_SHARES,
     subCategory,
-    vault.shareTokenId,
     vault.shareTokenAddress,
     fromAddress,
     toAddress,
@@ -96,8 +95,7 @@ export function processTransfer(
     event.block.number,
     event.block.timestamp,
     event.transaction.hash.toHexString(),
-    event.logIndex,
-    true
+    event.logIndex
   );
 
   // A mint/burn is one account-facing event; a plain transfer is two. The two
