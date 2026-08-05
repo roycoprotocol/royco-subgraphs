@@ -88,6 +88,18 @@ type DayMarketState @entity(immutable: false) {
   id: String! # <CHAIN_ID>_<MARKET_ID> where "marketId" is "kernelAddress"
   chainId: BigInt! # Chain ID
   marketId: String! # Market ID (is "kernelAddress")
+  factoryAddress: String! # Factory Address <- the EMITTER of MarketDeploymentCompleted (event.address), not an event param
+  # ^ WHICH FACTORY DEPLOYED THIS MARKET. Not carried in the event payload — it is the
+  #   emitting contract, and RoycoFactory.executeMarketDeployment is the sole emit site,
+  #   so event.address IS the factory. Read off the event rather than the static config so
+  #   the column is a fact about the row, not about whichever network was prepared last.
+  #
+  #   THIS IS THE ONLY FIRST-CLASS MAINNET-vs-STAGING DISCRIMINATOR IN THE SHARED TABLES.
+  #   The two deployments are separate subgraphs with SEPARATE FACTORIES on the same chain
+  #   (staging's deploys mock markets), unioned by one pipeline into the same Neon tables
+  #   with CHAIN_ID 1 on both — see §11. Until now staging rows were told apart "only by
+  #   their (mock) market/vault addresses", i.e. by knowing the address set out of band.
+  #   `WHERE factory_address = '0x…'` replaces that.
   templateAddress: String! # Template Address
   deployerAddress: String! # Deployer Address
   seniorTrancheAddress: String! # Senior Tranche Address

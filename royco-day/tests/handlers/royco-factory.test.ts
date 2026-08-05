@@ -16,7 +16,7 @@ import {
   mockDayMarket,
   withoutQuoteAsset,
 } from "../mocks";
-import { ctx } from "../helpers/event";
+import { ctx, EventContext } from "../helpers/event";
 import {
   ADDR_ACCOUNTANT,
   ADDR_ASSET,
@@ -26,6 +26,7 @@ import {
   ADDR_QUOTE_ASSET,
   ADDR_ZERO,
   ADDR_DEPLOYER,
+  ADDR_FACTORY,
   ADDR_FEE_RECIPIENT,
   ADDR_JT_YDM,
   ADDR_JUNIOR,
@@ -92,9 +93,23 @@ function deploy(market: DayMarketFixture): void {
       ADDR_TEMPLATE,
       ADDR_DEPLOYER,
       new DeploymentResult(),
-      ctx()
+      factoryCtx()
     )
   );
+}
+
+/**
+ * The event context for a FACTORY event.
+ *
+ * ctx() defaults its emitter to ADDR_SENIOR — right for a tranche event, wrong here.
+ * MarketDeploymentCompleted is emitted by the factory, and DayMarketState.factoryAddress
+ * reads event.address, so without this every market row in this suite would record a
+ * tranche as its own factory and the column would assert nothing.
+ */
+function factoryCtx(): EventContext {
+  const c = ctx();
+  c.emitter = ADDR_FACTORY;
+  return c;
 }
 
 /** The common case: a coherent, non-degenerate market, deployed. */
@@ -164,6 +179,16 @@ describe("handleMarketDeploymentCompleted", () => {
   test("every DeploymentResult component lands in its own field", () => {
     deployStandard();
 
+    // The EMITTER, which no DeploymentResult component carries — event.address, not a
+    // param. ADDR_FACTORY is distinct from every other address in the fixture, so
+    // sourcing this from `template`, `deployer` or a tranche fails here rather than
+    // passing on a coincidentally-equal value.
+    assert.fieldEquals(
+      "DayMarketState",
+      MARKET_ID,
+      "factoryAddress",
+      ADDR_FACTORY.toHexString()
+    );
     assert.fieldEquals(
       "DayMarketState",
       MARKET_ID,
@@ -824,7 +849,7 @@ describe("handleMarketDeploymentCompleted", () => {
         ADDR_TEMPLATE,
         ADDR_DEPLOYER,
         new DeploymentResult(),
-        ctx()
+        factoryCtx()
       )
     );
 

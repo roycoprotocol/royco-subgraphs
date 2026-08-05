@@ -85,6 +85,11 @@ export function handleMarketDeploymentCompleted(
   // === from the event ===
   market.chainId = CHAIN_ID;
   market.marketId = marketId;
+  // THE EMITTER, not a param — MarketDeploymentCompleted carries no factory address
+  // because RoycoFactory emits it about itself. Off the event rather than the prepared
+  // config, so the row records the factory that actually deployed it; that is what tells
+  // mainnet rows from staging's mock-market rows in the shared Neon tables (§11).
+  market.factoryAddress = event.address.toHexString();
   market.templateAddress = event.params.template.toHexString();
   market.deployerAddress = event.params.deployer.toHexString();
   market.seniorTrancheAddress = result.seniorTranche.toHexString();
